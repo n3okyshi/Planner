@@ -5,11 +5,7 @@
 const settingsView = {
     render(containerId, userConfig) {
         const container = document.getElementById(containerId);
-        
-        // Pega as configs (com fallback seguro)
         const config = userConfig || (model.state && model.state.userConfig) || {};
-        
-        // Pega o usuário logado direto do Model (que foi atualizado pelo firebase-service)
         const user = model.currentUser;
 
         container.innerHTML = `
@@ -179,10 +175,10 @@ const settingsView = {
     renderOptionPeriodo(value, label, current) {
         const safeCurrent = current || 'bimestre';
         const active = value === safeCurrent;
-        const classes = active 
-            ? "border-primary bg-primary/5 ring-1 ring-primary text-primary shadow-sm" 
+        const classes = active
+            ? "border-primary bg-primary/5 ring-1 ring-primary text-primary shadow-sm"
             : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600";
-            
+
         return `
             <button onclick="controller.updatePeriodType('${value}')" 
                     class="border rounded-xl p-4 text-sm font-bold transition-all flex flex-col items-center justify-center gap-2 ${classes}">
