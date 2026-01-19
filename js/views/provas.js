@@ -1,0 +1,300 @@
+/**
+ * VIEW - Gerador de Provas e Atividades
+ * Funcionalidade: Banco de questões, seleção múltipla e layout de impressão A4.
+ */
+const provasView = {
+    // Estado local da View (quais questões estão selecionadas para impressão)
+    selecionadas: new Set(),
+    termoBusca: '',
+
+    /**
+     * Renderiza a interface principal
+     */
+    render(containerId) {
+        const container = document.getElementById(containerId);
+        // Garante lista de questões
+        const questoes = (model.state && model.state.questoes) ? model.state.questoes : [];
+
+        // Filtra as questões baseado na busca
+        const questoesFiltradas = this.filtrarQuestoes(questoes);
+
+        const html = `
+            <div class="fade-in pb-24">
+                <div class="flex flex-wrap justify-between items-end mb-8 gap-4">
+                    <div>
+                        <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Gerador de Avaliações</h2>
+                        <p class="text-slate-500">Selecione questões do banco para montar sua prova.</p>
+                    </div>
+                    <button onclick="provasView.openAddQuestao()" 
+                            class="btn-primary px-6 py-3 rounded-xl font-bold flex items-center gap-2 shadow-lg shadow-primary/20 hover:scale-105 transition-transform">
+                        <i class="fas fa-plus"></i> Nova Questão
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                    
+                    <div class="lg:col-span-2 space-y-6">
+                        
+                        <div class="bg-white p-2 rounded-xl border border-slate-200 flex items-center shadow-sm focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10 transition-all">
+                            <div class="w-10 h-10 flex items-center justify-center text-slate-400">
+                                <i class="fas fa-search"></i>
+                            </div>
+                            <input type="text" 
+                                   placeholder="Buscar por matéria ou enunciado..." 
+                                   class="w-full bg-transparent outline-none text-slate-700 placeholder:text-slate-400 font-medium"
+                                   onkeyup="provasView.atualizarBusca(this.value)">
+                        </div>
+
+                        <div class="space-y-4" id="lista-questoes">
+                            ${questoesFiltradas.length > 0
+                ? questoesFiltradas.map(q => this.cardQuestao(q)).join('')
+                : this.estadoVazio()}
+                        </div>
+                    </div>
+
+                    <div class="lg:col-span-1 sticky top-24">
+                        <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 ring-1 ring-slate-200/50">
+                            <div class="flex items-center gap-3 mb-4 border-b border-slate-50 pb-4">
+                                <div class="bg-indigo-100 text-indigo-600 w-10 h-10 rounded-lg flex items-center justify-center">
+                                    <i class="fas fa-file-alt text-lg"></i>
+                                </div>
+                                <div>
+                                    <h3 class="font-bold text-slate-800">Prova Atual</h3>
+                                    <p class="text-xs text-slate-500">Questões selecionadas</p>
+                                </div>
+                            </div>
+
+                            <div class="mb-6">
+                                <div class="text-4xl font-black text-slate-800 mb-1 text-center">
+                                    ${this.selecionadas.size}
+                                </div>
+                                <p class="text-center text-xs font-bold text-slate-400 uppercase tracking-widest">Questões</p>
+                            </div>
+
+                            <div class="space-y-3">
+                                <button onclick="provasView.imprimirProva()" 
+                                        class="w-full py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition flex items-center justify-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
+                                        ${this.selecionadas.size === 0 ? 'disabled' : ''}>
+                                    <i class="fas fa-print"></i> Gerar PDF / Imprimir
+                                </button>
+                                
+                                ${this.selecionadas.size > 0 ? `
+                                    <button onclick="provasView.limparSelecao()" class="w-full py-2 text-red-500 text-xs font-bold hover:bg-red-50 rounded-lg transition">
+                                        Limpar Seleção
+                                    </button>
+                                ` : ''}
+                            </div>
+
+                            <div class="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-100 text-xs text-slate-500 leading-relaxed text-center">
+                                <i class="fas fa-info-circle mb-1 text-slate-400"></i><br>
+                                Selecione as questões ao lado clicando no botão "+" para montar sua avaliação.
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        `;
+
+        container.innerHTML = html;
+    },
+
+    /**
+     * Card individual da questão
+     */
+    cardQuestao(q) {
+        const isSelected = this.selecionadas.has(q.id);
+        const borderClass = isSelected ? 'border-primary ring-1 ring-primary bg-blue-50/30' : 'border-slate-200 hover:border-slate-300 bg-white';
+        const btnClass = isSelected ? 'bg-red-100 text-red-500 hover:bg-red-200' : 'bg-slate-100 text-slate-400 hover:bg-primary hover:text-white';
+        const iconClass = isSelected ? 'fa-minus' : 'fa-plus';
+
+        return `
+            <div class="p-5 rounded-2xl border transition-all duration-200 ${borderClass} group relative">
+                <div class="flex justify-between items-start gap-4 mb-3">
+                    <span class="px-2.5 py-1 bg-slate-100 text-[10px] font-black text-slate-500 rounded uppercase tracking-wider">
+                        ${q.materia || 'Geral'}
+                    </span>
+                    
+                    <div class="flex gap-2">
+                        <button onclick="provasView.toggleSelecao(${q.id})" 
+                                class="w-8 h-8 rounded-lg flex items-center justify-center transition-colors shadow-sm ${btnClass}"
+                                title="${isSelected ? 'Remover da prova' : 'Adicionar à prova'}">
+                            <i class="fas ${iconClass}"></i>
+                        </button>
+                        
+                        ${!isSelected ? `
+                            <button onclick="controller.deleteQuestao(${q.id}); provasView.render('view-container')" 
+                                    class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+                
+                <p class="text-slate-700 text-sm leading-relaxed font-medium">
+                    ${q.enunciado.replace(/\n/g, '<br>')}
+                </p>
+                
+                <div class="mt-3 pt-3 border-t border-slate-100/50 flex justify-between items-center">
+                    <span class="text-[10px] text-slate-400">Adicionada em ${new Date(q.createdAt || Date.now()).toLocaleDateString()}</span>
+                    ${isSelected ? '<span class="text-[10px] font-bold text-primary flex items-center gap-1"><i class="fas fa-check-circle"></i> Selecionada</span>' : ''}
+                </div>
+            </div>
+        `;
+    },
+
+    // --- LÓGICA DE ESTADO LOCAL ---
+
+    filtrarQuestoes(todas) {
+        if (!this.termoBusca) return todas;
+        const termo = this.termoBusca.toLowerCase();
+        return todas.filter(q =>
+            (q.materia && q.materia.toLowerCase().includes(termo)) ||
+            (q.enunciado && q.enunciado.toLowerCase().includes(termo))
+        );
+    },
+
+    atualizarBusca(valor) {
+        this.termoBusca = valor;
+        this.render('view-container');
+        // Mantém o foco no input após renderizar (truque de UX)
+        const input = document.querySelector('input[type="text"]');
+        if (input) {
+            input.focus();
+            input.value = valor;
+        }
+    },
+
+    toggleSelecao(id) {
+        if (this.selecionadas.has(id)) {
+            this.selecionadas.delete(id);
+        } else {
+            this.selecionadas.add(id);
+        }
+        this.render('view-container');
+    },
+
+    limparSelecao() {
+        if (confirm("Remover todas as questões da prova atual?")) {
+            this.selecionadas.clear();
+            this.render('view-container');
+        }
+    },
+
+    // --- MODAL DE ADIÇÃO ---
+
+    openAddQuestao() {
+        controller.openModal('Adicionar ao Banco de Questões', `
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Disciplina / Matéria</label>
+                    <input type="text" id="q-materia" placeholder="Ex: História, Matemática..." 
+                           class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Enunciado da Questão</label>
+                    <textarea id="q-enunciado" rows="5" placeholder="Digite o texto da questão..." 
+                              class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary text-slate-700"></textarea>
+                </div>
+                <div class="flex justify-end gap-3 pt-2">
+                    <button onclick="controller.closeModal()" class="px-4 py-2 text-slate-500 font-bold hover:bg-slate-50 rounded-lg">Cancelar</button>
+                    <button onclick="provasView.salvarQuestao()" class="btn-primary px-6 py-2 rounded-xl font-bold shadow-lg shadow-primary/20">Salvar Questão</button>
+                </div>
+            </div>
+        `);
+    },
+
+    salvarQuestao() {
+        const materia = document.getElementById('q-materia').value;
+        const enunciado = document.getElementById('q-enunciado').value;
+
+        if (enunciado) {
+            model.addQuestao({ materia, enunciado });
+            controller.closeModal();
+            this.render('view-container'); // Atualiza a lista
+        } else {
+            alert("O enunciado é obrigatório.");
+        }
+    },
+
+    // --- IMPRESSÃO (O Pulo do Gato) ---
+
+    imprimirProva() {
+        const todas = model.state.questoes || [];
+        const selecionadas = todas.filter(q => this.selecionadas.has(q.id));
+
+        if (selecionadas.length === 0) return alert("Selecione pelo menos uma questão.");
+
+        // Estilo CSS para impressão (A4)
+        const estiloImpressao = `
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+                body { font-family: 'Roboto', sans-serif; padding: 40px; color: #000; }
+                .header { border: 1px solid #000; padding: 15px; margin-bottom: 40px; border-radius: 4px; }
+                .header p { margin: 5px 0; font-size: 14px; }
+                .linha { display: inline-block; border-bottom: 1px solid #000; width: 60%; }
+                .titulo-prova { text-align: center; text-transform: uppercase; font-weight: bold; font-size: 18px; margin-bottom: 40px; border-bottom: 2px solid #000; padding-bottom: 10px; display: inline-block; width: 100%; }
+                .questao { margin-bottom: 30px; page-break-inside: avoid; }
+                .questao-numero { font-weight: bold; margin-bottom: 10px; display: block; font-size: 16px; }
+                .questao-texto { font-size: 14px; line-height: 1.5; text-align: justify; margin-bottom: 15px; }
+                .resposta-area { border: 1px dashed #ccc; height: 100px; width: 100%; display: block; margin-top: 10px; }
+                @media print {
+                    .no-print { display: none; }
+                    body { -webkit-print-color-adjust: exact; }
+                }
+            </style>
+        `;
+
+        const conteudo = `
+            <html>
+            <head><title>Impressão de Avaliação</title>${estiloImpressao}</head>
+            <body>
+                <div class="header">
+                    <p><strong>ESCOLA:</strong> ${model.state.userConfig.schoolName || '________________________________________________'}</p>
+                    <p><strong>PROFESSOR(A):</strong> ${model.state.userConfig.profName || '__________________________'} &nbsp;&nbsp; <strong>DATA:</strong> ____/____/____</p>
+                    <p><strong>ALUNO(A):</strong> _______________________________________________________ <strong>TURMA:</strong> ________</p>
+                </div>
+
+                <div class="titulo-prova">Avaliação de Aprendizagem</div>
+
+                ${selecionadas.map((q, i) => `
+                    <div class="questao">
+                        <span class="questao-numero">${i + 1})</span>
+                        <div class="questao-texto">${q.enunciado.replace(/\n/g, '<br>')}</div>
+                        <div style="margin-top: 20px;">
+                            Resposta: __________________________________________________________________________<br><br>
+                            ___________________________________________________________________________________
+                        </div>
+                    </div>
+                `).join('')}
+                
+                <script>window.print();</script>
+            </body>
+            </html>
+        `;
+
+        const win = window.open('', '_blank');
+        win.document.write(conteudo);
+        win.document.close();
+    },
+
+    estadoVazio() {
+        return `
+            <div class="flex flex-col items-center justify-center py-16 px-4 bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl text-center">
+                <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center mb-4 text-slate-300 shadow-sm">
+                    <i class="fas fa-box-open text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-600 mb-1">Banco Vazio</h3>
+                <p class="text-slate-400 text-sm mb-4">Você ainda não cadastrou nenhuma questão.</p>
+                <button onclick="provasView.openAddQuestao()" class="text-primary font-bold text-sm hover:underline">
+                    Adicionar Primeira Questão
+                </button>
+            </div>
+        `;
+    }
+};
+
+window.View = window.View || {};
+window.View.renderProvas = (id) => provasView.render(id);
+// Alias para compatibilidade com controller antigo
+window.View.renderGeradorProvas = (id) => provasView.render(id);
