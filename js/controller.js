@@ -469,6 +469,21 @@ const controller = {
         }, 2000);
     },
 
+    // --- AUTENTICAÇÃO ---
+    handleLogin() {
+        if (window.firebaseService) {
+            firebaseService.loginGoogle();
+        } else {
+            alert("Serviço Firebase não configurado.");
+        }
+    },
+
+    handleLogout() {
+        if (confirm("Deseja desconectar sua conta?")) {
+            if (window.firebaseService) firebaseService.logout();
+        }
+    },
+
     // =========================================================================
     // CONFIGURAÇÕES
     // =========================================================================
