@@ -29,138 +29,156 @@
     </script>
 </head>
 
-<body class="flex min-h-screen bg-slate-50 text-slate-900 font-sans ">
-    <aside class="sidebar w-64 text-white flex flex-col shadow-2xl fixed h-full z-20 transition-all bg-slate-900">
-        <div class="p-6 flex items-center gap-3 border-b border-white/10">
-            <div
-                class="bg-white/5 p-2 rounded-xl border border-white/10 text-primary shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)]">
-                <i class="fas fa-graduation-cap text-xl drop-shadow-sm"></i>
-            </div>
-            <div>
-                <h1 class="font-bold text-lg tracking-tight text-white">Planner</h1>
-                <p class="text-[10px] text-slate-400 uppercase tracking-widest">Docente 2026</p>
-            </div>
-        </div>
-        <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1 custom-scrollbar">
-            <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-2">Visão Geral</p>
-            <button id="nav-dashboard" onclick="controller.navigate('dashboard')"
-                class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group">
+<body class="flex min-h-screen bg-slate-50 text-slate-900 font-sans overflow-x-hidden">
+    <aside id="app-sidebar"
+        class="sidebar w-64 text-white flex flex-col shadow-2xl fixed h-full z-20 bg-slate-900 overflow-hidden">
+        <div class="p-4 flex items-center justify-between border-b border-white/10 h-16">
+            <div class="flex items-center gap-3 overflow-hidden whitespace-nowrap">
                 <div
-                    class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white shadow-sm">
+                    class="bg-white/5 p-2 rounded-xl border border-white/10 text-primary shrink-0 flex items-center justify-center w-8 h-8">
+                    <i class="fas fa-graduation-cap text-sm"></i>
+                </div>
+                <div class="logo-text transition-opacity duration-300">
+                    <h1 class="font-bold text-sm tracking-tight text-white leading-tight">Planner</h1>
+                    <p class="text-[9px] text-slate-400 uppercase tracking-widest">Docente 2026</p>
+                </div>
+            </div>
+            <button onclick="controller.toggleSidebar()"
+                class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors">
+                <i id="sidebar-toggle-icon" class="fas fa-bars"></i>
+            </button>
+        </div>
+        <nav class="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 space-y-1 custom-scrollbar">
+            <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-2 nav-label truncate">
+                Visão Geral</p>
+            <button id="nav-dashboard" onclick="controller.navigate('dashboard')"
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group whitespace-nowrap"
+                title="Início">
+                <div
+                    class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white">
                     <i class="fas fa-chart-pie"></i>
                 </div>
-                <span class="text-sm font-medium">Início</span>
+                <span class="text-sm font-medium nav-label">Início</span>
             </button>
-            <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">Planejamento</p>
+            <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6 nav-label truncate">
+                Planejamento</p>
             <button id="nav-mensal" onclick="controller.navigate('mensal')"
-                class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group">
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group whitespace-nowrap"
+                title="Mensal">
                 <div
-                    class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white shadow-sm">
+                    class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white">
                     <i class="far fa-calendar-alt"></i>
                 </div>
-                <span class="text-sm font-medium">Mensal</span>
+                <span class="text-sm font-medium nav-label">Mensal</span>
             </button>
             <button id="nav-periodo" onclick="controller.navigate('periodo')"
-                class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group">
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group whitespace-nowrap"
+                title="Por Período">
                 <div
-                    class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white shadow-sm">
+                    class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white">
                     <i class="fas fa-layer-group"></i>
                 </div>
-                <span class="text-sm font-medium">Por Período</span>
+                <span class="text-sm font-medium nav-label">Por Período</span>
             </button>
             <button id="nav-dia" onclick="controller.navigate('dia')"
-                class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group">
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group whitespace-nowrap"
+                title="Diário">
                 <div
-                    class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white shadow-sm">
+                    class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white">
                     <i class="fas fa-edit"></i>
                 </div>
-                <span>Diário</span>
+                <span class="text-sm font-medium nav-label">Diário</span>
             </button>
-            <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">Acadêmico</p>
+            <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6 nav-label truncate">
+                Acadêmico</p>
             <button id="nav-turmas" onclick="controller.navigate('turmas')"
-                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group font-medium text-sm">
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group whitespace-nowrap"
+                title="Turmas">
                 <div
-                    class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white shadow-sm">
+                    class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white">
                     <i class="fas fa-users"></i>
                 </div>
-                <span>Turmas</span>
+                <span class="text-sm font-medium nav-label">Turmas</span>
             </button>
             <button id="nav-bncc" onclick="controller.navigate('bncc')"
-                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group font-medium text-sm">
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group whitespace-nowrap"
+                title="Consulta BNCC">
                 <div
-                    class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white shadow-sm">
+                    class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white">
                     <i class="fas fa-book-open"></i>
                 </div>
-                <span>Consulta BNCC</span>
+                <span class="text-sm font-medium nav-label">Consulta BNCC</span>
             </button>
             <button id="nav-mapa" onclick="controller.navigate('mapa')"
-                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group font-medium text-sm">
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group whitespace-nowrap"
+                title="Mapa de Sala">
                 <div
-                    class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white shadow-sm">
+                    class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white">
                     <i class="fas fa-th"></i>
                 </div>
-                <span>Mapa de Sala</span>
+                <span class="text-sm font-medium nav-label">Mapa de Sala</span>
             </button>
             <button id="nav-provas" onclick="controller.navigate('provas')"
-                class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group font-medium text-sm">
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group whitespace-nowrap"
+                title="Gerador de Provas">
                 <div
-                    class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white shadow-sm">
+                    class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white">
                     <i class="fas fa-file-signature"></i>
                 </div>
-                <span>Gerador Provas</span>
+                <span class="text-sm font-medium nav-label">Gerador Provas</span>
             </button>
             <div class="mt-auto pt-6 pb-2 space-y-2">
                 <button id="nav-config" onclick="controller.navigate('config')"
-                    class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group font-medium text-sm border-t border-white/5">
+                    class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group font-medium text-sm border-t border-white/5 whitespace-nowrap"
+                    title="Configurações">
                     <div
-                        class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white shadow-sm">
+                        class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white">
                         <i class="fas fa-cog"></i>
                     </div>
-                    <span>Configurações</span>
+                    <span class="nav-label">Configurações</span>
                 </button>
                 <div id="auth-container" class="px-1">
                     <button onclick="controller.handleLogin()"
-                        class="w-full flex items-center gap-3 p-3 bg-white text-primary rounded-xl font-bold shadow-lg hover:bg-slate-50 transition-colors">
-                        <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                        class="w-full flex items-center gap-3 p-3 bg-white text-primary rounded-xl font-bold shadow-lg hover:bg-slate-50 transition-colors whitespace-nowrap overflow-hidden">
+                        <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                             <i class="fab fa-google text-primary"></i>
                         </div>
-                        <span>Entrar</span>
+                        <span class="nav-label">Entrar</span>
                     </button>
                 </div>
             </div>
         </nav>
-        <div class="p-3 bg-black/20 text-[10px] text-center text-slate-500">
-            v0.0.31 (Cloud) | &copy; 2026 Docente Pro
+        <div class="p-3 bg-black/20 text-[10px] text-center text-slate-500 sidebar-footer nav-label">
+            v1.3.1 (Cloud)
         </div>
     </aside>
-    <main class="flex-1 ml-64 min-h-screen relative flex flex-col bg-slate-50">
+    <main id="main-content"
+        class="flex-1 ml-64 min-h-screen relative flex flex-col bg-slate-50 w-full transition-all duration-300">
         <header
-            class="h-16 bg-white/80 backdrop-blur-md sticky top-0 z-10 px-8 flex items-center justify-between border-b border-slate-200">
-            <div id="breadcrumb"
-                class="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
-                <i class="fas fa-home text-slate-300"></i> <span class="text-slate-300">/</span> Início
-            </div>
+            class="h-16 bg-white/80 backdrop-blur-md sticky top-0 z-10 px-4 md:px-8 flex items-center justify-between border-b border-slate-200">
             <div class="flex items-center gap-4">
+                <div id="breadcrumb"
+                    class="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                    <i class="fas fa-home text-slate-300"></i> <span class="text-slate-300">/</span> Início
+                </div>
+            </div>
+            <div class="flex items-center gap-2 md:gap-4">
                 <div id="cloud-status"
                     class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-100 transition-all cursor-help"
-                    title="Status da sincronização">
+                    title="Status">
                     <i class="fas fa-cloud text-slate-300"></i>
                 </div>
                 <button onclick="controller.exportData()"
                     class="w-9 h-9 rounded-full flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/10 transition-all"
-                    title="Fazer Backup Manual (JSON)">
+                    title="Backup">
                     <i class="fas fa-download"></i>
                 </button>
                 <div id="current-date"
-                    class="text-xs font-bold text-slate-500 bg-slate-100 px-4 py-1.5 rounded-full border border-slate-200">
+                    class="text-xs font-bold text-slate-500 bg-slate-100 px-4 py-1.5 rounded-full border border-slate-200 hidden md:block">
                 </div>
             </div>
         </header>
-        <section id="view-container" class="p-8 max-w-7xl mx-auto w-full flex-1">
-            <div class="flex flex-col items-center justify-center h-[60vh] text-slate-300 gap-4">
-                <div class="animate-spin rounded-full h-10 w-10 border-4 border-slate-200 border-t-primary"></div>
-                <p class="text-sm font-medium animate-pulse">Carregando sistema...</p>
-            </div>
+        <section id="view-container" class="p-4 md:p-8 max-w-7xl mx-auto w-full flex-1">
         </section>
     </main>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -180,14 +198,12 @@
     <script src="./js/controller.js"></script>
     <script>
         window.addEventListener('load', () => {
-            if (window.firebaseService) firebaseService.init();
-            if (window.controller) controller.init();
-            if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(reg => console.log('Service Worker registrado!', reg.scope))
-                    .catch(err => console.log('Falha no Service Worker:', err));
+            if (window.innerWidth < 768) {
+                document.getElementById('app-sidebar').classList.add('collapsed');
+                document.getElementById('main-content').classList.add('expanded-content');
             }
         });
     </script>
 </body>
+
 </html>

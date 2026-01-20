@@ -78,6 +78,31 @@ const controller = {
             window.location.reload();
         }
     },
+    // toggle Sidebar
+    toggleSidebar: function() {
+        const sidebar = document.getElementById('app-sidebar');
+        const main = document.getElementById('main-content');
+        const icon = document.getElementById('sidebar-toggle-icon');
+        const isMobile = window.innerWidth < 768;
+        if (isMobile) {
+            sidebar.classList.toggle('mobile-open');
+            if (sidebar.classList.contains('mobile-open')) {
+                sidebar.classList.remove('collapsed'); 
+            } else {
+                sidebar.classList.add('collapsed');
+            }
+        } else {
+            sidebar.classList.toggle('collapsed');
+            main.classList.toggle('expanded-content');
+        }
+        if (sidebar.classList.contains('collapsed') && !sidebar.classList.contains('mobile-open')) {
+            icon.classList.remove('fa-chevron-left');
+            icon.classList.add('fa-bars');
+        } else {
+            icon.classList.remove('fa-bars');
+            icon.classList.add('fa-chevron-left');
+        }
+    },
     navigate: async function(viewName) {
         // Redirecionamentos de nomes antigos/alternativos
         if (viewName === 'calendario') viewName = 'dashboard';
@@ -158,23 +183,23 @@ const controller = {
         if (!container) return;
         if (isLoggedIn && user) {
             container.innerHTML = `
-                <div class="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/10 cursor-pointer hover:bg-white/10" onclick="controller.handleLogout()">
-                    <img src="${user.photoURL || 'https://ui-avatars.com/api/?name=Prof'}" class="w-8 h-8 rounded-full border border-white/20">
-                    <div class="overflow-hidden">
+                <div class="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/10 cursor-pointer hover:bg-white/10 overflow-hidden" onclick="controller.handleLogout()">
+                    <img src="${user.photoURL || 'https://ui-avatars.com/api/?name=Prof'}" class="w-8 h-8 rounded-full border border-white/20 shrink-0">
+                    <div class="overflow-hidden nav-label transition-all duration-300">
                         <p class="text-xs text-slate-300 truncate">Olá,</p>
                         <p class="text-xs font-bold text-white truncate w-24">${user.displayName}</p>
                     </div>
-                    <i class="fas fa-sign-out-alt ml-auto text-slate-500 hover:text-red-400"></i>
+                    <i class="fas fa-sign-out-alt ml-auto text-slate-500 hover:text-red-400 nav-label"></i>
                 </div>
             `;
         } else {
             container.innerHTML = `
                 <button onclick="controller.handleLogin()"
-                    class="w-full flex items-center gap-3 p-3 bg-white text-primary rounded-xl font-bold shadow-lg hover:bg-slate-50 transition-colors">
-                    <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                    class="w-full flex items-center gap-3 p-3 bg-white text-primary rounded-xl font-bold shadow-lg hover:bg-slate-50 transition-colors overflow-hidden whitespace-nowrap">
+                    <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                         <i class="fab fa-google text-primary"></i>
                     </div>
-                    <span>Entrar</span>
+                    <span class="nav-label transition-all duration-300">Entrar</span>
                 </button>
             `;
         }

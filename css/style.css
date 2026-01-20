@@ -152,3 +152,58 @@ body {
         color: #000 !important;
     }
 }
+
+/* =========================================
+   7. SIDEBAR RESPONSIVA E TRANSIÇÕES
+   ========================================= 
+*/
+
+.sidebar,
+main,
+.nav-label,
+.logo-text {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar.collapsed {
+    width: 5rem !important;
+}
+
+.sidebar.collapsed .nav-label,
+.sidebar.collapsed .logo-text,
+.sidebar.collapsed .sidebar-footer {
+    opacity: 0;
+    width: 0;
+    display: none;
+}
+
+.sidebar.collapsed nav button {
+    justify-content: center;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+main.expanded-content {
+    margin-left: 5rem !important;
+}
+
+@media (max-width: 768px) {
+    .sidebar {
+        width: 5rem;
+        z-index: 50;
+    }
+
+    .sidebar.mobile-open {
+        width: 16rem !important;
+    }
+
+    main {
+        margin-left: 5rem !important;
+    }
+
+    .sidebar.mobile-open .nav-label {
+        display: block;
+        opacity: 1;
+        width: auto;
+    }
+}
