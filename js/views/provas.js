@@ -7,9 +7,7 @@ window.provasView = {
         const questoes = (model.state && model.state.questoes) ? model.state.questoes : [];
         const idsExistentes = new Set(questoes.map(q => q.id));
         for (const id of this.selecionadas) {
-            if (!idsExistentes.has(id)) {
-                this.selecionadas.delete(id);
-            }
+            if (!idsExistentes.has(id)) this.selecionadas.delete(id);
         }
         const questoesFiltradas = this.filtrarQuestoes(questoes);
         const html = `
@@ -31,7 +29,7 @@ window.provasView = {
                                 <i class="fas fa-search"></i>
                             </div>
                             <input type="text" 
-                                   placeholder="Buscar por matéria ou enunciado..." 
+                                   placeholder="Buscar por matéria, ano, código BNCC ou enunciado..." 
                                    class="w-full bg-transparent outline-none text-slate-700 placeholder:text-slate-400 font-medium"
                                    onkeyup="provasView.atualizarBusca(this.value)">
                         </div>
@@ -70,10 +68,6 @@ window.provasView = {
                                     </button>
                                 ` : ''}
                             </div>
-                            <div class="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-100 text-xs text-slate-500 leading-relaxed text-center">
-                                <i class="fas fa-info-circle mb-1 text-slate-400"></i><br>
-                                Selecione as questões ao lado clicando no botão "+" para montar sua avaliação.
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -86,14 +80,20 @@ window.provasView = {
         const borderClass = isSelected ? 'border-primary ring-1 ring-primary bg-blue-50/30' : 'border-slate-200 hover:border-slate-300 bg-white';
         const btnClass = isSelected ? 'bg-red-100 text-red-500 hover:bg-red-200' : 'bg-slate-100 text-slate-400 hover:bg-primary hover:text-white';
         const iconClass = isSelected ? 'fa-minus' : 'fa-plus';
-        
+        let tagsHtml = `<span class="px-2 py-1 bg-slate-100 text-[10px] font-bold text-slate-600 rounded uppercase tracking-wider">${q.materia || 'Geral'}</span>`;
+        if (q.ano) {
+            tagsHtml += `<span class="px-2 py-1 bg-indigo-50 text-[10px] font-bold text-indigo-600 rounded uppercase tracking-wider border border-indigo-100">${q.ano}</span>`;
+        }
+        if (q.bncc && q.bncc.codigo) {
+            tagsHtml += `<span class="px-2 py-1 bg-yellow-50 text-[10px] font-bold text-yellow-700 rounded uppercase tracking-wider border border-yellow-100" title="${q.bncc.descricao}">${q.bncc.codigo}</span>`;
+        }
         return `
             <div class="p-5 rounded-2xl border transition-all duration-200 ${borderClass} group relative">
                 <div class="flex justify-between items-start gap-4 mb-3">
-                    <span class="px-2.5 py-1 bg-slate-100 text-[10px] font-black text-slate-500 rounded uppercase tracking-wider">
-                        ${q.materia || 'Geral'}
-                    </span>
-                    <div class="flex gap-2">
+                    <div class="flex flex-wrap gap-2">
+                        ${tagsHtml}
+                    </div>
+                    <div class="flex gap-2 shrink-0">
                         <button onclick="provasView.toggleSelecao(${q.id})" 
                                 class="w-8 h-8 rounded-lg flex items-center justify-center transition-colors shadow-sm ${btnClass}"
                                 title="${isSelected ? 'Remover da prova' : 'Adicionar à prova'}">
@@ -107,7 +107,7 @@ window.provasView = {
                         ` : ''}
                     </div>
                 </div>
-                <p class="text-slate-700 text-sm leading-relaxed font-medium">
+                <p class="text-slate-700 text-sm leading-relaxed font-medium font-serif">
                     ${q.enunciado.replace(/\n/g, '<br>')}
                 </p>
                 <div class="mt-3 pt-3 border-t border-slate-100/50 flex justify-between items-center">
@@ -122,7 +122,9 @@ window.provasView = {
         const termo = this.termoBusca.toLowerCase();
         return todas.filter(q =>
             (q.materia && q.materia.toLowerCase().includes(termo)) ||
-            (q.enunciado && q.enunciado.toLowerCase().includes(termo))
+            (q.enunciado && q.enunciado.toLowerCase().includes(termo)) ||
+            (q.ano && q.ano.toLowerCase().includes(termo)) ||
+            (q.bncc && q.bncc.codigo && q.bncc.codigo.toLowerCase().includes(termo))
         );
     },
     atualizarBusca(valor) {
@@ -148,31 +150,90 @@ window.provasView = {
             this.render('view-container');
         }
     },
-    openAddQuestao() {
-        controller.openModal('Adicionar ao Banco de Questões', `
+    openAddQuestao(dados = {}) {
+        const habilidadeHtml = dados.bncc 
+            ? `<div class="bg-yellow-50 border border-yellow-100 p-3 rounded-lg flex items-center justify-between">
+                 <div>
+                    <span class="font-bold text-yellow-700 text-xs">${dados.bncc.codigo}</span>
+                    <p class="text-xs text-yellow-600 line-clamp-1">${dados.bncc.descricao}</p>
+                 </div>
+                 <button onclick="document.getElementById('q-bncc-cod').value=''; provasView.openAddQuestao({...provasView.getDataModal(), bncc: null})" class="text-yellow-600 hover:text-red-500"><i class="fas fa-times"></i></button>
+               </div>`
+            : `<button onclick="controller.openSeletorBnccQuestao()" class="w-full py-3 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 hover:border-primary hover:text-primary hover:bg-blue-50 transition-all text-xs font-bold uppercase flex items-center justify-center gap-2">
+                 <i class="fas fa-search"></i> Selecionar Habilidade BNCC
+               </button>`;
+        const html = `
             <div class="p-6 space-y-4">
-                <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Disciplina / Matéria</label>
-                    <input type="text" id="q-materia" placeholder="Ex: História, Matemática..." 
-                           class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Disciplina</label>
+                        <input type="text" id="q-materia" value="${dados.materia || ''}" placeholder="Ex: Matemática" 
+                               class="w-full border-2 border-slate-100 p-2.5 rounded-xl outline-none focus:border-primary">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Ano / Série</label>
+                        <select id="q-ano" class="w-full border-2 border-slate-100 p-2.5 rounded-xl outline-none focus:border-primary bg-white">
+                            <option value="">Selecione...</option>
+                            <option value="6º Ano">6º Ano</option>
+                            <option value="7º Ano">7º Ano</option>
+                            <option value="8º Ano">8º Ano</option>
+                            <option value="9º Ano">9º Ano</option>
+                            <option value="1ª Série EM">1ª Série EM</option>
+                            <option value="2ª Série EM">2ª Série EM</option>
+                            <option value="3ª Série EM">3ª Série EM</option>
+                        </select>
+                    </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Enunciado da Questão</label>
-                    <textarea id="q-enunciado" rows="5" placeholder="Digite o texto da questão..." 
-                              class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary text-slate-700"></textarea>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Habilidade BNCC (Opcional)</label>
+                    <input type="hidden" id="q-bncc-cod" value="${dados.bncc ? dados.bncc.codigo : ''}">
+                    <input type="hidden" id="q-bncc-desc" value="${dados.bncc ? dados.bncc.descricao : ''}">
+                    ${habilidadeHtml}
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Enunciado da Questão</label>
+                    <textarea id="q-enunciado" rows="6" placeholder="Digite o texto da questão..." 
+                              class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary text-slate-700 text-sm font-medium">${dados.enunciado || ''}</textarea>
                 </div>
                 <div class="flex justify-end gap-3 pt-2">
                     <button onclick="controller.closeModal()" class="px-4 py-2 text-slate-500 font-bold hover:bg-slate-50 rounded-lg">Cancelar</button>
                     <button onclick="provasView.salvarQuestao()" class="btn-primary px-6 py-2 rounded-xl font-bold shadow-lg shadow-primary/20">Salvar Questão</button>
                 </div>
             </div>
-        `);
+        `;
+        controller.openModal('Adicionar ao Banco', html);
+        setTimeout(() => {
+            if(dados.ano) document.getElementById('q-ano').value = dados.ano;
+            document.getElementById('q-enunciado').focus();
+        }, 50);
+    },
+    getDataModal() {
+        return {
+            materia: document.getElementById('q-materia').value,
+            ano: document.getElementById('q-ano').value,
+            enunciado: document.getElementById('q-enunciado').value,
+            bncc: document.getElementById('q-bncc-cod').value ? {
+                codigo: document.getElementById('q-bncc-cod').value,
+                descricao: document.getElementById('q-bncc-desc').value
+            } : null
+        };
     },
     salvarQuestao() {
         const materia = document.getElementById('q-materia').value;
+        const ano = document.getElementById('q-ano').value;
         const enunciado = document.getElementById('q-enunciado').value;
+        const bnccCod = document.getElementById('q-bncc-cod').value;
+        const bnccDesc = document.getElementById('q-bncc-desc').value;
         if (enunciado) {
-            model.addQuestao({ materia, enunciado });
+            const novaQuestao = { 
+                materia, 
+                ano, 
+                enunciado 
+            };
+            if (bnccCod) {
+                novaQuestao.bncc = { codigo: bnccCod, descricao: bnccDesc };
+            }
+            model.addQuestao(novaQuestao);
             controller.closeModal();
             this.render('view-container');
         } else {
@@ -193,16 +254,12 @@ window.provasView = {
                 body { font-family: 'Roboto', sans-serif; padding: 40px; color: #000; }
                 .header { border: 1px solid #000; padding: 15px; margin-bottom: 40px; border-radius: 4px; }
                 .header p { margin: 5px 0; font-size: 14px; }
-                .linha { display: inline-block; border-bottom: 1px solid #000; width: 60%; }
-                .titulo-prova { text-align: center; text-transform: uppercase; font-weight: bold; font-size: 18px; margin-bottom: 40px; border-bottom: 2px solid #000; padding-bottom: 10px; display: inline-block; width: 100%; }
+                .titulo-prova { text-align: center; text-transform: uppercase; font-weight: bold; font-size: 18px; margin-bottom: 40px; border-bottom: 2px solid #000; padding-bottom: 10px; }
                 .questao { margin-bottom: 30px; page-break-inside: avoid; }
+                .questao-info { font-size: 10px; color: #666; margin-bottom: 5px; text-transform: uppercase; font-weight: bold; }
                 .questao-numero { font-weight: bold; margin-bottom: 10px; display: block; font-size: 16px; }
                 .questao-texto { font-size: 14px; line-height: 1.5; text-align: justify; margin-bottom: 15px; }
                 .resposta-area { border: 1px dashed #ccc; height: 100px; width: 100%; display: block; margin-top: 10px; }
-                @media print {
-                    .no-print { display: none; }
-                    body { -webkit-print-color-adjust: exact; }
-                }
             </style>
         `;
         const conteudo = `
@@ -217,6 +274,7 @@ window.provasView = {
                 <div class="titulo-prova">Avaliação de Aprendizagem</div>
                 ${selecionadas.map((q, i) => `
                     <div class="questao">
+                        ${q.bncc ? `<div class="questao-info no-print">Habilidade: ${q.bncc.codigo}</div>` : ''}
                         <span class="questao-numero">${i + 1})</span>
                         <div class="questao-texto">${q.enunciado.replace(/\n/g, '<br>')}</div>
                         <div style="margin-top: 20px;">

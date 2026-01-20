@@ -445,6 +445,28 @@ const controller = {
         this.openModal(`BNCC - ${turma.nome}`, '<div id="modal-bncc-container"></div>', 'large');
         setTimeout(() => this.views['bncc'].render('modal-bncc-container', turma.nivel, turma.serie, callback), 50);
     },
+    openSeletorBnccQuestao() {
+        // 1. Captura o que o usuário já digitou para não perder
+        const rascunho = {
+            materia: document.getElementById('q-materia').value,
+            ano: document.getElementById('q-ano').value,
+            enunciado: document.getElementById('q-enunciado').value
+        };
+        const callback = (habilidade) => {
+            rascunho.bncc = {
+                codigo: habilidade.codigo,
+                descricao: habilidade.descricao
+            };
+            this.views['provas'].openAddQuestao(rascunho);
+        };
+        let nivelPre = null;
+        if (rascunho.ano && (rascunho.ano.includes('Ano') || rascunho.ano.includes('9'))) nivelPre = 'Ensino Fundamental';
+        if (rascunho.ano && rascunho.ano.includes('Série')) nivelPre = 'Ensino Médio';
+        this.openModal('Selecionar Habilidade BNCC', '<div id="modal-bncc-container"></div>', 'large');
+        setTimeout(() => {
+            this.views['bncc'].render('modal-bncc-container', nivelPre, null, callback);
+        }, 50);
+    },
     openSeletorBncc(turmaId, periodo) {
         const turma = model.state.turmas.find(t => t.id === turmaId);
         if (!turma) return;
