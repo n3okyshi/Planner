@@ -12,7 +12,13 @@ const planejamentoView = {
         const turmas = (model.state && model.state.turmas) ? model.state.turmas : [];
         const tipoPeriodo = (model.state && model.state.userConfig && model.state.userConfig.periodType) || 'bimestre';
 
-        // Define a primeira turma como padrão se nada estiver selecionado
+        // 2. Proteção de Sincronização (Cloud)
+        // Se a turma selecionada anteriormente não existir nos novos dados baixados, limpa a seleção.
+        if (this.currentTurmaId && !turmas.find(t => t.id == this.currentTurmaId)) {
+            this.currentTurmaId = null;
+        }
+
+        // 3. Define a primeira turma como padrão se nada estiver selecionado
         if (!this.currentTurmaId && turmas.length > 0) {
             this.currentTurmaId = turmas[0].id;
         }

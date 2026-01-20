@@ -3,11 +3,24 @@
  * Responsável por: Renderizar o layout da sala e gerenciar a posição dos alunos.
  */
 const salaView = {
+    currentTurmaId: null, // Estado local para manter a seleção após sync
+
     render(containerId) {
         const container = document.getElementById(containerId);
 
         // Garante que model.state.turmas exista e seja um array
         const turmas = (model.state && model.state.turmas) ? model.state.turmas : [];
+
+        // 1. Proteção de Sincronização (Cloud)
+        // Se a turma selecionada não existir mais (ex: deletada na nuvem), reseta.
+        if (this.currentTurmaId && !turmas.find(t => t.id == this.currentTurmaId)) {
+            this.currentTurmaId = null;
+        }
+
+        // 2. Define turma padrão (opcional: seleciona a primeira se não houver seleção)
+        if (!this.currentTurmaId && turmas.length > 0) {
+            this.currentTurmaId = turmas[0].id;
+        }
 
         const html = `
             <div class="fade-in pb-20">
@@ -20,9 +33,11 @@ const salaView = {
 
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 no-print">
                     <select id="map-select-turma" onchange="salaView.carregarMapa(this.value)" 
-                            class="md:col-span-3 border border-slate-200 p-4 rounded-xl bg-white focus:border-primary outline-none font-medium transition-all shadow-sm">
-                        <option value="">Selecione uma turma para visualizar o mapa...</option>
-                        ${turmas.map(t => `<option value="${t.id}">${t.nome}</option>`).join('')}
+                            class="md:col-span-3 border border-slate-200 p-4 rounded-xl bg-white focus:border-primary outline-none font-medium transition-all shadow-sm cursor-pointer">
+                        ${turmas.length > 0 
+                            ? turmas.map(t => `<option value="${t.id}" ${t.id == this.currentTurmaId ? 'selected' : ''}>${t.nome}</option>`).join('')
+                            : '<option value="">Nenhuma turma cadastrada</option>'
+                        }
                     </select>
                     <button onclick="window.print()" class="bg-slate-800 text-white rounded-xl font-bold hover:bg-black transition flex items-center justify-center gap-2 shadow-md">
                         <i class="fas fa-print"></i> Imprimir
@@ -38,7 +53,7 @@ const salaView = {
                     <div class="grid grid-cols-6 gap-3 md:gap-6 max-w-4xl mx-auto" id="room-grid">
                         <div class="col-span-full py-20 text-center text-slate-400 italic flex flex-col items-center gap-2">
                             <i class="fas fa-chair text-4xl opacity-50"></i>
-                            <p>Selecione uma turma acima para carregar o mapa.</p>
+                            <p>Carregando mapa...</p>
                         </div>
                     </div>
                 </div>
@@ -46,6 +61,18 @@ const salaView = {
         `;
 
         container.innerHTML = html;
+
+        // Renderiza o mapa automaticamente se houver turma selecionada
+        if (this.currentTurmaId) {
+            this.carregarMapa(this.currentTurmaId);
+        } else {
+            document.getElementById('room-grid').innerHTML = `
+                <div class="col-span-full py-20 text-center text-slate-400 italic flex flex-col items-center gap-2">
+                    <i class="fas fa-chair text-4xl opacity-50"></i>
+                    <p>Cadastre uma turma para visualizar o mapa.</p>
+                </div>
+            `;
+        }
     },
 
     /**
@@ -53,6 +80,9 @@ const salaView = {
      */
     carregarMapa(turmaId) {
         if (!turmaId) return;
+
+        // Atualiza o estado local
+        this.currentTurmaId = turmaId;
 
         const grid = document.getElementById('room-grid');
         const turma = model.state.turmas.find(t => t.id == turmaId);
@@ -88,7 +118,7 @@ const salaView = {
             `;
         }
 
-        grid.innerHTML = assentosHtml;
+        if (grid) grid.innerHTML = assentosHtml;
     },
 
     /**
@@ -107,17 +137,17 @@ const salaView = {
                 
                 <div class="max-h-[300px] overflow-y-auto custom-scrollbar space-y-2 mb-4 pr-1">
                     ${alunosDisponiveis.length > 0
-                ? alunosDisponiveis
-                    .sort((a, b) => a.nome.localeCompare(b.nome))
-                    .map(aluno => `
+                        ? alunosDisponiveis
+                            .sort((a, b) => a.nome.localeCompare(b.nome))
+                            .map(aluno => `
                                 <button onclick="salaView.salvarPosicao(${turmaId}, ${aluno.id}, ${posicao})" 
                                         class="w-full text-left p-3 rounded-xl hover:bg-blue-50 hover:text-primary transition font-medium border border-slate-100 flex justify-between items-center group">
                                     <span>${aluno.nome}</span>
                                     ${aluno.posicao === posicao ? '<i class="fas fa-check text-green-500"></i>' : '<i class="fas fa-chair opacity-0 group-hover:opacity-50"></i>'}
                                 </button>
                             `).join('')
-                : '<div class="text-center text-slate-400 text-xs py-4">Todos os alunos já têm lugar.</div>'
-            }
+                        : '<div class="text-center text-slate-400 text-xs py-4">Todos os alunos já têm lugar.</div>'
+                    }
                 </div>
 
                 ${alunoAtual ? `
@@ -144,7 +174,6 @@ const salaView = {
         if (alunoId) {
             // Se o aluno já estava sentado em outro lugar, o passo 1 não pegou ele (pois pos !== posicao anterior)
             // Mas precisamos garantir que ele não fique em dois lugares.
-            // O aluno selecionado agora terá posicao = posicao atual.
             const aluno = turma.alunos.find(a => a.id == alunoId);
 
             // Remove o aluno de qualquer outro lugar que ele estivesse
@@ -153,7 +182,7 @@ const salaView = {
             aluno.posicao = posicao;
         }
 
-        model.save();
+        model.save(); // Salva no Local + Nuvem
         controller.closeModal();
         this.carregarMapa(turmaId);
     }

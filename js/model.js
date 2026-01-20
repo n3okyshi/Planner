@@ -1,189 +1,133 @@
-/**
- * MODEL - Camada de Dados (Cloud Enabled)
- * Responsável por: CRUD, Persistência Local e Sincronização com Firebase.
- */
 const model = {
     STORAGE_KEY: 'planner_pro_docente_2026',
-    currentUser: null, // Usuário logado do Firebase
-    
-    // Estado Inicial Padrão
+    currentUser: null,
     state: {
         userConfig: {
             themeColor: '#0891b2',
-            periodType: 'bimestre', // bimestre, trimestre, semestre
+            periodType: 'bimestre',
             schoolName: '',
             profName: ''
         },
-        turmas: [],           
-        questoes: [],         
-        eventos: {},          
-        planosDiarios: {},    
-        lastUpdate: new Date().toISOString() // Importante para conflitos
+        turmas: [],
+        questoes: [],
+        eventos: {},
+        planosDiarios: {},
+        lastUpdate: new Date(0).toISOString()
     },
-
-    /**
-     * 1. INICIALIZAÇÃO
-     */
     init() {
-        // 1. Carrega do LocalStorage (Cache instantâneo)
         const savedData = localStorage.getItem(this.STORAGE_KEY);
         if (savedData) {
             try {
-                const parsed = JSON.parse(savedData);
-                this.state = { ...this.state, ...parsed };
+                this.state = { ...this.state, ...JSON.parse(savedData) };
             } catch (e) {
-                console.error("Erro ao carregar cache local:", e);
+                console.error("Erro cache local", e);
             }
-        } else {
-            this.save(); 
         }
     },
-
-    /**
-     * 2. PERSISTÊNCIA E SINCRONIZAÇÃO
-     */
     save() {
-        // Atualiza timestamp
         this.state.lastUpdate = new Date().toISOString();
-        
-        // 1. Salva Local (Sempre funciona, mesmo offline)
         localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.state));
-
-        // 2. Salva na Nuvem (Se estiver logado)
         if (this.currentUser && window.firebaseService) {
-            // Chama o serviço para salvar no Firestore
-            window.firebaseService.saveData(this.currentUser.uid, this.state);
-            this.updateStatusCloud('Salvando...', 'text-yellow-500');
-            setTimeout(() => this.updateStatusCloud('Sincronizado', 'text-emerald-500'), 1000);
+            this.updateStatusCloud('<i class="fas fa-sync fa-spin"></i> Salvando...', 'text-yellow-600');
+            window.firebaseService.saveData(this.currentUser.uid, this.state)
+                .then(() => {
+                    this.updateStatusCloud('<i class="fas fa-check"></i> Salvo na Nuvem', 'text-emerald-600');
+                })
+                .catch(() => {
+                    this.updateStatusCloud('<i class="fas fa-exclamation-triangle"></i> Erro ao salvar', 'text-red-500');
+                });
         }
     },
-
-    /**
-     * Chamado pelo firebase-service.js quando o usuário faz Login
-     */
     async onLogin(user) {
         this.currentUser = user;
-        console.log("Model: Usuário detectado, buscando dados na nuvem...");
-        this.updateStatusCloud('Buscando dados...', 'text-blue-500');
-
+        this.updateStatusCloud('<i class="fas fa-download"></i> Sincronizando...', 'text-blue-600');
+        this.reloadCurrentView();
         if (window.firebaseService) {
             try {
-                // Baixa dados do Firestore
                 const cloudData = await window.firebaseService.getData(user.uid);
-                
                 if (cloudData) {
-                    // LÓGICA DE CONFLITO: "Last Write Wins" (A versão mais recente ganha)
-                    const localTime = new Date(this.state.lastUpdate).getTime();
+                    const localTime = new Date(this.state.lastUpdate || 0).getTime();
                     const cloudTime = new Date(cloudData.lastUpdate || 0).getTime();
-
-                    if (cloudTime > localTime) {
-                        console.log("Nuvem é mais recente. Atualizando local...");
-                        this.state = { ...this.state, ...cloudData };
-                        // Salva no local storage para ficar igual
+                    if (cloudTime > (localTime + 1000)) {
+                        console.log("☁️ Nuvem é mais recente. Atualizando este dispositivo.");
+                        this.state = cloudData;
                         localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.state));
-                        
-                        // Força atualização da tela atual
                         this.reloadCurrentView();
-                        alert("Seus dados foram sincronizados com a nuvem!");
+                        alert("Seus dados foram atualizados com a versão mais recente da nuvem!");
+                    } else if (localTime > (cloudTime + 1000)) {
+                        console.log("💻 Local é mais recente. Enviando para a nuvem.");
+                        this.save();
                     } else {
-                        console.log("Local é mais recente ou igual. Enviando para nuvem...");
-                        this.save(); // Envia o local (mais novo) para a nuvem
+                        console.log("✅ Dados já estão sincronizados.");
                     }
                 } else {
-                    // Usuário novo na nuvem -> Salva o que tem localmente lá
-                    console.log("Primeiro acesso na nuvem. Criando backup...");
+                    console.log("🆕 Conta nova ou sem dados na nuvem. Criando backup inicial.");
                     this.save();
                 }
-                this.updateStatusCloud('Sincronizado', 'text-emerald-500');
+                this.updateStatusCloud('<i class="fas fa-cloud"></i> Sincronizado', 'text-emerald-600');
             } catch (e) {
-                console.error("Erro na sincronização:", e);
-                this.updateStatusCloud('Erro Sync', 'text-red-500');
+                console.error("Erro Sync:", e);
+                this.updateStatusCloud('Erro de Conexão', 'text-red-500');
             }
         }
     },
-
     onLogout() {
         this.currentUser = null;
-        // Opcional: Limpar dados locais ao sair?
-        // this.state = ... (reset)
-        // localStorage.removeItem(this.STORAGE_KEY);
-        location.reload(); 
+        this.reloadCurrentView();
+        setTimeout(() => location.reload(), 100);
     },
-
-    // Auxiliar para atualizar UI de status (pode ser usado no header)
-    updateStatusCloud(msg, colorClass) {
+    updateStatusCloud(html, colorClass) {
         const el = document.getElementById('cloud-status');
         if (el) {
-            el.innerHTML = `<i class="fas fa-cloud ${colorClass}"></i> <span class="hidden md:inline text-xs ${colorClass}">${msg}</span>`;
+            el.innerHTML = html;
+            el.className = `flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-slate-100 text-xs font-bold transition-all shadow-sm ${colorClass}`;
         }
     },
-
     reloadCurrentView() {
         if (window.controller && controller.currentTab) {
+            controller.aplicarTema();
             controller.navigate(controller.currentTab);
         }
     },
-
-    // --- 3. MÉTODOS DE CONFIGURAÇÃO ---
-
     updateConfig(key, value) {
         if (this.state.userConfig.hasOwnProperty(key)) {
             this.state.userConfig[key] = value;
             this.save();
         }
     },
-
     exportData() {
         const dataStr = JSON.stringify(this.state, null, 2);
         const blob = new Blob([dataStr], { type: "application/json" });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `backup_planner_${new Date().toISOString().split('T')[0]}.json`;
+        a.download = `backup_docente_${new Date().toISOString().split('T')[0]}.json`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
     },
-
-    // --- 4. GESTÃO DE TURMAS ---
-
     addTurma(nome, nivel, serie, identificador) {
         const novaTurma = {
             id: Date.now(),
             nome: nome.trim(),
-            nivel: nivel,
-            serie: serie || '',
-            identificador: identificador || '',
-            alunos: [],
-            avaliacoes: [],       
-            planejamento: {},     
-            planejamentoMensal: {} 
+            nivel, serie, identificador,
+            alunos: [], avaliacoes: [], planejamento: {}, planejamentoMensal: {}
         };
         this.state.turmas.push(novaTurma);
         this.save();
-        return novaTurma;
     },
-
     deleteTurma(id) {
         this.state.turmas = this.state.turmas.filter(t => t.id !== id);
         this.save();
     },
-
-    // --- 5. GESTÃO DE ALUNOS ---
-
     addAluno(turmaId, nomeAluno) {
         const turma = this.state.turmas.find(t => t.id === turmaId);
         if (turma && nomeAluno.trim()) {
-            turma.alunos.push({
-                id: Date.now() + Math.floor(Math.random() * 1000), 
-                nome: nomeAluno.trim(),
-                notas: {} 
-            });
+            turma.alunos.push({ id: Date.now() + Math.floor(Math.random() * 1000), nome: nomeAluno.trim(), notas: {} });
             turma.alunos.sort((a, b) => a.nome.localeCompare(b.nome));
             this.save();
         }
     },
-
     deleteAluno(turmaId, alunoId) {
         const turma = this.state.turmas.find(t => t.id === turmaId);
         if (turma) {
@@ -191,63 +135,43 @@ const model = {
             this.save();
         }
     },
-
-    // --- 6. AVALIAÇÕES E NOTAS ---
-
-    addAvaliacao(turmaId, nome, pesoMax) {
+    addAvaliacao(turmaId, nome, max) {
         const turma = this.state.turmas.find(t => t.id === turmaId);
         if (turma) {
-            turma.avaliacoes.push({
-                id: Date.now(),
-                nome: nome,
-                max: Number(pesoMax)
-            });
+            turma.avaliacoes.push({ id: Date.now(), nome, max: Number(max) });
             this.save();
         }
     },
-
-    deleteAvaliacao(turmaId, avaliacaoId) {
+    deleteAvaliacao(turmaId, avId) {
         const turma = this.state.turmas.find(t => t.id === turmaId);
         if (turma) {
-            turma.avaliacoes = turma.avaliacoes.filter(av => av.id !== avaliacaoId);
-            turma.alunos.forEach(aluno => {
-                if (aluno.notas && aluno.notas[avaliacaoId]) {
-                    delete aluno.notas[avaliacaoId];
-                }
-            });
+            turma.avaliacoes = turma.avaliacoes.filter(av => av.id !== avId);
+            turma.alunos.forEach(aluno => { if (aluno.notas) delete aluno.notas[avId]; });
             this.save();
         }
     },
-
-    updateNota(turmaId, alunoId, avaliacaoId, valor) {
+    updateNota(turmaId, alunoId, avId, valor) {
         const turma = this.state.turmas.find(t => t.id === turmaId);
         if (turma) {
             const aluno = turma.alunos.find(a => a.id === alunoId);
             if (aluno) {
                 if (!aluno.notas) aluno.notas = {};
-                aluno.notas[avaliacaoId] = valor; 
+                aluno.notas[avId] = valor;
                 this.save();
             }
         }
     },
-
-    // --- 7. PLANEJAMENTO (BNCC) ---
-
-    // Bimestral/Trimestral
     addHabilidadePlanejamento(turmaId, periodo, habilidade) {
         const turma = this.state.turmas.find(t => t.id === turmaId);
         if (!turma) return;
-
         if (!turma.planejamento) turma.planejamento = {};
         if (!turma.planejamento[periodo]) turma.planejamento[periodo] = [];
 
-        const existe = turma.planejamento[periodo].some(h => h.codigo === habilidade.codigo);
-        if (!existe) {
+        if (!turma.planejamento[periodo].some(h => h.codigo === habilidade.codigo)) {
             turma.planejamento[periodo].push(habilidade);
             this.save();
         }
     },
-
     removeHabilidadePlanejamento(turmaId, periodo, codigo) {
         const turma = this.state.turmas.find(t => t.id === turmaId);
         if (turma && turma.planejamento && turma.planejamento[periodo]) {
@@ -255,22 +179,16 @@ const model = {
             this.save();
         }
     },
-
-    // Mensal (Cronograma)
     addHabilidadeMensal(turmaId, mes, habilidade) {
         const turma = this.state.turmas.find(t => t.id === turmaId);
         if (!turma) return;
-
         if (!turma.planejamentoMensal) turma.planejamentoMensal = {};
         if (!turma.planejamentoMensal[mes]) turma.planejamentoMensal[mes] = [];
-
-        const existe = turma.planejamentoMensal[mes].some(h => h.codigo === habilidade.codigo);
-        if (!existe) {
+        if (!turma.planejamentoMensal[mes].some(h => h.codigo === habilidade.codigo)) {
             turma.planejamentoMensal[mes].push(habilidade);
             this.save();
         }
     },
-
     removeHabilidadeMensal(turmaId, mes, codigo) {
         const turma = this.state.turmas.find(t => t.id === turmaId);
         if (turma && turma.planejamentoMensal && turma.planejamentoMensal[mes]) {
@@ -278,64 +196,37 @@ const model = {
             this.save();
         }
     },
-
-    // --- 8. BANCO DE QUESTÕES ---
-
-    addQuestao(questaoObj) {
-        const questao = {
-            id: Date.now(),
-            ...questaoObj,
-            createdAt: new Date().toISOString()
-        };
-        this.state.questoes.push(questao);
+    addQuestao(obj) {
+        this.state.questoes.push({ id: Date.now(), ...obj, createdAt: new Date().toISOString() });
         this.save();
     },
-
     deleteQuestao(id) {
         this.state.questoes = this.state.questoes.filter(q => q.id !== id);
         this.save();
     },
-
-    // --- 9. CALENDÁRIO ---
-
     setEvento(data, tipo, descricao) {
-        if (!tipo) {
-            delete this.state.eventos[data];
-        } else {
-            this.state.eventos[data] = { tipo, descricao };
-        }
+        if (!tipo) delete this.state.eventos[data];
+        else this.state.eventos[data] = { tipo, descricao };
         this.save();
     },
-
-    // --- 10. PLANEJAMENTO DIÁRIO ---
-
     savePlanoDiario(data, turmaId, conteudo) {
         if (!this.state.planosDiarios) this.state.planosDiarios = {};
         if (!this.state.planosDiarios[data]) this.state.planosDiarios[data] = {};
-
         this.state.planosDiarios[data][turmaId] = conteudo;
         this.save();
     },
-
     getPlanoDiario(data, turmaId) {
-        if (this.state.planosDiarios &&
-            this.state.planosDiarios[data] &&
-            this.state.planosDiarios[data][turmaId]) {
+        if (this.state.planosDiarios && this.state.planosDiarios[data] && this.state.planosDiarios[data][turmaId]) {
             return this.state.planosDiarios[data][turmaId];
         }
         return null;
     },
-
     getSugestoesDoMes(turmaId, dataIso) {
         const turma = this.state.turmas.find(t => t.id == turmaId);
         if (!turma || !turma.planejamentoMensal) return [];
-
         const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
         const mesIndex = parseInt(dataIso.split('-')[1]) - 1;
-        const nomeMes = meses[mesIndex];
-
-        return turma.planejamentoMensal[nomeMes] || [];
-    },
+        return turma.planejamentoMensal[meses[mesIndex]] || [];
+    }
 };
-
 model.init();

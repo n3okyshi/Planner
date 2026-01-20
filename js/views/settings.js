@@ -1,13 +1,13 @@
-/**
- * VIEW - Configurações do Sistema
- * Responsável por: Login (Perfil), Tema, Período e Backup.
- */
 const settingsView = {
     render(containerId, userConfig) {
         const container = document.getElementById(containerId);
         const config = userConfig || (model.state && model.state.userConfig) || {};
         const user = model.currentUser;
-
+        let lastSyncText = "Agora mesmo";
+        if (model.state.lastUpdate) {
+            const date = new Date(model.state.lastUpdate);
+            lastSyncText = date.toLocaleDateString() + ' às ' + date.toLocaleTimeString().slice(0, 5);
+        }
         container.innerHTML = `
             <div class="fade-in max-w-3xl mx-auto pb-20">
                 <div class="mb-8 flex items-end justify-between">
@@ -16,9 +16,7 @@ const settingsView = {
                         <p class="text-slate-500">Gerencie sua conta e personalize o sistema.</p>
                     </div>
                 </div>
-
                 <div class="space-y-6">
-                    
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
                         <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
                             <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center">
@@ -28,10 +26,9 @@ const settingsView = {
                         </div>
                         
                         <div class="p-6">
-                            ${user ? this.renderLogado(user) : this.renderDeslogado()}
+                            ${user ? this.renderLogado(user, lastSyncText) : this.renderDeslogado()}
                         </div>
                     </div>
-
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                         <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
                             <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
@@ -61,7 +58,6 @@ const settingsView = {
                             </div>
                         </div>
                     </div>
-
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                         <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
                             <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
@@ -78,7 +74,6 @@ const settingsView = {
                             </div>
                         </div>
                     </div>
-
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                         <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
                             <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center">
@@ -98,7 +93,6 @@ const settingsView = {
                             </div>
                         </div>
                     </div>
-
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                         <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
                             <div class="w-8 h-8 rounded-lg bg-slate-200 text-slate-600 flex items-center justify-center">
@@ -116,18 +110,14 @@ const settingsView = {
                             </button>
                         </div>
                     </div>
-
                 </div>
-                
                 <div class="text-center mt-12 text-xs text-slate-400">
                     <p>Planner Pro Docente v1.3.0 (Cloud)</p>
                 </div>
             </div>
         `;
     },
-
-    // --- Template para Usuário LOGADO ---
-    renderLogado(user) {
+    renderLogado(user, lastSyncText) {
         return `
             <div class="flex flex-col md:flex-row items-center justify-between gap-6 animate-slideIn">
                 <div class="flex items-center gap-4">
@@ -141,7 +131,7 @@ const settingsView = {
                                 <i class="fas fa-check-circle"></i> Sincronizado
                             </span>
                             <span class="text-[10px] text-slate-400">
-                                Última sync: ${new Date().toLocaleTimeString()}
+                                Última atualização: ${lastSyncText}
                             </span>
                         </div>
                     </div>
@@ -152,8 +142,6 @@ const settingsView = {
             </div>
         `;
     },
-
-    // --- Template para Usuário DESLOGADO ---
     renderDeslogado() {
         return `
             <div class="flex flex-col md:flex-row items-center justify-between gap-6">
@@ -171,14 +159,12 @@ const settingsView = {
             </div>
         `;
     },
-
     renderOptionPeriodo(value, label, current) {
         const safeCurrent = current || 'bimestre';
         const active = value === safeCurrent;
         const classes = active
             ? "border-primary bg-primary/5 ring-1 ring-primary text-primary shadow-sm"
             : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600";
-
         return `
             <button onclick="controller.updatePeriodType('${value}')" 
                     class="border rounded-xl p-4 text-sm font-bold transition-all flex flex-col items-center justify-center gap-2 ${classes}">
@@ -187,7 +173,6 @@ const settingsView = {
             </button>
         `;
     },
-
     renderColorOption(color, label, current) {
         const active = color === current;
         return `
@@ -200,6 +185,5 @@ const settingsView = {
         `;
     }
 };
-
 window.View = window.View || {};
 window.View.renderSettings = (id, cfg) => settingsView.render(id, cfg);

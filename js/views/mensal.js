@@ -14,7 +14,13 @@ const mensalView = {
         const container = document.getElementById(containerId);
         const turmas = (model.state && model.state.turmas) ? model.state.turmas : [];
 
-        // Define turma padrão
+        // 1. Proteção de Sincronização (Cloud)
+        // Se a turma selecionada anteriormente não existir nos novos dados, limpa a seleção.
+        if (this.currentTurmaId && !turmas.find(t => t.id == this.currentTurmaId)) {
+            this.currentTurmaId = null;
+        }
+
+        // 2. Define turma padrão (sempre seleciona a primeira se nada estiver selecionado)
         if (!this.currentTurmaId && turmas.length > 0) {
             this.currentTurmaId = turmas[0].id;
         }
@@ -114,6 +120,7 @@ const mensalView = {
     gerarMiniCard(habilidade, turmaId, mes) {
         const codigoSafe = habilidade.codigo.replace(/'/g, "");
         const descSafe = habilidade.descricao.replace(/"/g, '&quot;');
+        // Garante que o título existe ou usa fallback
         const eixo = habilidade.titulo || "Habilidade";
         
         return `

@@ -15,6 +15,15 @@ const provasView = {
         // Garante lista de questões
         const questoes = (model.state && model.state.questoes) ? model.state.questoes : [];
 
+        // 1. Proteção de Sincronização (Cloud)
+        // Remove da seleção IDs que não existem mais (ex: deletados em outro dispositivo)
+        const idsExistentes = new Set(questoes.map(q => q.id));
+        for (const id of this.selecionadas) {
+            if (!idsExistentes.has(id)) {
+                this.selecionadas.delete(id);
+            }
+        }
+
         // Filtra as questões baseado na busca
         const questoesFiltradas = this.filtrarQuestoes(questoes);
 
@@ -47,8 +56,8 @@ const provasView = {
 
                         <div class="space-y-4" id="lista-questoes">
                             ${questoesFiltradas.length > 0
-                ? questoesFiltradas.map(q => this.cardQuestao(q)).join('')
-                : this.estadoVazio()}
+                                ? questoesFiltradas.map(q => this.cardQuestao(q)).join('')
+                                : this.estadoVazio()}
                         </div>
                     </div>
 
@@ -217,13 +226,19 @@ const provasView = {
         }
     },
 
-    // --- IMPRESSÃO (O Pulo do Gato) ---
+    // --- IMPRESSÃO ---
 
     imprimirProva() {
         const todas = model.state.questoes || [];
         const selecionadas = todas.filter(q => this.selecionadas.has(q.id));
 
         if (selecionadas.length === 0) return alert("Selecione pelo menos uma questão.");
+
+        // Lógica de Nome do Professor (Config Local > Google > Genérico)
+        let nomeProf = model.state.userConfig.profName || '__________________________';
+        if ((!model.state.userConfig.profName || model.state.userConfig.profName.trim() === "") && model.currentUser) {
+            nomeProf = model.currentUser.displayName;
+        }
 
         // Estilo CSS para impressão (A4)
         const estiloImpressao = `
@@ -251,7 +266,7 @@ const provasView = {
             <body>
                 <div class="header">
                     <p><strong>ESCOLA:</strong> ${model.state.userConfig.schoolName || '________________________________________________'}</p>
-                    <p><strong>PROFESSOR(A):</strong> ${model.state.userConfig.profName || '__________________________'} &nbsp;&nbsp; <strong>DATA:</strong> ____/____/____</p>
+                    <p><strong>PROFESSOR(A):</strong> ${nomeProf} &nbsp;&nbsp; <strong>DATA:</strong> ____/____/____</p>
                     <p><strong>ALUNO(A):</strong> _______________________________________________________ <strong>TURMA:</strong> ________</p>
                 </div>
 

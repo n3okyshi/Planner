@@ -90,7 +90,14 @@ const turmasView = {
      */
     renderDetalhesTurma(containerId, turmaId) {
         const turma = model.state.turmas.find(t => t.id === turmaId);
-        if (!turma) return; // Segurança
+        
+        // --- Proteção de Sincronização ---
+        // Se a turma não for encontrada (foi deletada na nuvem), volta para a lista
+        if (!turma) {
+            console.warn("Turma não encontrada (possível sync delete). Voltando para lista.");
+            this.render(containerId);
+            return;
+        }
 
         const container = document.getElementById(containerId);
 
@@ -181,8 +188,7 @@ const turmasView = {
         // Calcula o total das notas
         const totalNotas = Object.values(aluno.notas || {}).reduce((acc, nota) => acc + Number(nota), 0);
         
-        // Define cor da nota final (Vermelho se baixo, Verde/Azul se alto - Exemplo simples)
-        // Você pode ajustar a lógica de aprovação conforme necessidade (Ex: média 60% do total distribuído)
+        // Define cor da nota final
         const totalDistribuido = turma.avaliacoes.reduce((acc, av) => acc + Number(av.max), 0);
         const porcentagem = totalDistribuido > 0 ? (totalNotas / totalDistribuido) * 100 : 0;
         const corNota = porcentagem >= 60 ? 'text-emerald-600' : (totalDistribuido === 0 ? 'text-slate-400' : 'text-red-500');
