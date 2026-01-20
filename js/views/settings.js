@@ -1,8 +1,10 @@
-const settingsView = {
-    render(containerId, userConfig) {
-        const container = document.getElementById(containerId);
+window.settingsView = {
+    render(container, userConfig) {
+        if (typeof container === 'string') container = document.getElementById(container);
+        if (!container) return;
         const config = userConfig || (model.state && model.state.userConfig) || {};
         const user = model.currentUser;
+        
         let lastSyncText = "Agora mesmo";
         if (model.state.lastUpdate) {
             const date = new Date(model.state.lastUpdate);
@@ -44,7 +46,7 @@ const settingsView = {
                                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><i class="far fa-user"></i></span>
                                     <input type="text" value="${config.profName || ''}" placeholder="Como quer ser chamado?"
                                            class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-primary outline-none transition-all"
-                                           onchange="model.updateConfig('profName', this.value)">
+                                           onchange="model.state.userConfig.profName = this.value; model.save()">
                                 </div>
                             </div>
                             <div>
@@ -53,7 +55,7 @@ const settingsView = {
                                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><i class="fas fa-school"></i></span>
                                     <input type="text" value="${config.schoolName || ''}" placeholder="Ex: Escola Estadual..."
                                            class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-primary outline-none transition-all"
-                                           onchange="model.updateConfig('schoolName', this.value)">
+                                           onchange="model.state.userConfig.schoolName = this.value; model.save()">
                                 </div>
                             </div>
                         </div>
@@ -185,5 +187,3 @@ const settingsView = {
         `;
     }
 };
-window.View = window.View || {};
-window.View.renderSettings = (id, cfg) => settingsView.render(id, cfg);

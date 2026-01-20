@@ -6,15 +6,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="Planner Pro Docente 2026 - Gestão escolar simplificada">
     <title>Planner Pro Docente 2026</title>
-
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>">
-
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
     <link rel="stylesheet" href="./css/style.css">
-
     <script>
         tailwind.config = {
             theme: {
@@ -32,7 +28,6 @@
 </head>
 
 <body class="flex min-h-screen bg-slate-50 text-slate-900 font-sans ">
-
     <aside class="sidebar w-64 text-white flex flex-col shadow-2xl fixed h-full z-20 transition-all bg-slate-900">
         <div class="p-6 flex items-center gap-3 border-b border-white/10">
             <div
@@ -44,11 +39,8 @@
                 <p class="text-[10px] text-slate-400 uppercase tracking-widest">Docente 2026</p>
             </div>
         </div>
-
         <nav class="flex-1 overflow-y-auto px-3 py-4 space-y-1 custom-scrollbar">
-
             <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-2">Visão Geral</p>
-
             <button id="nav-dashboard" onclick="controller.navigate('dashboard')"
                 class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group">
                 <div
@@ -57,9 +49,7 @@
                 </div>
                 <span class="text-sm font-medium">Início</span>
             </button>
-
             <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">Planejamento</p>
-
             <button id="nav-mensal" onclick="controller.navigate('mensal')"
                 class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group">
                 <div
@@ -68,8 +58,7 @@
                 </div>
                 <span class="text-sm font-medium">Mensal</span>
             </button>
-
-            <button id="nav-planejamento" onclick="controller.navigate('periodo')"
+            <button id="nav-periodo" onclick="controller.navigate('periodo')"
                 class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group">
                 <div
                     class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white shadow-sm">
@@ -77,8 +66,7 @@
                 </div>
                 <span class="text-sm font-medium">Por Período</span>
             </button>
-
-            <button id="nav-diario" onclick="controller.navigate('dia')"
+            <button id="nav-dia" onclick="controller.navigate('dia')"
                 class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group">
                 <div
                     class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white shadow-sm">
@@ -86,9 +74,7 @@
                 </div>
                 <span>Diário</span>
             </button>
-
             <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6">Acadêmico</p>
-
             <button id="nav-turmas" onclick="controller.navigate('turmas')"
                 class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group font-medium text-sm">
                 <div
@@ -97,7 +83,6 @@
                 </div>
                 <span>Turmas</span>
             </button>
-
             <button id="nav-bncc" onclick="controller.navigate('bncc')"
                 class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group font-medium text-sm">
                 <div
@@ -106,7 +91,6 @@
                 </div>
                 <span>Consulta BNCC</span>
             </button>
-
             <button id="nav-mapa" onclick="controller.navigate('mapa')"
                 class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group font-medium text-sm">
                 <div
@@ -115,7 +99,6 @@
                 </div>
                 <span>Mapa de Sala</span>
             </button>
-
             <button id="nav-provas" onclick="controller.navigate('provas')"
                 class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group font-medium text-sm">
                 <div
@@ -124,51 +107,53 @@
                 </div>
                 <span>Gerador Provas</span>
             </button>
-
-            <div class="mt-auto pt-6 pb-2">
+            <div class="mt-auto pt-6 pb-2 space-y-2">
                 <button id="nav-config" onclick="controller.navigate('config')"
-                    class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group font-medium text-sm border-t border-white/5 pt-4">
+                    class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group font-medium text-sm border-t border-white/5">
                     <div
                         class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white shadow-sm">
                         <i class="fas fa-cog"></i>
                     </div>
                     <span>Configurações</span>
                 </button>
+                <div id="auth-container" class="px-1">
+                    <button onclick="controller.handleLogin()"
+                        class="w-full flex items-center gap-3 p-3 bg-white text-primary rounded-xl font-bold shadow-lg hover:bg-slate-50 transition-colors">
+                        <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <i class="fab fa-google text-primary"></i>
+                        </div>
+                        <span>Entrar</span>
+                    </button>
+                </div>
             </div>
         </nav>
-
         <div class="p-3 bg-black/20 text-[10px] text-center text-slate-500">
-            v1.3.0 (Cloud) | &copy; 2026 Docente Pro
+            v0.0.31 (Cloud) | &copy; 2026 Docente Pro
         </div>
     </aside>
-
     <main class="flex-1 ml-64 min-h-screen relative flex flex-col bg-slate-50">
-
         <header
             class="h-16 bg-white/80 backdrop-blur-md sticky top-0 z-10 px-8 flex items-center justify-between border-b border-slate-200">
             <div id="breadcrumb"
                 class="text-sm font-bold text-slate-500 uppercase tracking-widest flex items-center gap-2">
                 <i class="fas fa-home text-slate-300"></i> <span class="text-slate-300">/</span> Início
             </div>
-
             <div class="flex items-center gap-4">
-                
-                <div id="cloud-status" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-100 transition-all cursor-help" title="Status da sincronização">
+                <div id="cloud-status"
+                    class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-100 transition-all cursor-help"
+                    title="Status da sincronização">
                     <i class="fas fa-cloud text-slate-300"></i>
                 </div>
-
                 <button onclick="controller.exportData()"
                     class="w-9 h-9 rounded-full flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/10 transition-all"
                     title="Fazer Backup Manual (JSON)">
                     <i class="fas fa-download"></i>
                 </button>
-                
                 <div id="current-date"
                     class="text-xs font-bold text-slate-500 bg-slate-100 px-4 py-1.5 rounded-full border border-slate-200">
                 </div>
             </div>
         </header>
-
         <section id="view-container" class="p-8 max-w-7xl mx-auto w-full flex-1">
             <div class="flex flex-col items-center justify-center h-[60vh] text-slate-300 gap-4">
                 <div class="animate-spin rounded-full h-10 w-10 border-4 border-slate-200 border-t-primary"></div>
@@ -176,15 +161,11 @@
             </div>
         </section>
     </main>
-
-     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-
     <script src="./js/firebase-service.js"></script>
-
     <script src="./js/model.js"></script>
-
     <script src="./js/views/calendario.js"></script>
     <script src="./js/views/turmas.js"></script>
     <script src="./js/views/planejamento.js"></script>
@@ -194,9 +175,12 @@
     <script src="./js/views/sala.js"></script>
     <script src="./js/views/provas.js"></script>
     <script src="./js/views/settings.js"></script>
-
     <script src="./js/controller.js"></script>
-
+    <script>
+        window.addEventListener('load', () => {
+            console.log("DOM carregado. Iniciando dependências...");
+        });
+    </script>
 </body>
 
 </html>

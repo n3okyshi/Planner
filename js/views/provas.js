@@ -1,32 +1,17 @@
-/**
- * VIEW - Gerador de Provas e Atividades
- * Funcionalidade: Banco de questões, seleção múltipla e layout de impressão A4.
- */
-const provasView = {
-    // Estado local da View (quais questões estão selecionadas para impressão)
+window.provasView = {
     selecionadas: new Set(),
     termoBusca: '',
-
-    /**
-     * Renderiza a interface principal
-     */
-    render(containerId) {
-        const container = document.getElementById(containerId);
-        // Garante lista de questões
+    render(container) {
+        if (typeof container === 'string') container = document.getElementById(container);
+        if (!container) return;
         const questoes = (model.state && model.state.questoes) ? model.state.questoes : [];
-
-        // 1. Proteção de Sincronização (Cloud)
-        // Remove da seleção IDs que não existem mais (ex: deletados em outro dispositivo)
         const idsExistentes = new Set(questoes.map(q => q.id));
         for (const id of this.selecionadas) {
             if (!idsExistentes.has(id)) {
                 this.selecionadas.delete(id);
             }
         }
-
-        // Filtra as questões baseado na busca
         const questoesFiltradas = this.filtrarQuestoes(questoes);
-
         const html = `
             <div class="fade-in pb-24">
                 <div class="flex flex-wrap justify-between items-end mb-8 gap-4">
@@ -39,11 +24,8 @@ const provasView = {
                         <i class="fas fa-plus"></i> Nova Questão
                     </button>
                 </div>
-
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                    
                     <div class="lg:col-span-2 space-y-6">
-                        
                         <div class="bg-white p-2 rounded-xl border border-slate-200 flex items-center shadow-sm focus-within:border-primary focus-within:ring-2 focus-within:ring-primary/10 transition-all">
                             <div class="w-10 h-10 flex items-center justify-center text-slate-400">
                                 <i class="fas fa-search"></i>
@@ -53,14 +35,12 @@ const provasView = {
                                    class="w-full bg-transparent outline-none text-slate-700 placeholder:text-slate-400 font-medium"
                                    onkeyup="provasView.atualizarBusca(this.value)">
                         </div>
-
                         <div class="space-y-4" id="lista-questoes">
                             ${questoesFiltradas.length > 0
                                 ? questoesFiltradas.map(q => this.cardQuestao(q)).join('')
                                 : this.estadoVazio()}
                         </div>
                     </div>
-
                     <div class="lg:col-span-1 sticky top-24">
                         <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 ring-1 ring-slate-200/50">
                             <div class="flex items-center gap-3 mb-4 border-b border-slate-50 pb-4">
@@ -72,65 +52,53 @@ const provasView = {
                                     <p class="text-xs text-slate-500">Questões selecionadas</p>
                                 </div>
                             </div>
-
                             <div class="mb-6">
                                 <div class="text-4xl font-black text-slate-800 mb-1 text-center">
                                     ${this.selecionadas.size}
                                 </div>
                                 <p class="text-center text-xs font-bold text-slate-400 uppercase tracking-widest">Questões</p>
                             </div>
-
                             <div class="space-y-3">
                                 <button onclick="provasView.imprimirProva()" 
                                         class="w-full py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition flex items-center justify-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                                         ${this.selecionadas.size === 0 ? 'disabled' : ''}>
                                     <i class="fas fa-print"></i> Gerar PDF / Imprimir
                                 </button>
-                                
                                 ${this.selecionadas.size > 0 ? `
                                     <button onclick="provasView.limparSelecao()" class="w-full py-2 text-red-500 text-xs font-bold hover:bg-red-50 rounded-lg transition">
                                         Limpar Seleção
                                     </button>
                                 ` : ''}
                             </div>
-
                             <div class="mt-6 p-4 bg-slate-50 rounded-xl border border-slate-100 text-xs text-slate-500 leading-relaxed text-center">
                                 <i class="fas fa-info-circle mb-1 text-slate-400"></i><br>
                                 Selecione as questões ao lado clicando no botão "+" para montar sua avaliação.
                             </div>
                         </div>
                     </div>
-
                 </div>
             </div>
         `;
-
         container.innerHTML = html;
     },
-
-    /**
-     * Card individual da questão
-     */
     cardQuestao(q) {
         const isSelected = this.selecionadas.has(q.id);
         const borderClass = isSelected ? 'border-primary ring-1 ring-primary bg-blue-50/30' : 'border-slate-200 hover:border-slate-300 bg-white';
         const btnClass = isSelected ? 'bg-red-100 text-red-500 hover:bg-red-200' : 'bg-slate-100 text-slate-400 hover:bg-primary hover:text-white';
         const iconClass = isSelected ? 'fa-minus' : 'fa-plus';
-
+        
         return `
             <div class="p-5 rounded-2xl border transition-all duration-200 ${borderClass} group relative">
                 <div class="flex justify-between items-start gap-4 mb-3">
                     <span class="px-2.5 py-1 bg-slate-100 text-[10px] font-black text-slate-500 rounded uppercase tracking-wider">
                         ${q.materia || 'Geral'}
                     </span>
-                    
                     <div class="flex gap-2">
                         <button onclick="provasView.toggleSelecao(${q.id})" 
                                 class="w-8 h-8 rounded-lg flex items-center justify-center transition-colors shadow-sm ${btnClass}"
                                 title="${isSelected ? 'Remover da prova' : 'Adicionar à prova'}">
                             <i class="fas ${iconClass}"></i>
                         </button>
-                        
                         ${!isSelected ? `
                             <button onclick="controller.deleteQuestao(${q.id}); provasView.render('view-container')" 
                                     class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors">
@@ -139,11 +107,9 @@ const provasView = {
                         ` : ''}
                     </div>
                 </div>
-                
                 <p class="text-slate-700 text-sm leading-relaxed font-medium">
                     ${q.enunciado.replace(/\n/g, '<br>')}
                 </p>
-                
                 <div class="mt-3 pt-3 border-t border-slate-100/50 flex justify-between items-center">
                     <span class="text-[10px] text-slate-400">Adicionada em ${new Date(q.createdAt || Date.now()).toLocaleDateString()}</span>
                     ${isSelected ? '<span class="text-[10px] font-bold text-primary flex items-center gap-1"><i class="fas fa-check-circle"></i> Selecionada</span>' : ''}
@@ -151,9 +117,6 @@ const provasView = {
             </div>
         `;
     },
-
-    // --- LÓGICA DE ESTADO LOCAL ---
-
     filtrarQuestoes(todas) {
         if (!this.termoBusca) return todas;
         const termo = this.termoBusca.toLowerCase();
@@ -162,18 +125,15 @@ const provasView = {
             (q.enunciado && q.enunciado.toLowerCase().includes(termo))
         );
     },
-
     atualizarBusca(valor) {
         this.termoBusca = valor;
         this.render('view-container');
-        // Mantém o foco no input após renderizar (truque de UX)
         const input = document.querySelector('input[type="text"]');
         if (input) {
             input.focus();
             input.value = valor;
         }
     },
-
     toggleSelecao(id) {
         if (this.selecionadas.has(id)) {
             this.selecionadas.delete(id);
@@ -182,16 +142,12 @@ const provasView = {
         }
         this.render('view-container');
     },
-
     limparSelecao() {
         if (confirm("Remover todas as questões da prova atual?")) {
             this.selecionadas.clear();
             this.render('view-container');
         }
     },
-
-    // --- MODAL DE ADIÇÃO ---
-
     openAddQuestao() {
         controller.openModal('Adicionar ao Banco de Questões', `
             <div class="p-6 space-y-4">
@@ -212,35 +168,25 @@ const provasView = {
             </div>
         `);
     },
-
     salvarQuestao() {
         const materia = document.getElementById('q-materia').value;
         const enunciado = document.getElementById('q-enunciado').value;
-
         if (enunciado) {
             model.addQuestao({ materia, enunciado });
             controller.closeModal();
-            this.render('view-container'); // Atualiza a lista
+            this.render('view-container');
         } else {
             alert("O enunciado é obrigatório.");
         }
     },
-
-    // --- IMPRESSÃO ---
-
     imprimirProva() {
         const todas = model.state.questoes || [];
         const selecionadas = todas.filter(q => this.selecionadas.has(q.id));
-
         if (selecionadas.length === 0) return alert("Selecione pelo menos uma questão.");
-
-        // Lógica de Nome do Professor (Config Local > Google > Genérico)
         let nomeProf = model.state.userConfig.profName || '__________________________';
         if ((!model.state.userConfig.profName || model.state.userConfig.profName.trim() === "") && model.currentUser) {
             nomeProf = model.currentUser.displayName;
         }
-
-        // Estilo CSS para impressão (A4)
         const estiloImpressao = `
             <style>
                 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
@@ -259,7 +205,6 @@ const provasView = {
                 }
             </style>
         `;
-
         const conteudo = `
             <html>
             <head><title>Impressão de Avaliação</title>${estiloImpressao}</head>
@@ -269,9 +214,7 @@ const provasView = {
                     <p><strong>PROFESSOR(A):</strong> ${nomeProf} &nbsp;&nbsp; <strong>DATA:</strong> ____/____/____</p>
                     <p><strong>ALUNO(A):</strong> _______________________________________________________ <strong>TURMA:</strong> ________</p>
                 </div>
-
                 <div class="titulo-prova">Avaliação de Aprendizagem</div>
-
                 ${selecionadas.map((q, i) => `
                     <div class="questao">
                         <span class="questao-numero">${i + 1})</span>
@@ -282,17 +225,14 @@ const provasView = {
                         </div>
                     </div>
                 `).join('')}
-                
                 <script>window.print();</script>
             </body>
             </html>
         `;
-
         const win = window.open('', '_blank');
         win.document.write(conteudo);
         win.document.close();
     },
-
     estadoVazio() {
         return `
             <div class="flex flex-col items-center justify-center py-16 px-4 bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl text-center">
@@ -308,8 +248,3 @@ const provasView = {
         `;
     }
 };
-
-window.View = window.View || {};
-window.View.renderProvas = (id) => provasView.render(id);
-// Alias para compatibilidade com controller antigo
-window.View.renderGeradorProvas = (id) => provasView.render(id);

@@ -1,0 +1,34 @@
+==============================================================================
+1. MAPA COMPLETO DO SISTEMA DE ARQUIVOS (FILE SYSTEM)
+==============================================================================
+
+RAIZ DO PROJETO (./)
+│
+├───index.html              # BOOT: Ponto de entrada. Define a ordem crítica de carregamento (Libs -> Services -> Model -> Views -> Controller).
+├───_constructor.txt        # DOCUMENTAÇÃO: Guia técnico da estrutura de arquivos e arquitetura (este arquivo).
+│
+├───assets/                 # RECURSOS ESTÁTICOS
+│   └───BNCC/               # Bases de dados curriculares (JSON e XLSX) para consulta offline.
+│       ├── BNCC_Educação Infantil.*
+│       ├── BNCC_Ensino Fundamental.*
+│       └── BNCC_Ensino_Medio.*
+│
+├───css/
+│   └── style.css           # ESTILOS: Configurações do Tailwind, animações (fade-in/slide) e scrollbars customizadas.
+│
+├───js/                     # LÓGICA CORE (MVC + SERVICES)
+│   │
+│   ├───firebase-service.js # SERVIÇO: Camada de infraestrutura. Gerencia Auth (Google) e Firestore. Não manipula a UI.
+│   ├───model.js            # MODEL: Gerenciamento de estado (State), persistência local (localStorage) e sincronização de dados.
+│   ├───controller.js       # CONTROLLER: Cérebro da aplicação. Inicializa o app, gerencia rotas, eventos de clique e orquestra Model <-> Views.
+│   │
+│   └───views/              # VIEWS: Renderizadores de Interface. Transformam dados em HTML strings.
+│       ├── bncc.js         # Consulta e filtros da base BNCC.
+│       ├── calendario.js   # Dashboard principal. Calendário anual interativo.
+│       ├── diario.js       # Planejamento diário, seleção de conteúdos e impressão.
+│       ├── mensal.js       # Grade de planejamento macro (anual/mensal).
+│       ├── planejamento.js # Planejamento por períodos (Bimestre/Trimestre/Semestre).
+│       ├── provas.js       # Gerador de avaliações e banco de questões.
+│       ├── sala.js         # Mapa de sala (disposição dos alunos).
+│       ├── settings.js     # Configurações do usuário, tema e backup.
+│       └── turmas.js       # Gestão de turmas, alunos e notas.

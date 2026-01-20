@@ -1,7 +1,6 @@
 const firebaseService = {
     auth: null,
     db: null,
-    user: null,
     init() {
         const firebaseConfig = {
             apiKey: "AIzaSyDBY9hDETugzUacWrmfqH06oBNZfGAH_2s",
@@ -11,72 +10,78 @@ const firebaseService = {
             messagingSenderId: "196600313427",
             appId: "1:196600313427:web:8a8e76842163021d48b8a6"
         };
+        if (typeof firebase === 'undefined') {
+            console.error("ERRO: Firebase SDK não foi carregado no HTML.");
+            return;
+        }
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
         this.auth = firebase.auth();
         this.db = firebase.firestore();
-        this.auth.onAuthStateChanged(user => {
-            this.user = user;
-            if (user) {
-                console.log("Firebase: Conectado como", user.email);
-                if (window.model) model.onLogin(user);
-            } else {
-                console.log("Firebase: Desconectado.");
-                if (window.model) model.onLogout();
-            }
-            if (typeof controller !== 'undefined' && controller.currentTab === 'config') {
-                if (window.View && View.renderSettings) View.renderSettings('view-container');
-            }
-        });
+        console.log("Firebase Service inicializado.");
     },
-    loginGoogle() {
+    // Método essencial para o Controller ouvir as mudanças de estado
+    onAuthStateChanged(callback) {
+        if (this.auth) {
+            this.auth.onAuthStateChanged(callback);
+        }
+    },
+    async loginGoogle() {
+        if (!this.auth) return;
         const provider = new firebase.auth.GoogleAuthProvider();
-        this.auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-            .then(() => {
-                return this.auth.signInWithPopup(provider);
-            })
-            .catch(error => {
-                console.error("Erro login:", error);
-                alert("Erro ao conectar: " + error.message);
-            });
+        try {
+            await this.auth.signInWithPopup(provider);
+        } catch (error) {
+            console.error("Erro no login Google:", error);
+            throw error;
+        }
     },
-    logout() {
-        this.auth.signOut();
+    async logout() {
+        if (!this.auth) return;
+        try {
+            await this.auth.signOut();
+            window.location.reload(); // Garante limpeza total da memória
+        } catch (error) {
+            console.error("Erro ao sair:", error);
+        }
     },
     async saveData(uid, appState) {
-        if (!uid) return;
+        if (!uid || !this.db) return;
+        
+        const user = this.auth.currentUser;
+        
         try {
             const payload = {
-                plannerData: JSON.stringify(appState),
-                lastUpdate: new Date().toISOString(),
-                email: this.user ? this.user.email : 'user'
+                plannerData: JSON.stringify(appState), // Correção: usa o appState passado, não 'data'
+                lastUpdate: new Date().toISOString()
             };
+            
+            if (user && user.email) {
+                payload.email = user.email;
+            }
             await this.db.collection('professores').doc(uid).set(payload, { merge: true });
-            console.log("Firebase: Upload concluído.");
+            // console.log("Dados salvos na nuvem.");
         } catch (e) {
-            console.error("Firebase: Erro no upload.", e);
-            throw e;
+            console.error("Erro ao salvar no Firestore:", e);
         }
     },
     async getData(uid) {
-        if (!uid) return null;
+        if (!uid || !this.db) return null;
         try {
             const doc = await this.db.collection('professores').doc(uid).get();
             if (doc.exists) {
                 const data = doc.data();
-                if (data.plannerData) {
-                    const parsedData = JSON.parse(data.plannerData);
-                    parsedData.lastUpdate = data.lastUpdate || parsedData.lastUpdate;
-                    return parsedData;
-                }
-                return data;
+                // Tenta fazer o parse se estiver stringificado, senão retorna direto
+                return data.plannerData ? JSON.parse(data.plannerData) : data;
             }
         } catch (e) {
-            console.error("Firebase: Erro no download.", e);
+            console.error("Erro ao baixar do Firestore:", e);
         }
         return null;
     }
 };
+// Exposição global
 window.firebaseService = firebaseService;
+// Inicializa imediatamente para estar pronto quando o Controller carregar
 firebaseService.init();

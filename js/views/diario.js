@@ -1,9 +1,10 @@
-const diarioView = {
+window.diarioView = {
     currentDate: new Date().toISOString().split('T')[0],
     viewDate: new Date(), 
     currentTurmaId: null,
-    render(containerId) {
-        const container = document.getElementById(containerId);
+    render(container) {
+        if (typeof container === 'string') container = document.getElementById(container);
+        if (!container) return;
         const turmas = (model.state && model.state.turmas) ? model.state.turmas : [];
         if (this.currentTurmaId && !turmas.find(t => t.id == this.currentTurmaId)) {
             this.currentTurmaId = null;
@@ -56,7 +57,6 @@ const diarioView = {
             </div>
         `;
         container.innerHTML = html;
-        
         if (turmas.length > 0) {
             this.preencherCampos();
         }
@@ -67,7 +67,6 @@ const diarioView = {
         const nomesMeses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
         const primeiroDiaSemana = new Date(ano, mes, 1).getDay();
         const totalDias = new Date(ano, mes + 1, 0).getDate();
-        
         let diasHtml = '';
         for (let i = 0; i < primeiroDiaSemana; i++) {
             diasHtml += `<div class="h-10"></div>`;
@@ -122,7 +121,6 @@ const diarioView = {
         const sugestoes = model.getSugestoesDoMes(this.currentTurmaId, this.currentDate);
         return `
             <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative h-full">
-                
                 <div class="bg-slate-50 border-b border-slate-200 p-4 flex flex-wrap justify-between items-center sticky top-0 z-10 gap-3">
                     <div class="flex items-center gap-2">
                         <div class="bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-sm font-bold text-slate-700 shadow-sm flex items-center">
@@ -141,7 +139,6 @@ const diarioView = {
                     </div>
                 </div>
                 <div class="p-6 md:p-8 space-y-6">
-                    
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Tema da Aula</label>
                         <input type="text" id="plan-tema" placeholder="O que será ensinado hoje?" 
@@ -198,7 +195,6 @@ const diarioView = {
     },
     preencherCampos() {
         const plano = model.getPlanoDiario(this.currentDate, this.currentTurmaId);
-        
         const campos = ['plan-tema', 'plan-bncc', 'plan-objetivos', 'plan-recursos', 'plan-metodologia', 'plan-avaliacao'];
         const valores = {
             'plan-tema': plano ? plano.tema : '',
@@ -218,7 +214,6 @@ const diarioView = {
         const textoAtual = campoObj.value;
         const novoTexto = `[${codigo}] ${descricao}`;
         campoObj.value = textoAtual ? textoAtual + "\n\n" + novoTexto : novoTexto;
-        
         campoObj.classList.add('ring-2', 'ring-yellow-400', 'bg-yellow-50');
         setTimeout(() => campoObj.classList.remove('ring-2', 'ring-yellow-400', 'bg-yellow-50'), 500);
     },
@@ -239,12 +234,10 @@ const diarioView = {
         const metodologia = document.getElementById('plan-metodologia').value;
         const recursos = document.getElementById('plan-recursos').value;
         const avaliacao = document.getElementById('plan-avaliacao').value;
-        
         const [ano, mes, dia] = this.currentDate.split('-');
         const dataFormatada = `${dia}/${mes}/${ano}`;
         const turma = model.state.turmas.find(t => t.id == this.currentTurmaId);
         const nomeTurma = turma ? turma.nome : 'Turma';
-        
         let nomeProf = model.state.userConfig.profName || 'Docente';
         if ((!model.state.userConfig.profName || model.state.userConfig.profName.trim() === "") && model.currentUser) {
             nomeProf = model.currentUser.displayName;
@@ -269,13 +262,11 @@ const diarioView = {
                     <div class="meta">Data: ${dataFormatada} | Turma: ${nomeTurma}</div>
                     <div class="meta">Professor(a): ${nomeProf}</div>
                 </div>
-                
                 <div class="section"><span class="label">Habilidades BNCC</span><div class="content">${bncc || '-'}</div></div>
                 <div class="section"><span class="label">Objetivos</span><div class="content">${objetivos || '-'}</div></div>
                 <div class="section"><span class="label">Metodologia</span><div class="content">${metodologia || '-'}</div></div>
                 <div class="section"><span class="label">Recursos</span><div class="content">${recursos || '-'}</div></div>
                 <div class="section"><span class="label">Avaliação</span><div class="content">${avaliacao || '-'}</div></div>
-                
                 <script>window.print();</script>
             </body>
             </html>
@@ -285,6 +276,3 @@ const diarioView = {
         win.document.close();
     }
 };
-window.diarioView = diarioView;
-window.View = window.View || {};
-window.View.renderDiario = (id) => diarioView.render(id);

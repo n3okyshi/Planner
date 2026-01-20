@@ -1,4 +1,4 @@
-const calendarioView = {
+window.calendarioView = {
     tiposEventos: {
         'feriado_nac':   { label: 'Feriado Nacional',      bg: 'bg-red-100',     text: 'text-red-700', border: 'border-red-200' },
         'feriado_est':   { label: 'Feriado Estadual',      bg: 'bg-red-50',      text: 'text-red-600', border: 'border-red-100' },
@@ -14,15 +14,14 @@ const calendarioView = {
         'avaliacao':     { label: 'Avaliação Periódica',   bg: 'bg-purple-100',  text: 'text-purple-700', border: 'border-purple-200' },
         'inicio_per':    { label: 'Início do Período',     bg: 'bg-lime-100',    text: 'text-lime-800', border: 'border-lime-200' },
         'aula':          { label: 'Dia Letivo',            bg: 'bg-white',       text: 'text-slate-600', border: 'border-slate-200' },
-
     },
     mesesNomes: [
         "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
         "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
     ],
-    render(containerId) {
-        const container = document.getElementById(containerId);
-        
+    render(container) {
+        if (typeof container === 'string') container = document.getElementById(container);
+        if (!container) return;
         const config = (model.state && model.state.userConfig) || {};
         let nomeProf = 'Professor(a)';
         if (config.profName && config.profName.trim() !== '') {
@@ -37,7 +36,6 @@ const calendarioView = {
                         <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Olá, ${nomeProf}!</h2>
                         <p class="text-slate-500 mt-1">Calendário Acadêmico 2026</p>
                     </div>
-                    
                     <div class="group relative">
                         <button class="text-xs font-bold text-primary border border-primary/30 px-3 py-1.5 rounded-lg bg-primary/5 hover:bg-primary/10 transition">
                             <i class="fas fa-info-circle mr-1"></i> Ver Legenda
@@ -91,7 +89,6 @@ const calendarioView = {
             }
             const hoje = new Date();
             const isHoje = hoje.getDate() === dia && (hoje.getMonth() + 1) === mes && hoje.getFullYear() === ano;
-            
             if (isHoje) {
                 classesBase += "ring-2 ring-primary ring-offset-1 z-10 font-bold ";
                 if (!evento) estiloCor = "bg-primary text-white hover:bg-primary/90";
@@ -125,10 +122,8 @@ const calendarioView = {
         const el = document.getElementById('current-date');
         if (el) {
             const hoje = new Date();
-            el.innerHTML = `<i class="far fa-clock mr-2"></i>` + hoje.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            el.innerHTML = `<i class="far fa-clock mr-2"></i>` + hoje.toLocaleDateString('pt-BR', options);
         }
     }
 };
-window.calendarioView = calendarioView;
-window.View = window.View || {};
-window.View.renderCalendario = (id) => calendarioView.render(id);

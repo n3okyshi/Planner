@@ -1,10 +1,5 @@
-/* =========================================
-   1. VARIÁVEIS E CONFIGURAÇÕES GLOBAIS
-   ========================================= */
-   :root {
-    /* Esta variável é atualizada pelo JS (controller.js) com o valor do Firebase */
-    --primary-color: #0891b2; 
-    
+:root {
+    --primary-color: #0891b2;
     --bg-main: #f8fafc;
     --transition-speed: 0.2s;
 }
@@ -22,33 +17,28 @@ body {
     overflow-x: hidden;
 }
 
-/* =========================================
-   2. SIDEBAR (Conectada ao Tema)
-   ========================================= */
 .sidebar {
-    /* O !important garante que a cor do banco de dados sobrescreva o Tailwind */
-    background-color: var(--primary-color) !important; 
+    background-color: var(--primary-color) !important;
     transition: background-color 0.3s ease;
 }
 
-/* Scrollbar fina para a navegação */
 .custom-scrollbar::-webkit-scrollbar {
     width: 4px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-track {
-    background: rgba(0,0,0,0.1);
+    background: rgba(0, 0, 0, 0.1);
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.2);
     border-radius: 10px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.4);
 }
 
-/* =========================================
-   3. BOTÕES E TEXTOS (Conectados ao Tema)
-   ========================================= */
 .btn-primary {
     background-color: var(--primary-color) !important;
     color: white !important;
@@ -76,9 +66,6 @@ body {
     --tw-ring-color: var(--primary-color) !important;
 }
 
-/* =========================================
-   4. ANIMAÇÕES
-   ========================================= */
 .fade-in {
     animation: fadeIn 0.4s ease-out forwards;
 }
@@ -88,6 +75,7 @@ body {
         opacity: 0;
         transform: translateY(10px);
     }
+
     to {
         opacity: 1;
         transform: translateY(0);
@@ -99,24 +87,25 @@ body {
 }
 
 @keyframes slideIn {
-    from { opacity: 0; transform: translateX(-10px); }
-    to { opacity: 1; transform: translateX(0); }
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
-/* =========================================
-   5. UTILITÁRIOS VISUAIS
-   ========================================= */
-
-/* Truncamento de texto inteligente (ex: cards da BNCC) */
 .line-clamp-3 {
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
-    line-clamp: 3; 
+    line-clamp: 3;
     overflow: hidden;
 }
 
-/* Status de Nuvem (Pequeno indicador no topo) */
 #cloud-status {
     font-size: 0.75rem;
     font-weight: 600;
@@ -126,17 +115,16 @@ body {
    6. MODO DE IMPRESSÃO (Relatórios Limpos)
    ========================================= */
 @media print {
-    /* Esconde elementos de navegação e controle */
+
     .sidebar,
     header,
     .btn-primary,
     button,
     .no-print,
-    #view-container > div > div:first-child /* Títulos das páginas */ {
+    #view-container>div>div:first-child {
         display: none !important;
     }
 
-    /* Expande o conteúdo principal */
     main {
         margin-left: 0 !important;
         padding: 0 !important;
@@ -148,19 +136,18 @@ body {
         background: white !important;
     }
 
-    /* Garante que cores de fundo (gráficos/tabelas) apareçam */
     * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
 
-    /* Ajustes para tabelas de notas */
     table {
         width: 100% !important;
         border-collapse: collapse !important;
     }
-    
-    th, td {
+
+    th,
+    td {
         border: 1px solid #ddd !important;
         color: #000 !important;
     }
