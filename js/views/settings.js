@@ -126,8 +126,8 @@ window.settingsView = {
                     <img src="${user.photoURL || 'https://ui-avatars.com/api/?name=' + user.displayName}" 
                          class="w-16 h-16 rounded-full border-4 border-emerald-50 shadow-sm" alt="Foto de perfil">
                     <div>
-                        <h4 class="font-bold text-slate-800 text-lg">${user.displayName}</h4>
-                        <p class="text-sm text-slate-500">${user.email}</p>
+                        <h4 class="font-bold text-slate-800 text-lg">${escapeHTML(user.displayName)}</h4>
+                        <p class="text-sm text-slate-500">${escapeHTML(user.email)}</p>
                         <div class="flex items-center gap-2 mt-1">
                             <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
                                 <i class="fas fa-check-circle"></i> Sincronizado

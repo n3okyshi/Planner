@@ -29,7 +29,7 @@ window.diarioView = {
                         <select id="diario-turma" onchange="controller.mudarTurmaDiario(this.value)"
                                 class="bg-slate-50 border border-slate-200 text-slate-700 font-bold rounded-xl px-4 py-2 outline-none focus:border-primary min-w-[200px]">
                             ${turmas.length > 0 
-                                ? turmas.map(t => `<option value="${t.id}" ${t.id == this.currentTurmaId ? 'selected' : ''}>${t.nome}</option>`).join('')
+                                ? turmas.map(t => `<option value="${t.id}" ${t.id == this.currentTurmaId ? 'selected' : ''}>${escapeHTML(t.nome)}</option>`).join('')
                                 : '<option value="">Nenhuma turma</option>'
                             }
                         </select>
@@ -164,7 +164,7 @@ window.diarioView = {
                                 ${sugestoes.map(h => `
                                     <button onclick="diarioView.copiarHabilidade('${h.codigo}', '${h.descricao.replace(/'/g, "")}')"
                                             class="bg-white border border-yellow-200 text-yellow-800 text-[10px] px-2 py-1 rounded hover:bg-yellow-100 transition shadow-sm text-left max-w-full truncate"
-                                            title="${h.descricao}">
+                                            title="${escapeHTML(h.descricao)}">
                                         <strong>${h.codigo}</strong> <i class="fas fa-plus ml-1 opacity-50"></i>
                                     </button>
                                 `).join('')}
@@ -245,7 +245,7 @@ window.diarioView = {
         const conteudo = `
             <html>
             <head>
-                <title>Plano de Aula - ${tema}</title>
+                <title>Plano de Aula - ${escapeHTML(tema)}</title>
                 <style>
                     body { font-family: 'Segoe UI', sans-serif; padding: 40px; color: #333; max-width: 800px; margin: 0 auto; }
                     .header { border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
@@ -258,9 +258,9 @@ window.diarioView = {
             </head>
             <body>
                 <div class="header">
-                    <h1>${tema}</h1>
-                    <div class="meta">Data: ${dataFormatada} | Turma: ${nomeTurma}</div>
-                    <div class="meta">Professor(a): ${nomeProf}</div>
+                    <h1>${escapeHTML(tema)}</h1>
+                    <div class="meta">Data: ${dataFormatada} | Turma: ${escapeHTML(nomeTurma)}</div>
+                    <div class="meta">Professor(a): ${escapeHTML(nomeProf)}</div>
                 </div>
                 <div class="section"><span class="label">Habilidades BNCC</span><div class="content">${bncc || '-'}</div></div>
                 <div class="section"><span class="label">Objetivos</span><div class="content">${objetivos || '-'}</div></div>

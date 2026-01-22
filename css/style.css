@@ -1,14 +1,21 @@
-html, body {
+html,
+body {
     width: 100%;
     max-width: 100%;
-    overflow-x: hidden; 
+    overflow-x: hidden;
     position: relative;
-    overscroll-behavior-y: none; 
+    overscroll-behavior-y: none;
+    zoom: 80%;
 }
-img, video, canvas, svg {
+
+img,
+video,
+canvas,
+svg {
     max-width: 100%;
     height: auto;
 }
+
 :root {
     --primary-color: #0891b2;
     --bg-main: #f8fafc;
@@ -126,41 +133,148 @@ body {
    6. MODO DE IMPRESSÃO (Relatórios Limpos)
    ========================================= */
 @media print {
+    html,
+    body {
+        zoom: 100% !important;
+        background-color: white !important;
+        color: black;
+        font-size: 11pt; /* Tamanho bom para leitura em papel */
+    }
 
+    /* Ocultar elementos de UI e Navegação */
     .sidebar,
-    header,
+    header, /* Topo fixo */
     .btn-primary,
     button,
     .no-print,
-    #view-container>div>div:first-child {
+    .fixed, /* Oculta modais e toasts flutuantes */
+    #cloud-status,
+    #auth-container,
+    [role="button"] {
         display: none !important;
     }
 
+    /* Ajuste de layout principal para ocupar folha toda */
     main {
         margin-left: 0 !important;
         padding: 0 !important;
         width: 100% !important;
-        background: white !important;
+        max-width: 100% !important;
+        background: transparent !important;
     }
 
-    body {
-        background: white !important;
+    #view-container {
+        padding: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
     }
 
+    /* --- CABEÇALHO DAS VIEWS (Título) --- */
+    /* Restaura o cabeçalho (que antes estava hidden) para mostrar o título */
+    #view-container > div > div:first-child {
+        display: flex !important;
+        flex-direction: column;
+        border: none !important;
+        padding: 0 0 10px 0 !important;
+        margin-bottom: 20px !important;
+        box-shadow: none !important;
+        position: static !important; /* Remove sticky para não bugar na impressão */
+        background: transparent !important;
+    }
+
+    /* Oculta os controles (Selects e Botões) dentro do cabeçalho */
+    /* Geralmente é o segundo filho flex do header ou selects diretos */
+    #view-container > div > div:first-child > div:last-child,
+    #view-container select {
+        display: none !important;
+    }
+
+    /* Força o título a ser preto e visível */
+    #view-container h2 {
+        font-size: 22pt !important;
+        color: #000 !important;
+        margin-bottom: 0px;
+    }
+    
+    #view-container p {
+        color: #555 !important;
+    }
+
+    /* --- CARDS DE PLANEJAMENTO E MENSAL --- */
+    
+    /* Remove altura fixa e rolagem dos cards para expandirem no papel */
+    .h-\[500px\], 
+    .h-\[400px\],
+    .overflow-y-auto,
+    .custom-scrollbar {
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+    }
+
+    /* Transforma o Grid em Blocos (um abaixo do outro) para fluir melhor */
+    .grid {
+        display: block !important;
+    }
+
+    /* Estilização do Card Individual */
+    #view-container .rounded-xl,
+    #view-container .rounded-2xl {
+        border: 1px solid #ccc !important;
+        border-radius: 4px !important;
+        margin-bottom: 20px !important;
+        break-inside: avoid; /* CRÍTICO: Evita quebrar o bimestre no meio da página */
+        page-break-inside: avoid;
+        box-shadow: none !important;
+        background-color: transparent !important;
+    }
+
+    /* Cabeçalho do Card (Ex: "1º Bimestre") */
+    .sticky.top-0 {
+        position: static !important;
+        border-bottom: 1px solid #000 !important;
+        background: transparent !important;
+        padding: 10px !important;
+    }
+
+    /* Ocultar placeholders de "Adicionar" (botões pontilhados) */
+    .group\/empty,
+    [title="Adicionar Habilidade"],
+    .fa-plus-circle,
+    .fa-plus {
+        display: none !important;
+    }
+
+    /* Força impressão de cores de fundo (badges da BNCC) */
     * {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
 
+    /* Tabelas (Turmas e Notas) */
     table {
         width: 100% !important;
         border-collapse: collapse !important;
+        font-size: 10pt;
     }
 
-    th,
-    td {
-        border: 1px solid #ddd !important;
+    th, td {
+        border: 1px solid #999 !important;
+        padding: 5px !important;
         color: #000 !important;
+    }
+    
+    thead th {
+        background-color: #eee !important;
+    }
+
+    /* Limpeza visual nos inputs de notas */
+    input {
+        border: none !important;
+        background: transparent !important;
+        padding: 0 !important;
+        /* Tenta alinhar texto se for number */
+        text-align: center; 
     }
 }
 

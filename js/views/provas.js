@@ -1,6 +1,7 @@
 window.provasView = {
     selecionadas: new Set(),
     termoBusca: '',
+
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
@@ -75,18 +76,43 @@ window.provasView = {
         `;
         container.innerHTML = html;
     },
+
     cardQuestao(q) {
         const isSelected = this.selecionadas.has(q.id);
         const borderClass = isSelected ? 'border-primary ring-1 ring-primary bg-blue-50/30' : 'border-slate-200 hover:border-slate-300 bg-white';
         const btnClass = isSelected ? 'bg-red-100 text-red-500 hover:bg-red-200' : 'bg-slate-100 text-slate-400 hover:bg-primary hover:text-white';
         const iconClass = isSelected ? 'fa-minus' : 'fa-plus';
+        
+        // Tags
         let tagsHtml = `<span class="px-2 py-1 bg-slate-100 text-[10px] font-bold text-slate-600 rounded uppercase tracking-wider">${q.materia || 'Geral'}</span>`;
         if (q.ano) {
-            tagsHtml += `<span class="px-2 py-1 bg-indigo-50 text-[10px] font-bold text-indigo-600 rounded uppercase tracking-wider border border-indigo-100">${q.ano}</span>`;
+            tagsHtml += `<span class="px-2 py-1 bg-indigo-50 text-[10px] font-bold text-indigo-600 rounded uppercase tracking-wider border border-indigo-100">${escapeHTML(q.ano)}</span>`;
         }
         if (q.bncc && q.bncc.codigo) {
-            tagsHtml += `<span class="px-2 py-1 bg-yellow-50 text-[10px] font-bold text-yellow-700 rounded uppercase tracking-wider border border-yellow-100" title="${q.bncc.descricao}">${q.bncc.codigo}</span>`;
+            tagsHtml += `<span class="px-2 py-1 bg-yellow-50 text-[10px] font-bold text-yellow-700 rounded uppercase tracking-wider border border-yellow-100" title="${escapeHTML(q.bncc.descricao)}">${escapeHTML(q.bncc.codigo)}</span>`;
         }
+        
+        // Tag de Tipo
+        const tipoLabel = (q.tipo === 'multipla') ? 'Múltipla Escolha' : 'Dissertativa';
+        const tipoCor = (q.tipo === 'multipla') ? 'text-purple-600 bg-purple-50 border-purple-100' : 'text-emerald-600 bg-emerald-50 border-emerald-100';
+        tagsHtml += `<span class="px-2 py-1 ${tipoCor} text-[10px] font-bold rounded uppercase tracking-wider border">${tipoLabel}</span>`;
+
+        // Renderizar Alternativas no Card (se houver)
+        let alternativasPreview = '';
+        if (q.tipo === 'multipla' && q.alternativas && q.alternativas.length > 0) {
+            const letras = ['a', 'b', 'c', 'd', 'e'];
+            alternativasPreview = `
+                <div class="mt-3 pl-2 border-l-2 border-slate-100 space-y-1">
+                    ${q.alternativas.map((alt, i) => `
+                        <div class="text-xs text-slate-600 flex gap-1">
+                            <span class="font-bold">${letras[i]})</span>
+                            <span>${alt}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+        }
+
         return `
             <div class="p-5 rounded-2xl border transition-all duration-200 ${borderClass} group relative">
                 <div class="flex justify-between items-start gap-4 mb-3">
@@ -108,8 +134,11 @@ window.provasView = {
                     </div>
                 </div>
                 <p class="text-slate-700 text-sm leading-relaxed font-medium font-serif">
-                    ${q.enunciado.replace(/\n/g, '<br>')}
+                    ${escapeHTML(q.enunciado).replace(/\n/g, '<br>')}
                 </p>
+                
+                ${alternativasPreview}
+
                 <div class="mt-3 pt-3 border-t border-slate-100/50 flex justify-between items-center">
                     <span class="text-[10px] text-slate-400">Adicionada em ${new Date(q.createdAt || Date.now()).toLocaleDateString()}</span>
                     ${isSelected ? '<span class="text-[10px] font-bold text-primary flex items-center gap-1"><i class="fas fa-check-circle"></i> Selecionada</span>' : ''}
@@ -117,6 +146,7 @@ window.provasView = {
             </div>
         `;
     },
+
     filtrarQuestoes(todas) {
         if (!this.termoBusca) return todas;
         const termo = this.termoBusca.toLowerCase();
@@ -127,6 +157,7 @@ window.provasView = {
             (q.bncc && q.bncc.codigo && q.bncc.codigo.toLowerCase().includes(termo))
         );
     },
+
     atualizarBusca(valor) {
         this.termoBusca = valor;
         this.render('view-container');
@@ -136,6 +167,7 @@ window.provasView = {
             input.value = valor;
         }
     },
+
     toggleSelecao(id) {
         if (this.selecionadas.has(id)) {
             this.selecionadas.delete(id);
@@ -144,12 +176,16 @@ window.provasView = {
         }
         this.render('view-container');
     },
+
     limparSelecao() {
         if (confirm("Remover todas as questões da prova atual?")) {
             this.selecionadas.clear();
             this.render('view-container');
         }
     },
+
+    // --- NOVA LÓGICA DE ADICIONAR QUESTÃO ---
+
     openAddQuestao(dados = {}) {
         const habilidadeHtml = dados.bncc 
             ? `<div class="bg-yellow-50 border border-yellow-100 p-3 rounded-lg flex items-center justify-between">
@@ -162,6 +198,7 @@ window.provasView = {
             : `<button onclick="controller.openSeletorBnccQuestao()" class="w-full py-3 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 hover:border-primary hover:text-primary hover:bg-blue-50 transition-all text-xs font-bold uppercase flex items-center justify-center gap-2">
                  <i class="fas fa-search"></i> Selecionar Habilidade BNCC
                </button>`;
+
         const html = `
             <div class="p-6 space-y-4">
                 <div class="grid grid-cols-2 gap-4">
@@ -184,17 +221,43 @@ window.provasView = {
                         </select>
                     </div>
                 </div>
+
+                <div class="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Tipo de Questão</label>
+                        <select id="q-tipo" onchange="provasView.mudarTipoQuestao()" class="w-full border border-slate-200 p-2 rounded-lg outline-none focus:border-primary bg-white text-sm font-medium">
+                            <option value="aberta" ${dados.tipo === 'aberta' ? 'selected' : ''}>Dissertativa (Linhas)</option>
+                            <option value="multipla" ${dados.tipo === 'multipla' ? 'selected' : ''}>Múltipla Escolha</option>
+                        </select>
+                    </div>
+                    <div id="container-qtd-alt" class="hidden">
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Alternativas</label>
+                        <select id="q-qtd-alt" onchange="provasView.gerarInputsAlternativas()" class="w-full border border-slate-200 p-2 rounded-lg outline-none focus:border-primary bg-white text-sm font-medium">
+                            <option value="3">3 (A, B, C)</option>
+                            <option value="4" selected>4 (A, B, C, D)</option>
+                            <option value="5">5 (A, B, C, D, E)</option>
+                        </select>
+                    </div>
+                </div>
+
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Habilidade BNCC (Opcional)</label>
                     <input type="hidden" id="q-bncc-cod" value="${dados.bncc ? dados.bncc.codigo : ''}">
                     <input type="hidden" id="q-bncc-desc" value="${dados.bncc ? dados.bncc.descricao : ''}">
                     ${habilidadeHtml}
                 </div>
+
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Enunciado da Questão</label>
-                    <textarea id="q-enunciado" rows="6" placeholder="Digite o texto da questão..." 
+                    <textarea id="q-enunciado" rows="4" placeholder="Digite o texto da questão..." 
                               class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary text-slate-700 text-sm font-medium">${dados.enunciado || ''}</textarea>
                 </div>
+
+                <div id="area-alternativas" class="hidden space-y-2 border-t border-slate-100 pt-3">
+                    <label class="block text-xs font-bold text-slate-400 uppercase">Opções de Resposta</label>
+                    <div id="inputs-alternativas" class="space-y-2"></div>
+                </div>
+
                 <div class="flex justify-end gap-3 pt-2">
                     <button onclick="controller.closeModal()" class="px-4 py-2 text-slate-500 font-bold hover:bg-slate-50 rounded-lg">Cancelar</button>
                     <button onclick="provasView.salvarQuestao()" class="btn-primary px-6 py-2 rounded-xl font-bold shadow-lg shadow-primary/20">Salvar Questão</button>
@@ -202,37 +265,105 @@ window.provasView = {
             </div>
         `;
         controller.openModal('Adicionar ao Banco', html);
+        
+        // Inicialização
         setTimeout(() => {
             if(dados.ano) document.getElementById('q-ano').value = dados.ano;
+            provasView.mudarTipoQuestao(); // Atualiza visibilidade
             document.getElementById('q-enunciado').focus();
         }, 50);
     },
+
+    mudarTipoQuestao() {
+        const tipo = document.getElementById('q-tipo').value;
+        const containerQtd = document.getElementById('container-qtd-alt');
+        const areaAlternativas = document.getElementById('area-alternativas');
+        
+        if (tipo === 'multipla') {
+            containerQtd.classList.remove('hidden');
+            areaAlternativas.classList.remove('hidden');
+            this.gerarInputsAlternativas();
+        } else {
+            containerQtd.classList.add('hidden');
+            areaAlternativas.classList.add('hidden');
+        }
+    },
+
+    gerarInputsAlternativas() {
+        const qtd = parseInt(document.getElementById('q-qtd-alt').value);
+        const container = document.getElementById('inputs-alternativas');
+        const letras = ['A', 'B', 'C', 'D', 'E'];
+        
+        // Salva valores atuais para não perder se mudar qtd
+        const valoresAtuais = [];
+        const inputsAntigos = container.querySelectorAll('input');
+        inputsAntigos.forEach(inp => valoresAtuais.push(inp.value));
+
+        let html = '';
+        for(let i = 0; i < qtd; i++) {
+            const valor = valoresAtuais[i] || '';
+            html += `
+                <div class="flex items-center gap-2">
+                    <span class="w-6 h-6 rounded-full bg-slate-100 text-slate-500 font-bold text-xs flex items-center justify-center">${letras[i]}</span>
+                    <input type="text" id="alt-${i}" value="${valor}" placeholder="Texto da alternativa ${letras[i]}" 
+                           class="flex-1 border border-slate-200 p-2 rounded-lg text-sm outline-none focus:border-primary">
+                </div>
+            `;
+        }
+        container.innerHTML = html;
+    },
+
     getDataModal() {
         return {
             materia: document.getElementById('q-materia').value,
             ano: document.getElementById('q-ano').value,
             enunciado: document.getElementById('q-enunciado').value,
+            tipo: document.getElementById('q-tipo').value,
             bncc: document.getElementById('q-bncc-cod').value ? {
                 codigo: document.getElementById('q-bncc-cod').value,
                 descricao: document.getElementById('q-bncc-desc').value
             } : null
         };
     },
+
     salvarQuestao() {
         const materia = document.getElementById('q-materia').value;
         const ano = document.getElementById('q-ano').value;
         const enunciado = document.getElementById('q-enunciado').value;
         const bnccCod = document.getElementById('q-bncc-cod').value;
         const bnccDesc = document.getElementById('q-bncc-desc').value;
+        const tipo = document.getElementById('q-tipo').value;
+
         if (enunciado) {
             const novaQuestao = { 
                 materia, 
                 ano, 
-                enunciado 
+                enunciado,
+                tipo // 'aberta' ou 'multipla'
             };
+
             if (bnccCod) {
                 novaQuestao.bncc = { codigo: bnccCod, descricao: bnccDesc };
             }
+
+            // Captura alternativas se for múltipla escolha
+            if (tipo === 'multipla') {
+                const qtd = parseInt(document.getElementById('q-qtd-alt').value);
+                const alternativas = [];
+                let todasPreenchidas = true;
+
+                for(let i=0; i<qtd; i++) {
+                    const val = document.getElementById(`alt-${i}`).value.trim();
+                    if(!val) todasPreenchidas = false;
+                    alternativas.push(val);
+                }
+
+                if (!todasPreenchidas) {
+                    return alert("Por favor, preencha todas as alternativas.");
+                }
+                novaQuestao.alternativas = alternativas;
+            }
+
             model.addQuestao(novaQuestao);
             controller.closeModal();
             this.render('view-container');
@@ -240,14 +371,17 @@ window.provasView = {
             alert("O enunciado é obrigatório.");
         }
     },
+
     imprimirProva() {
         const todas = model.state.questoes || [];
         const selecionadas = todas.filter(q => this.selecionadas.has(q.id));
         if (selecionadas.length === 0) return alert("Selecione pelo menos uma questão.");
+        
         let nomeProf = model.state.userConfig.profName || '__________________________';
         if ((!model.state.userConfig.profName || model.state.userConfig.profName.trim() === "") && model.currentUser) {
             nomeProf = model.currentUser.displayName;
         }
+
         const estiloImpressao = `
             <style>
                 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
@@ -259,30 +393,58 @@ window.provasView = {
                 .questao-info { font-size: 10px; color: #666; margin-bottom: 5px; text-transform: uppercase; font-weight: bold; }
                 .questao-numero { font-weight: bold; margin-bottom: 10px; display: block; font-size: 16px; }
                 .questao-texto { font-size: 14px; line-height: 1.5; text-align: justify; margin-bottom: 15px; }
-                .resposta-area { border: 1px dashed #ccc; height: 100px; width: 100%; display: block; margin-top: 10px; }
+                .resposta-area { border-bottom: 1px solid #ccc; height: 25px; width: 100%; display: block; margin-top: 5px; }
+                .alternativa { margin-bottom: 8px; font-size: 14px; padding-left: 10px; }
             </style>
         `;
+
         const conteudo = `
             <html>
             <head><title>Impressão de Avaliação</title>${estiloImpressao}</head>
             <body>
                 <div class="header">
                     <p><strong>ESCOLA:</strong> ${model.state.userConfig.schoolName || '________________________________________________'}</p>
-                    <p><strong>PROFESSOR(A):</strong> ${nomeProf} &nbsp;&nbsp; <strong>DATA:</strong> ____/____/____</p>
+                    <p><strong>PROFESSOR(A):</strong> ${escapeHTML(nomeProf)} &nbsp;&nbsp; <strong>DATA:</strong> ____/____/____</p>
                     <p><strong>ALUNO(A):</strong> _______________________________________________________ <strong>TURMA:</strong> ________</p>
                 </div>
                 <div class="titulo-prova">Avaliação de Aprendizagem</div>
-                ${selecionadas.map((q, i) => `
-                    <div class="questao">
-                        ${q.bncc ? `<div class="questao-info no-print">Habilidade: ${q.bncc.codigo}</div>` : ''}
-                        <span class="questao-numero">${i + 1})</span>
-                        <div class="questao-texto">${q.enunciado.replace(/\n/g, '<br>')}</div>
-                        <div style="margin-top: 20px;">
-                            Resposta: __________________________________________________________________________<br><br>
-                            ___________________________________________________________________________________
+                
+                ${selecionadas.map((q, i) => {
+                    const letras = ['a', 'b', 'c', 'd', 'e'];
+                    let conteudoResposta = '';
+
+                    if (q.tipo === 'multipla' && q.alternativas) {
+                        // Renderiza Alternativas
+                        conteudoResposta = `
+                            <div style="margin-top: 10px;">
+                                ${q.alternativas.map((alt, idx) => `
+                                    <div class="alternativa">
+                                        <strong>${letras[idx]})</strong> ${alt}
+                                    </div>
+                                `).join('')}
+                            </div>
+                        `;
+                    } else {
+                        // Renderiza Linhas (Padrão: 3 linhas)
+                        conteudoResposta = `
+                            <div style="margin-top: 20px;">
+                                <div class="resposta-area"></div>
+                                <div class="resposta-area"></div>
+                                <div class="resposta-area"></div>
+                            </div>
+                        `;
+                    }
+
+                    return `
+                        <div class="questao">
+                            ${q.bncc ? `<div class="questao-info no-print">Habilidade: ${escapeHTML(q.bncc.codigo)}</div>` : ''}
+                            <span class="questao-numero">${i + 1})</span>
+                            <div class="questao-texto">${escapeHTML(q.enunciado).replace(/\n/g, '<br>')}</div>
+                            ${conteudoResposta}
                         </div>
-                    </div>
-                `).join('')}
+                    `;
+                }).join('')}
+                
                 <script>window.print();</script>
             </body>
             </html>
@@ -291,6 +453,7 @@ window.provasView = {
         win.document.write(conteudo);
         win.document.close();
     },
+
     estadoVazio() {
         return `
             <div class="flex flex-col items-center justify-center py-16 px-4 bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl text-center">

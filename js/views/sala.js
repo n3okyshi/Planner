@@ -22,7 +22,7 @@ window.salaView = {
                     <select id="map-select-turma" onchange="salaView.carregarMapa(this.value)" 
                             class="md:col-span-3 border border-slate-200 p-4 rounded-xl bg-white focus:border-primary outline-none font-medium transition-all shadow-sm cursor-pointer">
                         ${turmas.length > 0
-                            ? turmas.map(t => `<option value="${t.id}" ${t.id == this.currentTurmaId ? 'selected' : ''}>${t.nome}</option>`).join('')
+                            ? turmas.map(t => `<option value="${t.id}" ${t.id == this.currentTurmaId ? 'selected' : ''}>${escapeHTML(t.nome)}</option>`).join('')
                             : '<option value="">Nenhuma turma cadastrada</option>'
                         }
                     </select>
@@ -73,7 +73,7 @@ window.salaView = {
                 ? `
                     <div class="flex flex-col items-center justify-center h-full w-full p-1 text-center">
                         <span class="font-bold text-slate-700 text-[10px] md:text-xs leading-tight line-clamp-2 w-full break-words">
-                            ${aluno.nome.split(' ')[0]} ${aluno.nome.split(' ')[1] ? aluno.nome.split(' ')[1].charAt(0) + '.' : ''}
+                            ${escapeHTML(aluno.nome).split(' ')[0]} ${aluno.nome.split(' ')[1] ? aluno.nome.split(' ')[1].charAt(0) + '.' : ''}
                         </span>
                     </div>
                   `
@@ -102,7 +102,7 @@ window.salaView = {
                             .map(aluno => `
                                 <button onclick="salaView.salvarPosicao('${turmaId}', '${aluno.id}', ${posicao})" 
                                         class="w-full text-left p-3 rounded-xl hover:bg-blue-50 hover:text-primary transition font-medium border border-slate-100 flex justify-between items-center group">
-                                    <span>${aluno.nome}</span>
+                                    <span>model.coresCompo${escapeHTML(aluno.nome)}nentes</span>
                                     ${aluno.posicao === posicao ? '<i class="fas fa-check text-green-500"></i>' : '<i class="fas fa-chair opacity-0 group-hover:opacity-50"></i>'}
                                 </button>
                             `).join('')

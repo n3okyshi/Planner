@@ -1,16 +1,27 @@
+window.escapeHTML = function(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, function(match) {
+        const escape = {
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        };
+        return escape[match];
+    });
+};
+
 const controller = {
     currentView: null,
     views: {},
     init: function () {
-        // Garante que o model iniciou
         if (window.model && model.init) model.init();
-        // Faz o mapeamento inicial das views
         this.bindViews();
         this.aplicarTema();
         this.setupGlobalListeners();
         this.monitorAuth();
     },
-    // Função separada para mapear as views (pode ser chamada novamente se falhar no init)
     bindViews: function () {
         this.views = {
             'dashboard': window.calendarioView,
@@ -38,9 +49,6 @@ const controller = {
                 if (cloudStatus) cloudStatus.innerHTML = '<i class="fas fa-check text-green-500"></i> Sync ON';
                 try {
                     await model.loadUserData();
-
-                    // Se já tem uma view definida (ex: refresh da página), mantém ela.
-                    // Se não, vai para dashboard.
                     if (!this.currentView) {
                         this.navigate('dashboard');
                     } else {
@@ -48,17 +56,14 @@ const controller = {
                     }
                 } catch (error) {
                     console.error("Erro ao carregar dados:", error);
-                    // Não alertar erro de conexão agressivamente, apenas logar
                 }
             } else {
                 console.log("Usuário deslogado");
                 model.currentUser = null;
                 model.data = {};
-
                 this.updateAuthButton(false);
                 const cloudStatus = document.getElementById('cloud-status');
                 if (cloudStatus) cloudStatus.innerHTML = '<i class="fas fa-cloud text-slate-300"></i> Offline';
-
                 this.navigate('dashboard');
             }
         });
@@ -74,11 +79,9 @@ const controller = {
     handleLogout: function () {
         if (confirm("Sair da conta e parar sincronização?")) {
             firebaseService.logout();
-            // Recarrega a página para limpar estados da memória
             window.location.reload();
         }
     },
-    // toggle Sidebar
     toggleSidebar: function () {
         const sidebar = document.getElementById('app-sidebar');
         const main = document.getElementById('main-content');
@@ -104,13 +107,11 @@ const controller = {
         }
     },
     navigate: async function (viewName) {
-        // Redirecionamentos de nomes antigos/alternativos
         if (viewName === 'calendario') viewName = 'dashboard';
         if (viewName === 'planejamento') viewName = 'periodo';
         if (viewName === 'diario') viewName = 'dia';
         if (viewName === 'sala') viewName = 'mapa';
         if (viewName === 'settings') viewName = 'config';
-        // Tenta re-mapear as views se a solicitada não existir (Correção do erro "View não encontrada")
         if (!this.views[viewName]) {
             console.log(`Tentando re-mapear views para encontrar: ${viewName}`);
             this.bindViews();
@@ -119,12 +120,10 @@ const controller = {
         const view = this.views[viewName];
         this.currentView = viewName;
         this.aplicarTema();
-        // Atualiza Menu Lateral
         document.querySelectorAll('nav button').forEach(btn => {
             btn.classList.remove('bg-white/10', 'text-white');
             btn.classList.add('text-slate-400');
         });
-        // Tenta encontrar o botão do menu para destacar
         let activeBtn = document.getElementById(`nav-${viewName}`);
         if (!activeBtn) {
             const mapId = { 'periodo': 'planejamento', 'dia': 'diario', 'mapa': 'sala', 'config': 'settings' };
@@ -134,23 +133,18 @@ const controller = {
             activeBtn.classList.add('bg-white/10', 'text-white');
             activeBtn.classList.remove('text-slate-400');
         }
-        // Lógica específica do Diário (Data)
         if (viewName === 'dia' && window.diarioView) {
             if (!diarioView.viewDate) {
                 const [ano, mes] = diarioView.currentDate.split('-');
                 diarioView.viewDate = new Date(parseInt(ano), parseInt(mes) - 1, 1);
             }
         }
-        // Se mesmo após re-mapear a view não existir, mostra erro amigável
         if (!view) {
             console.error(`View '${viewName}' é undefined. Views disponíveis:`, Object.keys(this.views));
             container.innerHTML = `<p class="p-10 text-center text-slate-400">Erro: A tela '${viewName}' não foi carregada corretamente. Tente recarregar a página.</p>`;
             return;
         }
-        // Loading
         container.innerHTML = '<div class="flex justify-center p-10"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>';
-
-        // Renderização com pequeno delay para garantir fluidez da UI
         setTimeout(async () => {
             container.innerHTML = '';
             try {
@@ -187,7 +181,7 @@ const controller = {
                     <img src="${user.photoURL || 'https://ui-avatars.com/api/?name=Prof'}" class="w-8 h-8 rounded-full border border-white/20 shrink-0">
                     <div class="overflow-hidden nav-label transition-all duration-300">
                         <p class="text-xs text-slate-300 truncate">Olá,</p>
-                        <p class="text-xs font-bold text-white truncate w-24">${user.displayName}</p>
+                        <p class="text-xs font-bold text-white truncate w-24">${escapeHTML(user.displayName)}</p>
                     </div>
                     <i class="fas fa-sign-out-alt ml-auto text-slate-500 hover:text-red-400 nav-label"></i>
                 </div>
@@ -219,7 +213,6 @@ const controller = {
             dateEl.innerText = new Date().toLocaleDateString('pt-BR', options);
         }
     },
-    // --- MODAIS & UTILITÁRIOS ---
     openModal(title, content, size = 'normal') {
         let modal = document.getElementById('global-modal');
         if (!modal) {
@@ -254,15 +247,9 @@ const controller = {
     },
     copyToClipboard(text) {
         navigator.clipboard.writeText(text).then(() => {
-            // Feedback visual rápido se necessário
         });
     },
-    // --- PROXIES PARA MÉTODOS DE NEGÓCIO ---
-    // Estes métodos servem para os onclicks no HTML chamarem o controller, 
-    // que por sua vez chama a View correta ou o Model.
     openAddTurma() { this.openModal('Nova Turma', this._getAddTurmaHtml()); },
-
-    // HTML Interno para o modal de turma (movido para cá para organizar)
     _getAddTurmaHtml() {
         return `
             <div class="p-6 space-y-4">
@@ -471,7 +458,6 @@ const controller = {
         setTimeout(() => this.views['bncc'].render('modal-bncc-container', turma.nivel, turma.serie, callback), 50);
     },
     openSeletorBnccQuestao() {
-        // 1. Captura o que o usuário já digitou para não perder
         const rascunho = {
             materia: document.getElementById('q-materia').value,
             ano: document.getElementById('q-ano').value,
@@ -492,36 +478,20 @@ const controller = {
             this.views['bncc'].render('modal-bncc-container', nivelPre, null, callback);
         }, 50);
     },
-    // Função para adicionar habilidade no Planejamento por Período (Bimestre/Trimestre/Semestre)
-    // No arquivo js/controllers/main.js
-
     openSeletorBncc(turmaId, periodoIdx, nivelHtml, serieHtml) {
         const turma = model.state.turmas.find(t => t.id == turmaId);
         if (!turma) return console.error("Turma não encontrada");
-
-        // Define contexto
         const nivelFinal = turma.nivel || nivelHtml;
         const serieFinal = turma.serie || serieHtml;
-
-        // Callback executado ao clicar em "Usar" no Modal
         const callback = (habilidade) => {
             console.log("Selecionado:", habilidade);
-            
-            // 1. Salva no Model (Aqui a mágica acontece)
             model.addHabilidadePlanejamento(turmaId, periodoIdx, habilidade);
-            
-            // 2. Fecha o Modal
             const modal = document.getElementById('modal-container');
             if (modal) modal.remove();
-            
-            // 3. Força a atualização da View de Planejamento para mostrar o card novo
             if (window.planejamentoView) {
-                // Pequeno delay para garantir que o save() do model terminou
                 setTimeout(() => window.planejamentoView.render('view-container'), 50);
             }
         };
-
-        // Abre o Modal
         this.openModal(
             `BNCC - ${periodoIdx}º Período (${serieFinal})`, 
             `<div id="modal-bncc-planejamento" class="w-full h-[80vh] bg-white relative">
@@ -531,8 +501,6 @@ const controller = {
              </div>`, 
             'large'
         );
-
-        // Renderiza a BNCC (com Retry para segurança)
         let tentativas = 0;
         const tentarRenderizar = () => {
             const container = document.getElementById('modal-bncc-planejamento');
@@ -546,8 +514,6 @@ const controller = {
         };
         setTimeout(tentarRenderizar, 100);
     },
-
-    // Adicione também a função de remover no controller para o botão de lixeira funcionar
     removeHabilidade(turmaId, periodoIdx, codigoHabilidade) {
         if(confirm("Deseja remover esta habilidade do planejamento?")) {
             model.removeHabilidadePlanejamento(turmaId, periodoIdx, codigoHabilidade);
@@ -696,9 +662,6 @@ const controller = {
         model.exportData();
     }
 };
-// =========================================================
-// INICIALIZAÇÃO SEGURA (ESPERA TUDO CARREGAR)
-// =========================================================
 window.addEventListener('load', () => {
     console.log("Sistema inicializado.");
     controller.init();

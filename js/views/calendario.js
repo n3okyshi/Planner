@@ -33,7 +33,7 @@ window.calendarioView = {
             <div class="fade-in pb-20">
                 <div class="flex flex-wrap justify-between items-end mb-8 gap-6">
                     <div>
-                        <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Olá, ${nomeProf}!</h2>
+                        <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Olá, ${escapeHTML(nomeProf)}!</h2>
                         <p class="text-slate-500 mt-1">Calendário Acadêmico 2026</p>
                     </div>
                     <div class="group relative">
@@ -81,10 +81,10 @@ window.calendarioView = {
                 const configEvento = this.tiposEventos[evento.tipo];
                 if (configEvento) {
                     estiloCor = `${configEvento.bg} ${configEvento.text} font-bold ring-1 ring-inset ${configEvento.border}`;
-                    tooltipText = `${configEvento.label}: ${evento.descricao}`;
+                    tooltipText = `${configEvento.label}: ${escapeHTML(evento.descricao)}`;
                 } else {
                     estiloCor = "bg-gray-100 text-gray-500 font-bold border border-gray-200";
-                    tooltipText = `Evento (Tipo desconhecido): ${evento.descricao}`;
+                    tooltipText = `Evento (Tipo desconhecido): ${escapeHTML(evento.descricao)}`;
                 }
             }
             const hoje = new Date();

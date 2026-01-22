@@ -49,7 +49,7 @@ window.turmasView = {
                         <i class="fas fa-trash-alt"></i>
                     </button>
                 </div>
-                <h3 class="text-xl font-bold text-slate-800 mb-2 truncate" title="${turma.nome}">${turma.nome}</h3>
+                <h3 class="text-xl font-bold text-slate-800 mb-2 truncate" title="${escapeHTML(turma.nome)}">${escapeHTML(turma.nome)}</h3>
                 <div class="flex gap-4 text-sm text-slate-500 mb-6 border-b border-slate-50 pb-4">
                     <span class="flex items-center gap-1.5"><i class="far fa-user text-xs"></i> ${qtdAlunos} Alunos</span>
                     <span class="flex items-center gap-1.5"><i class="far fa-file-alt text-xs"></i> ${qtdAtividades} Ativ.</span>
@@ -81,7 +81,7 @@ window.turmasView = {
                             <i class="fas fa-arrow-left"></i>
                         </button>
                         <div>
-                            <h2 class="text-3xl font-bold text-slate-800">${turma.nome}</h2>
+                            <h2 class="text-3xl font-bold text-slate-800">${escapeHTML(turma.nome)}</h2>
                             <p class="text-slate-500 text-sm">${alunosValidos.length} alunos matriculados</p>
                         </div>
                     </div>
@@ -114,7 +114,7 @@ window.turmasView = {
                                     ${turma.avaliacoes.map(av => `
                                         <th class="p-3 min-w-[100px] text-center border-l border-b border-slate-200 bg-slate-50 group cursor-help relative">
                                             <div class="flex flex-col items-center">
-                                                <span class="text-[10px] font-bold text-slate-700 truncate max-w-[120px]" title="${av.nome}">${av.nome}</span>
+                                                <span class="text-[10px] font-bold text-slate-700 truncate max-w-[120px]" title="${escapeHTML(av.nome)}">${escapeHTML(av.nome)}</span>
                                                 <span class="text-[9px] font-bold text-slate-400 bg-slate-200 px-1.5 rounded mt-1">Peso ${av.max}</span>
                                             </div>
                                             <button onclick="controller.deleteAvaliacao('${turma.id}', '${av.id}')" 
@@ -151,7 +151,7 @@ window.turmasView = {
             <tr class="hover:bg-slate-50/80 transition-colors group">
                 <td class="p-3 text-center text-slate-400 font-mono text-xs">${index + 1}</td>
                 <td class="p-3 font-semibold text-slate-700 text-sm whitespace-nowrap flex items-center justify-between gap-2">
-                    ${aluno.nome}
+                    model.coresCompo${escapeHTML(aluno.nome)}nentes
                     <button onclick="controller.deleteAluno('${turma.id}', '${aluno.id}')" 
                             class="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" 
                             title="Remover Aluno">
@@ -161,7 +161,7 @@ window.turmasView = {
                 ${turma.avaliacoes.map(av => `
                     <td class="p-0 border-l border-slate-100 relative">
                         <input type="number" 
-                               aria-label="Nota de ${aluno.nome} na avaliação ${av.nome}"
+                               aria-label="Nota de model.coresCompo${escapeHTML(aluno.nome)}nentes na avaliação ${escapeHTML(av.nome)}"
                                value="${aluno.notas[av.id] || ''}" 
                                placeholder="-"
                                min="0" max="${av.max}" step="0.1"

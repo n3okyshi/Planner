@@ -1,6 +1,29 @@
 const model = {
     STORAGE_KEY: 'planner_pro_docente_2026',
     currentUser: null,
+    coresComponentes: {
+        // Educação Infantil
+        "O eu, o outro e o nós": "#4f46e5",
+        "Corpo, gestos e movimentos": "#0891b2",
+        "Traços, sons, cores e formas": "#db2777",
+        "Escuta, fala, pensamento e imaginação": "#7c3aed",
+        "Espaços, tempos, quantidades, relações e transformações": "#059669",
+        // Ensino Fundamental
+        "Língua Portuguesa": "#2563eb",
+        "Arte": "#db2777",
+        "Educação Física": "#ea580c",
+        "Língua Inglesa": "#475569",
+        "Matemática": "#dc2626",
+        "Ciências": "#16a34a",
+        "Geografia": "#ca8a04",
+        "História": "#9333ea",
+        "Ensino Religioso": "#0d9488",
+        // Ensino Médio
+        "Linguagens e suas Tecnologias": "#2563eb",
+        "Matemática e suas Tecnologias": "#dc2626",
+        "Ciências da Natureza e suas Tecnologias": "#16a34a",
+        "Ciências Humanas e Sociais Aplicadas": "#9333ea"
+    },
     state: {
         userConfig: {
             themeColor: '#0891b2',
@@ -24,29 +47,24 @@ const model = {
             }
         }
     },
-    // Chamado pelo Controller quando o usuário loga
     async loadUserData() {
         if (!window.firebaseService || !firebaseService.auth.currentUser) return;
-        
         this.currentUser = firebaseService.auth.currentUser;
         this.updateStatusCloud('<i class="fas fa-download"></i> Verificando nuvem...', 'text-blue-600');
         try {
             const cloudData = await firebaseService.getData(this.currentUser.uid);
-            
             if (cloudData) {
                 const localTime = new Date(this.state.lastUpdate || 0).getTime();
                 const cloudTime = new Date(cloudData.lastUpdate || 0).getTime();
-                // Lógica de Conflito: Nuvem mais recente vence
                 if (cloudTime > (localTime + 1000)) {
                     console.log("☁️ Nuvem é mais recente. Atualizando local.");
                     this.state = { ...this.state, ...cloudData };
-                    this.saveLocal(); // Salva no localStorage para persistir
+                    this.saveLocal(); 
                     this.updateStatusCloud('<i class="fas fa-check"></i> Dados atualizados', 'text-emerald-600');
                 } 
-                // Local mais recente vence (enviamos para a nuvem)
                 else if (localTime > (cloudTime + 1000)) {
                     console.log("💻 Local é mais recente. Enviando para a nuvem.");
-                    this.save(); // Salva na nuvem
+                    this.save(); 
                 } 
                 else {
                     console.log("✅ Dados sincronizados.");
@@ -62,13 +80,10 @@ const model = {
         }
     },
     save() {
-        // 1. Salva Localmente
         this.state.lastUpdate = new Date().toISOString();
         this.saveLocal();
-        // 2. Salva na Nuvem (se logado)
         if (this.currentUser && window.firebaseService) {
             this.updateStatusCloud('<i class="fas fa-sync fa-spin"></i> Salvando...', 'text-yellow-600');
-            
             window.firebaseService.saveData(this.currentUser.uid, this.state)
                 .then(() => {
                     this.updateStatusCloud('<i class="fas fa-check"></i> Salvo na Nuvem', 'text-emerald-600');
@@ -82,12 +97,10 @@ const model = {
     saveLocal() {
         localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.state));
     },
-    // Helper para atualizar a UI de status sem quebrar se o elemento não existir
     updateStatusCloud(html, colorClass) {
         const el = document.getElementById('cloud-status');
         if (el) {
             el.innerHTML = html;
-            // Remove classes de cor antigas e adiciona a nova
             el.className = `flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-slate-100 text-xs font-bold transition-all shadow-sm ${colorClass}`;
         }
     },
@@ -108,7 +121,6 @@ const model = {
             this.save();
         }
     },
-    // --- MÉTODOS DE NEGÓCIO (TURMAS, ALUNOS, ETC) ---
     addTurma(nome, nivel, serie, identificador) {
         const novaTurma = {
             id: Date.now(),
@@ -120,7 +132,7 @@ const model = {
         this.save();
     },
     deleteTurma(id) {
-        this.state.turmas = this.state.turmas.filter(t => t.id != id); // Usando != para coerção de string/number
+        this.state.turmas = this.state.turmas.filter(t => t.id != id); 
         this.save();
     },
     addAluno(turmaId, nomeAluno) {
@@ -168,8 +180,6 @@ const model = {
             }
         }
     },
-    // No arquivo js/models/main.js
-
     addHabilidadePlanejamento(turmaId, periodoIdx, habilidade) {
         const turma = this.state.turmas.find(t => t.id == turmaId);
         if (!turma) return;
@@ -199,7 +209,6 @@ const model = {
         if (!turma) return;
         if (!turma.planejamentoMensal) turma.planejamentoMensal = {};
         if (!turma.planejamentoMensal[mes]) turma.planejamentoMensal[mes] = [];
-        
         if (!turma.planejamentoMensal[mes].some(h => h.codigo === habilidade.codigo)) {
             turma.planejamentoMensal[mes].push(habilidade);
             this.save();
@@ -240,14 +249,10 @@ const model = {
     getSugestoesDoMes(turmaId, dataIso) {
         const turma = this.state.turmas.find(t => t.id == turmaId);
         if (!turma || !turma.planejamentoMensal) return [];
-        
         const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
         const mesIndex = parseInt(dataIso.split('-')[1]) - 1;
         return turma.planejamentoMensal[meses[mesIndex]] || [];
     }
 };
-// Inicialização imediata
 window.model = model;
-// model.init() será chamado pelo Controller para garantir ordem correta, 
-// mas se for chamado aqui não faz mal pois é síncrono (localStorage).
 model.init();
