@@ -1,4 +1,6 @@
-window.bnccView = {
+import { model } from '../model.js';
+
+export const bnccView = {
     selecionarCallback: null,
     dataCache: {},
     coresComponentes: {

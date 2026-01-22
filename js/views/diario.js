@@ -1,4 +1,6 @@
-window.diarioView = {
+import { model } from '../model.js';
+
+export const diarioView = {
     currentDate: new Date().toISOString().split('T')[0],
     viewDate: new Date(), 
     currentTurmaId: null,

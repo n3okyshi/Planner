@@ -19,9 +19,9 @@ const ASSETS_TO_CACHE = [
     'https://cdn.tailwindcss.com',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
     // Dados estáticos
-    './assets/BNCC/BNCC_Educação Infantil.json',
-    './assets/BNCC/BNCC_Ensino Fundamental.json',
-    './assets/BNCC/BNCC_Ensino_Medio.json'
+    './assets/BNCC/bncc_infantil.json',
+    './assets/BNCC/bncc_fundamental.json',
+    './assets/BNCC/bncc_medio.json'
 ];
 self.addEventListener('install', (event) => {
     event.waitUntil(

@@ -1,6 +1,20 @@
-window.escapeHTML = function(str) {
+import { model } from './model.js';//
+import { firebaseService } from './firebase-service.js';
+import { bnccView } from './views/bncc.js';//
+import { turmasView } from './views/turmas.js';//
+import { calendarioView } from './views/calendario.js';//
+import { mensalView } from './views/mensal.js';//
+import { planejamentoView } from './views/planejamento.js';//
+import { diarioView } from './views/diario.js';//
+import { salaView } from './views/sala.js';//
+import { provasView } from './views/provas.js';//
+import { frequenciaView } from './views/frequencia.js';//
+import { settingsView } from './views/settings.js';//
+
+
+window.escapeHTML = function (str) {
     if (!str) return '';
-    return String(str).replace(/[&<>"']/g, function(match) {
+    return String(str).replace(/[&<>"']/g, function (match) {
         const escape = {
             '&': '&amp;',
             '<': '&lt;',
@@ -16,7 +30,7 @@ const controller = {
     currentView: null,
     views: {},
     init: function () {
-        if (window.model && model.init) model.init();
+        if (model && model.init) model.init();
         this.bindViews();
         this.aplicarTema();
         this.setupGlobalListeners();
@@ -24,19 +38,20 @@ const controller = {
     },
     bindViews: function () {
         this.views = {
-            'dashboard': window.calendarioView,
-            'mensal': window.mensalView,
-            'periodo': window.planejamentoView,
-            'dia': window.diarioView,
-            'turmas': window.turmasView,
-            'bncc': window.bnccView,
-            'mapa': window.salaView,
-            'provas': window.provasView,
-            'config': window.settingsView
+            'dashboard': calendarioView,
+            'mensal': mensalView,
+            'periodo': planejamentoView,
+            'dia': diarioView,
+            'turmas': turmasView,
+            'bncc': bnccView,
+            'mapa': salaView,
+            'provas': provasView,
+            'frequencia': frequenciaView,
+            'config': settingsView
         };
     },
     monitorAuth: function () {
-        if (!window.firebaseService) {
+        if (!firebaseService) {
             console.error("Firebase Service não carregado.");
             return;
         }
@@ -126,7 +141,7 @@ const controller = {
         });
         let activeBtn = document.getElementById(`nav-${viewName}`);
         if (!activeBtn) {
-            const mapId = { 'periodo': 'planejamento', 'dia': 'diario', 'mapa': 'sala', 'config': 'settings' };
+            const mapId = { 'periodo': 'planejamento', 'dia': 'diario', 'mapa': 'sala', 'frequencia': 'frequencia', 'config': 'settings' };
             if (mapId[viewName]) activeBtn = document.getElementById(`nav-${mapId[viewName]}`);
         }
         if (activeBtn) {
@@ -493,29 +508,27 @@ const controller = {
             }
         };
         this.openModal(
-            `BNCC - ${periodoIdx}º Período (${serieFinal})`, 
+            `BNCC - ${periodoIdx}º Período (${serieFinal})`,
             `<div id="modal-bncc-planejamento" class="w-full h-[80vh] bg-white relative">
                 <div class="flex items-center justify-center h-full text-slate-400">
                     <i class="fas fa-circle-notch fa-spin mr-2"></i> Carregando BNCC...
                 </div>
-             </div>`, 
+             </div>`,
             'large'
         );
         let tentativas = 0;
         const tentarRenderizar = () => {
             const container = document.getElementById('modal-bncc-planejamento');
             if (container && window.bnccView) {
-                container.innerHTML = ""; 
                 window.bnccView.render('modal-bncc-planejamento', nivelFinal, serieFinal, callback);
             } else {
-                tentativas++;
-                if (tentativas < 20) setTimeout(tentarRenderizar, 100);
+                console.error("Erro: Container ou View BNCC não encontrados.");
             }
         };
         setTimeout(tentarRenderizar, 100);
     },
     removeHabilidade(turmaId, periodoIdx, codigoHabilidade) {
-        if(confirm("Deseja remover esta habilidade do planejamento?")) {
+        if (confirm("Deseja remover esta habilidade do planejamento?")) {
             model.removeHabilidadePlanejamento(turmaId, periodoIdx, codigoHabilidade);
             window.planejamentoView.render('view-container');
         }
@@ -662,7 +675,21 @@ const controller = {
         model.exportData();
     }
 };
+
+window.controller = controller;
+
+window.bnccView = bnccView;
+window.turmasView = turmasView;
+window.calendarioView = calendarioView;
+window.mensalView = mensalView;
+window.planejamentoView = planejamentoView;
+window.diarioView = diarioView;
+window.salaView = salaView;
+window.provasView = provasView;
+window.frequenciaView = frequenciaView;
+window.settingsView = settingsView;
+
 window.addEventListener('load', () => {
-    console.log("Sistema inicializado.");
+    console.log("Sistema Modulado Inicializado.");
     controller.init();
 });

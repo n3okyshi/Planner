@@ -1,4 +1,6 @@
-window.salaView = {
+import { model } from '../model.js';
+
+export const salaView = {
     currentTurmaId: null,
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
@@ -22,9 +24,9 @@ window.salaView = {
                     <select id="map-select-turma" onchange="salaView.carregarMapa(this.value)" 
                             class="md:col-span-3 border border-slate-200 p-4 rounded-xl bg-white focus:border-primary outline-none font-medium transition-all shadow-sm cursor-pointer">
                         ${turmas.length > 0
-                            ? turmas.map(t => `<option value="${t.id}" ${t.id == this.currentTurmaId ? 'selected' : ''}>${escapeHTML(t.nome)}</option>`).join('')
-                            : '<option value="">Nenhuma turma cadastrada</option>'
-                        }
+                ? turmas.map(t => `<option value="${t.id}" ${t.id == this.currentTurmaId ? 'selected' : ''}>${escapeHTML(t.nome)}</option>`).join('')
+                : '<option value="">Nenhuma turma cadastrada</option>'
+            }
                     </select>
                     <button onclick="window.print()" class="bg-slate-800 text-white rounded-xl font-bold hover:bg-black transition flex items-center justify-center gap-2 shadow-md">
                         <i class="fas fa-print"></i> Imprimir
@@ -97,17 +99,17 @@ window.salaView = {
                 <p class="text-sm text-slate-500 mb-4">Escolha um aluno para sentar aqui:</p>
                 <div class="max-h-[300px] overflow-y-auto custom-scrollbar space-y-2 mb-4 pr-1">
                     ${alunosDisponiveis.length > 0
-                        ? alunosDisponiveis
-                            .sort((a, b) => a.nome.localeCompare(b.nome))
-                            .map(aluno => `
+                ? alunosDisponiveis
+                    .sort((a, b) => a.nome.localeCompare(b.nome))
+                    .map(aluno => `
                                 <button onclick="salaView.salvarPosicao('${turmaId}', '${aluno.id}', ${posicao})" 
                                         class="w-full text-left p-3 rounded-xl hover:bg-blue-50 hover:text-primary transition font-medium border border-slate-100 flex justify-between items-center group">
-                                    <span>model.coresCompo${escapeHTML(aluno.nome)}nentes</span>
+                                    <span>${escapeHTML(aluno.nome)}</span>
                                     ${aluno.posicao === posicao ? '<i class="fas fa-check text-green-500"></i>' : '<i class="fas fa-chair opacity-0 group-hover:opacity-50"></i>'}
                                 </button>
                             `).join('')
-                        : '<div class="text-center text-slate-400 text-xs py-4">Todos os alunos já têm lugar.</div>'
-                    }
+                : '<div class="text-center text-slate-400 text-xs py-4">Todos os alunos já têm lugar.</div>'
+            }
                 </div>
                 ${alunoAtual ? `
                     <div class="pt-4 border-t border-slate-100">
@@ -121,16 +123,7 @@ window.salaView = {
         `);
     },
     salvarPosicao(turmaId, alunoId, posicao) {
-        const turma = model.state.turmas.find(t => t.id == turmaId);
-        turma.alunos.forEach(a => {
-            if (a.posicao === posicao) delete a.posicao;
-        });
-        if (alunoId) {
-            const aluno = turma.alunos.find(a => a.id == alunoId);
-            turma.alunos.forEach(a => { if (a.id == alunoId) delete a.posicao; });
-            if (aluno) aluno.posicao = posicao;
-        }
-        model.save();
+        model.updatePosicaoMapa(turmaId, alunoId, posicao);
         controller.closeModal();
         this.carregarMapa(turmaId);
     }

@@ -1,4 +1,6 @@
-window.mensalView = {
+import { model } from '../model.js';
+
+export const mensalView = {
     currentTurmaId: null,
     meses: [
         "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",

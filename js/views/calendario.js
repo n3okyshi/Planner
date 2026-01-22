@@ -1,19 +1,21 @@
-window.calendarioView = {
+import { model } from '../model.js';
+
+export const calendarioView = {
     tiposEventos: {
-        'feriado_nac':   { label: 'Feriado Nacional',      bg: 'bg-red-100',     text: 'text-red-700', border: 'border-red-200' },
-        'feriado_est':   { label: 'Feriado Estadual',      bg: 'bg-red-50',      text: 'text-red-600', border: 'border-red-100' },
-        'feriado_mun':   { label: 'Feriado Municipal',     bg: 'bg-rose-100',    text: 'text-rose-600', border: 'border-rose-200' },
-        'recesso':       { label: 'Recesso Escolar',       bg: 'bg-orange-100',  text: 'text-orange-700', border: 'border-orange-200' },
-        'ferias':        { label: 'Férias Escolares',      bg: 'bg-amber-100',   text: 'text-amber-700', border: 'border-amber-200' },
-        'retorno_adm':   { label: 'Retorno Admin.',        bg: 'bg-slate-200',   text: 'text-slate-700', border: 'border-slate-300' },
-        'modulacao':     { label: 'Modulação',             bg: 'bg-indigo-100',  text: 'text-indigo-700', border: 'border-indigo-200' },
-        'plan_pedag':    { label: 'Planej. Pedagógico',    bg: 'bg-blue-100',    text: 'text-blue-700', border: 'border-blue-200' },
-        'reuniao_ped':   { label: 'Reunião Pedagógica',    bg: 'bg-sky-100',     text: 'text-sky-700', border: 'border-sky-200' },
-        'conselho':      { label: 'Conselho de Classe',    bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200' },
-        'reuniao_pais':  { label: 'Reunião de Pais',       bg: 'bg-teal-100',    text: 'text-teal-700', border: 'border-teal-200' },
-        'avaliacao':     { label: 'Avaliação Periódica',   bg: 'bg-purple-100',  text: 'text-purple-700', border: 'border-purple-200' },
-        'inicio_per':    { label: 'Início do Período',     bg: 'bg-lime-100',    text: 'text-lime-800', border: 'border-lime-200' },
-        'aula':          { label: 'Dia Letivo',            bg: 'bg-white',       text: 'text-slate-600', border: 'border-slate-200' },
+        'feriado_nac': { label: 'Feriado Nacional', bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200' },
+        'feriado_est': { label: 'Feriado Estadual', bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-100' },
+        'feriado_mun': { label: 'Feriado Municipal', bg: 'bg-rose-100', text: 'text-rose-600', border: 'border-rose-200' },
+        'recesso': { label: 'Recesso Escolar', bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-200' },
+        'ferias': { label: 'Férias Escolares', bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200' },
+        'retorno_adm': { label: 'Retorno Admin.', bg: 'bg-slate-200', text: 'text-slate-700', border: 'border-slate-300' },
+        'modulacao': { label: 'Modulação', bg: 'bg-indigo-100', text: 'text-indigo-700', border: 'border-indigo-200' },
+        'plan_pedag': { label: 'Planej. Pedagógico', bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
+        'reuniao_ped': { label: 'Reunião Pedagógica', bg: 'bg-sky-100', text: 'text-sky-700', border: 'border-sky-200' },
+        'conselho': { label: 'Conselho de Classe', bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200' },
+        'reuniao_pais': { label: 'Reunião de Pais', bg: 'bg-teal-100', text: 'text-teal-700', border: 'border-teal-200' },
+        'avaliacao': { label: 'Avaliação Periódica', bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200' },
+        'inicio_per': { label: 'Início do Período', bg: 'bg-lime-100', text: 'text-lime-800', border: 'border-lime-200' },
+        'aula': { label: 'Dia Letivo', bg: 'bg-white', text: 'text-slate-600', border: 'border-slate-200' },
     },
     mesesNomes: [
         "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
@@ -25,13 +27,19 @@ window.calendarioView = {
         const config = (model.state && model.state.userConfig) || {};
         let nomeProf = 'Professor(a)';
         if (config.profName && config.profName.trim() !== '') {
-            nomeProf = config.profName.split(' ')[0]; 
+            nomeProf = config.profName.split(' ')[0];
         } else if (model.currentUser && model.currentUser.displayName) {
             nomeProf = model.currentUser.displayName.split(' ')[0];
         }
         const html = `
-            <div class="fade-in pb-20">
-                <div class="flex flex-wrap justify-between items-end mb-8 gap-6">
+            <div class="fade-in pb-20 print:pb-0">
+                
+                <div class="hidden print:block text-center mb-6 border-b border-slate-200 pb-4">
+                    <h1 class="text-2xl font-bold text-slate-800">Calendário Acadêmico 2026</h1>
+                    <p class="text-sm text-slate-500">${escapeHTML(nomeProf)}</p>
+                </div>
+
+                <div class="flex flex-wrap justify-between items-end mb-8 gap-6 no-print">
                     <div>
                         <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Olá, ${escapeHTML(nomeProf)}!</h2>
                         <p class="text-slate-500 mt-1">Calendário Acadêmico 2026</p>
@@ -41,42 +49,49 @@ window.calendarioView = {
                             <i class="fas fa-info-circle mr-1"></i> Ver Legenda
                         </button>
                         <div class="absolute right-0 top-full mt-2 w-64 bg-white p-4 rounded-xl shadow-xl border border-slate-100 z-50 hidden group-hover:grid grid-cols-1 gap-2 max-h-[400px] overflow-y-auto custom-scrollbar">
-                            ${this.gerarLegenda()}
+                            ${this.gerarLegendaItens()}
                         </div>
                     </div>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 print:grid-cols-3 gap-6 calendar-grid print:gap-4">
                     ${this.mesesNomes.map((nome, index) => this.gerarTemplateMes(index + 1, nome)).join('')}
+                </div>
+
+                <div class="hidden print:grid grid-cols-4 gap-2 mt-8 pt-4 border-t border-slate-200 break-inside-avoid">
+                    <div class="col-span-full mb-2 font-bold text-sm text-slate-800">Legenda:</div>
+                    ${this.gerarLegendaItens(true)} 
                 </div>
             </div>
         `;
         container.innerHTML = html;
         this.atualizarDataHeader();
     },
-    gerarLegenda() {
+    gerarLegendaItens(isPrint = false) {
         return Object.entries(this.tiposEventos)
             .filter(([key]) => !key.includes('Antigo'))
             .map(([key, estilo]) => `
-                <div class="flex items-center gap-2">
-                    <div class="w-3 h-3 rounded-full ${estilo.bg.replace('100', '500').replace('50', '400').replace('white', 'slate-300')}"></div>
-                    <span class="text-[10px] font-bold text-slate-600 uppercase tracking-wide">${estilo.label}</span>
+                <div class="flex items-center gap-2 p-1 ${isPrint ? '' : 'hover:bg-slate-50'} rounded-lg transition-colors">
+                    <div class="w-4 h-4 rounded-md shadow-sm shrink-0 ${estilo.bg} border ${estilo.border} print:border-2"></div>
+                    <span class="${isPrint ? 'text-[9px]' : 'text-[10px]'} font-bold text-slate-600 uppercase tracking-wide truncate">${estilo.label}</span>
                 </div>
             `).join('');
     },
     gerarTemplateMes(mes, nome) {
-        const ano = 2026; 
-        const primeiroDiaSemana = new Date(ano, mes - 1, 1).getDay(); 
+        const ano = 2026;
+        const primeiroDiaSemana = new Date(ano, mes - 1, 1).getDay();
         const totalDias = new Date(ano, mes, 0).getDate();
         let diasHtml = '';
         for (let i = 0; i < primeiroDiaSemana; i++) {
-            diasHtml += `<div class="h-8"></div>`;
+            diasHtml += `<div class="h-8 calendar-day-empty"></div>`;
         }
         for (let dia = 1; dia <= totalDias; dia++) {
             const dataIso = `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
             const evento = model.state.eventos ? model.state.eventos[dataIso] : null;
-            let classesBase = "h-8 flex items-center justify-center relative cursor-pointer rounded-lg transition-all text-xs font-medium ";
-            let estiloCor = "hover:bg-slate-100 text-slate-600"; 
+            let classesBase = "h-8 flex items-center justify-center relative cursor-pointer rounded-lg transition-all text-xs font-medium calendar-day ";
+            let estiloCor = "hover:bg-slate-100 text-slate-600";
             let tooltipText = 'Clique para adicionar evento';
+
             if (evento) {
                 const configEvento = this.tiposEventos[evento.tipo];
                 if (configEvento) {
@@ -98,21 +113,20 @@ window.calendarioView = {
                      title="${tooltipText}"
                      onclick="controller.openDayOptions('${dataIso}')">
                     <span>${dia}</span>
-                    ${(evento && evento.descricao) ? `<span class="absolute -bottom-0.5 w-1 h-1 rounded-full bg-current opacity-50"></span>` : ''}
+                    ${(evento && evento.descricao) ? `<span class="absolute -bottom-0.5 w-1 h-1 rounded-full bg-current opacity-50 no-print"></span>` : ''}
                 </div>
             `;
         }
         return `
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow h-full flex flex-col">
-                <h3 class="font-bold text-slate-800 mb-4 text-center border-b border-slate-50 pb-2 uppercase tracking-widest text-xs flex justify-between items-center px-2">
+            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow h-full flex flex-col break-inside-avoid print:border print:shadow-none print:p-2">
+                <h3 class="font-bold text-slate-800 mb-2 text-center border-b border-slate-50 pb-2 uppercase tracking-widest text-xs flex justify-between items-center px-2">
                     <span>${nome}</span>
-                    <span class="text-slate-300 font-normal">2026</span>
                 </h3>
-                <div class="grid grid-cols-7 gap-1 text-[9px] font-black text-slate-400 text-center mb-2 uppercase">
+                <div class="grid grid-cols-7 gap-1 text-[9px] font-black text-slate-400 text-center mb-1 uppercase">
                     <div class="text-red-300">D</div>
                     <div>S</div><div>T</div><div>Q</div><div>Q</div><div>S</div><div>S</div>
                 </div>
-                <div class="grid grid-cols-7 gap-1 flex-1 content-start">
+                <div class="grid grid-cols-7 gap-1 flex-1 content-start calendar-grid">
                     ${diasHtml}
                 </div>
             </div>

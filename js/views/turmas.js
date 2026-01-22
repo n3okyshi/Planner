@@ -1,4 +1,6 @@
-window.turmasView = {
+import { model } from '../model.js';
+
+export const turmasView = {
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
@@ -151,7 +153,7 @@ window.turmasView = {
             <tr class="hover:bg-slate-50/80 transition-colors group">
                 <td class="p-3 text-center text-slate-400 font-mono text-xs">${index + 1}</td>
                 <td class="p-3 font-semibold text-slate-700 text-sm whitespace-nowrap flex items-center justify-between gap-2">
-                    model.coresCompo${escapeHTML(aluno.nome)}nentes
+                    ${escapeHTML(aluno.nome)}
                     <button onclick="controller.deleteAluno('${turma.id}', '${aluno.id}')" 
                             class="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" 
                             title="Remover Aluno">
@@ -161,7 +163,7 @@ window.turmasView = {
                 ${turma.avaliacoes.map(av => `
                     <td class="p-0 border-l border-slate-100 relative">
                         <input type="number" 
-                               aria-label="Nota de model.coresCompo${escapeHTML(aluno.nome)}nentes na avaliação ${escapeHTML(av.nome)}"
+                               aria-label="Nota de ${escapeHTML(aluno.nome)} na avaliação ${escapeHTML(av.nome)}"
                                value="${aluno.notas[av.id] || ''}" 
                                placeholder="-"
                                min="0" max="${av.max}" step="0.1"

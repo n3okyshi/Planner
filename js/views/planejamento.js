@@ -1,4 +1,6 @@
-window.planejamentoView = {
+import { model } from '../model.js';
+
+export const planejamentoView = {
     currentTurmaId: null,
 
     render(container) {

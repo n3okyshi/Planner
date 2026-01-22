@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="description" content="Planner Docente 2026">
     <title>Planner Pro Docente 2026</title>
     <link rel="icon"
@@ -12,21 +12,12 @@
     <link rel="apple-touch-icon" href="./assets/icon/icon-192.png">
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="./css/style.css">
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: 'var(--primary-color)',
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                    }
-                }
-            }
-        }
-    </script>
+    <link rel="stylesheet" href="./css/final.css">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+
 </head>
 
 <body class="flex min-h-screen bg-slate-50 text-slate-900 font-sans overflow-x-hidden w-full">
@@ -88,6 +79,15 @@
                     <i class="fas fa-edit"></i>
                 </div>
                 <span class="text-sm font-medium nav-label">Diário</span>
+            </button>
+            <button id="nav-frequencia" onclick="controller.navigate('frequencia')"
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group whitespace-nowrap"
+                title="Frequência / Chamada">
+                <div
+                    class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white">
+                    <i class="fas fa-check-double"></i>
+                </div>
+                <span class="text-sm font-medium nav-label">Frequência</span>
             </button>
             <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6 nav-label truncate">
                 Acadêmico</p>
@@ -152,7 +152,8 @@
             v1.3.1 (Cloud)
         </div>
     </aside>
-    <main id="main-content" class="flex-1 ml-64 min-h-screen relative flex flex-col bg-slate-50 w-full max-w-full overflow-x-hidden transition-all duration-300">
+    <main id="main-content"
+        class="flex-1 ml-64 min-h-screen relative flex flex-col bg-slate-50 w-full max-w-full overflow-x-hidden transition-all duration-300">
         <header
             class="h-16 bg-white/80 backdrop-blur-md sticky top-0 z-10 px-4 md:px-8 flex items-center justify-between border-b border-slate-200">
             <div class="flex items-center gap-4">
@@ -167,6 +168,9 @@
                     title="Status">
                     <i class="fas fa-cloud text-slate-300"></i>
                 </div>
+                <button onclick="window.print()" class="btn-primary ...">
+                    <i class="fas fa-print"></i> Gerar PDF
+                </button>
                 <button onclick="controller.exportData()"
                     class="w-9 h-9 rounded-full flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/10 transition-all"
                     title="Backup">
@@ -183,18 +187,10 @@
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-    <script src="./js/firebase-service.js"></script>
-    <script src="./js/model.js"></script>
-    <script src="./js/views/calendario.js"></script>
-    <script src="./js/views/turmas.js"></script>
-    <script src="./js/views/planejamento.js"></script>
-    <script src="./js/views/mensal.js"></script>
-    <script src="./js/views/diario.js"></script>
-    <script src="./js/views/bncc.js"></script>
-    <script src="./js/views/sala.js"></script>
-    <script src="./js/views/provas.js"></script>
-    <script src="./js/views/settings.js"></script>
-    <script src="./js/controller.js"></script>
+
+    <script type="module" src="./js/controller.js"></script>
+
+
     <script>
         window.addEventListener('load', () => {
             if (window.innerWidth < 768) {

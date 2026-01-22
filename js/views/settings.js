@@ -1,10 +1,11 @@
-window.settingsView = {
+import { model } from '../model.js';
+
+export const settingsView = {
     render(container, userConfig) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
         const config = userConfig || (model.state && model.state.userConfig) || {};
         const user = model.currentUser;
-        
         let lastSyncText = "Agora mesmo";
         if (model.state.lastUpdate) {
             const date = new Date(model.state.lastUpdate);
@@ -26,7 +27,6 @@ window.settingsView = {
                             </div>
                             <h3 class="font-bold text-slate-700">Sincronização em Nuvem</h3>
                         </div>
-                        
                         <div class="p-6">
                             ${user ? this.renderLogado(user, lastSyncText) : this.renderDeslogado()}
                         </div>
@@ -38,7 +38,6 @@ window.settingsView = {
                             </div>
                             <h3 class="font-bold text-slate-700">Identificação</h3>
                         </div>
-                        
                         <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
                             <div>
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Nome do Professor(a)</label>
