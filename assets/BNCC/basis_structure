@@ -1,0 +1,21 @@
+Nível de ensino ('Educação Infantil') -> Componente ('O eu, o outro e o nós', 'Corpo, gestos e movimentos', 'Traços, sons, cores e formas', 'Escuta, fala, pensamento e imaginação', 'Espaços, tempos, quantidades, relações e transformações') -> Eixo temático (não possui essa opção) -> Ano/Série ('Bebês', 'Crianças bem pequenas' e 'Crianças pequenas')
+
+Nível de ensino ('Ensino Fundamental') -> Componente ('Língua Portuguesa', 'Matemática', 'Ciências', 'Geografia', 'História', 'Arte', 'Educação Física', 'Ensino Religioso' e 'Língua Inglesa')  
+Se:
+'Língua Portuguesa': -> Eixo Temático ('Leitura/escuta', 'Escrita', 'Oralidade', 'Produção de textos', 'Leitura' e 'Análise linguística/semiótica')
+'Matemática': -> -> Eixo Temático ('Números', 'Álgebra', 'Geometria', 'Grandezas e Medidas' e 'Probabilidade e Estatística')
+'Ciências': -> Eixo Temático ('Matéria e Energia', 'Vida e Evolução' e 'Terra e Universo')
+'Geografia': -> Eixo Temático ('O sujeito e seu lugar no mundo', 'Conexões e escalas', 'Mundo do trabalho', 'Formas de representação e pensamento espacial' e 'Natureza, ambientes e qualidade de vida')
+'História': -> Eixo Temático ('Mundo pessoal: meu lugar no mundo', 'Mundo pessoal: eu, meu grupo social e meu tempo', 'A comunidade e seus registros', 'As formas de registrar as experiências da comunidade', 'O trabalho e a sustentabilidade na comunidade', 'As pessoas e os grupos que compõem a cidade e o município', 'O lugar em que vive', 'A noção de espaço público e privado', 'Transformações e permanências nas trajetórias dos grupos humanos', 'Circulação de pessoas, produtos e culturas', 'As questões históricas relativas às migrações', 'Povos e culturas: meu lugar no mundo e meu grupo social', 'Registros da história: linguagens e culturas', 'História: tempo, espaço e formas de registros', 'A invenção do mundo clássico e o contraponto com outras sociedades', 'Lógicas de organização política', 'Trabalho e formas de organização social e cultural', 'O mundo moderno e a conexão entre sociedades africanas, americanas e europeias', 'Humanismos, Renascimentos e o Novo Mundo', 'A organização do poder e as dinâmicas do mundo colonial americano', 'Lógicas comerciais e mercantis da modernidade', 'O mundo contemporâneo: o Antigo Regime em crise', 'Os processos de independência nas Américas', 'O Brasil no século XIX', 'Configurações do mundo no século XIX', 'O nascimento da República no Brasil e os processos históricos até a metade do século XX', 'Totalitarismos e conflitos mundiais', 'Modernização, ditadura civil-militar e redemocratização: o Brasil após 1946', e 'A história recente')
+'Arte': -> Eixo Temático ('Artes visuais', 'Dança', 'Música', 'Teatro' e 'Artes integradas')
+'Educação Física': -> Eixo Temático ('Brincadeiras e jogos', 'Esportes', 'Ginásticas', 'Danças', 'Lutas' e 'Práticas corporais de aventura')
+'Ensino Religioso': -> Eixo Temático ('Identidades e alteridades', 'Manifestações religiosas' e 'Crenças religiosas e filosofias de vida')
+'Língua Inglesa': -> Eixo Temático ('Oralidade', 'Leitura', 'Escrita', 'Conhecimentos linguísticos' e 'Dimensão intercultural')
+Ano/Série (todos do 1º ao 9º ano, com exceção de Língua Inglesa que é do 6º ao 9º ano)
+
+Nível de ensino ('Ensino Médio') -> Componente ('Língua Portuguesa', 'Matemática', 'Geografia', 'História', 'Arte', 'Educação Física', 'Física', 'Química', 'Biologia', 'Sociologia', 'Filosofia' e 'Língua Inglesa')
+Se:
+'Língua Portuguesa', 'Arte', 'Educação Física', 'Língua Inglesa' -> Eixo Temático ('Linguagens e suas tecnologias')
+'Matemática' -> Eixo Temático ('Matemática e suas tecnologias')
+'Física', 'Química', 'Biologia' -> Eixo Temático ('Ciências da natureza e suas tecnologias')
+História, Geografia, Sociologia, Filosofia -> Eixo Temático ('Ciências humanas e sociais aplicadas')

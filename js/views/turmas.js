@@ -65,7 +65,8 @@ window.turmasView = {
     renderDetalhesTurma(container, turmaId) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
-        const turma = model.state.turmas.find(t => t.id === turmaId);
+        const turma = model.state.turmas.find(t => t.id == turmaId);
+        
         if (!turma) {
             console.warn("Turma não encontrada. Voltando para lista.");
             this.render(container);
@@ -127,9 +128,9 @@ window.turmasView = {
                             </thead>
                             <tbody class="divide-y divide-slate-100 bg-white">
                                 ${alunosValidos.length > 0
-                ? alunosValidos.map((aluno, index) => this.gerarLinhaAluno(aluno, index, turma)).join('')
-                : `<tr><td colspan="100" class="p-10 text-center text-slate-400 italic">Nenhum aluno cadastrado nesta turma.</td></tr>`
-            }
+                                    ? alunosValidos.map((aluno, index) => this.gerarLinhaAluno(aluno, index, turma)).join('')
+                                    : `<tr><td colspan="100" class="p-10 text-center text-slate-400 italic">Nenhum aluno cadastrado nesta turma.</td></tr>`
+                                }
                             </tbody>
                         </table>
                     </div>
@@ -160,6 +161,7 @@ window.turmasView = {
                 ${turma.avaliacoes.map(av => `
                     <td class="p-0 border-l border-slate-100 relative">
                         <input type="number" 
+                               aria-label="Nota de ${aluno.nome} na avaliação ${av.nome}"
                                value="${aluno.notas[av.id] || ''}" 
                                placeholder="-"
                                min="0" max="${av.max}" step="0.1"

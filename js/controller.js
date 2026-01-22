@@ -1,19 +1,19 @@
 const controller = {
     currentView: null,
-    views: {}, 
-    init: function() {
+    views: {},
+    init: function () {
         // Garante que o model iniciou
         if (window.model && model.init) model.init();
         // Faz o mapeamento inicial das views
         this.bindViews();
         this.aplicarTema();
         this.setupGlobalListeners();
-        this.monitorAuth(); 
+        this.monitorAuth();
     },
     // Função separada para mapear as views (pode ser chamada novamente se falhar no init)
-    bindViews: function() {
+    bindViews: function () {
         this.views = {
-            'dashboard': window.calendarioView, 
+            'dashboard': window.calendarioView,
             'mensal': window.mensalView,
             'periodo': window.planejamentoView,
             'dia': window.diarioView,
@@ -24,7 +24,7 @@ const controller = {
             'config': window.settingsView
         };
     },
-    monitorAuth: function() {
+    monitorAuth: function () {
         if (!window.firebaseService) {
             console.error("Firebase Service não carregado.");
             return;
@@ -33,12 +33,12 @@ const controller = {
             if (user) {
                 console.log("Usuário logado:", user.email);
                 this.updateAuthButton(true, user);
-                
+
                 const cloudStatus = document.getElementById('cloud-status');
                 if (cloudStatus) cloudStatus.innerHTML = '<i class="fas fa-check text-green-500"></i> Sync ON';
                 try {
-                    await model.loadUserData(); 
-                    
+                    await model.loadUserData();
+
                     // Se já tem uma view definida (ex: refresh da página), mantém ela.
                     // Se não, vai para dashboard.
                     if (!this.currentView) {
@@ -53,17 +53,17 @@ const controller = {
             } else {
                 console.log("Usuário deslogado");
                 model.currentUser = null;
-                model.data = {}; 
-                
+                model.data = {};
+
                 this.updateAuthButton(false);
                 const cloudStatus = document.getElementById('cloud-status');
                 if (cloudStatus) cloudStatus.innerHTML = '<i class="fas fa-cloud text-slate-300"></i> Offline';
-                
+
                 this.navigate('dashboard');
             }
         });
     },
-    handleLogin: async function() {
+    handleLogin: async function () {
         try {
             await firebaseService.loginGoogle();
         } catch (error) {
@@ -71,7 +71,7 @@ const controller = {
             alert("Erro no login Google: " + error.message);
         }
     },
-    handleLogout: function() {
+    handleLogout: function () {
         if (confirm("Sair da conta e parar sincronização?")) {
             firebaseService.logout();
             // Recarrega a página para limpar estados da memória
@@ -79,7 +79,7 @@ const controller = {
         }
     },
     // toggle Sidebar
-    toggleSidebar: function() {
+    toggleSidebar: function () {
         const sidebar = document.getElementById('app-sidebar');
         const main = document.getElementById('main-content');
         const icon = document.getElementById('sidebar-toggle-icon');
@@ -87,7 +87,7 @@ const controller = {
         if (isMobile) {
             sidebar.classList.toggle('mobile-open');
             if (sidebar.classList.contains('mobile-open')) {
-                sidebar.classList.remove('collapsed'); 
+                sidebar.classList.remove('collapsed');
             } else {
                 sidebar.classList.add('collapsed');
             }
@@ -103,7 +103,7 @@ const controller = {
             icon.classList.add('fa-chevron-left');
         }
     },
-    navigate: async function(viewName) {
+    navigate: async function (viewName) {
         // Redirecionamentos de nomes antigos/alternativos
         if (viewName === 'calendario') viewName = 'dashboard';
         if (viewName === 'planejamento') viewName = 'periodo';
@@ -127,19 +127,19 @@ const controller = {
         // Tenta encontrar o botão do menu para destacar
         let activeBtn = document.getElementById(`nav-${viewName}`);
         if (!activeBtn) {
-             const mapId = {'periodo': 'planejamento', 'dia': 'diario', 'mapa': 'sala', 'config': 'settings'};
-             if(mapId[viewName]) activeBtn = document.getElementById(`nav-${mapId[viewName]}`);
+            const mapId = { 'periodo': 'planejamento', 'dia': 'diario', 'mapa': 'sala', 'config': 'settings' };
+            if (mapId[viewName]) activeBtn = document.getElementById(`nav-${mapId[viewName]}`);
         }
-        if(activeBtn) {
+        if (activeBtn) {
             activeBtn.classList.add('bg-white/10', 'text-white');
             activeBtn.classList.remove('text-slate-400');
         }
         // Lógica específica do Diário (Data)
         if (viewName === 'dia' && window.diarioView) {
-             if (!diarioView.viewDate) {
+            if (!diarioView.viewDate) {
                 const [ano, mes] = diarioView.currentDate.split('-');
                 diarioView.viewDate = new Date(parseInt(ano), parseInt(mes) - 1, 1);
-             }
+            }
         }
         // Se mesmo após re-mapear a view não existir, mostra erro amigável
         if (!view) {
@@ -149,7 +149,7 @@ const controller = {
         }
         // Loading
         container.innerHTML = '<div class="flex justify-center p-10"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>';
-        
+
         // Renderização com pequeno delay para garantir fluidez da UI
         setTimeout(async () => {
             container.innerHTML = '';
@@ -159,14 +159,14 @@ const controller = {
                     else await view.render(container);
                 }
                 this.updateBreadcrumb(viewName);
-                this.updateSidebarUserArea(); 
+                this.updateSidebarUserArea();
             } catch (e) {
                 console.error(`Erro fatal ao renderizar ${viewName}:`, e);
                 container.innerHTML = `<div class="p-4 text-red-500">Erro de renderização: ${e.message}</div>`;
             }
         }, 50);
     },
-    updateBreadcrumb: function(viewName) {
+    updateBreadcrumb: function (viewName) {
         const breadcrumb = document.getElementById('breadcrumb');
         if (!breadcrumb) return;
         const map = {
@@ -178,7 +178,7 @@ const controller = {
         };
         breadcrumb.innerHTML = `<i class="fas fa-home text-slate-300"></i> <span class="text-slate-300">/</span> ${map[viewName] || viewName}`;
     },
-    updateAuthButton: function(isLoggedIn, user = null) {
+    updateAuthButton: function (isLoggedIn, user = null) {
         const container = document.getElementById('auth-container');
         if (!container) return;
         if (isLoggedIn && user) {
@@ -204,17 +204,17 @@ const controller = {
             `;
         }
     },
-    updateSidebarUserArea: function() {
+    updateSidebarUserArea: function () {
         if (model.currentUser) this.updateAuthButton(true, model.currentUser);
     },
-    aplicarTema: function() {
+    aplicarTema: function () {
         if (model.state.userConfig && model.state.userConfig.themeColor) {
             document.documentElement.style.setProperty('--primary-color', model.state.userConfig.themeColor);
         }
     },
-    setupGlobalListeners: function() {
+    setupGlobalListeners: function () {
         const dateEl = document.getElementById('current-date');
-        if(dateEl) {
+        if (dateEl) {
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             dateEl.innerText = new Date().toLocaleDateString('pt-BR', options);
         }
@@ -261,7 +261,7 @@ const controller = {
     // Estes métodos servem para os onclicks no HTML chamarem o controller, 
     // que por sua vez chama a View correta ou o Model.
     openAddTurma() { this.openModal('Nova Turma', this._getAddTurmaHtml()); },
-    
+
     // HTML Interno para o modal de turma (movido para cá para organizar)
     _getAddTurmaHtml() {
         return `
@@ -344,7 +344,7 @@ const controller = {
             model.addAluno(turmaId, nome);
             this.closeModal();
             if (this.currentView === 'turmas' && this.views['turmas'].renderDetalhesTurma) {
-                 this.views['turmas'].renderDetalhesTurma(document.getElementById('view-container'), turmaId);
+                this.views['turmas'].renderDetalhesTurma(document.getElementById('view-container'), turmaId);
             } else {
                 this.navigate('turmas');
             }
@@ -355,7 +355,7 @@ const controller = {
             model.deleteAluno(turmaId, alunoId);
             if (this.currentView === 'turmas' && this.views['turmas'].renderDetalhesTurma) {
                 this.views['turmas'].renderDetalhesTurma(document.getElementById('view-container'), turmaId);
-           }
+            }
         }
     },
     openAddAlunoLote(turmaId) {
@@ -445,7 +445,7 @@ const controller = {
             avaliacao: document.getElementById('plan-avaliacao').value
         };
         model.savePlanoDiario(data, turmaId, conteudo);
-        
+
         const toast = document.createElement('div');
         toast.className = 'fixed bottom-6 right-6 bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-2xl z-50 flex items-center gap-3 animate-slideIn';
         toast.innerHTML = `<i class="fas fa-check-circle text-lg"></i> <span class="font-bold">Planejamento Salvo!</span>`;
@@ -492,31 +492,106 @@ const controller = {
             this.views['bncc'].render('modal-bncc-container', nivelPre, null, callback);
         }, 50);
     },
-    openSeletorBncc(turmaId, periodo) {
-        const turma = model.state.turmas.find(t => t.id === turmaId);
-        if (!turma) return;
+    // Função para adicionar habilidade no Planejamento por Período (Bimestre/Trimestre/Semestre)
+    // No arquivo js/controllers/main.js
+
+    openSeletorBncc(turmaId, periodoIdx, nivelHtml, serieHtml) {
+        const turma = model.state.turmas.find(t => t.id == turmaId);
+        if (!turma) return console.error("Turma não encontrada");
+
+        // Define contexto
+        const nivelFinal = turma.nivel || nivelHtml;
+        const serieFinal = turma.serie || serieHtml;
+
+        // Callback executado ao clicar em "Usar" no Modal
         const callback = (habilidade) => {
-            model.addHabilidadePlanejamento(turmaId, periodo, habilidade);
-            this.navigate('periodo');
+            console.log("Selecionado:", habilidade);
+            
+            // 1. Salva no Model (Aqui a mágica acontece)
+            model.addHabilidadePlanejamento(turmaId, periodoIdx, habilidade);
+            
+            // 2. Fecha o Modal
+            const modal = document.getElementById('modal-container');
+            if (modal) modal.remove();
+            
+            // 3. Força a atualização da View de Planejamento para mostrar o card novo
+            if (window.planejamentoView) {
+                // Pequeno delay para garantir que o save() do model terminou
+                setTimeout(() => window.planejamentoView.render('view-container'), 50);
+            }
         };
-        this.openModal(`BNCC - ${turma.nome}`, '<div id="modal-bncc-container"></div>', 'large');
-        setTimeout(() => this.views['bncc'].render('modal-bncc-container', turma.nivel, turma.serie, callback), 50);
+
+        // Abre o Modal
+        this.openModal(
+            `BNCC - ${periodoIdx}º Período (${serieFinal})`, 
+            `<div id="modal-bncc-planejamento" class="w-full h-[80vh] bg-white relative">
+                <div class="flex items-center justify-center h-full text-slate-400">
+                    <i class="fas fa-circle-notch fa-spin mr-2"></i> Carregando BNCC...
+                </div>
+             </div>`, 
+            'large'
+        );
+
+        // Renderiza a BNCC (com Retry para segurança)
+        let tentativas = 0;
+        const tentarRenderizar = () => {
+            const container = document.getElementById('modal-bncc-planejamento');
+            if (container && window.bnccView) {
+                container.innerHTML = ""; 
+                window.bnccView.render('modal-bncc-planejamento', nivelFinal, serieFinal, callback);
+            } else {
+                tentativas++;
+                if (tentativas < 20) setTimeout(tentarRenderizar, 100);
+            }
+        };
+        setTimeout(tentarRenderizar, 100);
     },
-    removeHabilidade(turmaId, periodo, codigo) {
-        if (confirm("Remover do planejamento?")) {
-            model.removeHabilidadePlanejamento(turmaId, periodo, codigo);
-            this.navigate('periodo');
+
+    // Adicione também a função de remover no controller para o botão de lixeira funcionar
+    removeHabilidade(turmaId, periodoIdx, codigoHabilidade) {
+        if(confirm("Deseja remover esta habilidade do planejamento?")) {
+            model.removeHabilidadePlanejamento(turmaId, periodoIdx, codigoHabilidade);
+            window.planejamentoView.render('view-container');
         }
     },
-    openSeletorBnccMensal(turmaId, mes) {
-        const turma = model.state.turmas.find(t => t.id === turmaId);
-        if (!turma) return;
+    openSeletorBnccMensal(turmaId, mes, nivelHtml, serieHtml) {
+        const turma = model.state.turmas.find(t => t.id == turmaId);
+        if (!turma) return console.error("Turma não encontrada");
+        const nivelFinal = turma.nivel || nivelHtml;
+        const serieFinal = turma.serie || serieHtml;
         const callback = (habilidade) => {
             model.addHabilidadeMensal(turmaId, mes, habilidade);
-            this.navigate('mensal');
+            const modal = document.getElementById('modal-container');
+            if (modal) modal.remove();
+            if (window.mensalView) window.mensalView.render('view-container');
         };
-        this.openModal(`BNCC - ${mes}`, '<div id="modal-bncc-container"></div>', 'large');
-        setTimeout(() => this.views['bncc'].render('modal-bncc-container', turma.nivel, turma.serie, callback), 50);
+        this.openModal(
+            `BNCC - ${mes} (${serieFinal})`,
+            `<div id="modal-bncc-container" class="w-full h-[80vh] bg-white relative">
+            <div class="flex items-center justify-center h-full text-slate-400">
+                <i class="fas fa-circle-notch fa-spin mr-2"></i> Carregando BNCC...
+            </div>
+         </div>`,
+            'large'
+        );
+        let tentativas = 0;
+        const tentarRenderizar = () => {
+            const container = document.getElementById('modal-bncc-container');
+            if (container && window.bnccView) {
+                console.log("Container encontrado. Renderizando BNCC...");
+                container.innerHTML = "";
+                window.bnccView.render('modal-bncc-container', nivelFinal, serieFinal, callback);
+            } else {
+                tentativas++;
+                if (tentativas < 10) {
+                    setTimeout(tentarRenderizar, 100);
+                } else {
+                    console.error("Erro: Container do modal não foi criado a tempo.");
+                    if (container) container.innerHTML = "<p class='text-red-500 p-4'>Erro ao carregar componente BNCC.</p>";
+                }
+            }
+        };
+        setTimeout(tentarRenderizar, 100);
     },
     removeHabilidadeMensal(turmaId, mes, codigo) {
         if (confirm("Remover deste mês?")) {
@@ -527,9 +602,9 @@ const controller = {
     openDayOptions(dataIso) {
         const [ano, mes, dia] = dataIso.split('-');
         const eventoAtual = model.state.eventos ? (model.state.eventos[dataIso] || {}) : {};
-        
+
         let botoesHtml = '';
-        const viewCal = this.views['dashboard']; 
+        const viewCal = this.views['dashboard'];
         if (viewCal && viewCal.tiposEventos) {
             botoesHtml = Object.entries(viewCal.tiposEventos).map(([key, config]) => {
                 let colorName = 'slate';
@@ -574,7 +649,7 @@ const controller = {
         let bgClass = `bg-slate-50 text-slate-500 hover:bg-${color}-50 border border-slate-100`;
         let activeClass = `bg-${color}-100 text-${color}-700 ring-2 ring-${color}-400 ring-offset-1 border-${color}-200 font-black shadow-sm transform scale-105`;
         if (color === 'white' || value === 'aula') {
-             activeClass = `bg-slate-100 text-slate-800 ring-2 ring-slate-400 ring-offset-1 font-black`;
+            activeClass = `bg-slate-100 text-slate-800 ring-2 ring-slate-400 ring-offset-1 font-black`;
         }
         return `
             <button onclick="document.getElementById('evt-tipo').value='${value}'; 

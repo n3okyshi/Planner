@@ -168,22 +168,31 @@ const model = {
             }
         }
     },
-    addHabilidadePlanejamento(turmaId, periodo, habilidade) {
+    // No arquivo js/models/main.js
+
+    addHabilidadePlanejamento(turmaId, periodoIdx, habilidade) {
         const turma = this.state.turmas.find(t => t.id == turmaId);
         if (!turma) return;
-        if (!turma.planejamento) turma.planejamento = {};
-        if (!turma.planejamento[periodo]) turma.planejamento[periodo] = [];
-        if (!turma.planejamento[periodo].some(h => h.codigo === habilidade.codigo)) {
-            turma.planejamento[periodo].push(habilidade);
+        if (!turma.planejamento) {
+            turma.planejamento = {};
+        }
+        const chavePeriodo = String(periodoIdx);
+        if (!turma.planejamento[chavePeriodo]) {
+            turma.planejamento[chavePeriodo] = [];
+        }
+        const existe = turma.planejamento[chavePeriodo].some(h => h.codigo === habilidade.codigo);
+        if (!existe) {
+            turma.planejamento[chavePeriodo].push(habilidade);
             this.save();
+            console.log(`Habilidade ${habilidade.codigo} salva no período ${chavePeriodo} da turma ${turma.nome}`);
         }
     },
-    removeHabilidadePlanejamento(turmaId, periodo, codigo) {
+    removeHabilidadePlanejamento(turmaId, periodoIdx, codigoHabilidade) {
         const turma = this.state.turmas.find(t => t.id == turmaId);
-        if (turma && turma.planejamento && turma.planejamento[periodo]) {
-            turma.planejamento[periodo] = turma.planejamento[periodo].filter(h => h.codigo !== codigo);
-            this.save();
-        }
+        if (!turma || !turma.planejamento || !turma.planejamento[periodoIdx]) return;
+
+        turma.planejamento[periodoIdx] = turma.planejamento[periodoIdx].filter(h => h.codigo !== codigoHabilidade);
+        this.save();
     },
     addHabilidadeMensal(turmaId, mes, habilidade) {
         const turma = this.state.turmas.find(t => t.id == turmaId);
