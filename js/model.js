@@ -75,11 +75,9 @@ export const model = {
                 const cloudTemDados = cloudHorario.config && Object.keys(cloudHorario.config).length > 0;
                 const localTemDados = localHorario.config && Object.keys(localHorario.config).length > 0;
                 let horarioFinal = cloudHorario;
-                let forcarSalvamento = false;
                 if (localTemDados && !cloudTemDados) {
-                    console.warn("Recuperação: Mantendo horário local pois a nuvem estava vazia.");
+                    console.warn("Recuperação: Mantendo horário local (nuvem vazia). Aguardando salvamento manual pelo usuário.");
                     horarioFinal = localHorario;
-                    forcarSalvamento = true;
                 }
                 this.state = {
                     ...this.state,
@@ -93,11 +91,8 @@ export const model = {
                 }
                 this.saveLocal();
                 this.updateStatusCloud('<i class="fas fa-check"></i> Sincronizado', 'text-emerald-600');
-                if (forcarSalvamento) {
-                    this.isCloudSynced = true;
-                    this.saveCloudRoot();
-                }
             } else {
+                this.isCloudSynced = true;
                 this.saveCloudRoot();
             }
         } catch (e) {
@@ -113,14 +108,22 @@ export const model = {
     saveCloudRoot() {
         if (!this.isCloudSynced) {
             console.warn("Salvamento na nuvem bloqueado: aguardando sincronização inicial.");
-            return;
+            return Promise.reject("Sincronização pendente");
         }
         if (this.currentUser) {
             this.updateStatusCloud('<i class="fas fa-sync fa-spin"></i> Salvando...', 'text-yellow-600');
-            firebaseService.saveRoot(this.currentUser.uid, this.state).then(() => {
-                this.updateStatusCloud('<i class="fas fa-check"></i> Salvo', 'text-emerald-600');
-            });
+            return firebaseService.saveRoot(this.currentUser.uid, this.state)
+                .then(() => {
+                    this.updateStatusCloud('<i class="fas fa-check"></i> Salvo', 'text-emerald-600');
+                    return true;
+                })
+                .catch(err => {
+                    console.error("Erro ao salvar na nuvem:", err);
+                    this.updateStatusCloud('Erro ao salvar', 'text-red-500');
+                    throw err;
+                });
         }
+        return Promise.resolve(false);
     },
     updateStatusCloud(html, colorClass) {
         const el = document.getElementById('cloud-status');
@@ -304,6 +307,22 @@ export const model = {
         this.state.horario.grade[turno][dia][slotIndex] = turmaId;
         this.saveLocal();
         this.saveCloudRoot();
+    },
+    async saveHorarioCompleto(novoHorario) {
+        this.state.horario = novoHorario;
+        this.saveLocal();
+        if (this.isCloudSynced) {
+            try {
+                await this.saveCloudRoot();
+                return true;
+            } catch (error) {
+                console.error("Falha ao enviar horário para nuvem:", error);
+                return false;
+            }
+        } else {
+            console.warn("Salvamento na nuvem pendente: aguardando sincronização.");
+            return false;
+        }
     },
     addQuestao(obj) {
         this.state.questoes.push({ id: Date.now(), ...obj, createdAt: new Date().toISOString() });

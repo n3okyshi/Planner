@@ -45,7 +45,8 @@ export const firebaseService = {
             turmas: [],
             eventos: {},
             questoes: [],
-            planosDiarios: {}
+            planosDiarios: {},
+            horario: { config: {}, grade: {} }
         };
         try {
             const docRef = this.db.collection('professores').doc(uid);
@@ -61,11 +62,13 @@ export const firebaseService = {
                 fullState.questoes = data.questoes || [];
                 fullState.planosDiarios = data.planosDiarios || {};
                 fullState.lastUpdate = data.lastUpdate || new Date(0).toISOString();
+                fullState.horario = data.horario || { config: {}, grade: {} };
             }
             const turmasSnap = await docRef.collection('turmas').get();
             const turmasPromises = turmasSnap.docs.map(async (turmaDoc) => {
                 const turmaData = turmaDoc.data();
                 turmaData.id = turmaDoc.id;
+
                 const alunosSnap = await turmaDoc.ref.collection('alunos').get();
                 turmaData.alunos = alunosSnap.docs.map(alunoDoc => ({
                     ...alunoDoc.data(),
