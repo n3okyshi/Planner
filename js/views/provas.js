@@ -483,16 +483,16 @@ export const provasView = {
                 conteudoResposta = `
                     <div style="margin-top: 10px;">
                         ${q.alternativas.map((alt, idx) => {
-                            const styleCorrect = (isProf && q.correta == idx) 
-                                ? 'font-weight: bold; color: #059669; background-color: #ecfdf5; border-radius: 4px;' 
-                                : '';
-                            const iconCheck = (isProf && q.correta == idx) ? ' ✓' : '';
-                            return `
+                    const styleCorrect = (isProf && q.correta == idx)
+                        ? 'font-weight: bold; color: #059669; background-color: #ecfdf5; border-radius: 4px;'
+                        : '';
+                    const iconCheck = (isProf && q.correta == idx) ? ' ✓' : '';
+                    return `
                                 <div class="alternativa" style="${styleCorrect} padding: 4px 8px;">
                                     <strong>${letras[idx]})</strong> ${alt} ${iconCheck}
                                 </div>
                             `;
-                        }).join('')}
+                }).join('')}
                     </div>
                 `;
             } else {
@@ -515,7 +515,7 @@ export const provasView = {
                 <div class="questao">
                     ${q.bncc ? `<div class="questao-info no-print">Habilidade: ${escapeHTML(q.bncc.codigo)}</div>` : ''}
                     <span class="questao-numero">${i + 1})</span>
-                    <div class="questao-texto">${escapeHTML(q.enunciado).replace(/\n/g, '<br>')}</div>
+                    <span class="questao-texto">${escapeHTML(q.enunciado).replace(/\n/g, '<br>')}</span>
                     ${conteudoResposta}
                 </div>
             `;
@@ -536,17 +536,52 @@ export const provasView = {
             <style>
                 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
                 body { font-family: 'Roboto', sans-serif; padding: 40px; color: #000; }
+                
                 .header { border: 1px solid #000; padding: 15px; margin-bottom: 40px; border-radius: 4px; }
                 .header p { margin: 5px 0; font-size: 14px; }
                 .titulo-prova { text-align: center; text-transform: uppercase; font-weight: bold; font-size: 18px; margin-bottom: 40px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+                
                 .questao { margin-bottom: 30px; page-break-inside: avoid; }
                 .questao-info { font-size: 10px; color: #666; margin-bottom: 5px; text-transform: uppercase; font-weight: bold; }
-                .questao-numero { font-weight: bold; margin-bottom: 10px; display: block; font-size: 16px; }
+                
+                /* CORREÇÃO DE ALINHAMENTO */
+                .questao-numero { font-weight: bold; font-size: 16px; margin-right: 5px; }
                 .questao-texto { font-size: 14px; line-height: 1.5; text-align: justify; margin-bottom: 15px; }
+                
                 .resposta-area { border-bottom: 1px solid #ccc; height: 25px; width: 100%; display: block; margin-top: 5px; }
                 .alternativa { margin-bottom: 5px; font-size: 14px; }
+
+                /* BOTÃO FLUTUANTE DE VOLTAR */
+                .btn-voltar {
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background-color: #ef4444; /* Vermelho */
+                    color: white;
+                    padding: 12px 20px;
+                    border: none;
+                    border-radius: 50px;
+                    font-weight: bold;
+                    cursor: pointer;
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+                    z-index: 9999;
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    font-family: sans-serif;
+                    text-transform: uppercase;
+                    font-size: 12px;
+                }
+                .btn-voltar:hover { background-color: #dc2626; }
+
+                /* ESCONDER NA IMPRESSÃO */
+                @media print {
+                    .no-print, .btn-voltar { display: none !important; }
+                    body { padding: 0; }
+                }
             </style>
             <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
         `;
         const conteudoFinal = `
             <html>
@@ -555,6 +590,10 @@ export const provasView = {
                 ${estiloImpressao}
             </head>
             <body>
+                <button onclick="window.close()" class="btn-voltar">
+                    <i class="fas fa-arrow-left"></i> Voltar para o App
+                </button>
+
                 <div class="header">
                     <p><strong>ESCOLA:</strong> ${model.state.userConfig.schoolName || '________________________________________________'}</p>
                     <p><strong>PROFESSOR(A):</strong> ${escapeHTML(nomeProf)} &nbsp;&nbsp; <strong>DATA:</strong> ____/____/____</p>
@@ -563,6 +602,7 @@ export const provasView = {
                 <div class="titulo-prova">${tituloDoc}</div>
                 <div id="conteudo-prova">${htmlProcessado}</div>
                 <script>
+                    // Pequeno delay para garantir carregamento dos estilos antes de abrir o diálogo
                     window.onload = function() { setTimeout(() => window.print(), 500); }
                 <\/script>
             </body>
