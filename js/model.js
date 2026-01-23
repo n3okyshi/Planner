@@ -44,6 +44,7 @@ export const model = {
                 noturno: {}
             }
         },
+        isCloudSynced: false,
         lastUpdate: new Date(0).toISOString()
 
     },
@@ -69,7 +70,22 @@ export const model = {
         try {
             const cloudData = await firebaseService.loadFullData(this.currentUser.uid);
             if (cloudData) {
-                this.state = cloudData;
+                const cloudHorario = cloudData.horario || { config: {}, grade: {} };
+                const localHorario = this.state.horario || { config: {}, grade: {} };
+                const cloudTemDados = cloudHorario.config && Object.keys(cloudHorario.config).length > 0;
+                const localTemDados = localHorario.config && Object.keys(localHorario.config).length > 0;
+                let horarioFinal = cloudHorario;
+                let forcarSalvamento = false;
+                if (localTemDados && !cloudTemDados) {
+                    console.warn("Recuperação: Mantendo horário local pois a nuvem estava vazia.");
+                    horarioFinal = localHorario;
+                    forcarSalvamento = true;
+                }
+                this.state = {
+                    ...this.state,
+                    ...cloudData,
+                    horario: horarioFinal
+                };
                 if (this.state.questoes) {
                     this.state.questoes.forEach(q => {
                         if (q.id) q.id = Number(q.id);
@@ -77,18 +93,28 @@ export const model = {
                 }
                 this.saveLocal();
                 this.updateStatusCloud('<i class="fas fa-check"></i> Sincronizado', 'text-emerald-600');
+                if (forcarSalvamento) {
+                    this.isCloudSynced = true;
+                    this.saveCloudRoot();
+                }
             } else {
                 this.saveCloudRoot();
             }
         } catch (e) {
             console.error("Erro no sync:", e);
             this.updateStatusCloud('Erro de conexão', 'text-red-500');
+        } finally {
+            this.isCloudSynced = true;
         }
     },
     saveLocal() {
         localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.state));
     },
     saveCloudRoot() {
+        if (!this.isCloudSynced) {
+            console.warn("Salvamento na nuvem bloqueado: aguardando sincronização inicial.");
+            return;
+        }
         if (this.currentUser) {
             this.updateStatusCloud('<i class="fas fa-sync fa-spin"></i> Salvando...', 'text-yellow-600');
             firebaseService.saveRoot(this.currentUser.uid, this.state).then(() => {

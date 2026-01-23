@@ -320,7 +320,53 @@ main.expanded-content {
         min-height: 160px;
     }
 }
+/* =========================================
+   11. GRÁFICO DE DESEMPENHO (Turmas)
+   ========================================= */
 
+.chart-donut {
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    position: relative;
+    /* O gradiente será injetado via JS inline style */
+}
+
+/* O "buraco" do donut */
+.chart-donut::after {
+    content: "";
+    position: absolute;
+    inset: 20%; /* Tamanho da borda do gráfico */
+    background: white;
+    border-radius: 50%;
+    z-index: 1;
+}
+
+/* Texto central */
+.chart-center-text {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    pointer-events: none;
+}
+
+/* Legenda de cores personalizadas */
+.bg-score-red { background-color: #ef4444; }     /* 1-2,99 */
+.bg-score-orange { background-color: #f97316; }  /* 3-4,99 */
+.bg-score-blue { background-color: #3b82f6; }    /* 5-6,99 */
+.bg-score-cyan { background-color: #06b6d4; }    /* 7-8,99 */
+.bg-score-green { background-color: #10b981; }   /* 9-10 */
+
+/* Texto colorido */
+.text-score-red { color: #ef4444; }
+.text-score-orange { color: #f97316; }
+.text-score-blue { color: #3b82f6; }
+.text-score-cyan { color: #06b6d4; }
+.text-score-green { color: #10b981; }
 /* ==========================================================================
    ESTILOS DE IMPRESSÃO (CORRIGIDO)
    ========================================================================== */
