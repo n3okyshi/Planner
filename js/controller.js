@@ -10,7 +10,9 @@ import { salaView } from './views/sala.js';//
 import { provasView } from './views/provas.js';//
 import { frequenciaView } from './views/frequencia.js';//
 import { settingsView } from './views/settings.js';//
-
+import { Toast } from './components/toast.js';
+import { dashboardView } from './views/dashboard.js';
+import { horarioView } from './views/horario.js';
 
 window.escapeHTML = function (str) {
     if (!str) return '';
@@ -26,7 +28,7 @@ window.escapeHTML = function (str) {
     });
 };
 
-const controller = {
+export const controller = {
     currentView: null,
     views: {},
     init: function () {
@@ -38,7 +40,9 @@ const controller = {
     },
     bindViews: function () {
         this.views = {
-            'dashboard': calendarioView,
+            'dashboard': dashboardView,
+            'horario': horarioView,
+            'calendario': calendarioView,
             'mensal': mensalView,
             'periodo': planejamentoView,
             'dia': diarioView,
@@ -88,14 +92,18 @@ const controller = {
             await firebaseService.loginGoogle();
         } catch (error) {
             console.error("Login falhou:", error);
-            alert("Erro no login Google: " + error.message);
+            Toast.show("Erro no login Google: " + error.message, 'error');
         }
     },
     handleLogout: function () {
-        if (confirm("Sair da conta e parar sincronização?")) {
-            firebaseService.logout();
-            window.location.reload();
-        }
+        this.confirmarAcao(
+            'Sair do Sistema?',
+            'Deseja encerrar sua sessão e parar a sincronização?',
+            () => {
+                firebaseService.logout();
+                window.location.reload();
+            }
+        );
     },
     toggleSidebar: function () {
         const sidebar = document.getElementById('app-sidebar');
@@ -122,7 +130,7 @@ const controller = {
         }
     },
     navigate: async function (viewName) {
-        if (viewName === 'calendario') viewName = 'dashboard';
+        //if (viewName === 'calendario') viewName = 'dashboard';
         if (viewName === 'planejamento') viewName = 'periodo';
         if (viewName === 'diario') viewName = 'dia';
         if (viewName === 'sala') viewName = 'mapa';
@@ -322,14 +330,19 @@ const controller = {
             this.closeModal();
             this.navigate('turmas');
         } else {
-            alert("Preencha todos os campos.");
+            Toast.show("Por favor, preencha todos os campos da turma.", 'warning');
         }
     },
     deleteTurma(id) {
-        if (confirm("Tem certeza que deseja excluir esta turma e todos os dados dela?")) {
-            model.deleteTurma(id);
-            this.navigate('turmas');
-        }
+        this.confirmarAcao(
+            'Excluir Turma?',
+            'Esta ação apagará todos os alunos, notas e diários vinculados. Não pode ser desfeita.',
+            () => {
+                model.deleteTurma(id);
+                this.navigate('turmas');
+                Toast.show("Turma excluída com sucesso.", 'success');
+            }
+        );
     },
     openAddAluno(turmaId) {
         this.openModal('Novo Aluno', `
@@ -456,6 +469,8 @@ const controller = {
             toast.style.opacity = '0';
             setTimeout(() => toast.remove(), 500);
         }, 2000);
+
+        Toast.show("Planejamento salvo com sucesso!", 'success');
     },
     openSeletorBnccDiario(turmaId) {
         const turma = model.state.turmas.find(t => t.id === turmaId);
@@ -578,6 +593,28 @@ const controller = {
             this.navigate('mensal');
         }
     },
+    confirmarAcao(titulo, mensagem, callbackConfirmacao) {
+        const html = `
+            <div class="p-6 text-center">
+                <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-2">${titulo}</h3>
+                <p class="text-slate-500 mb-6">${mensagem}</p>
+                <div class="flex gap-3 justify-center">
+                    <button onclick="controller.closeModal()" class="px-6 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition">Cancelar</button>
+                    <button id="btn-confirm-action" class="px-6 py-2 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition shadow-lg shadow-red-500/30">Confirmar</button>
+                </div>
+            </div>
+        `;
+        this.openModal('Confirmação', html);
+        setTimeout(() => {
+            document.getElementById('btn-confirm-action').onclick = () => {
+                callbackConfirmacao();
+                this.closeModal();
+            };
+        }, 100);
+    },
     openDayOptions(dataIso) {
         const [ano, mes, dia] = dataIso.split('-');
         const eventoAtual = model.state.eventos ? (model.state.eventos[dataIso] || {}) : {};
@@ -688,6 +725,9 @@ window.salaView = salaView;
 window.provasView = provasView;
 window.frequenciaView = frequenciaView;
 window.settingsView = settingsView;
+Toast.show("Mensagem...", "success");
+window.dashboardView = dashboardView;
+window.horarioView = horarioView;
 
 window.addEventListener('load', () => {
     console.log("Sistema Modulado Inicializado.");

@@ -3,11 +3,18 @@
 @tailwind utilities;
 
 @layer base {
-    input, select, textarea {
+
+    input,
+    select,
+    textarea {
         font-size: 16px;
     }
+
     @media (min-width: 768px) {
-        input, select, textarea {
+
+        input,
+        select,
+        textarea {
             font-size: 0.875rem;
         }
     }
@@ -18,22 +25,26 @@
     width: 6px;
     height: 6px;
 }
+
 .custom-scrollbar::-webkit-scrollbar {
     width: 4px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-track {
     background: rgba(0, 0, 0, 0.1);
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.2);
     border-radius: 10px;
 }
+
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.4);
 }
 
 html {
-    font-size: 85%; 
+    font-size: 85%;
     width: 100%;
     overflow-x: hidden;
 }
@@ -68,25 +79,55 @@ body {
     color: white !important;
     transition: all 0.2s;
 }
+
 .btn-primary:hover {
     opacity: 0.9;
     transform: translateY(-1px);
 }
-.text-primary { color: var(--primary-color) !important; }
-.border-primary { border-color: var(--primary-color) !important; }
-.ring-primary { --tw-ring-color: var(--primary-color) !important; }
 
-/* Animações */
-.fade-in { animation: fadeIn 0.4s ease-out forwards; }
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(10px); }
-    to { opacity: 1; transform: translateY(0); }
+.text-primary {
+    color: var(--primary-color) !important;
 }
 
-.animate-slideIn { animation: slideIn 0.4s ease-out forwards; }
+.border-primary {
+    border-color: var(--primary-color) !important;
+}
+
+.ring-primary {
+    --tw-ring-color: var(--primary-color) !important;
+}
+
+/* Animações */
+.fade-in {
+    animation: fadeIn 0.4s ease-out forwards;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-slideIn {
+    animation: slideIn 0.4s ease-out forwards;
+}
+
 @keyframes slideIn {
-    from { opacity: 0; transform: translateX(-10px); }
-    to { opacity: 1; transform: translateX(0); }
+    from {
+        opacity: 0;
+        transform: translateX(-10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
 }
 
 .line-clamp-3 {
@@ -98,7 +139,10 @@ body {
 }
 
 /* Comportamento Responsivo da Sidebar */
-.sidebar.collapsed { width: 5rem !important; }
+.sidebar.collapsed {
+    width: 5rem !important;
+}
+
 .sidebar.collapsed .nav-label,
 .sidebar.collapsed .logo-text,
 .sidebar.collapsed .sidebar-footer {
@@ -106,20 +150,176 @@ body {
     width: 0;
     display: none;
 }
+
 .sidebar.collapsed nav button {
     justify-content: center;
     padding-left: 0;
     padding-right: 0;
 }
-main.expanded-content { margin-left: 5rem !important; }
 
-@media (max-width: 768px) {
-    .sidebar { width: 5rem; z-index: 50; }
-    .sidebar.mobile-open { width: 16rem !important; }
-    main { margin-left: 5rem !important; }
-    .sidebar.mobile-open .nav-label { display: block; opacity: 1; width: auto; }
+main.expanded-content {
+    margin-left: 5rem !important;
 }
 
+@media (max-width: 768px) {
+    .sidebar {
+        width: 5rem;
+        z-index: 50;
+    }
+
+    .sidebar.mobile-open {
+        width: 16rem !important;
+    }
+
+    main {
+        margin-left: 5rem !important;
+    }
+
+    .sidebar.mobile-open .nav-label {
+        display: block;
+        opacity: 1;
+        width: auto;
+    }
+}
+
+/* =========================================
+   8. TOAST NOTIFICATIONS (Novo Componente)
+   ========================================= */
+
+#toast-container {
+    position: fixed;
+    top: 1.5rem;
+    right: 1.5rem;
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    pointer-events: none;
+    /* Permite clicar através do container vazio */
+}
+
+.toast-item {
+    pointer-events: auto;
+    min-width: 300px;
+    max-width: 400px;
+    padding: 1rem;
+    border-radius: 0.75rem;
+    background: white;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    border-left: 4px solid #cbd5e1;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transform: translateX(100%);
+    opacity: 0;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #334155;
+}
+
+.toast-item.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+/* Variações de Tipo */
+.toast-success {
+    border-left-color: #10b981;
+}
+
+.toast-success .toast-icon {
+    color: #10b981;
+    background: #d1fae5;
+}
+
+.toast-error {
+    border-left-color: #ef4444;
+}
+
+.toast-error .toast-icon {
+    color: #ef4444;
+    background: #fee2e2;
+}
+
+.toast-info {
+    border-left-color: #3b82f6;
+}
+
+.toast-info .toast-icon {
+    color: #3b82f6;
+    background: #dbeafe;
+}
+
+.toast-warning {
+    border-left-color: #f59e0b;
+}
+
+.toast-warning .toast-icon {
+    color: #f59e0b;
+    background: #fef3c7;
+}
+
+.toast-icon {
+    width: 2rem;
+    height: 2rem;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* =========================================
+   9. DRAG AND DROP (Mapa de Sala)
+   ========================================= */
+
+/* A carteira quando um aluno está "voando" por cima dela */
+.seat-drag-over {
+    border-color: var(--primary-color) !important;
+    background-color: #f0f9ff !important;
+    /* Azul bem clarinho */
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(8, 145, 178, 0.3);
+    border-style: dashed !important;
+}
+
+/* O card do aluno enquanto está sendo arrastado (efeito visual na origem) */
+.student-dragging {
+    opacity: 0.4;
+    cursor: grabbing;
+}
+
+/* O card do aluno deve indicar que é arrastável */
+.draggable-card {
+    cursor: grab;
+}
+
+.draggable-card:active {
+    cursor: grabbing;
+}
+
+/* =========================================
+   10. DASHBOARD WIDGETS
+   ========================================= */
+
+/* Animação suave nos cards ao passar o mouse */
+.hover\:shadow-md:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Garante que ícones grandes de fundo não atrapalhem o texto */
+.group:hover .group-hover\:opacity-20 {
+    opacity: 0.2;
+}
+
+/* Responsividade do grid */
+@media (max-width: 640px) {
+    .grid-cols-1>div {
+        min-height: 160px;
+    }
+}
 
 /* ==========================================================================
    ESTILOS DE IMPRESSÃO (CORRIGIDO)
@@ -127,7 +327,8 @@ main.expanded-content { margin-left: 5rem !important; }
 @media print {
 
     /* 1. Reset Global */
-    html, body {
+    html,
+    body {
         zoom: 100% !important;
         background-color: white !important;
         color: black !important;
@@ -157,7 +358,9 @@ main.expanded-content { margin-left: 5rem !important; }
     }
 
     /* 3. Ajustar Layout Principal */
-    main, #main-content, #view-container {
+    main,
+    #main-content,
+    #view-container {
         margin: 0 !important;
         padding: 0 !important;
         width: 100% !important;
@@ -187,7 +390,9 @@ main.expanded-content { margin-left: 5rem !important; }
         width: 100% !important;
         border-collapse: collapse !important;
     }
-    th, td {
+
+    th,
+    td {
         border: 1px solid #000 !important;
         padding: 5px !important;
         color: #000 !important;
@@ -220,8 +425,8 @@ main.expanded-content { margin-left: 5rem !important; }
         transform-origin: top center;
     }
 
-    #room-grid > div, 
-    .card, 
+    #room-grid>div,
+    .card,
     .bncc-card {
         break-inside: avoid;
         page-break-inside: avoid;
@@ -230,8 +435,13 @@ main.expanded-content { margin-left: 5rem !important; }
     }
 
     /* --- OUTRAS CORREÇÕES --- */
-    .frequencia-title { display: block !important; }
-    .bncc-filters { display: none !important; }
+    .frequencia-title {
+        display: block !important;
+    }
+
+    .bncc-filters {
+        display: none !important;
+    }
 
     * {
         -webkit-print-color-adjust: exact !important;

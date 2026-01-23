@@ -1109,6 +1109,145 @@ main.expanded-content {
   }
 }
 
+/* =========================================
+   8. TOAST NOTIFICATIONS (Novo Componente)
+   ========================================= */
+
+#toast-container {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  pointer-events: none;
+  /* Permite clicar através do container vazio */
+}
+
+.toast-item {
+  pointer-events: auto;
+  min-width: 300px;
+  max-width: 400px;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: white;
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  border-left: 4px solid #cbd5e1;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  transform: translateX(100%);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: #334155;
+}
+
+.toast-item.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+/* Variações de Tipo */
+.toast-success {
+  border-left-color: #10b981;
+}
+
+.toast-success .toast-icon {
+  color: #10b981;
+  background: #d1fae5;
+}
+
+.toast-error {
+  border-left-color: #ef4444;
+}
+
+.toast-error .toast-icon {
+  color: #ef4444;
+  background: #fee2e2;
+}
+
+.toast-info {
+  border-left-color: #3b82f6;
+}
+
+.toast-info .toast-icon {
+  color: #3b82f6;
+  background: #dbeafe;
+}
+
+.toast-warning {
+  border-left-color: #f59e0b;
+}
+
+.toast-warning .toast-icon {
+  color: #f59e0b;
+  background: #fef3c7;
+}
+
+.toast-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* =========================================
+   9. DRAG AND DROP (Mapa de Sala)
+   ========================================= */
+
+/* A carteira quando um aluno está "voando" por cima dela */
+.seat-drag-over {
+  border-color: var(--primary-color) !important;
+  background-color: #f0f9ff !important;
+  /* Azul bem clarinho */
+  transform: scale(1.05);
+  box-shadow: 0 0 15px rgba(8, 145, 178, 0.3);
+  border-style: dashed !important;
+}
+
+/* O card do aluno enquanto está sendo arrastado (efeito visual na origem) */
+.student-dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+/* O card do aluno deve indicar que é arrastável */
+.draggable-card {
+  cursor: grab;
+}
+
+.draggable-card:active {
+  cursor: grabbing;
+}
+
+/* =========================================
+   10. DASHBOARD WIDGETS
+   ========================================= */
+
+/* Animação suave nos cards ao passar o mouse */
+.hover\:shadow-md:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+/* Garante que ícones grandes de fundo não atrapalhem o texto */
+.group:hover .group-hover\:opacity-20 {
+  opacity: 0.2;
+}
+
+/* Responsividade do grid */
+@media (max-width: 640px) {
+  .grid-cols-1>div {
+    min-height: 160px;
+  }
+}
+
 @property --tw-translate-x {
   syntax: "*";
   inherits: false;

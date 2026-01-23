@@ -32,7 +32,20 @@ export const model = {
         questoes: [],
         eventos: {},
         planosDiarios: {},
+        horario: {
+            config: {
+                matutino: [],
+                vespertino: [],
+                noturno: []
+            },
+            grade: {
+                matutino: {},
+                vespertino: {},
+                noturno: {}
+            }
+        },
         lastUpdate: new Date(0).toISOString()
+
     },
     init() {
         const savedData = localStorage.getItem(this.STORAGE_KEY);
@@ -247,6 +260,25 @@ export const model = {
         }
         return novo;
     },
+    saveHorarioConfig(turno, slots) {
+        if (!this.state.horario) this.state.horario = { config: {}, grade: {} };
+        if (!this.state.horario.config) this.state.horario.config = {};
+        this.state.horario.config[turno] = slots;
+        this.saveLocal();
+        this.saveCloudRoot();
+    },
+    saveGradeHoraria(turno, dia, slotIndex, turmaId) {
+        if (!this.state.horario) this.state.horario = { config: {}, grade: {} };
+        if (!this.state.horario.grade) this.state.horario.grade = {};
+        if (!this.state.horario.grade[turno]) this.state.horario.grade[turno] = {};
+        if (!this.state.horario.grade[turno][dia]) this.state.horario.grade[turno][dia] = [];
+        while (this.state.horario.grade[turno][dia].length <= slotIndex) {
+            this.state.horario.grade[turno][dia].push(null);
+        }
+        this.state.horario.grade[turno][dia][slotIndex] = turmaId;
+        this.saveLocal();
+        this.saveCloudRoot();
+    },
     addQuestao(obj) {
         this.state.questoes.push({ id: Date.now(), ...obj, createdAt: new Date().toISOString() });
         this.saveLocal();
@@ -256,10 +288,10 @@ export const model = {
         const idNum = Number(id);
         const index = this.state.questoes.findIndex(q => q.id == idNum);
         if (index !== -1) {
-            this.state.questoes[index] = { 
-                ...this.state.questoes[index], 
+            this.state.questoes[index] = {
+                ...this.state.questoes[index],
                 ...dadosAtualizados,
-                id: idNum 
+                id: idNum
             };
             this.saveLocal();
             this.saveCloudRoot();
@@ -293,6 +325,29 @@ export const model = {
             alunosModificados.forEach(aluno => {
                 firebaseService.saveAluno(this.currentUser.uid, turmaId, aluno);
             });
+        }
+    },
+    movimentarAluno(turmaId, alunoId, novaPosicao) {
+        const turma = this.state.turmas.find(t => t.id == turmaId);
+        if (!turma) return;
+        const alunoOrigem = turma.alunos.find(a => a.id == alunoId);
+        if (!alunoOrigem) return;
+        const posicaoAntiga = alunoOrigem.posicao;
+        const alunoDestino = turma.alunos.find(a => a.posicao === novaPosicao && a.id !== alunoId);
+        alunoOrigem.posicao = novaPosicao;
+        if (alunoDestino) {
+            if (posicaoAntiga) {
+                alunoDestino.posicao = posicaoAntiga;
+            } else {
+                delete alunoDestino.posicao;
+            }
+        }
+        this.saveLocal();
+        if (this.currentUser) {
+            firebaseService.saveAluno(this.currentUser.uid, turmaId, alunoOrigem);
+            if (alunoDestino) {
+                firebaseService.saveAluno(this.currentUser.uid, turmaId, alunoDestino);
+            }
         }
     },
     exportData() {

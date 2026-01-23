@@ -53,6 +53,15 @@
             </button>
             <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6 nav-label truncate">
                 Planejamento</p>
+            <button id="nav-horario" onclick="controller.navigate('horario')"
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group whitespace-nowrap"
+                title="Grade Horária">
+                <div
+                    class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white">
+                    <i class="far fa-clock"></i>
+                </div>
+                <span class="text-sm font-medium nav-label">Grade Horária</span>
+            </button>
             <button id="nav-mensal" onclick="controller.navigate('mensal')"
                 class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group whitespace-nowrap"
                 title="Mensal">
