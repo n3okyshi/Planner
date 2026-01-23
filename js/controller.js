@@ -236,7 +236,7 @@ const controller = {
             modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden transition-opacity duration-300';
             document.body.appendChild(modal);
         }
-        const widthClass = size === 'large' ? 'max-w-4xl h-[85vh]' : 'max-w-lg';
+        const widthClass = size === 'large' ? 'max-w-4xl h-[85vh]' : 'max-w-lg max-h-[90vh]';
         modal.innerHTML = `
             <div class="bg-white rounded-3xl shadow-2xl w-full mx-4 overflow-hidden transform transition-all scale-100 flex flex-col ${widthClass}">
                 <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">

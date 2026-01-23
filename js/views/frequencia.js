@@ -21,7 +21,7 @@ export const frequenciaView = {
                     <h1 class="text-2xl font-bold">Frequência - ${nomeMes} / ${ano}</h1>
                     <p class="text-sm">Turma: ${turmaSelecionada ? turmaSelecionada.nome : 'N/A'}</p>
                 </div>
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-4 flex flex-col md:flex-row gap-4 items-center justify-between shrink-0">
+                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-4 flex flex-col md:flex-row gap-4 items-center justify-between shrink-0 no-print">
                     <div>
                         <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Frequência</h2>
                         <p class="text-xs text-slate-500">Controle de chamadas e presença.</p>
@@ -111,16 +111,18 @@ export const frequenciaView = {
                     <div class="w-64 shrink-0 p-3 border-r border-slate-200 sticky left-0 bg-slate-50 z-30 flex items-end shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
                         <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Aluno</span>
                     </div>
-                    <div class="flex overflow-hidden">
+                    <div id="header-dias" class="flex overflow-hidden flex-1">
                         ${headerDias}
                     </div>
                 </div>
-                <div class="overflow-auto custom-scrollbar flex-1 relative">
+                <div id="scroll-frequencia" 
+                     onscroll="document.getElementById('header-dias').scrollLeft = this.scrollLeft"
+                     class="overflow-auto custom-scrollbar flex-1 relative">
                     <div class="min-w-fit">
                         ${linhasAlunos}
                     </div>
                 </div>
-                <div class="p-3 bg-slate-50 border-t border-slate-200 flex gap-4 text-[10px] font-bold text-slate-500 uppercase tracking-wide justify-end">
+                <div class="p-3 bg-slate-50 border-t border-slate-200 flex gap-4 text-[10px] font-bold text-slate-500 uppercase tracking-wide justify-end no-print">
                     <div class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-emerald-100 border border-emerald-300"></div> Presente</div>
                     <div class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-red-100 border border-red-300"></div> Falta</div>
                     <div class="flex items-center gap-1"><div class="w-3 h-3 rounded-full bg-yellow-100 border border-yellow-300"></div> Justificada</div>
@@ -129,7 +131,7 @@ export const frequenciaView = {
         `;
     },
     getIconeStatus(status) {
-        if (!status) return `<span class="w-2 h-2 rounded-full bg-slate-200"></span>`; // Bolinha cinza (vazio)
+        if (!status) return `<span class="w-2 h-2 rounded-full bg-slate-200"></span>`;
         if (status === 'P') return `<i class="fas fa-check text-emerald-500 text-lg"></i>`;
         if (status === 'F') return `<i class="fas fa-times text-red-500 text-lg"></i>`;
         if (status === 'J') return `<span class="text-xs font-black text-yellow-600 bg-yellow-100 px-1.5 py-0.5 rounded border border-yellow-200">J</span>`;

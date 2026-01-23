@@ -32,14 +32,17 @@
     background: rgba(255, 255, 255, 0.4);
 }
 
-/* Configurações Globais */
-html, body {
+html {
+    font-size: 85%; 
+    width: 100%;
+    overflow-x: hidden;
+}
+
+body {
     width: 100%;
     max-width: 100%;
     overflow-x: hidden;
     position: relative;
-    overscroll-behavior-y: none;
-    zoom: 80%; /* Zoom padrão da interface web */
 }
 
 :root {

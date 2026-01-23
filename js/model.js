@@ -23,7 +23,6 @@ export const model = {
         "Ciências da Natureza e suas Tecnologias": "#16a34a",
         "Ciências Humanas e Sociais Aplicadas": "#9333ea"
     },
-
     state: {
         userConfig: {
             themeColor: '#0891b2',
@@ -40,6 +39,11 @@ export const model = {
         if (savedData) {
             try {
                 this.state = { ...this.state, ...JSON.parse(savedData) };
+                if (this.state.questoes) {
+                    this.state.questoes.forEach(q => {
+                        if (q.id) q.id = Number(q.id);
+                    });
+                }
             } catch (e) {
                 console.error("Erro cache local", e);
             }
@@ -53,6 +57,11 @@ export const model = {
             const cloudData = await firebaseService.loadFullData(this.currentUser.uid);
             if (cloudData) {
                 this.state = cloudData;
+                if (this.state.questoes) {
+                    this.state.questoes.forEach(q => {
+                        if (q.id) q.id = Number(q.id);
+                    });
+                }
                 this.saveLocal();
                 this.updateStatusCloud('<i class="fas fa-check"></i> Sincronizado', 'text-emerald-600');
             } else {
@@ -98,17 +107,12 @@ export const model = {
         };
         this.state.turmas.push(novaTurma);
         this.saveLocal();
-
-        if (this.currentUser) {
-            firebaseService.saveTurma(this.currentUser.uid, novaTurma);
-        }
+        if (this.currentUser) firebaseService.saveTurma(this.currentUser.uid, novaTurma);
     },
     deleteTurma(id) {
         this.state.turmas = this.state.turmas.filter(t => t.id != id);
         this.saveLocal();
-        if (this.currentUser) {
-            firebaseService.deleteTurma(this.currentUser.uid, id);
-        }
+        if (this.currentUser) firebaseService.deleteTurma(this.currentUser.uid, id);
     },
     addAluno(turmaId, nomeAluno) {
         const turma = this.state.turmas.find(t => t.id == turmaId);
@@ -121,9 +125,7 @@ export const model = {
             turma.alunos.push(novoAluno);
             turma.alunos.sort((a, b) => a.nome.localeCompare(b.nome));
             this.saveLocal();
-            if (this.currentUser) {
-                firebaseService.saveAluno(this.currentUser.uid, turmaId, novoAluno);
-            }
+            if (this.currentUser) firebaseService.saveAluno(this.currentUser.uid, turmaId, novoAluno);
         }
     },
     deleteAluno(turmaId, alunoId) {
@@ -131,9 +133,7 @@ export const model = {
         if (turma) {
             turma.alunos = turma.alunos.filter(a => a.id != alunoId);
             this.saveLocal();
-            if (this.currentUser) {
-                firebaseService.deleteAluno(this.currentUser.uid, turmaId, alunoId);
-            }
+            if (this.currentUser) firebaseService.deleteAluno(this.currentUser.uid, turmaId, alunoId);
         }
     },
     addAvaliacao(turmaId, nome, max) {
@@ -142,9 +142,7 @@ export const model = {
             const novaAv = { id: String(Date.now()), nome, max: Number(max) };
             turma.avaliacoes.push(novaAv);
             this.saveLocal();
-            if (this.currentUser) {
-                firebaseService.saveAvaliacao(this.currentUser.uid, turmaId, novaAv);
-            }
+            if (this.currentUser) firebaseService.saveAvaliacao(this.currentUser.uid, turmaId, novaAv);
         }
     },
     deleteAvaliacao(turmaId, avId) {
@@ -153,9 +151,7 @@ export const model = {
             turma.avaliacoes = turma.avaliacoes.filter(av => av.id != avId);
             turma.alunos.forEach(aluno => { if (aluno.notas) delete aluno.notas[avId]; });
             this.saveLocal();
-            if (this.currentUser) {
-                firebaseService.deleteAvaliacao(this.currentUser.uid, turmaId, avId);
-            }
+            if (this.currentUser) firebaseService.deleteAvaliacao(this.currentUser.uid, turmaId, avId);
         }
     },
     updateNota(turmaId, alunoId, avId, valor) {
@@ -166,9 +162,7 @@ export const model = {
                 if (!aluno.notas) aluno.notas = {};
                 aluno.notas[avId] = valor;
                 this.saveLocal();
-                if (this.currentUser) {
-                    firebaseService.saveAluno(this.currentUser.uid, turmaId, aluno);
-                }
+                if (this.currentUser) firebaseService.saveAluno(this.currentUser.uid, turmaId, aluno);
             }
         }
     },
@@ -178,7 +172,6 @@ export const model = {
         if (!turma.planejamento) turma.planejamento = {};
         const chavePeriodo = String(periodoIdx);
         if (!turma.planejamento[chavePeriodo]) turma.planejamento[chavePeriodo] = [];
-
         const existe = turma.planejamento[chavePeriodo].some(h => h.codigo === habilidade.codigo);
         if (!existe) {
             turma.planejamento[chavePeriodo].push(habilidade);
@@ -238,11 +231,11 @@ export const model = {
         if (!aluno) return;
         if (!aluno.frequencia) aluno.frequencia = {};
         const atual = aluno.frequencia[dataIso];
-        let novo = 'P'; 
+        let novo = 'P';
         if (!atual) novo = 'P';
         else if (atual === 'P') novo = 'F';
         else if (atual === 'F') novo = 'J';
-        else if (atual === 'J') novo = null; 
+        else if (atual === 'J') novo = null;
         if (novo) {
             aluno.frequencia[dataIso] = novo;
         } else {
@@ -252,15 +245,29 @@ export const model = {
         if (this.currentUser) {
             firebaseService.saveFrequenciaAluno(this.currentUser.uid, turmaId, alunoId, aluno.frequencia);
         }
-        return novo; 
+        return novo;
     },
     addQuestao(obj) {
         this.state.questoes.push({ id: Date.now(), ...obj, createdAt: new Date().toISOString() });
         this.saveLocal();
         this.saveCloudRoot();
     },
+    updateQuestao(id, dadosAtualizados) {
+        const idNum = Number(id);
+        const index = this.state.questoes.findIndex(q => q.id == idNum);
+        if (index !== -1) {
+            this.state.questoes[index] = { 
+                ...this.state.questoes[index], 
+                ...dadosAtualizados,
+                id: idNum 
+            };
+            this.saveLocal();
+            this.saveCloudRoot();
+        }
+    },
     deleteQuestao(id) {
-        this.state.questoes = this.state.questoes.filter(q => q.id != id);
+        const idNum = Number(id);
+        this.state.questoes = this.state.questoes.filter(q => q.id != idNum);
         this.saveLocal();
         this.saveCloudRoot();
     },
@@ -307,4 +314,6 @@ export const model = {
         return turma.planejamentoMensal[meses[mesIndex]] || [];
     }
 };
-model.init();
+if (typeof window !== 'undefined') {
+    model.init();
+}
