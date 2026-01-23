@@ -101,6 +101,23 @@ export const model = {
         } finally {
             this.isCloudSynced = true;
         }
+        firebaseService.subscribeToUserChanges(this.currentUser.uid, (newData) => {
+            this.onCloudUpdate(newData);
+        });
+    },
+    onCloudUpdate(newData) {
+        if (!newData) return;
+        const horarioMudou = JSON.stringify(this.state.horario) !== JSON.stringify(newData.horario);
+        if (horarioMudou && newData.horario) {
+            console.log("Atualização externa detectada no horário!");
+            this.state.horario = newData.horario;
+            this.state.lastUpdate = newData.lastUpdate;
+            this.saveLocal();
+            if (window.controller && window.controller.currentView === 'horario') {
+                window.horarioView.render('view-container');
+                window.Toast.show("Horário atualizado remotamente!", "info");
+            }
+        }
     },
     saveLocal() {
         localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.state));
@@ -311,18 +328,20 @@ export const model = {
     async saveHorarioCompleto(novoHorario) {
         this.state.horario = novoHorario;
         this.saveLocal();
-        if (this.isCloudSynced) {
+
+        if (this.isCloudSynced && this.currentUser) {
             try {
-                await this.saveCloudRoot();
+                this.updateStatusCloud('<i class="fas fa-sync fa-spin"></i> Salvando Horário...', 'text-yellow-600');
+                await firebaseService.saveHorarioOnly(this.currentUser.uid, this.state.horario);
+                this.updateStatusCloud('<i class="fas fa-check"></i> Salvo', 'text-emerald-600');
                 return true;
             } catch (error) {
-                console.error("Falha ao enviar horário para nuvem:", error);
+                console.error("Erro ao salvar horário:", error);
+                this.updateStatusCloud('Erro ao salvar', 'text-red-500');
                 return false;
             }
-        } else {
-            console.warn("Salvamento na nuvem pendente: aguardando sincronização.");
-            return false;
         }
+        return false;
     },
     addQuestao(obj) {
         this.state.questoes.push({ id: Date.now(), ...obj, createdAt: new Date().toISOString() });

@@ -94,6 +94,24 @@ export const firebaseService = {
         const { turmas, ...rootData } = data;
         await this.db.collection('professores').doc(uid).set(rootData, { merge: true });
     },
+    async saveHorarioOnly(uid, horarioData) {
+        if (!uid) return;
+        await this.db.collection('professores').doc(uid).update({
+            horario: horarioData,
+            lastUpdate: new Date().toISOString()
+        });
+    },
+    subscribeToUserChanges(uid, callback) {
+        if (!uid || !this.db) return;
+        return this.db.collection('professores').doc(uid)
+            .onSnapshot((doc) => {
+                if (doc.exists) {
+                    callback(doc.data());
+                }
+            }, (error) => {
+                console.error("Erro no listener em tempo real:", error);
+            });
+    },
     async saveTurma(uid, turma) {
         if (!uid) return;
         const { alunos, avaliações, ...turmaData } = turma;
