@@ -74,6 +74,7 @@ export const planejamentoView = {
         for (let i = 1; i <= config.qtd; i++) {
             const habilidades = plan[i] || [];
             const isVazio = habilidades.length === 0;
+            habilidades.sort((a, b) => a.codigo.localeCompare(b.codigo, undefined, { numeric: true }));
             const btnAdicionar = `
                 <button onclick="controller.openSeletorBncc('${turma.id}', ${i}, '${turma.nivel}', '${turma.serie}')" 
                         class="w-full h-full flex flex-col items-center justify-center text-slate-300 hover:text-primary hover:bg-white border-2 border-dashed border-slate-200 hover:border-primary rounded-xl transition-all p-6 group/empty opacity-70 hover:opacity-100">

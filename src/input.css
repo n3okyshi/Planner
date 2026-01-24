@@ -367,6 +367,17 @@ main.expanded-content {
 .text-score-blue { color: #3b82f6; }
 .text-score-cyan { color: #06b6d4; }
 .text-score-green { color: #10b981; }
+
+/* Se estiver usando CSS puro */
+.toast-container {
+    position: fixed; /* Faz o elemento ignorar a rolagem da página */
+    top: 20px;       /* Distância do topo da JANELA do navegador */
+    left: 50%;
+    transform: translateX(-50%); /* Centraliza horizontalmente */
+    z-index: 9999;   /* Garante que fique por cima de modais e cabeçalhos */
+    width: auto;
+    max-width: 90vw;
+}
 /* ==========================================================================
    ESTILOS DE IMPRESSÃO (CORRIGIDO)
    ========================================================================== */

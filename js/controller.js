@@ -1,83 +1,64 @@
-import { model } from './model.js';//
+import { model } from './model.js';
 import { firebaseService } from './firebase-service.js';
-import { bnccView } from './views/bncc.js';//
-import { turmasView } from './views/turmas.js';//
-import { calendarioView } from './views/calendario.js';//
-import { mensalView } from './views/mensal.js';//
-import { planejamentoView } from './views/planejamento.js';//
-import { diarioView } from './views/diario.js';//
-import { salaView } from './views/sala.js';//
-import { provasView } from './views/provas.js';//
-import { frequenciaView } from './views/frequencia.js';//
-import { settingsView } from './views/settings.js';//
+import { bnccView } from './views/bncc.js';
+import { turmasView } from './views/turmas.js';
+import { calendarioView } from './views/calendario.js';
+import { mensalView } from './views/mensal.js';
+import { planejamentoView } from './views/planejamento.js';
+import { diarioView } from './views/diario.js';
+import { salaView } from './views/sala.js';
+import { provasView } from './views/provas.js';
+import { frequenciaView } from './views/frequencia.js';
+import { settingsView } from './views/settings.js';
 import { Toast } from './components/toast.js';
 import { dashboardView } from './views/dashboard.js';
 import { horarioView } from './views/horario.js';
-
+// Helper Global de Segurança
 window.escapeHTML = function (str) {
     if (!str) return '';
     return String(str).replace(/[&<>"']/g, function (match) {
         const escape = {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#39;'
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
         };
         return escape[match];
     });
 };
-
 export const controller = {
     currentView: null,
     views: {},
+    // --- Inicialização ---
     init: function () {
         if (model && model.init) model.init();
         this.bindViews();
         this.aplicarTema();
         this.setupGlobalListeners();
         this.monitorAuth();
+        model.carregarQuestoesSistema();
+
     },
     bindViews: function () {
         this.views = {
-            'dashboard': dashboardView,
-            'horario': horarioView,
-            'calendario': calendarioView,
-            'mensal': mensalView,
-            'periodo': planejamentoView,
-            'dia': diarioView,
-            'turmas': turmasView,
-            'bncc': bnccView,
-            'mapa': salaView,
-            'provas': provasView,
-            'frequencia': frequenciaView,
-            'config': settingsView
+            'dashboard': dashboardView, 'horario': horarioView, 'calendario': calendarioView,
+            'mensal': mensalView, 'periodo': planejamentoView, 'dia': diarioView,
+            'turmas': turmasView, 'bncc': bnccView, 'mapa': salaView,
+            'provas': provasView, 'frequencia': frequenciaView, 'config': settingsView
         };
     },
     monitorAuth: function () {
-        if (!firebaseService) {
-            console.error("Firebase Service não carregado.");
-            return;
-        }
+        if (!firebaseService) return console.error("Firebase Service não carregado.");
         firebaseService.onAuthStateChanged(async (user) => {
             if (user) {
                 console.log("Usuário logado:", user.email);
                 this.updateAuthButton(true, user);
-
                 const cloudStatus = document.getElementById('cloud-status');
                 if (cloudStatus) cloudStatus.innerHTML = '<i class="fas fa-check text-green-500"></i> Sync ON';
                 try {
                     await model.loadUserData();
-                    if (!this.currentView) {
-                        this.navigate('dashboard');
-                    } else {
-                        this.navigate(this.currentView);
-                    }
+                    this.navigate(this.currentView || 'dashboard');
                 } catch (error) {
                     console.error("Erro ao carregar dados:", error);
                 }
             } else {
-                console.log("Usuário deslogado");
                 model.currentUser = null;
                 model.data = {};
                 this.updateAuthButton(false);
@@ -88,21 +69,14 @@ export const controller = {
         });
     },
     handleLogin: async function () {
-        try {
-            await firebaseService.loginGoogle();
-        } catch (error) {
-            console.error("Login falhou:", error);
-            Toast.show("Erro no login Google: " + error.message, 'error');
-        }
+        try { await firebaseService.loginGoogle(); }
+        catch (error) { Toast.show("Erro no login Google: " + error.message, 'error'); }
     },
     handleLogout: function () {
         this.confirmarAcao(
             'Sair do Sistema?',
             'Deseja encerrar sua sessão e parar a sincronização?',
-            () => {
-                firebaseService.logout();
-                window.location.reload();
-            }
+            () => { firebaseService.logout(); window.location.reload(); }
         );
     },
     toggleSidebar: function () {
@@ -112,37 +86,50 @@ export const controller = {
         const isMobile = window.innerWidth < 768;
         if (isMobile) {
             sidebar.classList.toggle('mobile-open');
-            if (sidebar.classList.contains('mobile-open')) {
-                sidebar.classList.remove('collapsed');
-            } else {
-                sidebar.classList.add('collapsed');
-            }
+            sidebar.classList.toggle('collapsed', !sidebar.classList.contains('mobile-open'));
         } else {
             sidebar.classList.toggle('collapsed');
             main.classList.toggle('expanded-content');
         }
-        if (sidebar.classList.contains('collapsed') && !sidebar.classList.contains('mobile-open')) {
-            icon.classList.remove('fa-chevron-left');
-            icon.classList.add('fa-bars');
-        } else {
-            icon.classList.remove('fa-bars');
-            icon.classList.add('fa-chevron-left');
-        }
+        icon.className = (sidebar.classList.contains('collapsed') && !sidebar.classList.contains('mobile-open')) ? 'fas fa-bars' : 'fas fa-chevron-left';
     },
+    // --- Navegação e UX (Skeleton Loading) ---
     navigate: async function (viewName) {
-        //if (viewName === 'calendario') viewName = 'dashboard';
         if (viewName === 'planejamento') viewName = 'periodo';
         if (viewName === 'diario') viewName = 'dia';
         if (viewName === 'sala') viewName = 'mapa';
         if (viewName === 'settings') viewName = 'config';
-        if (!this.views[viewName]) {
-            console.log(`Tentando re-mapear views para encontrar: ${viewName}`);
-            this.bindViews();
-        }
+        if (!this.views[viewName]) this.bindViews();
         const container = document.getElementById('view-container');
         const view = this.views[viewName];
         this.currentView = viewName;
+        this.updateNavHighlight(viewName);
         this.aplicarTema();
+        if (viewName === 'dia' && window.diarioView && !diarioView.viewDate) {
+            const [ano, mes] = diarioView.currentDate.split('-');
+            diarioView.viewDate = new Date(parseInt(ano), parseInt(mes) - 1, 1);
+        }
+        if (!view) {
+            container.innerHTML = `<p class="p-10 text-center text-slate-400">Erro: Tela '${viewName}' não encontrada.</p>`;
+            return;
+        }
+        this.renderSkeleton(container, viewName);
+        setTimeout(async () => {
+            try {
+                container.innerHTML = '';
+                if (view.render) {
+                    if (viewName === 'config') await view.render(container, model.state.userConfig);
+                    else await view.render(container);
+                }
+                this.updateBreadcrumb(viewName);
+                this.updateSidebarUserArea();
+            } catch (e) {
+                console.error(`Erro fatal em ${viewName}:`, e);
+                container.innerHTML = `<div class="p-4 text-red-500">Erro de renderização: ${e.message}</div>`;
+            }
+        }, 50);
+    },
+    updateNavHighlight(viewName) {
         document.querySelectorAll('nav button').forEach(btn => {
             btn.classList.remove('bg-white/10', 'text-white');
             btn.classList.add('text-slate-400');
@@ -156,97 +143,50 @@ export const controller = {
             activeBtn.classList.add('bg-white/10', 'text-white');
             activeBtn.classList.remove('text-slate-400');
         }
-        if (viewName === 'dia' && window.diarioView) {
-            if (!diarioView.viewDate) {
-                const [ano, mes] = diarioView.currentDate.split('-');
-                diarioView.viewDate = new Date(parseInt(ano), parseInt(mes) - 1, 1);
-            }
-        }
-        if (!view) {
-            console.error(`View '${viewName}' é undefined. Views disponíveis:`, Object.keys(this.views));
-            container.innerHTML = `<p class="p-10 text-center text-slate-400">Erro: A tela '${viewName}' não foi carregada corretamente. Tente recarregar a página.</p>`;
-            return;
-        }
-        container.innerHTML = '<div class="flex justify-center p-10"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>';
-        setTimeout(async () => {
-            container.innerHTML = '';
-            try {
-                if (view.render) {
-                    if (viewName === 'config') await view.render(container, model.state.userConfig);
-                    else await view.render(container);
-                }
-                this.updateBreadcrumb(viewName);
-                this.updateSidebarUserArea();
-            } catch (e) {
-                console.error(`Erro fatal ao renderizar ${viewName}:`, e);
-                container.innerHTML = `<div class="p-4 text-red-500">Erro de renderização: ${e.message}</div>`;
-            }
-        }, 50);
     },
-    updateBreadcrumb: function (viewName) {
-        const breadcrumb = document.getElementById('breadcrumb');
-        if (!breadcrumb) return;
-        const map = {
-            'dashboard': 'Visão Geral', 'mensal': 'Planejamento / Mensal',
-            'periodo': 'Planejamento / Por Período', 'dia': 'Planejamento / Diário',
-            'turmas': 'Acadêmico / Turmas', 'bncc': 'Acadêmico / BNCC',
-            'mapa': 'Acadêmico / Mapa de Sala', 'provas': 'Acadêmico / Gerador de Provas',
-            'config': 'Configurações'
+    renderSkeleton(container, viewName) {
+        const skeletons = {
+            dashboard: `
+                <div class="animate-pulse space-y-4 fade-in">
+                    <div class="h-8 bg-slate-200 rounded w-1/3 mb-6"></div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div class="h-32 bg-slate-200 rounded-2xl"></div>
+                        <div class="h-32 bg-slate-200 rounded-2xl"></div>
+                        <div class="h-32 bg-slate-200 rounded-2xl"></div>
+                    </div>
+                    <div class="h-64 bg-slate-200 rounded-2xl mt-6"></div>
+                </div>`,
+            turmas: `
+                <div class="animate-pulse fade-in">
+                    <div class="flex justify-between items-center mb-6">
+                        <div class="h-8 bg-slate-200 rounded w-48"></div>
+                        <div class="h-10 bg-slate-200 rounded w-32"></div>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div class="h-40 bg-slate-200 rounded-2xl"></div>
+                        <div class="h-40 bg-slate-200 rounded-2xl"></div>
+                        <div class="h-40 bg-slate-200 rounded-2xl"></div>
+                    </div>
+                </div>`,
+            generic: `
+                <div class="animate-pulse p-4 fade-in">
+                    <div class="h-8 bg-slate-200 rounded w-1/4 mb-8"></div>
+                    <div class="space-y-4">
+                        <div class="h-4 bg-slate-200 rounded w-3/4"></div>
+                        <div class="h-4 bg-slate-200 rounded w-full"></div>
+                        <div class="h-4 bg-slate-200 rounded w-5/6"></div>
+                    </div>
+                </div>`
         };
-        breadcrumb.innerHTML = `<i class="fas fa-home text-slate-300"></i> <span class="text-slate-300">/</span> ${map[viewName] || viewName}`;
+        container.innerHTML = skeletons[viewName] || skeletons.generic;
     },
-    updateAuthButton: function (isLoggedIn, user = null) {
-        const container = document.getElementById('auth-container');
-        if (!container) return;
-        if (isLoggedIn && user) {
-            container.innerHTML = `
-                <div class="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/10 cursor-pointer hover:bg-white/10 overflow-hidden" onclick="controller.handleLogout()">
-                    <img src="${user.photoURL || 'https://ui-avatars.com/api/?name=Prof'}" class="w-8 h-8 rounded-full border border-white/20 shrink-0">
-                    <div class="overflow-hidden nav-label transition-all duration-300">
-                        <p class="text-xs text-slate-300 truncate">Olá,</p>
-                        <p class="text-xs font-bold text-white truncate w-24">${escapeHTML(user.displayName)}</p>
-                    </div>
-                    <i class="fas fa-sign-out-alt ml-auto text-slate-500 hover:text-red-400 nav-label"></i>
-                </div>
-            `;
-        } else {
-            container.innerHTML = `
-                <button onclick="controller.handleLogin()"
-                    class="w-full flex items-center gap-3 p-3 bg-white text-primary rounded-xl font-bold shadow-lg hover:bg-slate-50 transition-colors overflow-hidden whitespace-nowrap">
-                    <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <i class="fab fa-google text-primary"></i>
-                    </div>
-                    <span class="nav-label transition-all duration-300">Entrar</span>
-                </button>
-            `;
-        }
-    },
-    updateSidebarUserArea: function () {
-        if (model.currentUser) this.updateAuthButton(true, model.currentUser);
-    },
-    aplicarTema: function () {
-        if (model.state.userConfig && model.state.userConfig.themeColor) {
-            document.documentElement.style.setProperty('--primary-color', model.state.userConfig.themeColor);
-        }
-    },
-    setupGlobalListeners: function () {
-        const dateEl = document.getElementById('current-date');
-        if (dateEl) {
-            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-            dateEl.innerText = new Date().toLocaleDateString('pt-BR', options);
-        }
-    },
+    // --- Sistema de Modais e Confirmação ---
     openModal(title, content, size = 'normal') {
         let modal = document.getElementById('global-modal');
-        if (!modal) {
-            modal = document.createElement('div');
-            modal.id = 'global-modal';
-            modal.className = 'fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm hidden transition-opacity duration-300';
-            document.body.appendChild(modal);
-        }
+        if (!modal) return;
         const widthClass = size === 'large' ? 'max-w-4xl h-[85vh]' : 'max-w-lg max-h-[90vh]';
         modal.innerHTML = `
-            <div class="bg-white rounded-3xl shadow-2xl w-full mx-4 overflow-hidden transform transition-all scale-100 flex flex-col ${widthClass}">
+            <div class="bg-white rounded-3xl shadow-2xl w-full mx-4 overflow-hidden transform transition-all scale-100 flex flex-col ${widthClass} animate-slideUpFade">
                 <div class="bg-slate-50 px-6 py-4 border-b border-slate-100 flex justify-between items-center shrink-0">
                     <h3 class="text-lg font-bold text-slate-800">${title}</h3>
                     <button onclick="controller.closeModal()" class="w-8 h-8 flex items-center justify-center rounded-full text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors">
@@ -259,19 +199,43 @@ export const controller = {
             </div>
         `;
         modal.classList.remove('hidden');
+        modal.classList.add('flex');
     },
     closeModal() {
         const modal = document.getElementById('global-modal');
         if (modal) {
             modal.classList.add('hidden');
+            modal.classList.remove('flex');
             setTimeout(() => { modal.innerHTML = ''; }, 200);
         }
         if (this.views['bncc']) this.views['bncc'].selecionarCallback = null;
     },
-    copyToClipboard(text) {
-        navigator.clipboard.writeText(text).then(() => {
-        });
+    confirmarAcao(titulo, mensagem, callbackConfirmacao) {
+        const html = `
+            <div class="p-8 text-center">
+                <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-sm">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-2">${titulo}</h3>
+                <p class="text-slate-500 mb-8 leading-relaxed">${mensagem}</p>
+                <div class="flex gap-3 justify-center">
+                    <button onclick="controller.closeModal()" class="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition">Cancelar</button>
+                    <button id="btn-confirm-action" class="px-6 py-2.5 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition shadow-lg shadow-red-500/30">Confirmar</button>
+                </div>
+            </div>
+        `;
+        this.openModal('Confirmação', html);
+        setTimeout(() => {
+            const btn = document.getElementById('btn-confirm-action');
+            if (btn) {
+                btn.onclick = () => {
+                    callbackConfirmacao();
+                    this.closeModal();
+                };
+            }
+        }, 50);
     },
+    // --- Gerenciamento de Turmas ---
     openAddTurma() { this.openModal('Nova Turma', this._getAddTurmaHtml()); },
     _getAddTurmaHtml() {
         return `
@@ -294,8 +258,8 @@ export const controller = {
                     </div>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Identificador (Ex: A, B, Matutino)</label>
-                    <input type="text" id="input-id-turma" class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary">
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Identificador</label>
+                    <input type="text" id="input-id-turma" placeholder="Ex: A, B, Matutino" class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary">
                 </div>
                 <div class="flex justify-end pt-4">
                     <button onclick="controller.saveTurma()" class="btn-primary px-8 py-3 rounded-xl font-bold shadow-lg shadow-primary/20">Criar Turma</button>
@@ -325,25 +289,26 @@ export const controller = {
         const serie = document.getElementById('input-serie').value;
         const id = document.getElementById('input-id-turma').value;
         if (nivel && serie && id) {
-            const nome = `${serie} ${id}`;
-            model.addTurma(nome, nivel, serie, id);
+            model.addTurma(`${serie} ${id}`, nivel, serie, id);
             this.closeModal();
             this.navigate('turmas');
+            Toast.show('Turma criada com sucesso!', 'success');
         } else {
-            Toast.show("Por favor, preencha todos os campos da turma.", 'warning');
+            Toast.show("Por favor, preencha todos os campos.", 'warning');
         }
     },
     deleteTurma(id) {
         this.confirmarAcao(
             'Excluir Turma?',
-            'Esta ação apagará todos os alunos, notas e diários vinculados. Não pode ser desfeita.',
+            'Esta ação apagará todos os alunos, notas e planejamentos vinculados. <strong>Não pode ser desfeita.</strong>',
             () => {
                 model.deleteTurma(id);
                 this.navigate('turmas');
-                Toast.show("Turma excluída com sucesso.", 'success');
+                Toast.show("Turma excluída permanentemente.", 'success');
             }
         );
     },
+    // --- Gerenciamento de Alunos (Com Undo) ---
     openAddAluno(turmaId) {
         this.openModal('Novo Aluno', `
             <div class="p-6">
@@ -358,19 +323,35 @@ export const controller = {
         if (nome) {
             model.addAluno(turmaId, nome);
             this.closeModal();
-            if (this.currentView === 'turmas' && this.views['turmas'].renderDetalhesTurma) {
-                this.views['turmas'].renderDetalhesTurma(document.getElementById('view-container'), turmaId);
-            } else {
-                this.navigate('turmas');
-            }
+            this._refreshTurmaView(turmaId);
         }
     },
     deleteAluno(turmaId, alunoId) {
-        if (confirm("Remover aluno?")) {
-            model.deleteAluno(turmaId, alunoId);
-            if (this.currentView === 'turmas' && this.views['turmas'].renderDetalhesTurma) {
-                this.views['turmas'].renderDetalhesTurma(document.getElementById('view-container'), turmaId);
+        const turma = model.state.turmas.find(t => t.id == turmaId);
+        const aluno = turma ? turma.alunos.find(a => a.id == alunoId) : null;
+        if (!aluno) return;
+        model.deleteAluno(turmaId, alunoId);
+        this._refreshTurmaView(turmaId);
+        Toast.show(`Aluno removido.`, 'info', 5000, {
+            label: 'DESFAZER',
+            callback: () => {
+                const t = model.state.turmas.find(t => t.id == turmaId);
+                if (t) {
+                    t.alunos.push(aluno);
+                    t.alunos.sort((a, b) => a.nome.localeCompare(b.nome));
+                    model.saveLocal();
+                    if (model.currentUser) firebaseService.saveAluno(model.currentUser.uid, turmaId, aluno);
+                    this._refreshTurmaView(turmaId);
+                    Toast.show('Aluno restaurado!', 'success');
+                }
             }
+        });
+    },
+    _refreshTurmaView(turmaId) {
+        if (this.currentView === 'turmas' && this.views['turmas'].renderDetalhesTurma) {
+            this.views['turmas'].renderDetalhesTurma(document.getElementById('view-container'), turmaId);
+        } else {
+            this.navigate('turmas');
         }
     },
     openAddAlunoLote(turmaId) {
@@ -388,11 +369,11 @@ export const controller = {
             const nomes = text.split('\n').map(n => n.trim()).filter(n => n.length > 0);
             nomes.forEach(nome => model.addAluno(turmaId, nome));
             this.closeModal();
-            if (this.views['turmas'].renderDetalhesTurma) {
-                this.views['turmas'].renderDetalhesTurma(document.getElementById('view-container'), turmaId);
-            }
+            this._refreshTurmaView(turmaId);
+            Toast.show(`${nomes.length} alunos importados.`, 'success');
         }
     },
+    // --- Avaliações e Notas ---
     openAddAvaliacao(turmaId) {
         this.openModal('Nova Atividade Avaliativa', `
             <div class="p-6 space-y-4">
@@ -414,18 +395,20 @@ export const controller = {
         if (nome && max) {
             model.addAvaliacao(turmaId, nome, max);
             this.closeModal();
-            this.views['turmas'].renderDetalhesTurma(document.getElementById('view-container'), turmaId);
+            this._refreshTurmaView(turmaId);
         }
     },
     deleteAvaliacao(turmaId, avId) {
-        if (confirm("Excluir esta avaliação e todas as notas lançadas nela?")) {
+        this.confirmarAcao("Excluir Avaliação?", "Isso apagará todas as notas lançadas para esta atividade.", () => {
             model.deleteAvaliacao(turmaId, avId);
-            this.views['turmas'].renderDetalhesTurma(document.getElementById('view-container'), turmaId);
-        }
+            this._refreshTurmaView(turmaId);
+            Toast.show("Avaliação excluída.", 'success');
+        });
     },
     updateNota(turmaId, alunoId, avId, valor) {
         model.updateNota(turmaId, alunoId, avId, valor);
     },
+    // --- Diário e Planejamento ---
     mudarDataDiario(novaData) {
         if (this.views['dia']) {
             this.views['dia'].currentDate = novaData;
@@ -460,16 +443,6 @@ export const controller = {
             avaliacao: document.getElementById('plan-avaliacao').value
         };
         model.savePlanoDiario(data, turmaId, conteudo);
-
-        const toast = document.createElement('div');
-        toast.className = 'fixed bottom-6 right-6 bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-2xl z-50 flex items-center gap-3 animate-slideIn';
-        toast.innerHTML = `<i class="fas fa-check-circle text-lg"></i> <span class="font-bold">Planejamento Salvo!</span>`;
-        document.body.appendChild(toast);
-        setTimeout(() => {
-            toast.style.opacity = '0';
-            setTimeout(() => toast.remove(), 500);
-        }, 2000);
-
         Toast.show("Planejamento salvo com sucesso!", 'success');
     },
     abrirModalCopiarPlanejamento(turmaIdAtual) {
@@ -483,65 +456,40 @@ export const controller = {
         const optionsHtml = outrasTurmas.map(t => {
             const isMesmaSerie = t.serie === turmaAtual.serie;
             const destaque = isMesmaSerie ? 'font-bold text-blue-600' : '';
-            const textoExtra = isMesmaSerie ? '(Mesma Série)' : '';
-            return `<option value="${t.id}" class="${destaque}">${t.nome} ${textoExtra}</option>`;
+            return `<option value="${t.id}" class="${destaque}">${t.nome} ${isMesmaSerie ? '(Mesma Série)' : ''}</option>`;
         }).join('');
-        const html = `
+
+        this.openModal('Replicar Planejamento', `
             <div class="p-6 space-y-4">
                 <div class="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-4">
-                    <p class="text-sm text-blue-800">
-                        <i class="fas fa-info-circle mr-1"></i>
-                        Você está copiando o planejamento de <strong>${turmaAtual.nome}</strong>.
-                    </p>
+                    <p class="text-sm text-blue-800"><i class="fas fa-info-circle mr-1"></i> Copiando de <strong>${turmaAtual.nome}</strong>.</p>
                 </div>
                 <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Selecione a Turma de Destino</label>
-                    <select id="select-turma-destino" class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary bg-white">
-                        ${optionsHtml}
-                    </select>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Para a Turma</label>
+                    <select id="select-turma-destino" class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary bg-white">${optionsHtml}</select>
                 </div>
                 <div class="bg-red-50 border border-red-100 p-3 rounded-xl text-xs text-red-600 mt-2">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <strong>Atenção:</strong> Isso irá substituir qualquer planejamento existente na turma de destino.
+                    <i class="fas fa-exclamation-triangle"></i> Substituirá todo o planejamento da turma destino.
                 </div>
-                <button onclick="controller.confirmarCopiaPlanejamento('${turmaIdAtual}')" 
-                        class="btn-primary w-full py-3 rounded-xl font-bold shadow-lg shadow-primary/20 mt-2">
-                    <i class="fas fa-copy mr-2"></i> Confirmar Cópia
-                </button>
+                <button onclick="controller.confirmarCopiaPlanejamento('${turmaIdAtual}')" class="btn-primary w-full py-3 rounded-xl font-bold shadow-lg mt-2">Confirmar Cópia</button>
             </div>
-        `;
-
-        this.openModal('Replicar Planejamento', html);
+        `);
     },
     confirmarCopiaPlanejamento(idOrigem) {
         const idDestino = document.getElementById('select-turma-destino').value;
         if (idOrigem && idDestino) {
-            if (confirm("Tem certeza? O planejamento da turma de destino será substituído.")) {
+            this.confirmarAcao("Tem certeza?", "O planejamento da turma de destino será substituído.", () => {
                 const sucesso = model.copiarPlanejamentoEntreTurmas(idOrigem, idDestino);
                 if (sucesso) {
                     this.closeModal();
-                    Toast.show("Planejamento copiado com sucesso!", "success");
+                    Toast.show("Planejamento copiado!", "success");
                 } else {
                     Toast.show("Erro ao copiar.", "error");
                 }
-            }
+            });
         }
     },
-    openSeletorBnccDiario(turmaId) {
-        const turma = model.state.turmas.find(t => t.id === turmaId);
-        if (!turma) return;
-        const callback = (habilidade) => {
-            const campo = document.getElementById('plan-bncc');
-            if (campo) {
-                const novoTexto = `[${habilidade.codigo}] ${habilidade.descricao}`;
-                campo.value = campo.value ? campo.value + "\n\n" + novoTexto : novoTexto;
-                campo.classList.add('ring-2', 'ring-primary', 'bg-blue-50');
-                setTimeout(() => campo.classList.remove('ring-2', 'ring-primary', 'bg-blue-50'), 500);
-            }
-        };
-        this.openModal(`BNCC - ${turma.nome}`, '<div id="modal-bncc-container"></div>', 'large');
-        setTimeout(() => this.views['bncc'].render('modal-bncc-container', turma.nivel, turma.serie, callback), 50);
-    },
+    // --- BNCC e Seletores ---
     openSeletorBnccQuestao() {
         const rascunho = {
             materia: document.getElementById('q-materia').value,
@@ -549,15 +497,13 @@ export const controller = {
             enunciado: document.getElementById('q-enunciado').value
         };
         const callback = (habilidade) => {
-            rascunho.bncc = {
-                codigo: habilidade.codigo,
-                descricao: habilidade.descricao
-            };
+            rascunho.bncc = { codigo: habilidade.codigo, descricao: habilidade.descricao };
             this.views['provas'].openAddQuestao(rascunho);
         };
         let nivelPre = null;
         if (rascunho.ano && (rascunho.ano.includes('Ano') || rascunho.ano.includes('9'))) nivelPre = 'Ensino Fundamental';
         if (rascunho.ano && rascunho.ano.includes('Série')) nivelPre = 'Ensino Médio';
+
         this.openModal('Selecionar Habilidade BNCC', '<div id="modal-bncc-container"></div>', 'large');
         setTimeout(() => {
             this.views['bncc'].render('modal-bncc-container', nivelPre, null, callback);
@@ -565,111 +511,72 @@ export const controller = {
     },
     openSeletorBncc(turmaId, periodoIdx, nivelHtml, serieHtml) {
         const turma = model.state.turmas.find(t => t.id == turmaId);
-        if (!turma) return console.error("Turma não encontrada");
-        const nivelFinal = turma.nivel || nivelHtml;
-        const serieFinal = turma.serie || serieHtml;
+        if (!turma) return;
         const callback = (habilidade) => {
-            console.log("Selecionado:", habilidade);
             model.addHabilidadePlanejamento(turmaId, periodoIdx, habilidade);
-            const modal = document.getElementById('modal-container');
-            if (modal) modal.remove();
-            if (window.planejamentoView) {
-                setTimeout(() => window.planejamentoView.render('view-container'), 50);
-            }
+            const modal = document.getElementById('global-modal');
+            //if (modal) modal.classList.add('hidden');
+            if (window.planejamentoView) window.planejamentoView.render('view-container');
         };
-        this.openModal(
-            `BNCC - ${periodoIdx}º Período (${serieFinal})`,
-            `<div id="modal-bncc-planejamento" class="w-full h-[80vh] bg-white relative">
-                <div class="flex items-center justify-center h-full text-slate-400">
-                    <i class="fas fa-circle-notch fa-spin mr-2"></i> Carregando BNCC...
-                </div>
-             </div>`,
+        this.openModal(`BNCC - ${periodoIdx}º Período`,
+            `<div id="modal-bncc-planejamento" class="w-full h-full min-h-[500px]"><div class="flex items-center justify-center h-full"><i class="fas fa-spinner fa-spin text-2xl text-slate-300"></i></div></div>`,
             'large'
         );
-        let tentativas = 0;
-        const tentarRenderizar = () => {
-            const container = document.getElementById('modal-bncc-planejamento');
-            if (container && window.bnccView) {
-                window.bnccView.render('modal-bncc-planejamento', nivelFinal, serieFinal, callback);
-            } else {
-                console.error("Erro: Container ou View BNCC não encontrados.");
-            }
-        };
-        setTimeout(tentarRenderizar, 100);
+        setTimeout(() => {
+            if (window.bnccView) window.bnccView.render('modal-bncc-planejamento', turma.nivel || nivelHtml, turma.serie || serieHtml, callback);
+        }, 100);
     },
     removeHabilidade(turmaId, periodoIdx, codigoHabilidade) {
-        if (confirm("Deseja remover esta habilidade do planejamento?")) {
-            model.removeHabilidadePlanejamento(turmaId, periodoIdx, codigoHabilidade);
-            window.planejamentoView.render('view-container');
+        const turma = model.state.turmas.find(t => t.id == turmaId);
+        if (!turma || !turma.planejamento[periodoIdx]) return;
+        const habilidadeRemovida = turma.planejamento[periodoIdx].find(h => h.codigo === codigoHabilidade);
+        model.removeHabilidadePlanejamento(turmaId, periodoIdx, codigoHabilidade);
+        window.planejamentoView.render('view-container');
+        if (habilidadeRemovida) {
+            Toast.show(`Habilidade removida.`, 'info', 4000, {
+                label: 'DESFAZER',
+                callback: () => {
+                    model.addHabilidadePlanejamento(turmaId, periodoIdx, habilidadeRemovida);
+                    window.planejamentoView.render('view-container');
+                }
+            });
         }
     },
     openSeletorBnccMensal(turmaId, mes, nivelHtml, serieHtml) {
         const turma = model.state.turmas.find(t => t.id == turmaId);
-        if (!turma) return console.error("Turma não encontrada");
-        const nivelFinal = turma.nivel || nivelHtml;
-        const serieFinal = turma.serie || serieHtml;
+        if (!turma) return;
         const callback = (habilidade) => {
             model.addHabilidadeMensal(turmaId, mes, habilidade);
-            const modal = document.getElementById('modal-container');
-            if (modal) modal.remove();
+            const modal = document.getElementById('global-modal');
+            //if (modal) modal.classList.add('hidden');
             if (window.mensalView) window.mensalView.render('view-container');
         };
-        this.openModal(
-            `BNCC - ${mes} (${serieFinal})`,
-            `<div id="modal-bncc-container" class="w-full h-[80vh] bg-white relative">
-            <div class="flex items-center justify-center h-full text-slate-400">
-                <i class="fas fa-circle-notch fa-spin mr-2"></i> Carregando BNCC...
-            </div>
-         </div>`,
-            'large'
-        );
-        let tentativas = 0;
-        const tentarRenderizar = () => {
-            const container = document.getElementById('modal-bncc-container');
-            if (container && window.bnccView) {
-                console.log("Container encontrado. Renderizando BNCC...");
-                container.innerHTML = "";
-                window.bnccView.render('modal-bncc-container', nivelFinal, serieFinal, callback);
-            } else {
-                tentativas++;
-                if (tentativas < 10) {
-                    setTimeout(tentarRenderizar, 100);
-                } else {
-                    console.error("Erro: Container do modal não foi criado a tempo.");
-                    if (container) container.innerHTML = "<p class='text-red-500 p-4'>Erro ao carregar componente BNCC.</p>";
-                }
-            }
-        };
-        setTimeout(tentarRenderizar, 100);
+        this.openModal(`BNCC - ${mes}`, '<div id="modal-bncc-container" class="h-full"></div>', 'large');
+        setTimeout(() => {
+            if (window.bnccView) window.bnccView.render('modal-bncc-container', turma.nivel || nivelHtml, turma.serie || serieHtml, callback);
+        }, 50);
     },
     removeHabilidadeMensal(turmaId, mes, codigo) {
-        if (confirm("Remover deste mês?")) {
+        this.confirmarAcao("Remover?", "Deseja remover esta habilidade do planejamento mensal?", () => {
             model.removeHabilidadeMensal(turmaId, mes, codigo);
             this.navigate('mensal');
+        });
+    },
+    savePeriodoDates(tipo, index, campo, valor) {
+        model.state.userConfig.periodosDatas[tipo][index][campo] = valor;
+        model.saveLocal();
+        model.saveCloudRoot();
+    },
+    updatePeriodDate(index, campo, valor) {
+        const tipo = model.state.userConfig.periodType || 'bimestre';
+        if (model.state.periodosDatas && model.state.periodosDatas[tipo]) {
+            model.state.periodosDatas[tipo][index][campo] = valor;
+            model.saveLocal();
+            model.saveCloudRoot();
+            Toast.show("Calendário escolar atualizado!", "success");
         }
     },
-    confirmarAcao(titulo, mensagem, callbackConfirmacao) {
-        const html = `
-            <div class="p-6 text-center">
-                <div class="w-16 h-16 bg-red-100 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl">
-                    <i class="fas fa-exclamation-triangle"></i>
-                </div>
-                <h3 class="text-xl font-bold text-slate-800 mb-2">${titulo}</h3>
-                <p class="text-slate-500 mb-6">${mensagem}</p>
-                <div class="flex gap-3 justify-center">
-                    <button onclick="controller.closeModal()" class="px-6 py-2 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition">Cancelar</button>
-                    <button id="btn-confirm-action" class="px-6 py-2 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition shadow-lg shadow-red-500/30">Confirmar</button>
-                </div>
-            </div>
-        `;
-        this.openModal('Confirmação', html);
-        setTimeout(() => {
-            document.getElementById('btn-confirm-action').onclick = () => {
-                callbackConfirmacao();
-                this.closeModal();
-            };
-        }, 100);
-    },
+    // --- Calendário e Agenda ---
     openDayOptions(dataIso) {
         const [ano, mes, dia] = dataIso.split('-');
         const eventoAtual = model.state.eventos ? (model.state.eventos[dataIso] || {}) : {};
@@ -740,34 +647,89 @@ export const controller = {
             this.navigate('dashboard');
         }
     },
+    // --- Outros ---
     deleteQuestao(id) {
-        if (confirm("Excluir questão do banco?")) {
+        this.confirmarAcao("Excluir Questão?", "Esta questão será removida permanentemente.", () => {
             model.deleteQuestao(id);
-            if (this.currentView === 'provas') this.navigate('provas');
-        }
+            if (window.provasView) {
+                window.provasView.selecionadas.delete(id);
+                if (this.currentView === 'provas') {
+                    window.provasView.render('view-container');
+                }
+            }
+            Toast.show("Questão excluída.", "success");
+        });
     },
     updatePeriodType(type) {
         model.state.userConfig.periodType = type;
-        model.save();
-        if (this.currentView === 'periodo') {
-            this.navigate('periodo');
-        } else {
-            this.navigate('config');
-        }
+        model.saveLocal();
+        model.saveCloudRoot();
+        this.navigate(this.currentView === 'periodo' ? 'periodo' : 'config');
     },
     updateTheme(color) {
         model.state.userConfig.themeColor = color;
-        model.save();
+        model.saveLocal();
+        model.saveCloudRoot();
         this.aplicarTema();
         this.navigate('config');
     },
-    exportData() {
-        model.exportData();
-    }
+    exportData() { model.exportData(); },
+    updateBreadcrumb: function (viewName) {
+        const breadcrumb = document.getElementById('breadcrumb');
+        if (!breadcrumb) return;
+        const map = {
+            'dashboard': 'Visão Geral', 'mensal': 'Planejamento / Mensal',
+            'periodo': 'Planejamento / Por Período', 'dia': 'Planejamento / Diário',
+            'turmas': 'Acadêmico / Turmas', 'bncc': 'Acadêmico / BNCC',
+            'mapa': 'Acadêmico / Mapa de Sala', 'provas': 'Acadêmico / Gerador de Provas',
+            'config': 'Configurações'
+        };
+        breadcrumb.innerHTML = `<i class="fas fa-home text-slate-300"></i> <span class="text-slate-300">/</span> ${map[viewName] || viewName}`;
+    },
+    updateAuthButton: function (isLoggedIn, user = null) {
+        const container = document.getElementById('auth-container');
+        if (!container) return;
+        if (isLoggedIn && user) {
+            container.innerHTML = `
+                <div class="flex items-center gap-3 p-3 bg-white/5 rounded-xl border border-white/10 cursor-pointer hover:bg-white/10 overflow-hidden" onclick="controller.handleLogout()">
+                    <img src="${user.photoURL || 'https://ui-avatars.com/api/?name=Prof'}" class="w-8 h-8 rounded-full border border-white/20 shrink-0">
+                    <div class="overflow-hidden nav-label transition-all duration-300">
+                        <p class="text-xs text-slate-300 truncate">Olá,</p>
+                        <p class="text-xs font-bold text-white truncate w-24">${escapeHTML(user.displayName)}</p>
+                    </div>
+                    <i class="fas fa-sign-out-alt ml-auto text-slate-500 hover:text-red-400 nav-label"></i>
+                </div>
+            `;
+        } else {
+            container.innerHTML = `
+                <button onclick="controller.handleLogin()"
+                    class="w-full flex items-center gap-3 p-3 bg-white text-primary rounded-xl font-bold shadow-lg hover:bg-slate-50 transition-colors overflow-hidden whitespace-nowrap">
+                    <div class="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <i class="fab fa-google text-primary"></i>
+                    </div>
+                    <span class="nav-label transition-all duration-300">Entrar</span>
+                </button>
+            `;
+        }
+    },
+    updateSidebarUserArea: function () {
+        if (model.currentUser) this.updateAuthButton(true, model.currentUser);
+    },
+    aplicarTema: function () {
+        if (model.state.userConfig && model.state.userConfig.themeColor) {
+            document.documentElement.style.setProperty('--primary-color', model.state.userConfig.themeColor);
+        }
+    },
+    setupGlobalListeners: function () {
+        const dateEl = document.getElementById('current-date');
+        if (dateEl) {
+            const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            dateEl.innerText = new Date().toLocaleDateString('pt-BR', options);
+        }
+    },
+    copyToClipboard(text) { navigator.clipboard.writeText(text); }
 };
-
 window.controller = controller;
-
 window.bnccView = bnccView;
 window.turmasView = turmasView;
 window.calendarioView = calendarioView;
@@ -778,11 +740,10 @@ window.salaView = salaView;
 window.provasView = provasView;
 window.frequenciaView = frequenciaView;
 window.settingsView = settingsView;
-Toast.show("Mensagem...", "success");
 window.dashboardView = dashboardView;
 window.horarioView = horarioView;
-
 window.addEventListener('load', () => {
     console.log("Sistema Modulado Inicializado.");
     controller.init();
 });
+

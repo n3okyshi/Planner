@@ -193,12 +193,15 @@
         <section id="view-container" class="p-4 md:p-8 max-w-7xl mx-auto w-full flex-1">
         </section>
     </main>
+
+    <div id="global-modal" class="hidden relative z-50"></div>
+    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-4 pointer-events-none"></div>
+
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
     <script type="module" src="./js/controller.js"></script>
-
 
     <script>
         window.addEventListener('load', () => {

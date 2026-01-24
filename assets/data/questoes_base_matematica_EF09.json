@@ -1,0 +1,152 @@
+[
+  {
+    "id": "sys_mat_9_001",
+    "materia": "Matemática",
+    "ano": "9º Ano",
+    "tipo": "aberta",
+    "dificuldade": "Fácil",
+    "bncc": {
+      "codigo": "EF09MA02",
+      "description": "Reconhecer um número racional como um número que pode ser escrito na forma de fração e identificar suas representações decimal exata e dízima periódica.",
+      "unidade_tematica": "Números"
+    },
+    "enunciado": "Escreva os números racionais a seguir na forma de fração irredutível:\n\na) $0,5$\nb) $\\frac{4}{12}$\nc) $0,25$\nd) $3 \\frac{1}{2}$",
+    "gabarito": "Respostas esperadas:\na) $\\frac{1}{2}$\nb) $\\frac{1}{3}$\nc) $\\frac{1}{4}$\nd) $\\frac{7}{2}$",
+    "gabarito_comentado": "a) $0,5 = \\frac{5}{10} = \\frac{1}{2}$.\nb) Simplificando por 4: $\\frac{4 \\div 4}{12 \\div 4} = \\frac{1}{3}$.\nc) $0,25 = \\frac{25}{100} = \\frac{1}{4}$.\nd) Fração imprópria: $3 \\times 2 + 1 = 7$, logo $\\frac{7}{2}$.",
+    "tags": ["Fração Irredutível", "Números Racionais", "Simplificação"],
+    "preDefinida": true
+  },
+  {
+    "id": "sys_mat_9_002",
+    "materia": "Matemática",
+    "ano": "9º Ano",
+    "tipo": "aberta",
+    "dificuldade": "Fácil",
+    "bncc": {
+      "codigo": "EF09MA02",
+      "description": "Reconhecer um número racional como um número que pode ser escrito na forma de fração e identificar suas representações decimal exata e dízima periódica.",
+      "unidade_tematica": "Números"
+    },
+    "enunciado": "Escreva os números racionais a seguir na forma decimal exata ou na forma de dízima periódica:\n\na) $4$\nb) $-\\frac{1}{4}$\nc) $\\frac{1}{9}$\nd) $3 \\frac{1}{5}$",
+    "gabarito": "Respostas esperadas:\na) $4,0$\nb) $-0,25$\nc) $0,111...$ ou $0,\\bar{1}$\nd) $3,2$",
+    "gabarito_comentado": "a) Todo inteiro pode ser escrito com vírgula zero.\nb) $1 \\div 4 = 0,25$, mantendo o sinal negativo.\nc) $1 \\div 9$ resulta em uma dízima periódica de período 1.\nd) $3 + (1 \\div 5) = 3 + 0,2 = 3,2$.",
+    "tags": ["Forma Decimal", "Dízima Periódica", "Conversão"],
+    "preDefinida": true
+  },
+  {
+    "id": "sys_mat_9_004",
+    "materia": "Matemática",
+    "ano": "9º Ano",
+    "tipo": "multipla",
+    "dificuldade": "Média",
+    "bncc": {
+      "codigo": "EF09MA01",
+      "description": "Explorar o conjunto dos números irracionais e o conceito de número real.",
+      "unidade_tematica": "Números"
+    },
+    "enunciado": "Analise os números abaixo e identifique a sequência correta de classificação entre Racional (R) ou Irracional (I):\n\nI. $0,01$\nII. $0,01234567891011...$\nIII. $0,\\bar{01}$",
+    "alternativas": [
+      "I - R, II - R, III - R",
+      "I - I, II - I, III - I",
+      "I - R, II - I, III - R",
+      "I - R, II - I, III - I",
+      "I - I, II - R, III - R"
+    ],
+    "correta": 2,
+    "gabarito_comentado": "I é decimal exato (Racional). II é um decimal infinito não periódico (Irracional). III é uma dízima periódica (Racional).",
+    "tags": ["Números Racionais", "Números Irracionais", "Classificação"],
+    "preDefinida": true
+  },
+  {
+    "id": "sys_mat_9_005",
+    "materia": "Matemática",
+    "ano": "9º Ano",
+    "tipo": "aberta",
+    "dificuldade": "Média",
+    "bncc": {
+      "codigo": "EF09MA04",
+      "description": "Resolver e elaborar problemas com números reais, inclusive em medições.",
+      "unidade_tematica": "Grandezas e Medidas"
+    },
+    "enunciado": "Considerando uma circunferência com raio de medida $r = 10$ cm, determine:\n\na) O valor exato do comprimento $C$.\nb) O valor aproximado utilizando $\\pi \\approx 3,14$.",
+    "gabarito": "Respostas:\na) $20\\pi$ cm\nb) $62,8$ cm",
+    "gabarito_comentado": "A fórmula é $C = 2 \\pi r$. \na) $C = 2 \\cdot \\pi \\cdot 10 = 20\\pi$ cm. \nb) $C = 2 \\cdot 3,14 \\cdot 10 = 62,8$ cm.",
+    "tags": ["Circunferência", "Número Pi", "Comprimento"],
+    "preDefinida": true
+  },
+  {
+    "id": "sys_mat_9_006",
+    "materia": "Matemática",
+    "ano": "9º Ano",
+    "tipo": "aberta",
+    "dificuldade": "Média",
+    "bncc": {
+      "codigo": "EF09MA04",
+      "description": "Resolver e elaborar problemas com números reais, inclusive em medições.",
+      "unidade_tematica": "Grandezas e Medidas"
+    },
+    "enunciado": "Utilize a fórmula da área do círculo $A = \\pi \\cdot r^2$. Calcule a medida aproximada da área de um círculo com raio de $6$ m, adotando $\\pi \\approx 3$.",
+    "gabarito": "Resposta: $108$ m$^2$",
+    "gabarito_comentado": "Substituindo os valores: $A = 3 \\cdot (6)^2 = 3 \\cdot 36 = 108$ m$^2$.",
+    "tags": ["Área do Círculo", "Geometria", "Cálculo de Área"],
+    "preDefinida": true
+  },
+  {
+    "id": "sys_mat_9_007",
+    "materia": "Matemática",
+    "ano": "9º Ano",
+    "tipo": "multipla",
+    "dificuldade": "Média",
+    "bncc": {
+      "codigo": "EF09MA01",
+      "description": "Explorar o conjunto dos números irracionais e o conceito de número real.",
+      "unidade_tematica": "Números"
+    },
+    "enunciado": "Entre quais números inteiros consecutivos fica a raiz quadrada de $30$?",
+    "alternativas": [
+      "3 e 4",
+      "4 e 5",
+      "5 e 6",
+      "6 e 7",
+      "30 e 31"
+    ],
+    "correta": 2,
+    "gabarito_comentado": "Sabemos que $5^2 = 25$ e $6^2 = 36$. Como $25 < 30 < 36$, então $5 < \\sqrt{30} < 6$.",
+    "tags": ["Raiz Quadrada", "Números Inteiros", "Estimativa"],
+    "preDefinida": true
+  },
+  {
+    "id": "sys_mat_9_012",
+    "materia": "Matemática",
+    "ano": "9º Ano",
+    "tipo": "aberta",
+    "dificuldade": "Difícil",
+    "bncc": {
+      "codigo": "EF09MA04",
+      "description": "Resolver e elaborar problemas com números reais, inclusive em medições.",
+      "unidade_tematica": "Números"
+    },
+    "enunciado": "Um terreno com formato quadrado tem medida de área de $90$ m$^2$. Determine a medida de perímetro aproximada (até os décimos) desse terreno.",
+    "gabarito": "Resposta: $38,0$ m",
+    "gabarito_comentado": "A área do quadrado é $L^2 = 90$, logo o lado $L = \\sqrt{90} \\approx 9,486...$. O perímetro é $4 \\times L$. $4 \\times 9,486 \\approx 37,94$. Arredondando para a primeira casa decimal temos $37,9$ ou $38,0$ dependendo da precisão da raiz utilizada ($\"9,5\" \\times 4 = 38$).",
+    "tags": ["Área", "Perímetro", "Raiz Quadrada"],
+    "preDefinida": true
+  },
+  {
+    "id": "sys_mat_9_013",
+    "materia": "Matemática",
+    "ano": "9º Ano",
+    "tipo": "aberta",
+    "dificuldade": "Difícil",
+    "bncc": {
+      "codigo": "EF09MA01",
+      "description": "Explorar o conjunto dos números irracionais e o conceito de número real.",
+      "unidade_tematica": "Números"
+    },
+    "enunciado": "Use a decomposição em fatores primos e determine se $\\sqrt{441}$ e $\\sqrt{720}$ são racionais ou irracionais. Calcule o valor caso seja racional.",
+    "gabarito": "Respostas: $\\sqrt{441} = 21$ (Racional); $\\sqrt{720}$ (Irracional).",
+    "gabarito_comentado": "$441 = 3^2 \\cdot 7^2$, logo $\\sqrt{441} = 3 \\cdot 7 = 21$. $720 = 2^4 \\cdot 3^2 \\cdot 5$, o fator 5 não tem expoente par, resultando em $12\\sqrt{5}$ (Irracional).",
+    "tags": ["Fatores Primos", "Raiz Exata", "Irracionais"],
+    "preDefinida": true
+  }
+]

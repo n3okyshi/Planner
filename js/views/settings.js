@@ -11,6 +11,8 @@ export const settingsView = {
             const date = new Date(model.state.lastUpdate);
             lastSyncText = date.toLocaleDateString() + ' às ' + date.toLocaleTimeString().slice(0, 5);
         }
+        const tipoAtual = config.periodType || 'bimestre';
+        const listaPeriodos = model.state.periodosDatas ? (model.state.periodosDatas[tipoAtual] || []) : [];
         container.innerHTML = `
             <div class="fade-in max-w-3xl mx-auto pb-20">
                 <div class="mb-8 flex items-end justify-between">
@@ -19,6 +21,7 @@ export const settingsView = {
                         <p class="text-slate-500">Gerencie sua conta e personalize o sistema.</p>
                     </div>
                 </div>
+
                 <div class="space-y-6">
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative">
                         <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
@@ -31,6 +34,7 @@ export const settingsView = {
                             ${user ? this.renderLogado(user, lastSyncText) : this.renderDeslogado()}
                         </div>
                     </div>
+
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                         <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
                             <div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
@@ -45,7 +49,7 @@ export const settingsView = {
                                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><i class="far fa-user"></i></span>
                                     <input type="text" value="${config.profName || ''}" placeholder="Como quer ser chamado?"
                                            class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-primary outline-none transition-all"
-                                           onchange="model.state.userConfig.profName = this.value; model.save()">
+                                           onchange="model.state.userConfig.profName = this.value; model.saveLocal(); model.saveCloudRoot();">
                                 </div>
                             </div>
                             <div>
@@ -54,11 +58,12 @@ export const settingsView = {
                                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><i class="fas fa-school"></i></span>
                                     <input type="text" value="${config.schoolName || ''}" placeholder="Ex: Escola Estadual..."
                                            class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-primary outline-none transition-all"
-                                           onchange="model.state.userConfig.schoolName = this.value; model.save()">
+                                           onchange="model.state.userConfig.schoolName = this.value; model.saveLocal(); model.saveCloudRoot();">
                                 </div>
                             </div>
                         </div>
                     </div>
+
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                         <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
                             <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center">
@@ -73,6 +78,41 @@ export const settingsView = {
                                 ${this.renderOptionPeriodo('trimestre', 'Trimestral (3)', config.periodType)}
                                 ${this.renderOptionPeriodo('semestre', 'Semestral (2)', config.periodType)}
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                        <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center">
+                                <i class="fas fa-calendar-day"></i>
+                            </div>
+                            <h3 class="font-bold text-slate-700">Datas dos Períodos</h3>
+                        </div>
+                        <div class="p-6">
+                            <div class="grid grid-cols-1 gap-4">
+                                ${listaPeriodos.map((p, idx) => `
+                                    <div class="flex flex-col md:flex-row items-center gap-4 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                        <span class="font-bold text-slate-700 w-24">${p.nome}</span>
+                                        <div class="flex items-center gap-2 flex-1 w-full">
+                                            <div class="flex-1">
+                                                <input type="date" value="${p.inicio}" 
+                                                    onchange="controller.updatePeriodDate(${idx}, 'inicio', this.value)"
+                                                    class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-primary">
+                                            </div>
+                                            <span class="text-slate-400 text-xs font-bold">ATÉ</span>
+                                            <div class="flex-1">
+                                                <input type="date" value="${p.fim}" 
+                                                    onchange="controller.updatePeriodDate(${idx}, 'fim', this.value)"
+                                                    class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-primary">
+                                            </div>
+                                        </div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                            <p class="text-[10px] text-slate-400 mt-4 italic">
+                                <i class="fas fa-info-circle mr-1"></i> 
+                                Estas datas definem quais habilidades serão sugeridas no Planejamento Mensal.
+                            </p>
                         </div>
                     </div>
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
@@ -94,6 +134,7 @@ export const settingsView = {
                             </div>
                         </div>
                     </div>
+
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                         <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
                             <div class="w-8 h-8 rounded-lg bg-slate-200 text-slate-600 flex items-center justify-center">
@@ -112,8 +153,9 @@ export const settingsView = {
                         </div>
                     </div>
                 </div>
+
                 <div class="text-center mt-12 text-xs text-slate-400">
-                    <p>Planner Pro Docente v1.3.0 (Cloud)</p>
+                    <p>Planner Pro Docente v1.3.1 (Cloud)</p>
                 </div>
             </div>
         `;

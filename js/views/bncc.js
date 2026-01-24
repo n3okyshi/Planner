@@ -291,6 +291,15 @@ export const bnccView = {
                 }
                 return true;
             });
+
+            // Ordena corretamente as habilidades
+            resultados.sort((a, b) => {
+            return a.codigo.localeCompare(b.codigo, undefined, {
+                numeric: true,
+                sensitivity: 'base'
+            });
+        });
+
             this.renderCards(resultados);
         }, 50);
     },

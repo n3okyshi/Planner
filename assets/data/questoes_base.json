@@ -1,0 +1,51 @@
+[
+    {
+        "id": "pre_mat_001",
+        "materia": "Matemática",
+        "ano": "6º Ano",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EF06MA01",
+            "descricao": "Sistemas de numeração e operações com números naturais.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Resolva a seguinte equação no conjunto dos números naturais: $$x + 5 = 12$$. Qual o valor de $x$?",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "5",
+            "7",
+            "17",
+            "60",
+            "70"
+        ],
+        "correta": 1,
+        "gabarito_comentado": "Para resolver a equação $x + 5 = 12$, subtraímos 5 de ambos os lados, resultando em $x = 7$.",
+        "tags": [
+            "Equações",
+            "Álgebra",
+            "Primeiro Grau"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "pre_cie_002",
+        "materia": "Ciências",
+        "ano": "7º Ano",
+        "tipo": "discurssiva",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "EF07CI01",
+            "descricao": "Discutir a aplicação, a composição e as propriedades de diferentes materiais.",
+            "unidade_tematica": "Matéria e Energia"
+        },
+        "enunciado": "Explique a diferença entre uma mistura homogênea e uma mistura heterogênea, citando um exemplo de cada.",
+        "gabarito": "Misturas homogêneas apresentam uma única fase (ex: água e sal dissolvido), enquanto heterogêneas apresentam duas ou mais fases (ex: água e óleo).",
+        "preDefinida": true
+    }
+]

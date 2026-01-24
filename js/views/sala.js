@@ -1,5 +1,6 @@
 import { model } from '../model.js';
 import { controller } from '../controller.js'; 
+import { firebaseService } from '../firebase-service.js';
 
 export const salaView = {
     alunoSelecionadoParaMover: null, 

@@ -152,6 +152,7 @@ export const mensalView = {
         const cor = habilidade.cor || (model.coresComponentes && model.coresComponentes[habilidade.componente]) || "#64748b";
         const codigoSafe = String(habilidade.codigo || "").replace(/'/g, "");
         const eixo = habilidade.objeto || habilidade.eixo || habilidade.componente || "Habilidade";
+        habilidades.sort((a, b) => a.codigo.localeCompare(b.codigo, undefined, { numeric: true }));
         return `
             <div class="bg-white p-4 rounded-xl border-l-[4px] shadow-sm relative group hover:shadow-md hover:-translate-y-0.5 transition-all border-y border-r border-slate-100" 
                  style="border-left-color: ${cor} !important;">
@@ -185,14 +186,18 @@ export const mensalView = {
         this.currentMes = mes;
         this.render('view-container');
     },
-    identificarPeriodo(mes) {
-        const mapa = {
-            "Janeiro": "1", "Fevereiro": "1", "Março": "1", "Abril": "1",
-            "Maio": "2", "Junho": "2", "Julho": "2",
-            "Agosto": "3", "Setembro": "3",
-            "Outubro": "4", "Novembro": "4", "Dezembro": "4"
-        };
-        return mapa[mes] || "1";
+    identificarPeriodo(mesNome) {
+        // Essa joça é mais difícil do que parece mas depois de fazer parece fácil
+        try {
+            const mesIndex = this.meses.indexOf(mesNome);
+            const ano = new Date().getFullYear();
+            const dataTeste = `${ano}-${String(mesIndex + 1).padStart(2, '0')}-15`; // 15 arbitrariamente
+            const periodo = model.getPeriodoPorData(dataTeste);
+            return periodo || "1";
+        } catch (e) {
+            console.error("Erro ao identificar período:", e);
+            return "1";
+        }
     },
     adicionarSugestao(codigoHabilidade) {
         const turma = model.state.turmas.find(t => t.id == this.currentTurmaId);

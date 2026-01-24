@@ -1,0 +1,44 @@
+[
+    {
+        "id": "sys_mat_6_001",
+        "materia": "Matemática",
+        "ano": "6º Ano",
+        "tipo": "multipla",
+        "bncc": {
+            "codigo": "EF06MA01",
+            "descricao": "Sistemas de numeração e operações com números naturais.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Qual é o resultado da expressão numérica abaixo?\n\n $$ 45 + (3 \\times 10^2) - 150 $$",
+        "alternativas": [
+            "195",
+            "225",
+            "345",
+            "495",
+            "582"
+        ],
+        "correta": 0,
+        "gabarito_comentado": "Primeiro resolvemos a potência: $10^2 = 100$. Depois a multiplicação: $3 \\times 100 = 300$. Por fim: $45 + 300 - 150 = 195$.",
+        "tags": [
+            "Potenciação",
+            "Expressões Numéricas"
+        ]
+    },
+    {
+        "id": "sys_mat_6_002",
+        "materia": "Matemática",
+        "ano": "6º Ano",
+        "tipo": "aberta",
+        "bncc": {
+            "codigo": "EF06MA06",
+            "descricao": "Resolver problemas que envolvam as ideias de múltiplo e de divisor.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Determine todos os divisores naturais do número $36$.",
+        "gabarito": "Os divisores de $36$ são: $\\{1, 2, 3, 4, 6, 9, 12, 18, 36\\}$.",
+        "tags": [
+            "Divisibilidade",
+            "Múltiplos e Divisores"
+        ]
+    }
+]
