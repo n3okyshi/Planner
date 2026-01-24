@@ -168,7 +168,26 @@ export const horarioView = {
         if (!this.tempState.config) this.tempState.config = {};
         if (!this.tempState.config[this.turnoAtual]) this.tempState.config[this.turnoAtual] = [];
 
-        this.tempState.config[this.turnoAtual].push({ inicio: '00:00', fim: '00:00' });
+        const lista = this.tempState.config[this.turnoAtual];
+        let novoInicio = '07:30';
+        let novoFim = '08:15';
+        if (lista.length > 0) {
+            const ultimaAula = lista[lista.length - 1];
+            if (ultimaAula.fim && ultimaAula.fim !== '00:00') {
+                const [h, m] = ultimaAula.fim.split(':').map(Number);
+                const dataFim = new Date();
+                dataFim.setHours(h, m, 0);
+                const format = (d) => d.getHours().toString().padStart(2,'0') + ':' + d.getMinutes().toString().padStart(2,'0');
+                novoInicio = format(dataFim); 
+                dataFim.setMinutes(dataFim.getMinutes() + 50); 
+                novoFim = format(dataFim);
+            }
+        } else {
+            if (this.turnoAtual === 'vespertino') { novoInicio = '13:00'; novoFim = '13:50'; }
+            if (this.turnoAtual === 'noturno') { novoInicio = '19:00'; novoFim = '19:45'; }
+        }
+
+        this.tempState.config[this.turnoAtual].push({ inicio: novoInicio, fim: novoFim });
         this.marcarAlteracao();
     },
     removerSlotLocal(index) {

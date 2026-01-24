@@ -3,6 +3,7 @@ import { model } from '../model.js';
 export const frequenciaView = {
     currentTurmaId: null,
     currentDate: new Date(),
+
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
@@ -52,18 +53,32 @@ export const frequenciaView = {
             </div>
         `;
         container.innerHTML = html;
+        setTimeout(() => {
+            const elHoje = document.getElementById('dia-hoje');
+            const scrollContainer = document.getElementById('scroll-frequencia');
+            if (elHoje && scrollContainer) {
+                const scrollPos = elHoje.offsetLeft - (scrollContainer.clientWidth / 2) + (elHoje.clientWidth / 2);
+                scrollContainer.scrollTo({
+                    left: scrollPos,
+                    behavior: 'smooth'
+                });
+            }
+        }, 300);
     },
     renderTabela(turma, ano, mes, diasNoMes) {
         let headerDias = '';
+        const hoje = new Date();
         for (let d = 1; d <= diasNoMes; d++) {
             const dataObj = new Date(ano, mes, d);
             const diaSemana = dataObj.getDay();
             const isFimDeSemana = diaSemana === 0 || diaSemana === 6;
             const letraSemana = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'][diaSemana];
-            const hoje = new Date();
             const isHoje = hoje.getDate() === d && hoje.getMonth() === mes && hoje.getFullYear() === ano;
             headerDias += `
-                <div class="flex flex-col items-center justify-center min-w-[40px] h-14 border-r border-slate-100 ${isFimDeSemana ? 'bg-slate-50/50' : ''} ${isHoje ? 'bg-blue-50 text-primary' : ''}">
+                <div ${isHoje ? 'id="dia-hoje"' : ''} 
+                     class="flex flex-col items-center justify-center min-w-[40px] h-14 border-r border-slate-100 
+                     ${isFimDeSemana ? 'bg-slate-50/50' : ''} 
+                     ${isHoje ? 'bg-blue-100 text-primary border-blue-200' : ''}">
                     <span class="text-[10px] font-bold text-slate-400">${letraSemana}</span>
                     <span class="text-sm font-bold ${isHoje ? 'text-primary' : 'text-slate-700'}">${d}</span>
                 </div>
@@ -78,9 +93,13 @@ export const frequenciaView = {
                 const status = (aluno.frequencia || {})[dataIso];
                 const dataObj = new Date(ano, mes, d);
                 const isFimDeSemana = dataObj.getDay() === 0 || dataObj.getDay() === 6;
+                const isHoje = hoje.getDate() === d && hoje.getMonth() === mes && hoje.getFullYear() === ano;
+                let cellBg = '';
+                if (isHoje) cellBg = 'bg-blue-50/40';
+                else if (isFimDeSemana) cellBg = 'bg-slate-50/30';
                 colunas += `
                     <div onclick="frequenciaView.toggleStatus('${turma.id}', '${aluno.id}', '${dataIso}', this)"
-                         class="min-w-[40px] h-12 border-r border-slate-100 flex items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors ${isFimDeSemana ? 'bg-slate-50/30' : ''}"
+                         class="min-w-[40px] h-12 border-r border-slate-100 flex items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors ${cellBg}"
                          title="${aluno.nome} - ${d}/${mes + 1}">
                          ${this.getIconeStatus(status)}
                     </div>

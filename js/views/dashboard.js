@@ -1,26 +1,20 @@
 import { model } from '../model.js';
 import { controller } from '../controller.js';
-import { calendarioView } from './calendario.js'; // Reutilizaremos o calendário no final da página
+import { calendarioView } from './calendario.js';
 
 export const dashboardView = {
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
-
-        // 1. Dados para os Widgets
         const saudacao = this.getSaudacao();
         const pendencias = this.calcularPendencias();
-        const aniversariantes = this.buscarAniversariantes(); // Retornará vazio por enquanto, mas preparado
+        const aniversariantes = this.buscarAniversariantes(); 
         const hoje = new Date();
         const dataHojeIso = hoje.toISOString().split('T')[0];
-        
-        // Pega aulas que já têm planejamento para hoje
         const aulasHoje = model.state.turmas.filter(t => {
             const planos = model.state.planosDiarios || {};
             return planos[dataHojeIso] && planos[dataHojeIso][t.id];
         });
-
-        // HTML Principal
         const html = `
             <div class="fade-in pb-20 space-y-8">
                 
@@ -125,16 +119,9 @@ export const dashboardView = {
         `;
 
         container.innerHTML = html;
-
-        // Renderiza o calendário antigo dentro da div wrapper
-        // Precisamos ajustar o calendário para não mostrar o header duplicado se não quisermos
-        // Mas por enquanto, vamos apenas renderizá-lo.
         setTimeout(() => {
             const calContainer = document.getElementById('calendar-wrapper');
             if(calContainer) calendarioView.render(calContainer);
-            
-            // Pequeno CSS hack via JS para esconder o Header do Calendário quando ele está dentro do Dashboard
-            // para não ficar redundante com o header do Dashboard
             const oldHeader = calContainer.querySelector('h2.text-3xl'); 
             if(oldHeader && oldHeader.parentElement) oldHeader.parentElement.style.display = 'none';
         }, 0);
@@ -155,30 +142,18 @@ export const dashboardView = {
     },
 
     calcularPendencias() {
-        // Lógica simplificada: Verifica os últimos 5 dias úteis
-        // Se não tiver diário nessas datas para turmas ativas, conta como pendência
         let pendencias = 0;
         const hoje = new Date();
         const turmas = model.state.turmas;
         
         if (turmas.length === 0) return { total: 0 };
-
-        // Verifica os últimos 3 dias apenas para não pesar
         for (let i = 1; i <= 3; i++) {
             const d = new Date();
             d.setDate(hoje.getDate() - i);
-            
-            // Ignora fim de semana (0 = Dom, 6 = Sab)
             if (d.getDay() === 0 || d.getDay() === 6) continue;
 
             const dataIso = d.toISOString().split('T')[0];
-            
-            // Verifica se é feriado
             if (model.state.eventos && model.state.eventos[dataIso]) continue;
-
-            // Para cada dia útil passado, checa se tem diário para as turmas
-            // (Assumindo que toda turma tem aula todo dia por enquanto, já que não temos Horário)
-            // Para não ser chato, vamos contar pendência apenas se NENHUMA turma teve aula lançada naquele dia
             const temDiario = model.state.planosDiarios && model.state.planosDiarios[dataIso];
             if (!temDiario) {
                 pendencias++;

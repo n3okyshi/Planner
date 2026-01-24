@@ -1,4 +1,6 @@
 import { model } from '../model.js';
+import { controller } from '../controller.js';
+import { Toast } from '../components/toast.js';
 
 export const provasView = {
     selecionadas: new Set(),
@@ -39,7 +41,7 @@ export const provasView = {
                             <input type="text" 
                                    placeholder="Buscar por matéria, ano, código BNCC ou enunciado..." 
                                    class="w-full bg-transparent outline-none text-slate-700 placeholder:text-slate-400 font-medium"
-                                   onkeyup="provasView.atualizarBusca(this.value)">
+                                   oninput="provasView.atualizarBusca(this.value)">
                         </div>
                         <div class="space-y-4" id="lista-questoes">
                             ${questoesFiltradas.length > 0
@@ -59,13 +61,13 @@ export const provasView = {
                                 </div>
                             </div>
                             <div class="mb-6">
-                                <div class="text-4xl font-black text-slate-800 mb-1 text-center">
+                                <div id="contador-questoes" class="text-4xl font-black text-slate-800 mb-1 text-center transition-all">
                                     ${this.selecionadas.size}
                                 </div>
                                 <p class="text-center text-xs font-bold text-slate-400 uppercase tracking-widest">Questões</p>
                             </div>
                             <div class="space-y-3">
-                                <button onclick="provasView.abrirOpcoesImpressao()" 
+                                <button id="btn-gerar-prova" onclick="provasView.abrirOpcoesImpressao()" 
                                         class="w-full py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition flex items-center justify-center gap-2 shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                                         ${this.selecionadas.size === 0 ? 'disabled' : ''}>
                                     <i class="fas fa-print"></i> Gerar Prova
@@ -82,10 +84,10 @@ export const provasView = {
             </div>
         `;
         container.innerHTML = html;
-        this.renderizarLatex(container);
+        this.renderizarLatex(document.getElementById('lista-questoes'));
     },
     renderizarLatex(elemento) {
-        if (window.renderMathInElement) {
+        if (window.renderMathInElement && elemento) {
             window.renderMathInElement(elemento, {
                 delimiters: [
                     { left: '$$', right: '$$', display: true },
@@ -125,9 +127,9 @@ export const provasView = {
                 </div>
             `;
         }
-        const dataJson = JSON.stringify(q).replace(/"/g, '&quot;');
+        const dataJson = JSON.stringify(q).replace(/'/g, "&#39;").replace(/"/g, '&quot;');
         return `
-            <div class="p-5 rounded-2xl border transition-all duration-200 ${borderClass} group relative">
+            <div id="card-questao-${q.id}" class="p-5 rounded-2xl border transition-all duration-200 ${borderClass} group relative animate-slide-up">
                 <div class="flex justify-between items-start gap-4 mb-3">
                     <div class="flex flex-wrap gap-2">
                         ${tagsHtml}
@@ -139,7 +141,7 @@ export const provasView = {
                             <i class="fas fa-pencil-alt"></i>
                         </button>
                         ${!isSelected ? `
-                            <button onclick="controller.deleteQuestao(${q.id}); provasView.render('view-container')" 
+                            <button onclick="controller.deleteQuestao(${q.id})" 
                                     class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors"
                                     title="Excluir Questão">
                                 <i class="fas fa-trash-alt"></i>
@@ -373,7 +375,7 @@ export const provasView = {
             if (dados.tipo === 'multipla') {
                 const alternativas = dados.alternativas.map(a => a.trim());
                 if (alternativas.filter(a => a !== '').length < 2) {
-                    return alert("Preencha pelo menos duas alternativas.");
+                    return Toast.show("Preencha pelo menos duas alternativas.", "warning");
                 }
                 novaQuestao.alternativas = alternativas;
                 novaQuestao.correta = dados.correta;
@@ -388,7 +390,7 @@ export const provasView = {
             controller.closeModal();
             this.render('view-container');
         } else {
-            alert("O enunciado é obrigatório.");
+            Toast.show("O enunciado é obrigatório.", "error");
         }
     },
     filtrarQuestoes(todas) {
@@ -470,7 +472,7 @@ export const provasView = {
     imprimirProva(tipo = 'aluno') {
         const todas = model.state.questoes || [];
         const selecionadas = todas.filter(q => this.selecionadas.has(Number(q.id)));
-        if (selecionadas.length === 0) return alert("Selecione pelo menos uma questão.");
+        if (selecionadas.length === 0) return Toast.show("Selecione pelo menos uma questão.", "warning");
         let nomeProf = model.state.userConfig.profName || '__________________________';
         if ((!model.state.userConfig.profName || model.state.userConfig.profName.trim() === "") && model.currentUser) {
             nomeProf = model.currentUser.displayName;
@@ -553,24 +555,12 @@ export const provasView = {
 
                 /* BOTÃO FLUTUANTE DE VOLTAR */
                 .btn-voltar {
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background-color: #ef4444; /* Vermelho */
-                    color: white;
-                    padding: 12px 20px;
-                    border: none;
-                    border-radius: 50px;
-                    font-weight: bold;
-                    cursor: pointer;
-                    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-                    z-index: 9999;
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    font-family: sans-serif;
-                    text-transform: uppercase;
-                    font-size: 12px;
+                    position: fixed; top: 20px; right: 20px;
+                    background-color: #ef4444; color: white; padding: 12px 20px;
+                    border: none; border-radius: 50px; font-weight: bold; cursor: pointer;
+                    box-shadow: 0 4px 10px rgba(0,0,0,0.3); z-index: 9999;
+                    display: flex; align-items: center; gap: 8px;
+                    font-family: sans-serif; text-transform: uppercase; font-size: 12px;
                 }
                 .btn-voltar:hover { background-color: #dc2626; }
 
@@ -593,7 +583,6 @@ export const provasView = {
                 <button onclick="window.close()" class="btn-voltar">
                     <i class="fas fa-arrow-left"></i> Voltar para o App
                 </button>
-
                 <div class="header">
                     <p><strong>ESCOLA:</strong> ${model.state.userConfig.schoolName || '________________________________________________'}</p>
                     <p><strong>PROFESSOR(A):</strong> ${escapeHTML(nomeProf)} &nbsp;&nbsp; <strong>DATA:</strong> ____/____/____</p>
@@ -602,7 +591,6 @@ export const provasView = {
                 <div class="titulo-prova">${tituloDoc}</div>
                 <div id="conteudo-prova">${htmlProcessado}</div>
                 <script>
-                    // Pequeno delay para garantir carregamento dos estilos antes de abrir o diálogo
                     window.onload = function() { setTimeout(() => window.print(), 500); }
                 <\/script>
             </body>

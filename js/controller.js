@@ -472,6 +472,61 @@ export const controller = {
 
         Toast.show("Planejamento salvo com sucesso!", 'success');
     },
+    abrirModalCopiarPlanejamento(turmaIdAtual) {
+        const turmaAtual = model.state.turmas.find(t => t.id == turmaIdAtual);
+        if (!turmaAtual) return;
+        const outrasTurmas = model.state.turmas.filter(t => t.id != turmaIdAtual);
+        if (outrasTurmas.length === 0) {
+            Toast.show("Você não possui outras turmas cadastradas.", "warning");
+            return;
+        }
+        const optionsHtml = outrasTurmas.map(t => {
+            const isMesmaSerie = t.serie === turmaAtual.serie;
+            const destaque = isMesmaSerie ? 'font-bold text-blue-600' : '';
+            const textoExtra = isMesmaSerie ? '(Mesma Série)' : '';
+            return `<option value="${t.id}" class="${destaque}">${t.nome} ${textoExtra}</option>`;
+        }).join('');
+        const html = `
+            <div class="p-6 space-y-4">
+                <div class="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-4">
+                    <p class="text-sm text-blue-800">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Você está copiando o planejamento de <strong>${turmaAtual.nome}</strong>.
+                    </p>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Selecione a Turma de Destino</label>
+                    <select id="select-turma-destino" class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary bg-white">
+                        ${optionsHtml}
+                    </select>
+                </div>
+                <div class="bg-red-50 border border-red-100 p-3 rounded-xl text-xs text-red-600 mt-2">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <strong>Atenção:</strong> Isso irá substituir qualquer planejamento existente na turma de destino.
+                </div>
+                <button onclick="controller.confirmarCopiaPlanejamento('${turmaIdAtual}')" 
+                        class="btn-primary w-full py-3 rounded-xl font-bold shadow-lg shadow-primary/20 mt-2">
+                    <i class="fas fa-copy mr-2"></i> Confirmar Cópia
+                </button>
+            </div>
+        `;
+
+        this.openModal('Replicar Planejamento', html);
+    },
+    confirmarCopiaPlanejamento(idOrigem) {
+        const idDestino = document.getElementById('select-turma-destino').value;
+        if (idOrigem && idDestino) {
+            if (confirm("Tem certeza? O planejamento da turma de destino será substituído.")) {
+                const sucesso = model.copiarPlanejamentoEntreTurmas(idOrigem, idDestino);
+                if (sucesso) {
+                    this.closeModal();
+                    Toast.show("Planejamento copiado com sucesso!", "success");
+                } else {
+                    Toast.show("Erro ao copiar.", "error");
+                }
+            }
+        }
+    },
     openSeletorBnccDiario(turmaId) {
         const turma = model.state.turmas.find(t => t.id === turmaId);
         if (!turma) return;
@@ -618,15 +673,13 @@ export const controller = {
     openDayOptions(dataIso) {
         const [ano, mes, dia] = dataIso.split('-');
         const eventoAtual = model.state.eventos ? (model.state.eventos[dataIso] || {}) : {};
-
         let botoesHtml = '';
-        const viewCal = this.views['dashboard'];
-        if (viewCal && viewCal.tiposEventos) {
-            botoesHtml = Object.entries(viewCal.tiposEventos).map(([key, config]) => {
+        if (model.tiposEventos) {
+            botoesHtml = Object.entries(model.tiposEventos).map(([key, config]) => {
                 let colorName = 'slate';
                 const match = config.bg.match(/bg-(\w+)-/);
                 if (match) colorName = match[1];
-                if (key === 'aula') colorName = 'slate';
+                if (key === 'aula' || config.bg.includes('white')) colorName = 'slate';
                 return this._btnEvento(config.label, key, eventoAtual.tipo, colorName);
             }).join('');
         }

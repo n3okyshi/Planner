@@ -3,6 +3,7 @@ import { model } from '../model.js';
 export const bnccView = {
     selecionarCallback: null,
     dataCache: {},
+    filtrosVisiveisMobile: false,
     coresComponentes: {
         "O eu, o outro e o nós": "#4f46e5",
         "Corpo, gestos e movimentos": "#0891b2",
@@ -27,22 +28,33 @@ export const bnccView = {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
         this.selecionarCallback = callbackExterno;
+        this.filtrosVisiveisMobile = false;
         const html = `
             <div class="fade-in flex flex-col h-full overflow-hidden relative">
-                <div class="mb-6 border-b border-slate-100 pb-4 shrink-0 px-1">
-                    <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
-                        <i class="fas fa-book-open text-primary"></i> 
-                        Base Nacional Comum Curricular
-                    </h3>
-                    <p class="text-xs text-slate-500 mt-1">
-                        ${this.selecionarCallback
-                ? '<span class="text-emerald-600 font-bold">Modo Seleção:</span> Escolha a habilidade para adicionar ao seu plano.'
-                : 'Consulte códigos e habilidades da BNCC.'}
-                    </p>
+                <div class="mb-4 border-b border-slate-100 pb-4 shrink-0 px-1 flex justify-between items-end">
+                    <div>
+                        <h3 class="font-bold text-slate-800 text-lg flex items-center gap-2">
+                            <i class="fas fa-book-open text-primary"></i> 
+                            Base Nacional Comum Curricular
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-1">
+                            ${this.selecionarCallback ? '<span class="text-emerald-600 font-bold">Modo Seleção:</span> Escolha a habilidade para adicionar ao seu plano.' : 'Consulte códigos e habilidades da BNCC.'}
+                        </p>
+                    </div>
+                    <button onclick="bnccView.toggleFiltrosMobile()" 
+                            class="lg:hidden text-xs font-bold text-slate-500 border border-slate-200 bg-white px-3 py-2 rounded-lg hover:bg-slate-50 transition shadow-sm flex items-center gap-2">
+                        <i class="fas fa-filter"></i> Filtros
+                    </button>
                 </div>
-                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 flex-1 min-h-0">
-                    <aside class="space-y-4 overflow-y-auto custom-scrollbar pr-2 h-full">
+                <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 flex-1 min-h-0 relative">
+                    <aside id="bncc-sidebar" class="hidden lg:block space-y-4 overflow-y-auto custom-scrollbar pr-2 h-full absolute lg:relative z-20 w-full lg:w-auto bg-white lg:bg-transparent shadow-2xl lg:shadow-none p-4 lg:p-0 top-0 left-0 h-full">
                         <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                            <div class="flex justify-between items-center lg:hidden mb-2 pb-2 border-b border-slate-50">
+                                <h4 class="font-bold text-slate-700">Filtrar Habilidades</h4>
+                                <button onclick="bnccView.toggleFiltrosMobile()" class="text-slate-400 hover:text-red-500 bg-slate-50 p-2 rounded-full w-8 h-8 flex items-center justify-center">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
                             <div>
                                 <label for="bncc-nivel" class="text-xs font-bold text-slate-400 uppercase mb-1 block">1. Nível de Ensino</label>
                                 <select id="bncc-nivel" name="bncc-nivel" onchange="bnccView.updateFiltros(this.value)" 
@@ -79,11 +91,17 @@ export const bnccView = {
                                 <input type="text" id="bncc-busca" name="bncc-busca" placeholder="Ex: EF01LP01 ou 'leitura'"
                                        class="w-full border border-slate-200 p-2.5 rounded-xl text-sm outline-none focus:border-primary bg-white">
                             </div>
-                            <button onclick="bnccView.pesquisar()" class="w-full btn-primary py-3 rounded-xl font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2 mt-2">
-                                <i class="fas fa-search"></i> Buscar Habilidades
-                            </button>
+                            <div class="flex flex-col gap-2 mt-4">
+                                <button onclick="bnccView.pesquisar()" class="w-full btn-primary py-3 rounded-xl font-bold shadow-lg shadow-primary/20 flex items-center justify-center gap-2">
+                                    <i class="fas fa-search"></i> Buscar Habilidades
+                                </button>
+                                <button onclick="bnccView.limparFiltros()" class="w-full text-slate-400 text-xs font-bold hover:text-slate-600 py-2 border border-transparent hover:border-slate-100 rounded-lg transition">
+                                    Limpar Filtros
+                                </button>
+                            </div>
                         </div>
                     </aside>
+
                     <div class="lg:col-span-3 bg-slate-50 rounded-2xl border border-slate-200 relative flex flex-col h-full overflow-hidden">
                         <div id="bncc-resultados" class="flex-1 overflow-y-auto custom-scrollbar p-4 space-y-3" style="max-height: 100%;">
                             <div class="h-full flex flex-col items-center justify-center text-slate-400 opacity-60">
@@ -125,7 +143,31 @@ export const bnccView = {
                     anoSelect.value = melhorMatch;
                 }
             }
+            this.pesquisar();
         }
+    },
+    toggleFiltrosMobile() {
+        const sidebar = document.getElementById('bncc-sidebar');
+        this.filtrosVisiveisMobile = !this.filtrosVisiveisMobile;
+
+        if (this.filtrosVisiveisMobile) {
+            sidebar.classList.remove('hidden');
+            sidebar.classList.add('block');
+        } else {
+            sidebar.classList.add('hidden');
+            sidebar.classList.remove('block');
+        }
+    },
+    limparFiltros() {
+        document.getElementById('bncc-nivel').value = "";
+        document.getElementById('bncc-busca').value = "";
+        this.updateFiltros("");
+        document.getElementById('bncc-resultados').innerHTML = `
+            <div class="h-full flex flex-col items-center justify-center text-slate-400 opacity-60">
+                <i class="fas fa-search text-4xl mb-4"></i>
+                <p>Filtros limpos.</p>
+            </div>
+        `;
     },
     async updateFiltros(nivel) {
         const compSelect = document.getElementById('bncc-componente');
@@ -161,7 +203,7 @@ export const bnccView = {
             } catch (e) {
                 console.error(e);
                 compSelect.innerHTML = '<option value="">Erro ao carregar</option>';
-                return; 
+                return;
             }
         }
         const dados = this.dataCache[nivel];
@@ -223,6 +265,8 @@ export const bnccView = {
         const resContainer = document.getElementById('bncc-resultados');
         if (!nivel) return alert("Selecione o Nível de Ensino.");
         resContainer.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-primary"><i class="fas fa-circle-notch fa-spin text-4xl mb-3"></i><p>Filtrando...</p></div>`;
+        if (this.filtrosVisiveisMobile) this.toggleFiltrosMobile();
+
         setTimeout(() => {
             const dadosBrutos = this.dataCache[nivel];
             const listaHabilidades = this._normalizarDados(dadosBrutos, nivel);
@@ -263,7 +307,7 @@ export const bnccView = {
                                 descricao: obj.descricao,
                                 componente: campo.nome,
                                 eixo: "Campo de Experiência",
-                                ano: faixa.grupo, 
+                                ano: faixa.grupo,
                                 objeto_conhecimento: null,
                                 cor: model.coresComponentes[campo.nome]
                             });
@@ -284,7 +328,7 @@ export const bnccView = {
                                         codigo: hab.codigo,
                                         descricao: hab.descricao,
                                         componente: comp.nome,
-                                        eixo: grupo.nome, 
+                                        eixo: grupo.nome,
                                         ano: anoObj.ano,
                                         objeto_conhecimento: hab.objetos_de_conhecimento,
                                         cor: model.coresComponentes[comp.nome]

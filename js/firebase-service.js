@@ -21,10 +21,18 @@ export const firebaseService = {
         }
         this.auth = firebase.auth();
         this.db = firebase.firestore();
-        this.db.enablePersistence().catch(err => {
-            console.log("Persistência offline não habilitada:", err.code);
-        });
-        console.log("Firebase Service (Granular v2) inicializado.");
+        this.db.enablePersistence({ synchronizeTabs: true })
+            .catch(err => {
+                if (err.code == 'failed-precondition') {
+                    console.warn("Persistência falhou: Múltiplas abas abertas sem suporte.");
+                } else if (err.code == 'unimplemented') {
+                    console.warn("Persistência falhou: Navegador não suporta.");
+                } else {
+                    console.warn("Erro na persistência:", err);
+                }
+            });
+            
+        console.log("Firebase Service (Granular v2) inicializado com Multi-Tab Support.");
     },
     onAuthStateChanged(callback) {
         if (this.auth) this.auth.onAuthStateChanged(callback);

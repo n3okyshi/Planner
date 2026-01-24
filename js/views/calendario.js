@@ -1,29 +1,25 @@
 import { model } from '../model.js';
+import { controller } from '../controller.js';
 
 export const calendarioView = {
-    tiposEventos: {
-        'feriado_nac': { label: 'Feriado Nacional', bg: 'bg-red-100', text: 'text-red-700', border: 'border-red-200' },
-        'feriado_est': { label: 'Feriado Estadual', bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-100' },
-        'feriado_mun': { label: 'Feriado Municipal', bg: 'bg-rose-100', text: 'text-rose-600', border: 'border-rose-200' },
-        'recesso': { label: 'Recesso Escolar', bg: 'bg-orange-100', text: 'text-orange-700', border: 'border-orange-200' },
-        'ferias': { label: 'Férias Escolares', bg: 'bg-amber-100', text: 'text-amber-700', border: 'border-amber-200' },
-        'retorno_adm': { label: 'Retorno Admin.', bg: 'bg-slate-200', text: 'text-slate-700', border: 'border-slate-300' },
-        'modulacao': { label: 'Modulação', bg: 'bg-indigo-100', text: 'text-indigo-700', border: 'border-indigo-200' },
-        'plan_pedag': { label: 'Planej. Pedagógico', bg: 'bg-blue-100', text: 'text-blue-700', border: 'border-blue-200' },
-        'reuniao_ped': { label: 'Reunião Pedagógica', bg: 'bg-sky-100', text: 'text-sky-700', border: 'border-sky-200' },
-        'conselho': { label: 'Conselho de Classe', bg: 'bg-emerald-100', text: 'text-emerald-700', border: 'border-emerald-200' },
-        'reuniao_pais': { label: 'Reunião de Pais', bg: 'bg-teal-100', text: 'text-teal-700', border: 'border-teal-200' },
-        'avaliacao': { label: 'Avaliação Periódica', bg: 'bg-purple-100', text: 'text-purple-700', border: 'border-purple-200' },
-        'inicio_per': { label: 'Início do Período', bg: 'bg-lime-100', text: 'text-lime-800', border: 'border-lime-200' },
-        'aula': { label: 'Dia Letivo', bg: 'bg-white', text: 'text-slate-600', border: 'border-slate-200' },
-    },
+    // Estado local para controlar a visualização da legenda
+    exibirLegenda: false,
+
     mesesNomes: [
         "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
         "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
     ],
+
+    toggleLegenda() {
+        this.exibirLegenda = !this.exibirLegenda;
+        // Re-renderiza para atualizar a interface (mostrar/esconder a div)
+        this.render('view-container');
+    },
+
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+        
         const config = (model.state && model.state.userConfig) || {};
         let nomeProf = 'Professor(a)';
         if (config.profName && config.profName.trim() !== '') {
@@ -31,6 +27,7 @@ export const calendarioView = {
         } else if (model.currentUser && model.currentUser.displayName) {
             nomeProf = model.currentUser.displayName.split(' ')[0];
         }
+        
         const html = `
             <div class="fade-in pb-20 print:pb-0">
                 
@@ -39,20 +36,36 @@ export const calendarioView = {
                     <p class="text-sm text-slate-500">${escapeHTML(nomeProf)}</p>
                 </div>
 
-                <div class="flex flex-wrap justify-between items-end mb-8 gap-6 no-print">
+                <div class="flex flex-wrap justify-between items-end mb-6 gap-6 no-print">
                     <div>
                         <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Olá, ${escapeHTML(nomeProf)}!</h2>
                         <p class="text-slate-500 mt-1">Calendário Acadêmico 2026</p>
                     </div>
-                    <div class="group relative">
-                        <button class="text-xs font-bold text-primary border border-primary/30 px-3 py-1.5 rounded-lg bg-primary/5 hover:bg-primary/10 transition">
-                            <i class="fas fa-info-circle mr-1"></i> Ver Legenda
+                    
+                    <div>
+                        <button onclick="calendarioView.toggleLegenda()" 
+                                class="text-xs font-bold ${this.exibirLegenda ? 'text-white bg-primary shadow-lg shadow-primary/30' : 'text-primary bg-primary/5 hover:bg-primary/10 border border-primary/30'} px-4 py-2 rounded-xl transition-all flex items-center gap-2">
+                            <i class="fas ${this.exibirLegenda ? 'fa-eye-slash' : 'fa-eye'}"></i> 
+                            ${this.exibirLegenda ? 'Ocultar Legenda' : 'Ver Legenda'}
                         </button>
-                        <div class="absolute right-0 top-full mt-2 w-64 bg-white p-4 rounded-xl shadow-xl border border-slate-100 z-50 hidden group-hover:grid grid-cols-1 gap-2 max-h-[400px] overflow-y-auto custom-scrollbar">
+                    </div>
+                </div>
+
+                ${this.exibirLegenda ? `
+                    <div class="mb-8 bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner animate-slideIn no-print">
+                        <div class="flex justify-between items-center mb-4">
+                            <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                                <i class="fas fa-tags"></i> Tipos de Eventos
+                            </h3>
+                            <button onclick="calendarioView.toggleLegenda()" class="text-slate-400 hover:text-slate-600">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3">
                             ${this.gerarLegendaItens()}
                         </div>
                     </div>
-                </div>
+                ` : ''}
 
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 print:grid-cols-3 gap-6 calendar-grid print:gap-4">
                     ${this.mesesNomes.map((nome, index) => this.gerarTemplateMes(index + 1, nome)).join('')}
@@ -67,47 +80,59 @@ export const calendarioView = {
         container.innerHTML = html;
         this.atualizarDataHeader();
     },
+
     gerarLegendaItens(isPrint = false) {
-        return Object.entries(this.tiposEventos)
+        if (!model.tiposEventos) return '';
+        return Object.entries(model.tiposEventos)
             .filter(([key]) => !key.includes('Antigo'))
             .map(([key, estilo]) => `
-                <div class="flex items-center gap-2 p-1 ${isPrint ? '' : 'hover:bg-slate-50'} rounded-lg transition-colors">
+                <div class="flex items-center gap-2 p-2 ${isPrint ? '' : 'bg-white border border-slate-100 shadow-sm'} rounded-lg">
                     <div class="w-4 h-4 rounded-md shadow-sm shrink-0 ${estilo.bg} border ${estilo.border} print:border-2"></div>
-                    <span class="${isPrint ? 'text-[9px]' : 'text-[10px]'} font-bold text-slate-600 uppercase tracking-wide truncate">${estilo.label}</span>
+                    <span class="${isPrint ? 'text-[9px]' : 'text-[10px]'} font-bold text-slate-600 uppercase tracking-wide truncate" title="${estilo.label}">${estilo.label}</span>
                 </div>
             `).join('');
     },
+
     gerarTemplateMes(mes, nome) {
         const ano = 2026;
         const primeiroDiaSemana = new Date(ano, mes - 1, 1).getDay();
         const totalDias = new Date(ano, mes, 0).getDate();
         let diasHtml = '';
+        
+        // Espaços vazios antes do dia 1
         for (let i = 0; i < primeiroDiaSemana; i++) {
             diasHtml += `<div class="h-8 calendar-day-empty"></div>`;
         }
+
+        // Dias do mês
         for (let dia = 1; dia <= totalDias; dia++) {
             const dataIso = `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
             const evento = model.state.eventos ? model.state.eventos[dataIso] : null;
+            
             let classesBase = "h-8 flex items-center justify-center relative cursor-pointer rounded-lg transition-all text-xs font-medium calendar-day ";
             let estiloCor = "hover:bg-slate-100 text-slate-600";
             let tooltipText = 'Clique para adicionar evento';
 
             if (evento) {
-                const configEvento = this.tiposEventos[evento.tipo];
+                // Recupera configuração do Model
+                const configEvento = model.tiposEventos[evento.tipo];
                 if (configEvento) {
                     estiloCor = `${configEvento.bg} ${configEvento.text} font-bold ring-1 ring-inset ${configEvento.border}`;
                     tooltipText = `${configEvento.label}: ${escapeHTML(evento.descricao)}`;
                 } else {
                     estiloCor = "bg-gray-100 text-gray-500 font-bold border border-gray-200";
-                    tooltipText = `Evento (Tipo desconhecido): ${escapeHTML(evento.descricao)}`;
+                    tooltipText = `Evento: ${escapeHTML(evento.descricao)}`;
                 }
             }
+            
+            // Destacar dia atual
             const hoje = new Date();
             const isHoje = hoje.getDate() === dia && (hoje.getMonth() + 1) === mes && hoje.getFullYear() === ano;
             if (isHoje) {
                 classesBase += "ring-2 ring-primary ring-offset-1 z-10 font-bold ";
                 if (!evento) estiloCor = "bg-primary text-white hover:bg-primary/90";
             }
+
             diasHtml += `
                 <div class="${classesBase} ${estiloCor} group"
                      title="${tooltipText}"
@@ -117,6 +142,7 @@ export const calendarioView = {
                 </div>
             `;
         }
+
         return `
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow h-full flex flex-col break-inside-avoid print:border print:shadow-none print:p-2">
                 <h3 class="font-bold text-slate-800 mb-2 text-center border-b border-slate-50 pb-2 uppercase tracking-widest text-xs flex justify-between items-center px-2">
@@ -132,6 +158,7 @@ export const calendarioView = {
             </div>
         `;
     },
+
     atualizarDataHeader() {
         const el = document.getElementById('current-date');
         if (el) {

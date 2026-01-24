@@ -2,9 +2,11 @@ import { model } from '../model.js';
 import { controller } from '../controller.js';
 
 export const turmasView = {
+    confirmandoExclusao: null,
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+        this.confirmandoExclusao = null;
         const turmas = model.state.turmas || [];
         const html = `
             <div class="fade-in pb-20">
@@ -53,6 +55,38 @@ export const turmasView = {
             </div>
         `;
     },
+    iniciarExclusao(id) {
+        this.confirmandoExclusao = id;
+        this.renderDetalhesTurma('view-container', id);
+    },
+    cancelarExclusao(id) {
+        this.confirmandoExclusao = null;
+        this.renderDetalhesTurma('view-container', id);
+    },
+    gerarBotaoExcluir(turmaId) {
+        if (this.confirmandoExclusao === turmaId) {
+            return `
+                <div class="flex items-center gap-2 animate-bounce-in">
+                    <button onclick="controller.deleteTurma('${turmaId}')" 
+                            class="bg-red-500 text-white px-3 py-2 rounded-xl text-sm font-bold hover:bg-red-600 transition shadow-md flex items-center gap-2">
+                        <i class="fas fa-exclamation-circle"></i> Confirmar?
+                    </button>
+                    <button onclick="turmasView.cancelarExclusao('${turmaId}')" 
+                            class="w-10 h-10 flex items-center justify-center bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200 transition"
+                            title="Cancelar">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+        }
+        return `
+            <button onclick="turmasView.iniciarExclusao('${turmaId}')" 
+                    class="w-10 h-10 flex items-center justify-center bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition"
+                    title="Excluir Turma">
+                <i class="fas fa-trash-alt"></i>
+            </button>
+        `;
+    },
     renderDetalhesTurma(container, turmaId) {
         if (typeof container === 'string') container = document.getElementById(container);
         const turma = model.state.turmas.find(t => t.id == turmaId);
@@ -91,23 +125,20 @@ export const turmasView = {
                             <span><i class="fas fa-users mr-1"></i> ${turma.alunos.length} Alunos</span>
                         </div>
                     </div>
-                    <div class="flex gap-2">
-                         <button onclick="controller.openAddAvaliacao('${turmaId}')" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold hover:bg-slate-50 transition shadow-sm text-sm">
+                    <div class="flex gap-2 items-center">
+                         <button onclick="controller.openAddAvaliacao('${turmaId}')" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold hover:bg-slate-50 transition shadow-sm text-sm h-10">
                             <i class="fas fa-file-alt mr-2"></i> Nova Avaliação
                         </button>
-                        <button onclick="controller.openAddAluno('${turmaId}')" class="bg-primary text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-primary/20 hover:brightness-110 transition text-sm">
+                        <button onclick="controller.openAddAluno('${turmaId}')" class="bg-primary text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-primary/20 hover:brightness-110 transition text-sm h-10">
                             <i class="fas fa-user-plus mr-2"></i> Novo Aluno
                         </button>
-                        <button onclick="controller.deleteTurma('${turmaId}')" class="w-10 h-10 flex items-center justify-center bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
+                        ${this.gerarBotaoExcluir(turmaId)}
                     </div>
                 </div>
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 mb-8 relative overflow-hidden">
                     <h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6 border-b border-slate-100 pb-2">
                         <i class="fas fa-chart-pie mr-2"></i> Índice de Desempenho da Turma
                     </h3>
-                    
                     <div class="flex flex-col md:flex-row items-center gap-8 md:gap-16">
                         <div class="relative shrink-0">
                             <div class="chart-donut shadow-inner" style="${gradientStyle}"></div>
@@ -123,14 +154,14 @@ export const turmasView = {
             const perc = stats.totalAlunos > 0 ? Math.round((count / stats.totalAlunos) * 100) : 0;
             const opacity = count === 0 ? 'opacity-40 grayscale' : '';
             return `
-                                        <div class="flex items-center gap-3 ${opacity}">
-                                            <div class="w-3 h-3 rounded-full shrink-0 shadow-sm" style="background-color: ${c.cor}"></div>
-                                            <div>
-                                                <p class="text-xs font-bold text-slate-700">${c.label}</p>
-                                                <p class="text-[10px] text-slate-400 font-medium">${count} alunos (${perc}%)</p>
+                                            <div class="flex items-center gap-3 ${opacity}">
+                                                <div class="w-3 h-3 rounded-full shrink-0 shadow-sm" style="background-color: ${c.cor}"></div>
+                                                <div>
+                                                    <p class="text-xs font-bold text-slate-700">${c.label}</p>
+                                                    <p class="text-[10px] text-slate-400 font-medium">${count} alunos (${perc}%)</p>
+                                                </div>
                                             </div>
-                                        </div>
-                                    `;
+                                        `;
         }).join('')}
                             </div>
                             ${stats.distribuicao.vermelho > 0 || stats.distribuicao.laranja > 0 ? `
@@ -190,36 +221,36 @@ export const turmasView = {
                         else corNota = "text-score-green bg-emerald-50";
                     }
                     return `
-                                        <tr class="hover:bg-slate-50 transition">
-                                            <td class="p-4 text-xs font-bold text-slate-400">${idx + 1}</td>
-                                            <td class="p-4">
-                                                <div class="font-bold text-slate-700 text-sm">${escapeHTML(aluno.nome)}</div>
-                                            </td>
-                                            
-                                            ${turma.avaliacoes.map(av => {
+                                            <tr class="hover:bg-slate-50 transition">
+                                                <td class="p-4 text-xs font-bold text-slate-400">${idx + 1}</td>
+                                                <td class="p-4">
+                                                    <div class="font-bold text-slate-700 text-sm">${escapeHTML(aluno.nome)}</div>
+                                                </td>
+                                                
+                                                ${turma.avaliacoes.map(av => {
                         const nota = aluno.notas && aluno.notas[av.id] !== undefined ? aluno.notas[av.id] : '';
                         return `
-                                                    <td class="p-2 text-center">
-                                                        <input type="number" 
-                                                               value="${nota}" 
-                                                               placeholder="-"
-                                                               onchange="controller.updateNota('${turmaId}', '${aluno.id}', '${av.id}', this.value)"
-                                                               class="w-16 text-center bg-white border border-slate-200 rounded-lg py-1.5 text-sm font-bold text-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-slate-200">
-                                                    </td>
-                                                `;
+                                                        <td class="p-2 text-center">
+                                                            <input type="number" 
+                                                                   value="${nota}" 
+                                                                   placeholder="-"
+                                                                   onchange="controller.updateNota('${turmaId}', '${aluno.id}', '${av.id}', this.value)"
+                                                                   class="w-16 text-center bg-white border border-slate-200 rounded-lg py-1.5 text-sm font-bold text-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-slate-200">
+                                                        </td>
+                                                    `;
                     }).join('')}
-                                            <td class="p-2 text-center border-l border-slate-100 bg-slate-50/30">
-                                                <div class="w-12 mx-auto py-1 rounded-lg font-black text-sm ${corNota}">
-                                                    ${mediaAluno !== null ? mediaAluno.toFixed(1) : '-'}
-                                                </div>
-                                            </td>
-                                            <td class="p-4 text-center">
-                                                <button onclick="controller.deleteAluno('${turmaId}', '${aluno.id}')" class="text-slate-300 hover:text-red-500 transition">
-                                                    <i class="fas fa-trash-alt"></i>
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    `;
+                                                <td class="p-2 text-center border-l border-slate-100 bg-slate-50/30">
+                                                    <div class="w-12 mx-auto py-1 rounded-lg font-black text-sm ${corNota}">
+                                                        ${mediaAluno !== null ? mediaAluno.toFixed(1) : '-'}
+                                                    </div>
+                                                </td>
+                                                <td class="p-4 text-center">
+                                                    <button onclick="controller.deleteAluno('${turmaId}', '${aluno.id}')" class="text-slate-300 hover:text-red-500 transition">
+                                                        <i class="fas fa-trash-alt"></i>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        `;
                 }).join('')}
                             </tbody>
                         </table>

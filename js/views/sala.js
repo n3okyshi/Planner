@@ -2,6 +2,7 @@ import { model } from '../model.js';
 import { controller } from '../controller.js'; 
 
 export const salaView = {
+    alunoSelecionadoParaMover: null, 
     currentTurmaId: null,
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
@@ -18,7 +19,7 @@ export const salaView = {
                 <div class="flex flex-wrap justify-between items-center mb-8 gap-4 no-print">
                     <div>
                         <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Mapa de Sala</h2>
-                        <p class="text-slate-500">Arraste os alunos para organizar a sala.</p>
+                        <p class="text-slate-500">Arraste ou clique para organizar a sala.</p>
                     </div>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 no-print">
@@ -45,7 +46,7 @@ export const salaView = {
                     </div>
                 </div>
                 <div class="mt-8 text-center text-xs text-slate-400 no-print">
-                    Dica: Arraste um aluno sobre outro para trocar de lugar. Clique para ver detalhes.
+                    Dica: Arraste ou clique em um aluno e depois no destino para mover.
                 </div>
             </div>
         `;
@@ -73,14 +74,22 @@ export const salaView = {
         let assentosHtml = '';
         for (let i = 1; i <= 36; i++) {
             const aluno = turma.alunos.find(a => a.posicao === i);
-            const bgClass = aluno 
-                ? 'bg-white border-l-4 border-primary shadow-md draggable-card' 
-                : 'bg-slate-50 border-2 border-dashed border-slate-300 hover:border-primary hover:bg-white';
+            const isSelecionado = this.alunoSelecionadoParaMover === i;
+            let bgClass = '';
+            if (isSelecionado) {
+                bgClass = 'bg-blue-50 border-primary shadow-lg ring-4 ring-primary/30 z-10 scale-105 border-2';
+            } else if (aluno) {
+                bgClass = 'bg-white border-l-4 border-primary shadow-md draggable-card';
+            } else {
+                bgClass = 'bg-slate-50 border-2 border-dashed border-slate-300 hover:border-primary hover:bg-white';
+            }
             const content = aluno
                 ? `
-                    <div class="flex flex-col items-center justify-center h-full w-full p-1 text-center pointer-events-none"> <span class="font-bold text-slate-700 text-[10px] md:text-xs leading-tight line-clamp-2 w-full break-words select-none">
+                    <div class="flex flex-col items-center justify-center h-full w-full p-1 text-center pointer-events-none"> 
+                        <span class="font-bold text-slate-700 text-[10px] md:text-xs leading-tight line-clamp-2 w-full break-words select-none">
                             ${escapeHTML(aluno.nome).split(' ')[0]} ${aluno.nome.split(' ')[1] ? aluno.nome.split(' ')[1].charAt(0) + '.' : ''}
                         </span>
+                        ${isSelecionado ? '<i class="fas fa-arrows-alt text-primary text-xs mt-1 animate-pulse"></i>' : ''}
                     </div>
                   `
                 : `<span class="text-[10px] font-bold text-slate-300 pointer-events-none">${i}</span>`;
@@ -110,6 +119,7 @@ export const salaView = {
         }));
         e.dataTransfer.effectAllowed = 'move';
         e.target.classList.add('student-dragging');
+        this.alunoSelecionadoParaMover = null;
     },
     handleDragOver(e) {
         e.preventDefault(); 
@@ -141,9 +151,25 @@ export const salaView = {
     },
     handleClick(turmaId, posicao) {
         const turma = model.state.turmas.find(t => t.id == turmaId);
+        if (this.alunoSelecionadoParaMover !== null) {
+            if (this.alunoSelecionadoParaMover === posicao) {
+                this.alunoSelecionadoParaMover = null;
+                this.carregarMapa(turmaId);
+                this.abrirModalSelecao(turmaId, posicao);
+            } else {
+                const alunoMover = turma.alunos.find(a => a.posicao === this.alunoSelecionadoParaMover);
+                if (alunoMover) {
+                    model.movimentarAluno(turmaId, alunoMover.id, posicao);
+                }
+                this.alunoSelecionadoParaMover = null;
+                this.carregarMapa(turmaId);
+            }
+            return;
+        }
         const aluno = turma.alunos.find(a => a.posicao === posicao);
         if (aluno) {
-            this.abrirModalSelecao(turmaId, posicao);
+            this.alunoSelecionadoParaMover = posicao;
+            this.carregarMapa(turmaId);
         } else {
             this.abrirModalSelecao(turmaId, posicao);
         }

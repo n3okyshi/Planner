@@ -2,11 +2,12 @@ import { model } from '../model.js';
 
 export const diarioView = {
     currentDate: new Date().toISOString().split('T')[0],
-    viewDate: new Date(), 
+    viewDate: new Date(),
     currentTurmaId: null,
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+
         const turmas = (model.state && model.state.turmas) ? model.state.turmas : [];
         if (this.currentTurmaId && !turmas.find(t => t.id == this.currentTurmaId)) {
             this.currentTurmaId = null;
@@ -30,10 +31,10 @@ export const diarioView = {
                         <span class="text-xs font-bold text-slate-400 uppercase hidden md:inline">Turma:</span>
                         <select id="diario-turma" onchange="controller.mudarTurmaDiario(this.value)"
                                 class="bg-slate-50 border border-slate-200 text-slate-700 font-bold rounded-xl px-4 py-2 outline-none focus:border-primary min-w-[200px]">
-                            ${turmas.length > 0 
-                                ? turmas.map(t => `<option value="${t.id}" ${t.id == this.currentTurmaId ? 'selected' : ''}>${escapeHTML(t.nome)}</option>`).join('')
-                                : '<option value="">Nenhuma turma</option>'
-                            }
+                            ${turmas.length > 0
+                ? turmas.map(t => `<option value="${t.id}" ${t.id == this.currentTurmaId ? 'selected' : ''}>${escapeHTML(t.nome)}</option>`).join('')
+                : '<option value="">Nenhuma turma</option>'
+            }
                         </select>
                     </div>
                 </div>
@@ -41,7 +42,7 @@ export const diarioView = {
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                         <div class="lg:col-span-4 space-y-6">
                             ${this.gerarMiniCalendario()}
-                            <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 text-blue-800 text-xs leading-relaxed flex gap-2 items-start">
+                            <div id="dica-diario" class="bg-blue-50 p-4 rounded-xl border border-blue-100 text-blue-800 text-xs leading-relaxed flex gap-2 items-start relative group">
                                 <i class="fas fa-info-circle mt-0.5"></i> 
                                 <div>
                                     <p class="font-bold mb-1">Como usar:</p>
@@ -49,7 +50,11 @@ export const diarioView = {
                                     2. Preencha ou edite o plano ao lado.<br>
                                     3. Clique em Salvar.
                                 </div>
+                                <button onclick="document.getElementById('dica-diario').remove()" class="absolute top-2 right-2 text-blue-300 hover:text-blue-600 transition-colors" title="Fechar dica">
+                                    <i class="fas fa-times"></i>
+                                </button>
                             </div>
+
                         </div>
                         <div class="lg:col-span-8">
                             ${this.renderEditor()}
@@ -77,11 +82,11 @@ export const diarioView = {
             const dataIso = `${ano}-${String(mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
             const isSelected = dataIso === this.currentDate;
             const temPlano = model.getPlanoDiario(dataIso, this.currentTurmaId);
-            const indicadorHtml = temPlano 
-                ? `<span class="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm"></span>` 
+            const indicadorHtml = temPlano
+                ? `<span class="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm"></span>`
                 : '';
-            const btnClass = isSelected 
-                ? 'bg-slate-800 text-white shadow-lg transform scale-110 z-10 border-slate-800' 
+            const btnClass = isSelected
+                ? 'bg-slate-800 text-white shadow-lg transform scale-110 z-10 border-slate-800'
                 : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-100 hover:border-slate-300';
             diasHtml += `
                 <button onclick="controller.mudarDataDiario('${dataIso}')" 
@@ -97,7 +102,15 @@ export const diarioView = {
                     <button onclick="controller.mudarMesDiario(-1)" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 hover:text-primary transition">
                         <i class="fas fa-chevron-left"></i>
                     </button>
-                    <span class="font-bold text-slate-700 capitalize text-sm">${nomesMeses[mes]} ${ano}</span>
+                    
+                    <div class="flex items-center gap-2">
+                        <span class="font-bold text-slate-700 capitalize text-sm">${nomesMeses[mes]} ${ano}</span>
+                        <button onclick="controller.mudarDataDiario(new Date().toISOString().split('T')[0])" 
+                                class="text-[10px] font-bold bg-blue-50 text-primary px-2 py-0.5 rounded border border-blue-100 hover:bg-blue-100 transition"
+                                title="Voltar para Hoje">
+                            Hoje
+                        </button>
+                    </div>
                     <button onclick="controller.mudarMesDiario(1)" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 hover:text-primary transition">
                         <i class="fas fa-chevron-right"></i>
                     </button>
@@ -208,7 +221,7 @@ export const diarioView = {
         };
         campos.forEach(id => {
             const el = document.getElementById(id);
-            if(el) el.value = valores[id] || '';
+            if (el) el.value = valores[id] || '';
         });
     },
     copiarHabilidade(codigo, descricao) {
