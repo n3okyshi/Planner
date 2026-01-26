@@ -20,6 +20,16 @@
 
 </head>
 
+<style>
+    #toast-container {
+        position: fixed !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        display: flex !important;
+        z-index: 999999 !important;
+    }
+</style>
+
 <body class="flex min-h-screen bg-slate-50 text-slate-900 font-sans overflow-x-hidden w-full">
     <aside id="app-sidebar"
         class="sidebar w-64 text-white flex flex-col shadow-2xl fixed h-full z-20 bg-slate-900 overflow-hidden">
@@ -100,6 +110,17 @@
                 </div>
                 <span class="text-sm font-medium nav-label">Turmas</span>
             </button>
+            
+            <button id="nav-notas-anuais" onclick="controller.navigate('notas-anuais')"
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group whitespace-nowrap"
+                title="Notas Anuais">
+                <div
+                    class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white">
+                    <i class="fas fa-award"></i>
+                </div>
+                <span class="text-sm font-medium nav-label">Notas Anuais</span>
+            </button>
+
             <button id="nav-horario" onclick="controller.navigate('horario')"
                 class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group whitespace-nowrap"
                 title="Grade Horária">
@@ -135,6 +156,15 @@
                     <i class="fas fa-file-signature"></i>
                 </div>
                 <span class="text-sm font-medium nav-label">Gerador Provas</span>
+            </button>
+            <button id="nav-comunidade" onclick="controller.navigate('comunidade')"
+                class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group whitespace-nowrap"
+                title="Comunidade">
+                <div
+                    class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white">
+                    <i class="fas fa-globe-americas"></i>
+                </div>
+                <span class="text-sm font-medium nav-label">Comunidade</span>
             </button>
             <div class="mt-auto pt-6 pb-2 space-y-2">
                 <button id="nav-config" onclick="controller.navigate('config')"
@@ -177,7 +207,7 @@
                     title="Status">
                     <i class="fas fa-cloud text-slate-300"></i>
                 </div>
-                <button onclick="window.print()" class="btn-primary ...">
+                <button onclick="window.print()" class="btn-primary flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold">
                     <i class="fas fa-print"></i> Gerar PDF
                 </button>
                 <button onclick="controller.exportData()"
@@ -194,8 +224,9 @@
         </section>
     </main>
 
-    <div id="global-modal" class="hidden relative z-50"></div>
-    <div id="toast-container" class="fixed bottom-6 right-6 z-50 flex flex-col gap-4 pointer-events-none"></div>
+    <div id="global-modal"
+        class="hidden fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+    </div>
 
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>

@@ -1,152 +1,934 @@
 [
-  {
-    "id": "sys_mat_9_001",
-    "materia": "Matemática",
-    "ano": "9º Ano",
-    "tipo": "aberta",
-    "dificuldade": "Fácil",
-    "bncc": {
-      "codigo": "EF09MA02",
-      "description": "Reconhecer um número racional como um número que pode ser escrito na forma de fração e identificar suas representações decimal exata e dízima periódica.",
-      "unidade_tematica": "Números"
+    {
+        "id": "sys_mat_9_001",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "EF09MA02",
+            "description": "Reconhecer um número racional como um número que pode ser escrito na forma de fração e identificar suas representações decimal exata e dízima periódica.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Escreva os números racionais a seguir na forma de fração irredutível:\n\na) $0,5$\nb) $\\frac{4}{12}$\nc) $0,25$\nd) $3 \\frac{1}{2}$",
+        "gabarito": "Respostas esperadas:\na) $\\frac{1}{2}$\nb) $\\frac{1}{3}$\nc) $\\frac{1}{4}$\nd) $\\frac{7}{2}$",
+        "gabarito_comentado": "a) $0,5 = \\frac{5}{10} = \\frac{1}{2}$.\nb) Simplificando por 4: $\\frac{4 \\div 4}{12 \\div 4} = \\frac{1}{3}$.\nc) $0,25 = \\frac{25}{100} = \\frac{1}{4}$.\nd) Fração imprópria: $3 \\times 2 + 1 = 7$, logo $\\frac{7}{2}$.",
+        "tags": [
+            "Fração Irredutível",
+            "Números Racionais",
+            "Simplificação"
+        ],
+        "preDefinida": true
     },
-    "enunciado": "Escreva os números racionais a seguir na forma de fração irredutível:\n\na) $0,5$\nb) $\\frac{4}{12}$\nc) $0,25$\nd) $3 \\frac{1}{2}$",
-    "gabarito": "Respostas esperadas:\na) $\\frac{1}{2}$\nb) $\\frac{1}{3}$\nc) $\\frac{1}{4}$\nd) $\\frac{7}{2}$",
-    "gabarito_comentado": "a) $0,5 = \\frac{5}{10} = \\frac{1}{2}$.\nb) Simplificando por 4: $\\frac{4 \\div 4}{12 \\div 4} = \\frac{1}{3}$.\nc) $0,25 = \\frac{25}{100} = \\frac{1}{4}$.\nd) Fração imprópria: $3 \\times 2 + 1 = 7$, logo $\\frac{7}{2}$.",
-    "tags": ["Fração Irredutível", "Números Racionais", "Simplificação"],
-    "preDefinida": true
-  },
-  {
-    "id": "sys_mat_9_002",
-    "materia": "Matemática",
-    "ano": "9º Ano",
-    "tipo": "aberta",
-    "dificuldade": "Fácil",
-    "bncc": {
-      "codigo": "EF09MA02",
-      "description": "Reconhecer um número racional como um número que pode ser escrito na forma de fração e identificar suas representações decimal exata e dízima periódica.",
-      "unidade_tematica": "Números"
+    {
+        "id": "sys_mat_9_002",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "EF09MA02",
+            "description": "Reconhecer um número racional como um número que pode ser escrito na forma de fração e identificar suas representações decimal exata e dízima periódica.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Escreva os números racionais a seguir na forma decimal exata ou na forma de dízima periódica:\n\na) $4$\nb) $-\\frac{1}{4}$\nc) $\\frac{1}{9}$\nd) $3 \\frac{1}{5}$",
+        "gabarito": "Respostas esperadas:\na) $4,0$\nb) $-0,25$\nc) $0,111...$ ou $0,\\bar{1}$\nd) $3,2$",
+        "gabarito_comentado": "a) Todo inteiro pode ser escrito com vírgula zero.\nb) $1 \\div 4 = 0,25$, mantendo o sinal negativo.\nc) $1 \\div 9$ resulta em uma dízima periódica de período 1.\nd) $3 + (1 \\div 5) = 3 + 0,2 = 3,2$.",
+        "tags": [
+            "Forma Decimal",
+            "Dízima Periódica",
+            "Conversão"
+        ],
+        "preDefinida": true
     },
-    "enunciado": "Escreva os números racionais a seguir na forma decimal exata ou na forma de dízima periódica:\n\na) $4$\nb) $-\\frac{1}{4}$\nc) $\\frac{1}{9}$\nd) $3 \\frac{1}{5}$",
-    "gabarito": "Respostas esperadas:\na) $4,0$\nb) $-0,25$\nc) $0,111...$ ou $0,\\bar{1}$\nd) $3,2$",
-    "gabarito_comentado": "a) Todo inteiro pode ser escrito com vírgula zero.\nb) $1 \\div 4 = 0,25$, mantendo o sinal negativo.\nc) $1 \\div 9$ resulta em uma dízima periódica de período 1.\nd) $3 + (1 \\div 5) = 3 + 0,2 = 3,2$.",
-    "tags": ["Forma Decimal", "Dízima Periódica", "Conversão"],
-    "preDefinida": true
-  },
-  {
-    "id": "sys_mat_9_004",
-    "materia": "Matemática",
-    "ano": "9º Ano",
-    "tipo": "multipla",
-    "dificuldade": "Média",
-    "bncc": {
-      "codigo": "EF09MA01",
-      "description": "Explorar o conjunto dos números irracionais e o conceito de número real.",
-      "unidade_tematica": "Números"
+    {
+        "id": "sys_mat_9_004",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "bncc": {
+            "codigo": "EF09MA01",
+            "description": "Explorar o conjunto dos números irracionais e o conceito de número real.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Analise os números abaixo e identifique a sequência correta de classificação entre Racional (R) ou Irracional (I):\n\nI. $0,01$\nII. $0,01234567891011...$\nIII. $0,\\bar{01}$",
+        "alternativas": [
+            "I - R, II - R, III - R",
+            "I - I, II - I, III - I",
+            "I - R, II - I, III - R",
+            "I - R, II - I, III - I",
+            "I - I, II - R, III - R"
+        ],
+        "correta": 2,
+        "gabarito_comentado": "I é decimal exato (Racional). II é um decimal infinito não periódico (Irracional). III é uma dízima periódica (Racional).",
+        "tags": [
+            "Números Racionais",
+            "Números Irracionais",
+            "Classificação"
+        ],
+        "preDefinida": true
     },
-    "enunciado": "Analise os números abaixo e identifique a sequência correta de classificação entre Racional (R) ou Irracional (I):\n\nI. $0,01$\nII. $0,01234567891011...$\nIII. $0,\\bar{01}$",
-    "alternativas": [
-      "I - R, II - R, III - R",
-      "I - I, II - I, III - I",
-      "I - R, II - I, III - R",
-      "I - R, II - I, III - I",
-      "I - I, II - R, III - R"
-    ],
-    "correta": 2,
-    "gabarito_comentado": "I é decimal exato (Racional). II é um decimal infinito não periódico (Irracional). III é uma dízima periódica (Racional).",
-    "tags": ["Números Racionais", "Números Irracionais", "Classificação"],
-    "preDefinida": true
-  },
-  {
-    "id": "sys_mat_9_005",
-    "materia": "Matemática",
-    "ano": "9º Ano",
-    "tipo": "aberta",
-    "dificuldade": "Média",
-    "bncc": {
-      "codigo": "EF09MA04",
-      "description": "Resolver e elaborar problemas com números reais, inclusive em medições.",
-      "unidade_tematica": "Grandezas e Medidas"
+    {
+        "id": "sys_mat_9_005",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Média",
+        "bncc": {
+            "codigo": "EF09MA04",
+            "description": "Resolver e elaborar problemas com números reais, inclusive em medições.",
+            "unidade_tematica": "Grandezas e Medidas"
+        },
+        "enunciado": "Considerando uma circunferência com raio de medida $r = 10$ cm, determine:\n\na) O valor exato do comprimento $C$.\nb) O valor aproximado utilizando $\\pi \\approx 3,14$.",
+        "gabarito": "Respostas:\na) $20\\pi$ cm\nb) $62,8$ cm",
+        "gabarito_comentado": "A fórmula é $C = 2 \\pi r$. \na) $C = 2 \\cdot \\pi \\cdot 10 = 20\\pi$ cm. \nb) $C = 2 \\cdot 3,14 \\cdot 10 = 62,8$ cm.",
+        "tags": [
+            "Circunferência",
+            "Número Pi",
+            "Comprimento"
+        ],
+        "preDefinida": true
     },
-    "enunciado": "Considerando uma circunferência com raio de medida $r = 10$ cm, determine:\n\na) O valor exato do comprimento $C$.\nb) O valor aproximado utilizando $\\pi \\approx 3,14$.",
-    "gabarito": "Respostas:\na) $20\\pi$ cm\nb) $62,8$ cm",
-    "gabarito_comentado": "A fórmula é $C = 2 \\pi r$. \na) $C = 2 \\cdot \\pi \\cdot 10 = 20\\pi$ cm. \nb) $C = 2 \\cdot 3,14 \\cdot 10 = 62,8$ cm.",
-    "tags": ["Circunferência", "Número Pi", "Comprimento"],
-    "preDefinida": true
-  },
-  {
-    "id": "sys_mat_9_006",
-    "materia": "Matemática",
-    "ano": "9º Ano",
-    "tipo": "aberta",
-    "dificuldade": "Média",
-    "bncc": {
-      "codigo": "EF09MA04",
-      "description": "Resolver e elaborar problemas com números reais, inclusive em medições.",
-      "unidade_tematica": "Grandezas e Medidas"
+    {
+        "id": "sys_mat_9_006",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Média",
+        "bncc": {
+            "codigo": "EF09MA04",
+            "description": "Resolver e elaborar problemas com números reais, inclusive em medições.",
+            "unidade_tematica": "Grandezas e Medidas"
+        },
+        "enunciado": "Utilize a fórmula da área do círculo $A = \\pi \\cdot r^2$. Calcule a medida aproximada da área de um círculo com raio de $6$ m, adotando $\\pi \\approx 3$.",
+        "gabarito": "Resposta: $108$ m$^2$",
+        "gabarito_comentado": "Substituindo os valores: $A = 3 \\cdot (6)^2 = 3 \\cdot 36 = 108$ m$^2$.",
+        "tags": [
+            "Área do Círculo",
+            "Geometria",
+            "Cálculo de Área"
+        ],
+        "preDefinida": true
     },
-    "enunciado": "Utilize a fórmula da área do círculo $A = \\pi \\cdot r^2$. Calcule a medida aproximada da área de um círculo com raio de $6$ m, adotando $\\pi \\approx 3$.",
-    "gabarito": "Resposta: $108$ m$^2$",
-    "gabarito_comentado": "Substituindo os valores: $A = 3 \\cdot (6)^2 = 3 \\cdot 36 = 108$ m$^2$.",
-    "tags": ["Área do Círculo", "Geometria", "Cálculo de Área"],
-    "preDefinida": true
-  },
-  {
-    "id": "sys_mat_9_007",
-    "materia": "Matemática",
-    "ano": "9º Ano",
-    "tipo": "multipla",
-    "dificuldade": "Média",
-    "bncc": {
-      "codigo": "EF09MA01",
-      "description": "Explorar o conjunto dos números irracionais e o conceito de número real.",
-      "unidade_tematica": "Números"
+    {
+        "id": "sys_mat_9_007",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "bncc": {
+            "codigo": "EF09MA01",
+            "description": "Explorar o conjunto dos números irracionais e o conceito de número real.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Entre quais números inteiros consecutivos fica a raiz quadrada de $30$?",
+        "alternativas": [
+            "3 e 4",
+            "4 e 5",
+            "5 e 6",
+            "6 e 7",
+            "30 e 31"
+        ],
+        "correta": 2,
+        "gabarito_comentado": "Sabemos que $5^2 = 25$ e $6^2 = 36$. Como $25 < 30 < 36$, então $5 < \\sqrt{30} < 6$.",
+        "tags": [
+            "Raiz Quadrada",
+            "Números Inteiros",
+            "Estimativa"
+        ],
+        "preDefinida": true
     },
-    "enunciado": "Entre quais números inteiros consecutivos fica a raiz quadrada de $30$?",
-    "alternativas": [
-      "3 e 4",
-      "4 e 5",
-      "5 e 6",
-      "6 e 7",
-      "30 e 31"
-    ],
-    "correta": 2,
-    "gabarito_comentado": "Sabemos que $5^2 = 25$ e $6^2 = 36$. Como $25 < 30 < 36$, então $5 < \\sqrt{30} < 6$.",
-    "tags": ["Raiz Quadrada", "Números Inteiros", "Estimativa"],
-    "preDefinida": true
-  },
-  {
-    "id": "sys_mat_9_012",
-    "materia": "Matemática",
-    "ano": "9º Ano",
-    "tipo": "aberta",
-    "dificuldade": "Difícil",
-    "bncc": {
-      "codigo": "EF09MA04",
-      "description": "Resolver e elaborar problemas com números reais, inclusive em medições.",
-      "unidade_tematica": "Números"
+    {
+        "id": "sys_mat_9_012",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Difícil",
+        "bncc": {
+            "codigo": "EF09MA04",
+            "description": "Resolver e elaborar problemas com números reais, inclusive em medições.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Um terreno com formato quadrado tem medida de área de $90$ m$^2$. Determine a medida de perímetro aproximada (até os décimos) desse terreno.",
+        "gabarito": "Resposta: $38,0$ m",
+        "gabarito_comentado": "A área do quadrado é $L^2 = 90$, logo o lado $L = \\sqrt{90} \\approx 9,486...$. O perímetro é $4 \\times L$. $4 \\times 9,486 \\approx 37,94$. Arredondando para a primeira casa decimal temos $37,9$ ou $38,0$ dependendo da precisão da raiz utilizada ($\"9,5\" \\times 4 = 38$).",
+        "tags": [
+            "Área",
+            "Perímetro",
+            "Raiz Quadrada"
+        ],
+        "preDefinida": true
     },
-    "enunciado": "Um terreno com formato quadrado tem medida de área de $90$ m$^2$. Determine a medida de perímetro aproximada (até os décimos) desse terreno.",
-    "gabarito": "Resposta: $38,0$ m",
-    "gabarito_comentado": "A área do quadrado é $L^2 = 90$, logo o lado $L = \\sqrt{90} \\approx 9,486...$. O perímetro é $4 \\times L$. $4 \\times 9,486 \\approx 37,94$. Arredondando para a primeira casa decimal temos $37,9$ ou $38,0$ dependendo da precisão da raiz utilizada ($\"9,5\" \\times 4 = 38$).",
-    "tags": ["Área", "Perímetro", "Raiz Quadrada"],
-    "preDefinida": true
-  },
-  {
-    "id": "sys_mat_9_013",
-    "materia": "Matemática",
-    "ano": "9º Ano",
-    "tipo": "aberta",
-    "dificuldade": "Difícil",
-    "bncc": {
-      "codigo": "EF09MA01",
-      "description": "Explorar o conjunto dos números irracionais e o conceito de número real.",
-      "unidade_tematica": "Números"
+    {
+        "id": "sys_mat_9_013",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Difícil",
+        "bncc": {
+            "codigo": "EF09MA01",
+            "description": "Explorar o conjunto dos números irracionais e o conceito de número real.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Use a decomposição em fatores primos e determine se $\\sqrt{441}$ e $\\sqrt{720}$ são racionais ou irracionais. Calcule o valor caso seja racional.",
+        "gabarito": "Respostas: $\\sqrt{441} = 21$ (Racional); $\\sqrt{720}$ (Irracional).",
+        "gabarito_comentado": "$441 = 3^2 \\cdot 7^2$, logo $\\sqrt{441} = 3 \\cdot 7 = 21$. $720 = 2^4 \\cdot 3^2 \\cdot 5$, o fator 5 não tem expoente par, resultando em $12\\sqrt{5}$ (Irracional).",
+        "tags": [
+            "Fatores Primos",
+            "Raiz Exata",
+            "Irracionais"
+        ],
+        "preDefinida": true
     },
-    "enunciado": "Use a decomposição em fatores primos e determine se $\\sqrt{441}$ e $\\sqrt{720}$ são racionais ou irracionais. Calcule o valor caso seja racional.",
-    "gabarito": "Respostas: $\\sqrt{441} = 21$ (Racional); $\\sqrt{720}$ (Irracional).",
-    "gabarito_comentado": "$441 = 3^2 \\cdot 7^2$, logo $\\sqrt{441} = 3 \\cdot 7 = 21$. $720 = 2^4 \\cdot 3^2 \\cdot 5$, o fator 5 não tem expoente par, resultando em $12\\sqrt{5}$ (Irracional).",
-    "tags": ["Fatores Primos", "Raiz Exata", "Irracionais"],
-    "preDefinida": true
-  }
+    {
+        "id": "sys_mat_9_014",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "EF09MA02",
+            "descricao": "Reconhecer um número irracional como um número real cuja representação decimal é infinita e não periódica, e estimar a localização de alguns deles na reta numérica.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Classifique os números abaixo como Racionais ($\\mathbb{Q}$) ou Irracionais ($\\mathbb{I}$):\n\nI. $\\sqrt{2} \\approx 1,414...$\nII. $\\pi \\approx 3,14159...$\nIII. $\\sqrt{9} = 3$\nIV. $\\frac{7}{4} = 1,75$",
+        "gabarito": "I. Irracional ($\\mathbb{I}$)\nII. Irracional ($\\mathbb{I}$)\nIII. Racional ($\\mathbb{Q}$)\nIV. Racional ($\\mathbb{Q}$)",
+        "gabarito_comentado": "Números cuja representação decimal é infinita e não periódica, como $\\sqrt{2}$ e $\\pi$, são irracionais. Números que podem ser escritos na forma de fração de inteiros ou que possuem raiz exata (como $\\sqrt{9}=3$ e $7/4$) são racionais.",
+        "tags": [
+            "Classificação",
+            "Números Reais",
+            "Irracionais"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_015",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "EF09MA02",
+            "descricao": "Reconhecer um número irracional como um número real cuja representação decimal é infinita e não periódica, e estimar a localização de alguns deles na reta numérica.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "O que diferencia a escrita decimal de um número irracional em comparação a um número racional (como uma dízima periódica ou um decimal exato)?",
+        "gabarito": "A escrita decimal de um número irracional é infinita e não periódica.",
+        "gabarito_comentado": "Diferente dos racionais, os irracionais não apresentam um padrão de repetição (período) em suas infinitas casas decimais e não podem ser expressos como uma fração exata de dois números inteiros.",
+        "tags": [
+            "Representação Decimal",
+            "Conceito"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_016",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Média",
+        "bncc": {
+            "codigo": "EF09MA02",
+            "descricao": "Reconhecer um número irracional como um número real cuja representação decimal é infinita e não periódica, e estimar a localização de alguns deles na reta numérica.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Uma roda possui um diâmetro de $1$ metro. Estime o valor do comprimento da circunferência dessa roda utilizando a aproximação $\\pi \\approx 3,14$.",
+        "gabarito": "$3,14$ metros.",
+        "gabarito_comentado": "O comprimento da circunferência é dado por $C = \\pi \\times d$. Com $d = 1$ e $\\pi \\approx 3,14$, temos $C = 3,14 \\times 1 = 3,14$ m.",
+        "tags": [
+            "Circunferência",
+            "Estimativa",
+            "Geometria"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_017",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Média",
+        "bncc": {
+            "codigo": "EF09MA02",
+            "descricao": "Reconhecer um número irracional como um número real cuja representação decimal é infinita e não periódica, e estimar a localização de alguns deles na reta numérica.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "A diagonal de um quadrado com lado de $2$ metros é igual a $\\sqrt{8}$ metros. Estime o valor dessa diagonal localizando-a entre dois números decimais com uma casa de precisão.",
+        "gabarito": "Aproximadamente $2,8$ metros.",
+        "gabarito_comentado": "Sabemos que $2,8^2 = 7,84$ e $2,9^2 = 8,41$. Portanto, $\\sqrt{8}$ está entre $2,8$ e $2,9$.",
+        "tags": [
+            "Diagonal do Quadrado",
+            "Raiz Irracional",
+            "Estimativa"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_018",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Média",
+        "bncc": {
+            "codigo": "EF09MA02",
+            "descricao": "Reconhecer um número irracional como um número real cuja representação decimal é infinita e não periódica, e estimar a localização de alguns deles na reta numérica.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Uma pessoa percorre $3$ voltas ao redor de uma pista circular com raio de $7$ metros. Qual a distância total percorrida, considerando $\\pi \\approx 3,14$?",
+        "gabarito": "$131,88$ metros.",
+        "gabarito_comentado": "O comprimento de uma volta é $C = 2 \\pi r = 2 \\times 3,14 \\times 7 = 43,96$ m. Para 3 voltas: $3 \\times 43,96 = 131,88$ m.",
+        "tags": [
+            "Circunferência",
+            "Problema Contextualizado",
+            "Cálculo Real"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_019",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Média",
+        "bncc": {
+            "codigo": "EF09MA02",
+            "descricao": "Reconhecer um número irracional como um número real cuja representação decimal é infinita e não periódica, e estimar a localização de alguns deles na reta numérica.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Calcule o valor aproximado de $\\sqrt{20}$ com uma casa decimal e indique entre quais números inteiros ele está localizado na reta numérica.",
+        "gabarito": "Aproximadamente $4,4$; está entre os inteiros $4$ e $5$.",
+        "gabarito_comentado": "$4^2 = 16$ e $5^2 = 25$, logo está entre $4$ e $5$. Testando valores: $4,4^2 = 19,36$ e $4,5^2 = 20,25$.",
+        "tags": [
+            "Raiz Quadrada",
+            "Localização na Reta",
+            "Estimativa"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_020",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "EF09MA02",
+            "descricao": "Reconhecer um número irracional como um número real cuja representação decimal é infinita e não periódica, e estimar a localização de alguns deles na reta numérica.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Qual das opções abaixo apresenta a definição correta de um número irracional?",
+        "alternativas": [
+            "Um número cuja representação decimal é infinita e periódica.",
+            "Um número que pode ser escrito como a razão entre dois números inteiros.",
+            "Um número cuja representação decimal é infinita e não periódica.",
+            "Um número que pode ser escrito como uma dízima periódica simples.",
+            "Um número que resulta obrigatoriamente da divisão de dois números naturais."
+        ],
+        "correta": 2,
+        "gabarito_comentado": "De acordo com a BNCC, números irracionais são caracterizados por terem representação decimal infinita e não periódica, não podendo ser expressos como frações de inteiros.",
+        "tags": [
+            "Definição",
+            "Números Irracionais"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_021",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "EF09MA02",
+            "descricao": "Reconhecer um número irracional como um número real cuja representação decimal é infinita e não periódica, e estimar a localização de alguns deles na reta numérica.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Qual dos números abaixo é classificado como irracional?",
+        "alternativas": [
+            "$\\frac{5}{3}$",
+            "$\\sqrt{4}$",
+            "$\\sqrt{2}$",
+            "7",
+            "$\\sqrt{16}$"
+        ],
+        "correta": 2,
+        "gabarito_comentado": "$\\frac{5}{3}$ é fração (racional). $\\sqrt{4}=2$ e $\\sqrt{16}=4$ são inteiros (racionais). $7$ é racional. $\\sqrt{2}$ não possui raiz exata e sua dízima é não periódica, sendo irracional.",
+        "tags": [
+            "Classificação",
+            "Irracionais"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_022",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "EF09MA02",
+            "descricao": "Reconhecer um número irracional como um número real cuja representação decimal é infinita e não periódica, e estimar a localização de alguns deles na reta numérica.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "O número irracional $\\sqrt{50}$ está localizado entre quais números inteiros consecutivos na reta numérica?",
+        "alternativas": [
+            "7 e 8",
+            "6 e 7",
+            "5 e 6",
+            "8 e 9",
+            "9 e 10"
+        ],
+        "correta": 0,
+        "gabarito_comentado": "Como $7^2 = 49$ e $8^2 = 64$, o número $50$ está entre $49$ e $64$. Logo, $\\sqrt{50}$ está entre $7$ e $8$.",
+        "tags": [
+            "Reta Numérica",
+            "Localização",
+            "Raiz Quadrada"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_023",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "EF09MA02",
+            "descricao": "Reconhecer um número irracional como um número real cuja representação decimal é infinita e não periódica, e estimar a localização de alguns deles na reta numérica.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Qual das alternativas representa a aproximação mais usual do número irracional $\\pi$ com duas casas decimais?",
+        "alternativas": [
+            "$\\pi = 3,15$",
+            "$\\pi = 3,12$",
+            "$\\pi = 3,14$",
+            "$\\pi = 3,16$",
+            "$\\pi = 3,10$"
+        ],
+        "correta": 2,
+        "gabarito_comentado": "A constante $\\pi$ (razão entre o comprimento e o diâmetro de qualquer circunferência) é aproximadamente $3,14159...$, sendo $3,14$ a aproximação mais utilizada em cálculos escolares.",
+        "tags": [
+            "Número Pi",
+            "Aproximação"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_024",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "EF09MA03",
+            "descricao": "Efetuar cálculos com números reais, inclusive potências com expoentes fracionários.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Um arquiteto precisa calcular o lado de um quadrado cuja área é $81$ m$^2$. Qual é o comprimento de um lado do quadrado?",
+        "gabarito": "Resposta: $9$ metros.",
+        "gabarito_comentado": "A área do quadrado é dada por $A = L^2$. Portanto, $L = \\sqrt{81} = 9$ metros.",
+        "tags": [
+            "Área",
+            "Raiz Quadrada",
+            "Geometria"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_025",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Média",
+        "bncc": {
+            "codigo": "EF09MA03",
+            "descricao": "Efetuar cálculos com números reais, inclusive potências com expoentes fracionários.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Uma empresa está produzindo caixas cúbicas com volume de $64$ cm$^3$. Qual é o comprimento da aresta de cada caixa?",
+        "gabarito": "Resposta: $4$ cm.",
+        "gabarito_comentado": "O volume do cubo é dado por $V = a^3$. Assim, $a = \\sqrt[3]{64} = 4$, pois $4 \\times 4 \\times 4 = 64$.",
+        "tags": [
+            "Volume",
+            "Raiz Cúbica",
+            "Cubo"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_026",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Média",
+        "bncc": {
+            "codigo": "EF09MA03",
+            "descricao": "Efetuar cálculos com números reais, inclusive potências com expoentes fracionários.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Um terreno quadrado tem área de $196$ m$^2$. Sabendo que a área de um quadrado é $L^2$, encontre o valor do lado usando a representação de expoente fracionário $L = 196^{\\frac{1}{2}}$.",
+        "gabarito": "Resposta: $14$ metros.",
+        "gabarito_comentado": "A expressão $196^{\\frac{1}{2}}$ é equivalente a $\\sqrt{196}$. Calculando a raiz, temos $14$, pois $14^2 = 196$.",
+        "tags": [
+            "Expoente Fracionário",
+            "Radiciação",
+            "Potenciação"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_027",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Difícil",
+        "bncc": {
+            "codigo": "EF09MA03",
+            "descricao": "Efetuar cálculos com números reais, inclusive potências com expoentes fracionários.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Simplifique a expressão numérica a seguir utilizando as propriedades de potências com expoentes fracionários:\n\n$$27^{\\frac{2}{3}}$$",
+        "gabarito": "Resposta: $9$.",
+        "gabarito_comentado": "Podemos resolver de duas formas: $27^{\\frac{2}{3}} = (\\sqrt[3]{27})^2 = 3^2 = 9$ ou $27^{\\frac{2}{3}} = \\sqrt[3]{27^2} = \\sqrt[3]{729} = 9$.",
+        "tags": [
+            "Simplificação",
+            "Expoente Fracionário",
+            "Potência"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_028",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Média",
+        "bncc": {
+            "codigo": "EF09MA04",
+            "descricao": "Resolver e elaborar problemas com números reais, inclusive em notação científica, envolvendo diferentes operações.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Uma fábrica produz $3,5 \\times 10^6$ parafusos por mês. Quantos parafusos ela produz em um ano ($12$ meses)? Apresente o resultado em notação científica.",
+        "gabarito": "Resposta: $4,2 \\times 10^7$ parafusos.",
+        "gabarito_comentado": "Multiplicamos a produção mensal pelo número de meses: $(3,5 \\times 10^6) \\times 12 = 42 \\times 10^6$. Ajustando para a notação científica: $4,2 \\times 10^7$.",
+        "tags": [
+            "Notação Científica",
+            "Multiplicação",
+            "Produção"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_029",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Difícil",
+        "bncc": {
+            "codigo": "EF09MA04",
+            "descricao": "Resolver e elaborar problemas com números reais, inclusive em notação científica, envolvendo diferentes operações.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "A distância da Terra ao Sol é de aproximadamente $1,496 \\times 10^8$ km. Se uma nave viaja a uma velocidade constante de $1,5 \\times 10^4$ km/h, quantas horas, aproximadamente, levaria para percorrer essa distância? Apresente o cálculo utilizando as regras de potências.",
+        "gabarito": "Resposta: Aproximadamente $9.973,3$ horas.",
+        "gabarito_comentado": "Dividimos a distância pela velocidade: $\\frac{1,496 \\times 10^8}{1,5 \\times 10^4} = (1,496 \\div 1,5) \\times 10^{8-4} \\approx 0,99733 \\times 10^4 = 9.973,3$ horas.",
+        "tags": [
+            "Notação Científica",
+            "Divisão",
+            "Cinemática"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_030",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "EF09MA04",
+            "descricao": "Resolver e elaborar problemas com números reais, inclusive em notação científica, envolvendo diferentes operações.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "A distância da Terra até certo satélite é de $3,6 \\times 10^4$ km. Qual é essa distância escrita na forma decimal usual?",
+        "alternativas": [
+            "$360$ km",
+            "$3.600$ km",
+            "$36.000$ km",
+            "$360.000$ km",
+            "$3.600.000$ km"
+        ],
+        "correta": 2,
+        "gabarito_comentado": "O expoente 4 indica que devemos deslocar a vírgula 4 casas para a direita: $3,6 \\rightarrow 36.000$.",
+        "tags": [
+            "Notação Científica",
+            "Conversão"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_031",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "bncc": {
+            "codigo": "EF09MA05",
+            "descricao": "Resolver e elaborar problemas que envolvam porcentagens, com a ideia de aplicação de percentuais sucessivos e a determinação das taxas percentuais, preferencialmente com o uso de tecnologias digitais, no contexto da educação financeira.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Um produto que custa R$ 250,00 recebe um desconto de $20\\%$ e, logo em seguida, um novo desconto de $10\\%$ sobre o valor já reduzido. Qual é o preço final do produto?",
+        "alternativas": [
+            "R$ 170,00",
+            "R$ 175,00",
+            "R$ 180,00",
+            "R$ 185,00",
+            "R$ 190,00"
+        ],
+        "correta": 2,
+        "gabarito_comentado": "Primeiro desconto: $250 \\times 0,80 = 200$. Segundo desconto: $200 \\times 0,90 = 180$. Portanto, o preço final é R$ 180,00.",
+        "tags": [
+            "Porcentagem",
+            "Descontos Sucessivos",
+            "Educação Financeira"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_032",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "bncc": {
+            "codigo": "EF09MA05",
+            "descricao": "Resolver e elaborar problemas que envolvam porcentagens, com a ideia de aplicação de percentuais sucessivos e a determinação das taxas percentuais, preferencialmente com o uso de tecnologias digitais, no contexto da educação financeira.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "A aplicação sucessiva de dois descontos, um de $15\\%$ e outro de $10\\%$, equivale a um único desconto de:",
+        "alternativas": [
+            "$25,0\\%$",
+            "$23,5\\%$",
+            "$24,0\\%$",
+            "$26,0\\%$",
+            "$22,5\\%$"
+        ],
+        "correta": 1,
+        "gabarito_comentado": "Utilizando fatores de multiplicação: $0,85 \\times 0,90 = 0,765$. O desconto total é $1 - 0,765 = 0,235$, ou seja, $23,5\\%$.",
+        "tags": [
+            "Porcentagem",
+            "Taxas Equivalentes",
+            "Educação Financeira"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_033",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "multipla",
+        "dificuldade": "Difícil",
+        "bncc": {
+            "codigo": "EF09MA05",
+            "descricao": "Resolver e elaborar problemas que envolvam porcentagens, com a ideia de aplicação de percentuais sucessivos e a determinação das taxas percentuais, preferencialmente com o uso de tecnologias digitais, no contexto da educação financeira.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "O preço de um item é aumentado em $12\\%$ em um mês e reduzido em $12\\%$ no mês seguinte. Em relação ao valor inicial antes das duas variações, o que ocorreu com o preço final?",
+        "alternativas": [
+            "Houve um aumento de $1,44\\%$.",
+            "Não houve nenhuma variação.",
+            "Houve uma queda de $1,44\\%$.",
+            "Houve uma queda de $2,00\\%$.",
+            "Houve um aumento de $2,44\\%$."
+        ],
+        "correta": 2,
+        "gabarito_comentado": "Fator de aumento: $1,12$. Fator de redução: $0,88$. Resultado final: $1,12 \\times 0,88 = 0,9856$. A variação é $0,9856 - 1 = -0,0144$, indicando uma queda de $1,44\\%$.",
+        "tags": [
+            "Porcentagem",
+            "Variações Sucessivas",
+            "Educação Financeira"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_034",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "bncc": {
+            "codigo": "EF09MA05",
+            "descricao": "Resolver e elaborar problemas que envolvam porcentagens, com a ideia de aplicação de percentuais sucessivos e a determinação das taxas percentuais, preferencialmente com o uso de tecnologias digitais, no contexto da educação financeira.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Um item custava R$ 160,00 e passou a custar R$ 120,00 após um desconto único. Qual foi a taxa percentual de desconto aplicada?",
+        "alternativas": [
+            "$20\\%$",
+            "$25\\%$",
+            "$30\\%$",
+            "$40\\%$",
+            "$15\\%$"
+        ],
+        "correta": 1,
+        "gabarito_comentado": "A redução foi de R$ 40,00 ($160 - 120$). A taxa é calculada por $\\frac{40}{160} = 0,25$, o que equivale a $25\\%$.",
+        "tags": [
+            "Porcentagem",
+            "Taxa de Desconto",
+            "Matemática Comercial"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_035",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "bncc": {
+            "codigo": "EF09MA05",
+            "descricao": "Resolver e elaborar problemas que envolvam porcentagens, com a ideia de aplicação de percentuais sucessivos e a determinação das taxas percentuais, preferencialmente com o uso de tecnologias digitais, no contexto da educação financeira.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "A conta de um restaurante totalizou R$ 150,00. O cliente recebeu um desconto de $15\\%$ e, em seguida, foi aplicada uma taxa de serviço de $10\\%$ sobre o valor já com o desconto. O total a pagar foi de:",
+        "alternativas": [
+            "R$ 138,00",
+            "R$ 139,50",
+            "R$ 140,25",
+            "R$ 142,00",
+            "R$ 145,50"
+        ],
+        "correta": 2,
+        "gabarito_comentado": "Valor com desconto: $150 \\times 0,85 = 127,50$. Valor com taxa de serviço: $127,50 \\times 1,10 = 140,25$.",
+        "tags": [
+            "Porcentagem",
+            "Aumentos e Descontos",
+            "Educação Financeira"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_036",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Difícil",
+        "bncc": {
+            "codigo": "EF09MA04",
+            "descricao": "Resolver e elaborar problemas com números reais, inclusive em notação científica, envolvendo diferentes operações.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Uma bactéria se divide em duas a cada $20$ minutos. Partindo de uma única bactéria, quantas bactérias existirão após $8$ horas? Expresse o resultado em notação científica.",
+        "gabarito": "Resposta: $1,6777216 \\times 10^7$ bactérias (ou $2^{24}$).",
+        "gabarito_comentado": "8 horas possuem $8 \\times 60 = 480$ minutos. O número de divisões é $480 \\div 20 = 24$. Como a população dobra a cada divisão, temos $2^{24}$. $2^{10} \\approx 10^3$, $2^{24} = 16.777.216$. Em notação científica: $1,6777216 \\times 10^7$.",
+        "tags": [
+            "Potenciação",
+            "Notação Científica",
+            "Crescimento Exponencial"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_037",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Média",
+        "bncc": {
+            "codigo": "EF09MA04",
+            "descricao": "Resolver e elaborar problemas com números reais, inclusive em notação científica, envolvendo diferentes operações.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "A massa de uma gota de água é aproximadamente $3,0 \\times 10^{-5}$ kg. Determine a massa total de $2,0 \\times 10^3$ gotas, expressando o resultado em notação científica.",
+        "gabarito": "Resposta: $6,0 \\times 10^{-2}$ kg.",
+        "gabarito_comentado": "Multiplicamos a massa de uma gota pela quantidade: $(3,0 \\times 10^{-5}) \\times (2,0 \\times 10^3) = (3 \\times 2) \\times 10^{-5+3} = 6 \\times 10^{-2}$ kg.",
+        "tags": [
+            "Notação Científica",
+            "Multiplicação",
+            "Grandezas"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_038",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Média",
+        "bncc": {
+            "codigo": "EF09MA04",
+            "descricao": "Resolver e elaborar problemas com números reais, inclusive em notação científica, envolvendo diferentes operações.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Complete a tabela realizando as operações e apresentando o resultado final em notação científica:\n\na) $(2,5 \\times 10^3) + (4,7 \\times 10^3)$\nb) $(6,0 \\times 10^5) - (2,0 \\times 10^3)$\nc) $(3,0 \\times 10^4) \\times (2,0 \\times 10^3)$\nd) $(9,0 \\times 10^6) \\div (3,0 \\times 10^3)$",
+        "gabarito": "a) $7,2 \\times 10^3$; b) $5,98 \\times 10^5$; c) $6,0 \\times 10^7$; d) $3,0 \\times 10^3$.",
+        "gabarito_comentado": "a) $(2,5+4,7) \\times 10^3 = 7,2 \\times 10^3$.\nb) $600 \\times 10^3 - 2 \\times 10^3 = 598 \\times 10^3 = 5,98 \\times 10^5$.\nc) $(3 \\times 2) \\times 10^{4+3} = 6,0 \\times 10^7$.\nd) $(9 \\div 3) \\times 10^{6-3} = 3,0 \\times 10^3$.",
+        "tags": [
+            "Operações",
+            "Notação Científica",
+            "Potências"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_039",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Difícil",
+        "bncc": {
+            "codigo": "EF09MA05",
+            "descricao": "Resolver e elaborar problemas que envolvam porcentagens, com a ideia de aplicação de percentuais sucessivos e a determinação das taxas percentuais, preferencialmente com o uso de tecnologias digitais, no contexto da educação financeira.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Uma família com orçamento de R$ 4.500,00 economiza $20\\%$ mensalmente por $6$ meses. \n\na) Quanto a família economiza por mês?\nb) Qual o total economizado após $6$ meses (sem juros)?\nc) Se aplicarem o total acumulado em uma conta que rende $1,5\\%$ ao mês, qual será o valor total após o primeiro mês de rendimento?",
+        "gabarito": "a) R$ 900,00; b) R$ 5.400,00; c) R$ 5.481,00.",
+        "gabarito_comentado": "a) $4500 \\times 0,20 = 900$.\nb) $900 \\times 6 = 5400$.\nc) $5400 \\times 1,015 = 5481$.",
+        "tags": [
+            "Educação Financeira",
+            "Porcentagem",
+            "Investimento"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_040",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "bncc": {
+            "codigo": "EF09MA05",
+            "descricao": "Resolver e elaborar problemas que envolvam porcentagens, com a ideia de aplicação de percentuais sucessivos e a determinação das taxas percentuais, preferencialmente com o uso de tecnologias digitais, no contexto da educação financeira.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Para reduzir um valor de $ R\\$ 240,00$ para $ R\\$ 180,00$ com um desconto único, a taxa percentual deve ser:",
+        "alternativas": [
+            "$20\\%$",
+            "$22,5\\%$",
+            "$25\\%$",
+            "$30\\%$",
+            "$35\\%$"
+        ],
+        "correta": 2,
+        "gabarito_comentado": "O valor do desconto é $240 - 180 = 60$. A taxa é $\\frac{60}{240} = \\frac{1}{4} = 0,25$, ou seja, $25\\%$.",
+        "tags": [
+            "Taxa Percentual",
+            "Desconto",
+            "Matemática Comercial"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_041",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "bncc": {
+            "codigo": "EF09MA05",
+            "descricao": "Resolver e elaborar problemas que envolvam porcentagens, com a ideia de aplicação de percentuais sucessivos e a determinação das taxas percentuais, preferencialmente com o uso de tecnologias digitais, no contexto da educação financeira.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Um produto custa R$ 100,00. Em janeiro, aumenta 5%; em fevereiro, aumenta 8%. O preço ao fim de fevereiro e o aumento total equivalente são, respectivamente:",
+        "alternativas": [
+            "R$ 112,90 e $12,9\\%$",
+            "R$ 113,40 e $13,4\\%$",
+            "R$ 114,00 e $14,0\\%$",
+            "R$ 113,00 e $13,0\\%$",
+            "R$ 113,50 e $13,5\\%$"
+        ],
+        "correta": 1,
+        "gabarito_comentado": "Aumentos sucessivos: $100 \\times 1,05 = 105$. Depois $105 \\times 1,08 = 113,40$. O aumento total foi de R$ 13,40 sobre R$ 100,00 ($13,4\\%$).",
+        "tags": [
+            "Aumentos Sucessivos",
+            "Taxas Equivalentes",
+            "Porcentagem"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_042",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Média",
+        "bncc": {
+            "codigo": "EF09MA05",
+            "descricao": "Resolver e elaborar problemas que envolvam porcentagens, com a ideia de aplicação de percentuais sucessivos e a determinação das taxas percentuais, preferencialmente com o uso de tecnologias digitais, no contexto da educação financeira.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Uma empresa aumentou o salário de seus funcionários em $8\\%$. No ano seguinte, aplicou mais $12\\%$. Se o salário inicial era R$ 2.500,00, qual será o salário final?",
+        "gabarito": "Resposta: R$ 3.024,00.",
+        "gabarito_comentado": "Salário após o primeiro aumento: $2500 \\times 1,08 = 2700$. Salário final após o segundo aumento: $2700 \\times 1,12 = 3024$.",
+        "tags": [
+            "Salário",
+            "Aumentos Sucessivos",
+            "Cálculo Percentual"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_043",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Média",
+        "bncc": {
+            "codigo": "EF09MA05",
+            "descricao": "Resolver e elaborar problemas que envolvam porcentagens, com a ideia de aplicação de percentuais sucessivos e a determinação das taxas percentuais, preferencialmente com o uso de tecnologias digitais, no contexto da educação financeira.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Um imóvel foi valorizado em $15\\%$ em um ano e $10\\%$ no ano seguinte. Se o valor inicial do imóvel era R$ 300.000,00, qual será o valor ao final do segundo ano?",
+        "gabarito": "Resposta: R$ 379.500,00.",
+        "gabarito_comentado": "Valorização total: $300.000 \\times 1,15 \\times 1,10 = 345.000 \\times 1,10 = 379.500$.",
+        "tags": [
+            "Valorização",
+            "Porcentagem",
+            "Educação Financeira"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_044",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Média",
+        "bncc": {
+            "codigo": "EF09MA05",
+            "descricao": "Resolver e elaborar problemas que envolvam porcentagens, com a ideia de aplicação de percentuais sucessivos e a determinação das taxas percentuais, preferencialmente com o uso de tecnologias digitais, no contexto da educação financeira.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Um desconto de $20\\%$ seguido por mais $15\\%$ foi aplicado em um produto que custava R$ 800,00. Qual é o valor final?",
+        "gabarito": "Resposta: R$ 544,00.",
+        "gabarito_comentado": "Primeiro desconto: $800 \\times 0,80 = 640$. Segundo desconto: $640 \\times 0,85 = 544$.",
+        "tags": [
+            "Descontos Sucessivos",
+            "Educação Financeira"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "sys_mat_9_045",
+        "materia": "Matemática",
+        "ano": "9º Ano",
+        "tipo": "aberta",
+        "dificuldade": "Difícil",
+        "bncc": {
+            "codigo": "EF09MA05",
+            "descricao": "Resolver e elaborar problemas que envolvam porcentagens, com a ideia de aplicação de percentuais sucessivos e a determinação das taxas percentuais, preferencialmente com o uso de tecnologias digitais, no contexto da educação financeira.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Um investimento rende $3\\%$ ao mês em regime de juros compostos. Qual será o valor acumulado após $4$ meses para um capital inicial de R$ 1.000,00?",
+        "gabarito": "Resposta: R$ 1.125,51.",
+        "gabarito_comentado": "Fórmula: $M = C(1+i)^n$. $M = 1000 \\times (1,03)^4$. $1,03^4 \\approx 1,12550881$. $1000 \\times 1,1255... = 1125,51$.",
+        "tags": [
+            "Juros Compostos",
+            "Investimento",
+            "Educação Financeira"
+        ],
+        "preDefinida": true
+    }
 ]

@@ -50,6 +50,7 @@ export const horarioView = {
                         <span class="font-bold text-slate-600">Salvando e Sincronizando...</span>
                     </div>
                 </div>
+                ${!this.modoEdicao ? this.renderLegenda() : ''}
             </div>
         `;
         container.innerHTML = html;
@@ -209,11 +210,6 @@ export const horarioView = {
         if (config.length === 0) {
             return `<div class="p-12 text-center text-slate-400">Configure os horários primeiro.</div>`;
         }
-        const getTurmaOptions = (selectedId) => {
-            let opts = `<option value="">- Livre -</option>`;
-            opts += turmas.map(t => `<option value="${t.id}" ${t.id === selectedId ? 'selected' : ''}>${escapeHTML(t.nome)}</option>`).join('');
-            return opts;
-        };
         return `
             <div class="overflow-x-auto custom-scrollbar pb-4">
                 <table class="w-full text-left border-collapse min-w-[800px]">
@@ -231,14 +227,22 @@ export const horarioView = {
                                     <div class="text-[10px] font-medium text-slate-400">${slot.fim}</div>
                                 </td>
                                 ${diasSemana.map(diaKey => {
-            const turmaId = (grade[diaKey] && grade[diaKey][slotIdx]) || "";
-            const cardStyle = turmaId ? `bg-blue-50 border-blue-200 text-primary font-bold` : `text-slate-400`;
+            const aula = (grade[diaKey] && grade[diaKey][slotIdx]) || null;
+            const turmaId = aula?.turmaId || "";
+            const disciplina = aula?.disciplina || "";
+            const corDisciplina = model.coresComponentes[disciplina] || '#cbd5e1';
+            const cardStyle = turmaId ? `border-l-4 shadow-sm bg-white` : `text-slate-400 border-transparent`;
+
             return `
                                         <td class="p-2">
-                                            <select onchange="horarioView.atualizarGradeLocal('${diaKey}', ${slotIdx}, this.value)" 
-                                                    class="w-full p-2 rounded-lg border border-transparent hover:border-slate-200 text-xs outline-none cursor-pointer transition-all ${cardStyle} focus:ring-2 focus:ring-primary focus:bg-white text-center">
-                                                ${getTurmaOptions(turmaId)}
-                                            </select>
+                                            <div onclick="horarioView.abrirEditorAula('${diaKey}', ${slotIdx})" 
+                                                 class="w-full min-h-[50px] p-2 rounded-lg border border-slate-100 hover:border-primary/50 text-xs outline-none cursor-pointer transition-all flex flex-col justify-center text-center ${cardStyle}"
+                                                 style="${turmaId ? `border-left-color: ${corDisciplina}` : ''}">
+                                                ${turmaId ? `
+                                                    <div class="font-bold text-slate-800">${escapeHTML(this.getTurmaNome(turmaId))}</div>
+                                                    <div class="text-[9px] uppercase tracking-tighter opacity-70">${disciplina || 'Geral'}</div>
+                                                ` : '<span class="opacity-30 italic">Livre</span>'}
+                                            </div>
                                         </td>
                                     `;
         }).join('')}
@@ -249,20 +253,80 @@ export const horarioView = {
             </div>
         `;
     },
-    atualizarGradeLocal(dia, slotIdx, turmaId) {
+    getTurmaNome(id) {
+        const turma = model.state.turmas.find(t => t.id == id);
+        return turma ? turma.nome : id;
+    },
+    abrirEditorAula(dia, slotIdx) {
+        const grade = (this.tempState.grade && this.tempState.grade[this.turnoAtual]) || {};
+        const aulaAtual = (grade[dia] && grade[dia][slotIdx]) || { turmaId: '', disciplina: '' };
+        const html = `
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Turma</label>
+                    <select id="editor-turma" class="w-full p-3 border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-primary">
+                        <option value="">- Livre / Janela -</option>
+                        ${model.state.turmas.map(t => `<option value="${t.id}" ${t.id == aulaAtual.turmaId ? 'selected' : ''}>${t.nome}</option>`).join('')}
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Disciplina / Componente</label>
+                    <select id="editor-disciplina" class="w-full p-3 border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-primary">
+                        <option value="">- Geral -</option>
+                        ${Object.keys(model.coresComponentes).map(disc => `
+                            <option value="${disc}" ${disc === aulaAtual.disciplina ? 'selected' : ''}>${disc}</option>
+                        `).join('')}
+                    </select>
+                </div>
+                <div class="pt-4 flex gap-2">
+                    <button onclick="controller.closeModal()" class="flex-1 py-3 font-bold text-slate-500 bg-slate-100 rounded-xl">Cancelar</button>
+                    <button onclick="horarioView.confirmarAula('${dia}', ${slotIdx})" class="flex-1 py-3 font-bold text-white bg-primary rounded-xl shadow-lg">Confirmar</button>
+                </div>
+            </div>
+        `;
+        controller.openModal('Definir Aula', html);
+    },
+    confirmarAula(dia, slotIdx) {
+        const turmaId = document.getElementById('editor-turma').value;
+        const disciplina = document.getElementById('editor-disciplina').value;
+        
+        this.atualizarGradeLocal(dia, slotIdx, { turmaId, disciplina });
+        controller.closeModal();
+    },
+    atualizarGradeLocal(dia, slotIdx, aulaObj) {
         if (!this.tempState.grade) this.tempState.grade = {};
         if (!this.tempState.grade[this.turnoAtual]) this.tempState.grade[this.turnoAtual] = {};
         if (!this.tempState.grade[this.turnoAtual][dia]) this.tempState.grade[this.turnoAtual][dia] = [];
         while (this.tempState.grade[this.turnoAtual][dia].length <= slotIdx) {
             this.tempState.grade[this.turnoAtual][dia].push(null);
         }
-        this.tempState.grade[this.turnoAtual][dia][slotIdx] = turmaId;
+        this.tempState.grade[this.turnoAtual][dia][slotIdx] = aulaObj.turmaId ? aulaObj : null;
         this.hasUnsavedChanges = true;
-        const btnSalvar = document.querySelector('button .fa-save')?.parentElement;
-        if (btnSalvar) {
-            btnSalvar.classList.add('ring-2', 'ring-orange-300', 'ring-offset-2');
-            btnSalvar.classList.add('animate-pulse');
-            setTimeout(() => btnSalvar.classList.remove('animate-pulse'), 500);
-        }
+        this.render('view-container');
+    },
+    renderLegenda() {
+        const grade = (this.tempState.grade && this.tempState.grade[this.turnoAtual]) || {};
+        const disciplinasUsadas = new Set();
+        Object.values(grade).forEach(dia => {
+            dia.forEach(aula => {
+                if (aula && aula.disciplina) disciplinasUsadas.add(aula.disciplina);
+            });
+        });
+        if (disciplinasUsadas.size === 0) return '';
+        return `
+            <div class="mt-8 p-6 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                <h4 class="text-[10px] font-black text-slate-400 uppercase mb-4 tracking-widest flex items-center gap-2">
+                    <i class="fas fa-palette"></i> Legenda de Componentes (BNCC)
+                </h4>
+                <div class="flex flex-wrap gap-x-6 gap-y-3">
+                    ${Array.from(disciplinasUsadas).map(disc => `
+                        <div class="flex items-center gap-2">
+                            <div class="w-3 h-3 rounded-full shadow-sm" style="background-color: ${model.coresComponentes[disc]}"></div>
+                            <span class="text-xs font-bold text-slate-600">${disc}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
     }
 };

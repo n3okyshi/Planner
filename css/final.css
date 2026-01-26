@@ -1331,6 +1331,25 @@ main.expanded-content {
   color: #10b981;
 }
 
+#toast-container {
+  position: fixed !important;
+  top: 24px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 999999 !important;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  align-items: center;
+  pointer-events: none;
+  width: 100%;
+}
+
+#toast-container>div {
+  pointer-events: auto;
+  /* Permite clicar no botão dentro do toast */
+}
+
 @property --tw-translate-x {
   syntax: "*";
   inherits: false;

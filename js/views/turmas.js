@@ -3,6 +3,8 @@ import { controller } from '../controller.js';
 
 export const turmasView = {
     confirmandoExclusao: null,
+    periodoAtivo: 1, // Controle interno do período visualizado
+
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
@@ -36,10 +38,11 @@ export const turmasView = {
         `;
         container.innerHTML = html;
     },
+
     _renderCardTurma(turma) {
         return `
             <div onclick="controller.views['turmas'].renderDetalhesTurma('view-container', '${turma.id}')" 
-                 class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 cursor-pointer hover:shadow-md hover:border-primary/30 transition group relative overflow-hidden">
+                  class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 cursor-pointer hover:shadow-md hover:border-primary/30 transition group relative overflow-hidden">
                 <div class="flex justify-between items-start mb-4">
                     <div class="w-12 h-12 rounded-xl bg-blue-50 text-primary flex items-center justify-center text-xl font-bold group-hover:bg-primary group-hover:text-white transition-colors">
                         ${turma.serie ? turma.serie.replace(/\D/g, '') : '?'}
@@ -55,14 +58,17 @@ export const turmasView = {
             </div>
         `;
     },
+
     iniciarExclusao(id) {
         this.confirmandoExclusao = id;
         this.renderDetalhesTurma('view-container', id);
     },
+
     cancelarExclusao(id) {
         this.confirmandoExclusao = null;
         this.renderDetalhesTurma('view-container', id);
     },
+
     gerarBotaoExcluir(turmaId) {
         if (this.confirmandoExclusao === turmaId) {
             return `
@@ -87,10 +93,18 @@ export const turmasView = {
             </button>
         `;
     },
+
     renderDetalhesTurma(container, turmaId) {
         if (typeof container === 'string') container = document.getElementById(container);
         const turma = model.state.turmas.find(t => t.id == turmaId);
         if (!turma) return controller.navigate('turmas');
+
+        const tipoConfig = model.state.userConfig.periodType || 'bimestre';
+        const numPeriodos = tipoConfig === 'bimestre' ? 4 : tipoConfig === 'trimestre' ? 3 : 2;
+
+        // FILTRO: Avaliações que pertencem ao período ativo
+        const avaliacoesFiltradas = (turma.avaliacoes || []).filter(av => (av.periodo || 1) == this.periodoAtivo);
+
         const stats = this._calcularEstatisticas(turma);
         let gradientParts = [];
         let currentPerc = 0;
@@ -112,6 +126,7 @@ export const turmasView = {
         const gradientStyle = gradientParts.length > 0
             ? `background: conic-gradient(${gradientParts.join(', ')});`
             : 'background: #f1f5f9;';
+        
         const html = `
             <div class="fade-in pb-20">
                 <div class="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-8">
@@ -126,6 +141,10 @@ export const turmasView = {
                         </div>
                     </div>
                     <div class="flex gap-2 items-center">
+                         <button onclick="controller.navigate('notas-anuais')" class="bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl font-bold hover:bg-indigo-100 transition shadow-sm text-sm h-10 border border-indigo-100">
+                            <i class="fas fa-award mr-2"></i> Notas Anuais
+                        </button>
+
                          <button onclick="controller.openAddAvaliacao('${turmaId}')" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold hover:bg-slate-50 transition shadow-sm text-sm h-10">
                             <i class="fas fa-file-alt mr-2"></i> Nova Avaliação
                         </button>
@@ -135,6 +154,16 @@ export const turmasView = {
                         ${this.gerarBotaoExcluir(turmaId)}
                     </div>
                 </div>
+
+                <div class="flex items-center gap-2 mb-6 p-1 bg-slate-100 rounded-2xl w-fit border border-slate-200">
+                    ${Array.from({length: numPeriodos}, (_, i) => `
+                        <button onclick="turmasView.mudarPeriodo('${turmaId}', ${i+1})" 
+                                class="px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${this.periodoAtivo === (i+1) ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}">
+                            ${i+1}º ${tipoConfig.slice(0,3)}
+                        </button>
+                    `).join('')}
+                </div>
+
                 <div class="bg-white rounded-3xl p-6 shadow-sm border border-slate-100 mb-8 relative overflow-hidden">
                     <h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest mb-6 border-b border-slate-100 pb-2">
                         <i class="fas fa-chart-pie mr-2"></i> Índice de Desempenho da Turma
@@ -181,8 +210,8 @@ export const turmasView = {
                 </div>
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                     <div class="p-4 bg-slate-50 border-b border-slate-200 flex justify-between items-center">
-                        <h3 class="font-bold text-slate-700 text-sm">Diário de Notas</h3>
-                        <div class="text-xs text-slate-400">
+                        <h3 class="font-bold text-slate-700 text-sm">Diário de Notas - ${this.periodoAtivo}º Período</h3>
+                        <div class="text-xs text-slate-400 uppercase font-bold tracking-tighter">
                              Calculado base 10
                         </div>
                     </div>
@@ -192,18 +221,21 @@ export const turmasView = {
                                 <tr class="bg-slate-50/50">
                                     <th class="p-4 text-xs font-bold text-slate-500 uppercase w-10">#</th>
                                     <th class="p-4 text-xs font-bold text-slate-500 uppercase min-w-[200px]">Nome do Aluno</th>
-                                    ${turma.avaliacoes.map(av => `
+                                    ${avaliacoesFiltradas.map(av => `
                                         <th class="p-2 text-center min-w-[100px] group relative">
                                             <div class="flex flex-col items-center justify-center">
                                                 <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide truncate max-w-[80px]" title="${av.nome}">${av.nome}</span>
-                                                <span class="text-[9px] text-slate-300 bg-slate-100 px-1.5 rounded mt-0.5">Max: ${av.max}</span>
+                                                <div class="flex items-center gap-1 mt-0.5">
+                                                    <span class="text-[9px] text-slate-400 bg-slate-100 px-1.5 rounded">${av.periodo || 1}º Per.</span>
+                                                    <span class="text-[9px] text-slate-300">Max: ${av.max}</span>
+                                                </div>
                                             </div>
                                             <button onclick="controller.deleteAvaliacao('${turmaId}', '${av.id}')" class="absolute top-1 right-1 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition">
                                                 <i class="fas fa-times"></i>
                                             </button>
                                         </th>
                                     `).join('')}
-                                    <th class="p-4 text-xs font-bold text-slate-500 uppercase text-center w-24 bg-slate-50 border-l border-slate-100">Média</th>
+                                    <th class="p-4 text-xs font-bold text-slate-500 uppercase text-center w-24 bg-slate-50 border-l border-slate-100">Soma Per.</th>
                                     <th class="p-4 w-10"></th>
                                 </tr>
                             </thead>
@@ -211,15 +243,9 @@ export const turmasView = {
                                 ${turma.alunos.length === 0
                 ? '<tr><td colspan="100%" class="p-8 text-center text-slate-400 text-sm">Nenhum aluno cadastrado.</td></tr>'
                 : turma.alunos.map((aluno, idx) => {
-                    const mediaAluno = this._calcularMediaAluno(aluno, turma.avaliacoes);
-                    let corNota = "text-slate-400";
-                    if (mediaAluno !== null) {
-                        if (mediaAluno < 3) corNota = "text-score-red bg-red-50";
-                        else if (mediaAluno < 5) corNota = "text-score-orange bg-orange-50";
-                        else if (mediaAluno < 7) corNota = "text-score-blue bg-blue-50";
-                        else if (mediaAluno < 9) corNota = "text-score-cyan bg-cyan-50";
-                        else corNota = "text-score-green bg-emerald-50";
-                    }
+                    // Calcula a soma apenas das notas do período que está filtrado
+                    const somaPeriodo = avaliacoesFiltradas.reduce((acc, av) => acc + (Number(aluno.notas?.[av.id]) || 0), 0);
+                    
                     return `
                                             <tr class="hover:bg-slate-50 transition">
                                                 <td class="p-4 text-xs font-bold text-slate-400">${idx + 1}</td>
@@ -227,21 +253,21 @@ export const turmasView = {
                                                     <div class="font-bold text-slate-700 text-sm">${escapeHTML(aluno.nome)}</div>
                                                 </td>
                                                 
-                                                ${turma.avaliacoes.map(av => {
+                                                ${avaliacoesFiltradas.map(av => {
                         const nota = aluno.notas && aluno.notas[av.id] !== undefined ? aluno.notas[av.id] : '';
                         return `
                                                         <td class="p-2 text-center">
                                                             <input type="number" 
-                                                                   value="${nota}" 
-                                                                   placeholder="-"
-                                                                   onchange="controller.updateNota('${turmaId}', '${aluno.id}', '${av.id}', this.value)"
-                                                                   class="w-16 text-center bg-white border border-slate-200 rounded-lg py-1.5 text-sm font-bold text-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-slate-200">
+                                                                value="${nota}" 
+                                                                placeholder="-"
+                                                                onchange="controller.updateNota('${turmaId}', '${aluno.id}', '${av.id}', this.value)"
+                                                                class="w-16 text-center bg-white border border-slate-200 rounded-lg py-1.5 text-sm font-bold text-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-slate-200">
                                                         </td>
                                                     `;
                     }).join('')}
                                                 <td class="p-2 text-center border-l border-slate-100 bg-slate-50/30">
-                                                    <div class="w-12 mx-auto py-1 rounded-lg font-black text-sm ${corNota}">
-                                                        ${mediaAluno !== null ? mediaAluno.toFixed(1) : '-'}
+                                                    <div class="w-12 mx-auto py-1 rounded-lg font-black text-sm text-primary">
+                                                        ${somaPeriodo.toFixed(1)}
                                                     </div>
                                                 </td>
                                                 <td class="p-4 text-center">
@@ -265,6 +291,12 @@ export const turmasView = {
         `;
         container.innerHTML = html;
     },
+
+    mudarPeriodo(turmaId, num) {
+        this.periodoAtivo = num;
+        this.renderDetalhesTurma('view-container', turmaId);
+    },
+
     _calcularMediaAluno(aluno, avaliacoes) {
         if (!aluno.notas || avaliacoes.length === 0) return null;
         let totalPontos = 0;
@@ -280,6 +312,7 @@ export const turmasView = {
         if (!temNota || totalMax === 0) return null;
         return (totalPontos / totalMax) * 10;
     },
+
     _calcularEstatisticas(turma) {
         let stats = {
             totalAlunos: 0,
@@ -311,5 +344,40 @@ export const turmasView = {
         stats.totalAlunos = alunosComNota;
         stats.mediaGeral = alunosComNota > 0 ? (somaMedias / alunosComNota).toFixed(1) : '-';
         return stats;
+    },
+
+    renderBoletimAnual(turmaId) {
+        const turma = model.state.turmas.find(t => t.id == turmaId);
+        if (!turma) return "";
+        const tipo = model.state.userConfig.periodType;
+        const colunas = tipo === 'bimestre' ? 4 : tipo === 'trimestre' ? 3 : 2;
+
+        return `
+        <table class="w-full text-sm text-left border border-slate-100">
+            <thead class="bg-slate-50 text-slate-500 uppercase text-[10px] font-bold">
+                <tr>
+                    <th class="p-4">Aluno</th>
+                    ${Array.from({ length: colunas }, (_, i) => `<th class="p-4 text-center">${i + 1}º</th>`).join('')}
+                    <th class="p-4 text-center text-primary">Média</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${turma.alunos.map(aluno => {
+            const resumo = model.getResumoAcademico(turma.id, aluno.id);
+            if(!resumo) return "";
+            return `
+                        <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
+                            <td class="p-4 font-medium text-slate-700">${aluno.nome}</td>
+                            ${Array.from({length: colunas}, (_, i) => {
+                                const nota = resumo.periodos[i+1] || 0;
+                                return `<td class="p-4 text-center ${nota < 6 ? 'text-red-500' : 'text-slate-600'}">${nota.toFixed(1)}</td>`;
+                            }).join('')}
+                            <td class="p-4 text-center font-bold text-primary">${resumo.mediaAnual.toFixed(1)}</td>
+                        </tr>
+                    `;
+        }).join('')}
+            </tbody>
+        </table>
+    `;
     }
 };

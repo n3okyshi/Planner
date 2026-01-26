@@ -1,9 +1,9 @@
 import { model } from '../model.js';
-import { controller } from '../controller.js'; 
+import { controller } from '../controller.js';
 import { firebaseService } from '../firebase-service.js';
 
 export const salaView = {
-    alunoSelecionadoParaMover: null, 
+    alunoSelecionadoParaMover: null,
     currentTurmaId: null,
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
@@ -27,9 +27,9 @@ export const salaView = {
                     <select id="map-select-turma" onchange="salaView.carregarMapa(this.value)" 
                             class="md:col-span-3 border border-slate-200 p-4 rounded-xl bg-white focus:border-primary outline-none font-medium transition-all shadow-sm cursor-pointer">
                         ${turmas.length > 0
-                            ? turmas.map(t => `<option value="${t.id}" ${t.id == this.currentTurmaId ? 'selected' : ''}>${escapeHTML(t.nome)}</option>`).join('')
-                            : '<option value="">Nenhuma turma cadastrada</option>'
-                        }
+                ? turmas.map(t => `<option value="${t.id}" ${t.id == this.currentTurmaId ? 'selected' : ''}>${escapeHTML(t.nome)}</option>`).join('')
+                : '<option value="">Nenhuma turma cadastrada</option>'
+            }
                     </select>
                     <button onclick="window.print()" class="bg-slate-800 text-white rounded-xl font-bold hover:bg-black transition flex items-center justify-center gap-2 shadow-md">
                         <i class="fas fa-print"></i> Imprimir
@@ -94,8 +94,8 @@ export const salaView = {
                     </div>
                   `
                 : `<span class="text-[10px] font-bold text-slate-300 pointer-events-none">${i}</span>`;
-            const dragAttributes = aluno 
-                ? `draggable="true" ondragstart="salaView.handleDragStart(event, '${aluno.id}', ${i})"` 
+            const dragAttributes = aluno
+                ? `draggable="true" ondragstart="salaView.handleDragStart(event, '${aluno.id}', ${i})"`
                 : '';
             assentosHtml += `
                 <div id="seat-${i}"
@@ -123,7 +123,7 @@ export const salaView = {
         this.alunoSelecionadoParaMover = null;
     },
     handleDragOver(e) {
-        e.preventDefault(); 
+        e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
         const seat = e.target.closest('[id^="seat-"]');
         if (seat) {
@@ -142,8 +142,8 @@ export const salaView = {
         if (seat) seat.classList.remove('seat-drag-over');
         try {
             const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-            if (data.turmaId !== this.currentTurmaId) return; 
-            if (data.posicaoOrigem === posicaoDestino) return; 
+            if (data.turmaId !== this.currentTurmaId) return;
+            if (data.posicaoOrigem === posicaoDestino) return;
             model.movimentarAluno(this.currentTurmaId, data.alunoId, posicaoDestino);
             this.carregarMapa(this.currentTurmaId);
         } catch (err) {
@@ -184,17 +184,19 @@ export const salaView = {
                 <p class="text-sm text-slate-500 mb-4">Selecione um aluno para sentar aqui:</p>
                 <div class="max-h-[300px] overflow-y-auto custom-scrollbar space-y-2 mb-4 pr-1">
                     ${alunosSemLugar.length > 0
-                        ? alunosSemLugar
-                            .sort((a, b) => a.nome.localeCompare(b.nome))
-                            .map(aluno => `
+                ? alunosSemLugar
+                    .sort((a, b) => a.nome.localeCompare(b.nome))
+                    .map(aluno => `
                                 <button onclick="salaView.salvarPosicaoManual('${turmaId}', '${aluno.id}', ${posicao})" 
-                                        class="w-full text-left p-3 rounded-xl hover:bg-blue-50 hover:text-primary transition font-medium border border-slate-100 flex justify-between items-center group">
-                                    <span>${escapeHTML(aluno.nome)}</span>
-                                    <i class="fas fa-chair opacity-0 group-hover:opacity-50"></i>
-                                </button>
+            class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border-2 border-transparent hover:border-primary hover:bg-blue-50 transition-all group">
+        <div class="w-8 h-8 rounded-full bg-white flex items-center justify-center text-primary shadow-sm">
+            <i class="fas fa-user-plus text-xs"></i>
+        </div>
+        <span class="font-bold text-slate-700 text-sm">${escapeHTML(aluno.nome)}</span>
+    </button>
                             `).join('')
-                        : '<div class="text-center text-slate-400 text-xs py-4">Não há alunos sem lugar definido.</div>'
-                    }
+                : '<div class="text-center text-slate-400 text-xs py-4">Não há alunos sem lugar definido.</div>'
+            }
                 </div>
                 ${alunoAtual ? `
                     <div class="pt-4 border-t border-slate-100">
@@ -209,14 +211,8 @@ export const salaView = {
         `);
     },
     salvarPosicaoManual(turmaId, alunoId, posicao) {
-        if (alunoId === null) {
-            const turma = model.state.turmas.find(t => t.id == turmaId);
-            const aluno = turma.alunos.find(a => a.posicao === posicao);
-            if(aluno) {
-                delete aluno.posicao;
-                model.saveLocal();
-                if(model.currentUser) firebaseService.saveAluno(model.currentUser.uid, turmaId, aluno);
-            }
+        if (alunoId === null || alunoId === "null") {
+            model.desocuparPosicao(turmaId, posicao);
         } else {
             model.movimentarAluno(turmaId, alunoId, posicao);
         }

@@ -187,15 +187,21 @@ main.expanded-content {
    ========================================= */
 
 #toast-container {
-    position: fixed;
-    top: 1.5rem;
-    right: 1.5rem;
-    z-index: 100;
+    position: fixed !important;
+    top: 24px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    z-index: 999999 !important;
     display: flex;
     flex-direction: column;
-    gap: 0.75rem;
+    gap: 12px;
+    align-items: center;
     pointer-events: none;
-    /* Permite clicar através do container vazio */
+    width: 100%;
+}
+
+#toast-container > div {
+    pointer-events: auto; /* Permite clicar no botão dentro do toast */
 }
 
 .toast-item {
@@ -378,6 +384,7 @@ main.expanded-content {
     width: auto;
     max-width: 90vw;
 }
+
 /* ==========================================================================
    ESTILOS DE IMPRESSÃO (CORRIGIDO)
    ========================================================================== */

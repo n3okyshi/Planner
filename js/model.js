@@ -85,6 +85,7 @@ export const model = {
             }
         }
     },
+
     async loadUserData() {
         if (!firebaseService.auth.currentUser) return;
         this.currentUser = firebaseService.auth.currentUser;
@@ -119,6 +120,7 @@ export const model = {
             this.onCloudUpdate(newData);
         });
     },
+
     onCloudUpdate(newData) {
         if (!newData) return;
         const horarioMudou = JSON.stringify(this.state.horario) !== JSON.stringify(newData.horario);
@@ -132,9 +134,11 @@ export const model = {
             }
         }
     },
+
     saveLocal() {
         localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.state));
     },
+
     saveCloudRoot() {
         if (!this.isCloudSynced) return Promise.reject("Sincronização pendente");
         if (this.currentUser) {
@@ -151,6 +155,7 @@ export const model = {
         }
         return Promise.resolve(false);
     },
+
     updateStatusCloud(html, colorClass) {
         const el = document.getElementById('cloud-status');
         if (el) {
@@ -158,11 +163,13 @@ export const model = {
             el.className = `flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-slate-100 text-xs font-bold transition-all shadow-sm ${colorClass}`;
         }
     },
+
     updateConfig(key, value) {
         this.state.userConfig[key] = value;
         this.saveLocal();
         this.saveCloudRoot();
     },
+
     addTurma(nome, nivel, serie, identificador) {
         const novaTurma = {
             id: String(Date.now()),
@@ -177,11 +184,13 @@ export const model = {
         this.saveLocal();
         if (this.currentUser) firebaseService.saveTurma(this.currentUser.uid, novaTurma);
     },
+
     deleteTurma(id) {
         this.state.turmas = this.state.turmas.filter(t => t.id != id);
         this.saveLocal();
         if (this.currentUser) firebaseService.deleteTurma(this.currentUser.uid, id);
     },
+
     addAluno(turmaId, nomeAluno) {
         const turma = this.state.turmas.find(t => t.id == turmaId);
         if (turma && nomeAluno.trim()) {
@@ -196,6 +205,7 @@ export const model = {
             if (this.currentUser) firebaseService.saveAluno(this.currentUser.uid, turmaId, novoAluno);
         }
     },
+
     deleteAluno(turmaId, alunoId) {
         const turma = this.state.turmas.find(t => t.id == turmaId);
         if (turma) {
@@ -204,15 +214,41 @@ export const model = {
             if (this.currentUser) firebaseService.deleteAluno(this.currentUser.uid, turmaId, alunoId);
         }
     },
-    addAvaliacao(turmaId, nome, max) {
+
+    addAvaliacao(turmaId, nome, max, periodo) {
         const turma = this.state.turmas.find(t => t.id == turmaId);
         if (turma) {
-            const novaAv = { id: String(Date.now()), nome, max: Number(max) };
+            const novaAv = {
+                id: String(Date.now()),
+                nome: nome.trim(),
+                max: Number(max),
+                periodo: Number(periodo) || 1
+            };
             turma.avaliacoes.push(novaAv);
             this.saveLocal();
             if (this.currentUser) firebaseService.saveAvaliacao(this.currentUser.uid, turmaId, novaAv);
         }
     },
+
+    migrarAvaliacoesAntigas() {
+        let houveMudanca = false;
+        this.state.turmas.forEach(turma => {
+            if (turma.avaliacoes) {
+                turma.avaliacoes.forEach(av => {
+                    if (av.periodo === undefined) {
+                        av.periodo = 1;
+                        houveMudanca = true;
+                    }
+                });
+            }
+        });
+        if (houveMudanca) {
+            this.saveLocal();
+            this.saveCloudRoot();
+            console.log("✅ Migração de períodos concluída.");
+        }
+    },
+
     deleteAvaliacao(turmaId, avId) {
         const turma = this.state.turmas.find(t => t.id == turmaId);
         if (turma) {
@@ -222,6 +258,7 @@ export const model = {
             if (this.currentUser) firebaseService.deleteAvaliacao(this.currentUser.uid, turmaId, avId);
         }
     },
+
     updateNota(turmaId, alunoId, avId, valor) {
         const turma = this.state.turmas.find(t => t.id == turmaId);
         if (turma) {
@@ -234,6 +271,7 @@ export const model = {
             }
         }
     },
+
     copiarPlanejamentoEntreTurmas(idOrigem, idDestino) {
         const origem = this.state.turmas.find(t => t.id == idOrigem);
         const destino = this.state.turmas.find(t => t.id == idDestino);
@@ -244,6 +282,7 @@ export const model = {
         if (this.currentUser) firebaseService.saveTurma(this.currentUser.uid, destino);
         return true;
     },
+
     addHabilidadePlanejamento(turmaId, periodoIdx, habilidade) {
         const turma = this.state.turmas.find(t => t.id == turmaId);
         if (!turma) return;
@@ -256,6 +295,7 @@ export const model = {
             if (this.currentUser) firebaseService.saveTurma(this.currentUser.uid, turma);
         }
     },
+
     removeHabilidadePlanejamento(turmaId, periodoIdx, codigoHabilidade) {
         const turma = this.state.turmas.find(t => t.id == turmaId);
         if (!turma || !turma.planejamento || !turma.planejamento[periodoIdx]) return;
@@ -263,6 +303,7 @@ export const model = {
         this.saveLocal();
         if (this.currentUser) firebaseService.saveTurma(this.currentUser.uid, turma);
     },
+
     addHabilidadeMensal(turmaId, mes, habilidade) {
         const turma = this.state.turmas.find(t => t.id == turmaId);
         if (!turma) return;
@@ -274,6 +315,7 @@ export const model = {
             if (this.currentUser) firebaseService.saveTurma(this.currentUser.uid, turma);
         }
     },
+
     removeHabilidadeMensal(turmaId, mes, codigo) {
         const turma = this.state.turmas.find(t => t.id == turmaId);
         if (turma && turma.planejamentoMensal && turma.planejamentoMensal[mes]) {
@@ -282,12 +324,14 @@ export const model = {
             if (this.currentUser) firebaseService.saveTurma(this.currentUser.uid, turma);
         }
     },
+
     setEvento(data, tipo, descricao) {
         if (!tipo) delete this.state.eventos[data];
         else this.state.eventos[data] = { tipo, descricao };
         this.saveLocal();
         this.saveCloudRoot();
     },
+
     getPeriodoPorData(dataIso) {
         const periodosDatas = this.state.periodosDatas || {};
         const tipo = this.state.userConfig.periodType || 'bimestre';
@@ -295,6 +339,7 @@ export const model = {
         const index = periodos.findIndex(p => dataIso >= p.inicio && dataIso <= p.fim);
         return index !== -1 ? String(index + 1) : "1";
     },
+
     savePlanoDiario(data, turmaId, conteudo) {
         if (!this.state.planosDiarios) this.state.planosDiarios = {};
         if (!this.state.planosDiarios[data]) this.state.planosDiarios[data] = {};
@@ -302,7 +347,9 @@ export const model = {
         this.saveLocal();
         this.saveCloudRoot();
     },
+
     getPlanoDiario(data, turmaId) { return this.state.planosDiarios?.[data]?.[turmaId] || null; },
+
     toggleFrequencia(turmaId, alunoId, dataIso) {
         const turma = this.state.turmas.find(t => t.id == turmaId);
         if (!turma) return;
@@ -317,21 +364,29 @@ export const model = {
         if (this.currentUser) firebaseService.saveFrequenciaAluno(this.currentUser.uid, turmaId, alunoId, aluno.frequencia);
         return novo;
     },
+
     saveHorarioConfig(turno, slots) {
         if (!this.state.horario) this.state.horario = { config: {}, grade: {} };
         this.state.horario.config[turno] = slots;
         this.saveLocal();
         this.saveCloudRoot();
     },
-    saveGradeHoraria(turno, dia, slotIndex, turmaId) {
+
+    saveGradeHoraria(turno, dia, slotIndex, turmaId, disciplina = null) {
         if (!this.state.horario) this.state.horario = { config: {}, grade: {} };
         if (!this.state.horario.grade[turno]) this.state.horario.grade[turno] = {};
         if (!this.state.horario.grade[turno][dia]) this.state.horario.grade[turno][dia] = [];
-        while (this.state.horario.grade[turno][dia].length <= slotIndex) this.state.horario.grade[turno][dia].push(null);
-        this.state.horario.grade[turno][dia][slotIndex] = turmaId;
+        while (this.state.horario.grade[turno][dia].length <= slotIndex) {
+            this.state.horario.grade[turno][dia].push(null);
+        }
+        this.state.horario.grade[turno][dia][slotIndex] = {
+            turmaId: turmaId,
+            disciplina: disciplina
+        };
         this.saveLocal();
         this.saveCloudRoot();
     },
+
     async saveHorarioCompleto(novoHorario) {
         this.state.horario = novoHorario;
         this.saveLocal();
@@ -348,6 +403,7 @@ export const model = {
         }
         return false;
     },
+
     async carregarQuestoesSistema() {
         try {
             const manifestRes = await fetch('./assets/data/manifest.json');
@@ -364,6 +420,7 @@ export const model = {
             console.error("❌ Erro no banco de questões:", e);
         }
     },
+
     saveQuestao(questao) {
         if (!questao.id) {
             questao.id = "prof_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5);
@@ -378,40 +435,121 @@ export const model = {
         this.saveLocal();
         this.saveCloudRoot();
     },
-    addQuestao(obj) { this.saveQuestao(obj); },
-    updateQuestao(id, dados) { this.saveQuestao({ ...dados, id }); },
+
+    async compartilharQuestao(questaoId) {
+        const questao = this.state.questoes.find(q => String(q.id) === String(questaoId));
+        if (!questao) return;
+
+        const enunciadoNormalizado = (questao.enunciado || "").trim();
+
+        try {
+            const jaExiste = await firebaseService.verificarDuplicataComunidade(enunciadoNormalizado);
+            if (jaExiste) {
+                window.Toast.show("Essa questão já foi compartilhada.", "warning");
+                questao.compartilhada = true;
+                this.saveLocal();
+                if (window.provasView) window.provasView.render('view-container');
+                return;
+            }
+
+            const qPublica = {
+                enunciado: enunciadoNormalizado,
+                alternativas: questao.alternativas || null,
+                correta: (questao.correta !== undefined && questao.correta !== null) ? Number(questao.correta) : null,
+                gabarito: questao.gabarito || null,
+                gabarito_comentado: questao.gabarito_comentado || null,
+                materia: questao.materia || 'Geral',
+                ano: questao.ano || '2026',
+                tipo: questao.tipo || 'aberta',
+                suporte: questao.suporte || null,
+                bncc: questao.bncc || null,
+                autor: this.currentUser?.displayName || "Professor(a)",
+                uid_autor: this.currentUser?.uid || null,
+                id_local_origem: String(questao.id),
+                data_partilha: new Date().toISOString()
+            };
+
+            await firebaseService.publicarQuestaoComunidade(qPublica);
+            questao.compartilhada = true;
+            this.saveLocal();
+            
+            // Sincroniza com a coleção privada do professor
+            if (this.currentUser) {
+                await firebaseService.saveRoot(this.currentUser.uid, {
+                    questoes: this.state.questoes,
+                    lastUpdate: new Date().toISOString()
+                });
+            }
+
+            window.Toast.show("Compartilhado com sucesso!", "success");
+            if (window.provasView) window.provasView.render('view-container');
+
+        } catch (error) {
+            console.error("❌ Erro ao compartilhar:", error);
+            window.Toast.show("Falha ao compartilhar.", "error");
+        }
+    },
+
+    async removerDaComunidade(questaoId) {
+        try {
+            await firebaseService.removerQuestaoComunidade(this.currentUser.uid, questaoId);
+            const questao = this.state.questoes.find(q => String(q.id) === String(questaoId));
+            if (questao) {
+                delete questao.compartilhada;
+                this.saveLocal();
+                await this.saveCloudRoot();
+                window.Toast.show("Questão retirada da comunidade!", "info");
+                if (window.controller.currentView === 'provas' && window.provasView) {
+                    window.provasView.render('view-container');
+                }
+            }
+        } catch (error) {
+            console.error("Erro ao remover:", error);
+            window.Toast.show("Não foi possível retirar a questão.", "error");
+        }
+    },
+
     deleteQuestao(id) {
         this.state.questoes = this.state.questoes.filter(q => String(q.id) !== String(id));
         this.saveLocal();
         this.saveCloudRoot();
     },
-    atePosicaoMapa(turmaId, alunoId, posicao) {
+
+    desocuparPosicao(turmaId, posicao) {
         const turma = this.state.turmas.find(t => t.id == turmaId);
         if (!turma) return;
-        const alunosModificados = new Set();
-        turma.alunos.forEach(a => { if (a.posicao === posicao) { delete a.posicao; alunosModificados.add(a); } });
-        if (alunoId) {
-            const aluno = turma.alunos.find(a => a.id == alunoId);
-            if (aluno) { aluno.posicao = posicao; alunosModificados.add(aluno); }
+        const alunoNoLugar = turma.alunos.find(a => a.posicao === posicao);
+        if (alunoNoLugar) {
+            alunoNoLugar.posicao = null;
+            this.saveLocal();
+            if (this.currentUser) firebaseService.saveAluno(this.currentUser.uid, turmaId, alunoNoLugar);
         }
-        this.saveLocal();
-        if (this.currentUser) alunosModificados.forEach(aluno => firebaseService.saveAluno(this.currentUser.uid, turmaId, aluno));
     },
+
     movimentarAluno(turmaId, alunoId, novaPosicao) {
         const turma = this.state.turmas.find(t => t.id == turmaId);
         if (!turma) return;
         const alunoOrigem = turma.alunos.find(a => a.id == alunoId);
         if (!alunoOrigem) return;
+
         const posicaoAntiga = alunoOrigem.posicao;
-        const alunoDestino = turma.alunos.find(a => a.posicao === novaPosicao && a.id !== alunoId);
-        alunoOrigem.posicao = novaPosicao;
-        if (alunoDestino) alunoDestino.posicao = posicaoAntiga || null;
-        this.saveLocal();
-        if (this.currentUser) {
-            firebaseService.saveAluno(this.currentUser.uid, turmaId, alunoOrigem);
-            if (alunoDestino) firebaseService.saveAluno(this.currentUser.uid, turmaId, alunoDestino);
+
+        if (novaPosicao !== null) {
+            const alunoDestino = turma.alunos.find(a => a.posicao === novaPosicao && a.id !== alunoId);
+            alunoOrigem.posicao = novaPosicao;
+            if (alunoDestino) alunoDestino.posicao = posicaoAntiga || null;
+            this.saveLocal();
+            if (this.currentUser) {
+                firebaseService.saveAluno(this.currentUser.uid, turmaId, alunoOrigem);
+                if (alunoDestino) firebaseService.saveAluno(this.currentUser.uid, turmaId, alunoDestino);
+            }
+        } else {
+            alunoOrigem.posicao = null;
+            this.saveLocal();
+            if (this.currentUser) firebaseService.saveAluno(this.currentUser.uid, turmaId, alunoOrigem);
         }
     },
+
     exportData() {
         const dataStr = JSON.stringify(this.state, null, 2);
         const blob = new Blob([dataStr], { type: "application/json" });
@@ -420,13 +558,42 @@ export const model = {
         a.download = `backup_planner_${new Date().toISOString().split('T')[0]}.json`;
         a.click();
     },
+
     getSugestoesDoMes(turmaId, dataIso) {
         const turma = this.state.turmas.find(t => t.id == turmaId);
         if (!turma?.planejamentoMensal) return [];
         const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
         const mesIndex = parseInt(dataIso.split('-')[1]) - 1;
         return turma.planejamentoMensal[meses[mesIndex]] || [];
+    },
+
+    getResumoAcademico(turmaId, alunoId) {
+        const turma = this.state.turmas.find(t => t.id == turmaId);
+        const aluno = turma?.alunos.find(a => a.id == alunoId);
+        if (!turma || !aluno) return null;
+
+        const tipoPeriodo = this.state.userConfig.periodType || 'bimestre';
+        const totalPeriodos = tipoPeriodo === 'bimestre' ? 4 : tipoPeriodo === 'trimestre' ? 3 : 2;
+
+        const resumo = {
+            periodos: {},
+            mediaAnual: 0,
+            somaAnual: 0
+        };
+
+        for (let i = 1; i <= totalPeriodos; i++) {
+            const avsDoPeriodo = turma.avaliacoes.filter(av => Number(av.periodo) === i);
+            const somaPeriodo = avsDoPeriodo.reduce((acc, av) => acc + (Number(aluno.notas?.[av.id]) || 0), 0);
+            resumo.periodos[i] = somaPeriodo;
+            resumo.somaAnual += somaPeriodo;
+        }
+
+        resumo.mediaAnual = totalPeriodos > 0 ? resumo.somaAnual / totalPeriodos : 0;
+        return resumo;
     }
 };
 
-if (typeof window !== 'undefined') model.init();
+if (typeof window !== 'undefined') {
+    model.init();
+    window.model = model;
+}

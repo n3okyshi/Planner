@@ -31,8 +31,7 @@ export const firebaseService = {
                     console.warn("Erro na persistência:", err);
                 }
             });
-            
-        console.log("Firebase Service (Granular v2) inicializado com Multi-Tab Support.");
+        console.log("Firebase Service (Granular v2) inicializado com Comunidade.");
     },
     onAuthStateChanged(callback) {
         if (this.auth) this.auth.onAuthStateChanged(callback);
@@ -90,7 +89,7 @@ export const firebaseService = {
                 return turmaData;
             });
             fullState.turmas = await Promise.all(turmasPromises);
-            fullState.turmas.sort((a, b) => a.nome.localeCompare(b.nome));
+            fullState.turmas.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
             return fullState;
         } catch (e) {
             console.error("Erro ao carregar dados granulares:", e);
@@ -102,6 +101,7 @@ export const firebaseService = {
         const { turmas, ...rootData } = data;
         await this.db.collection('professores').doc(uid).set(rootData, { merge: true });
     },
+
     async saveHorarioOnly(uid, horarioData) {
         if (!uid) return;
         await this.db.collection('professores').doc(uid).update({
@@ -197,6 +197,42 @@ export const firebaseService = {
             console.error("Erro na migração:", e);
             return null;
         }
+    },
+
+    async getQuestoesComunidade(materia = '') {
+        let ref = this.db.collection('comunidade_questoes');
+        if (materia) ref = ref.where('materia', '==', materia);
+        const snapshot = await ref.orderBy('data_partilha', 'desc').limit(50).get();
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    },
+    async verificarDuplicataComunidade(enunciado) {
+        if (!enunciado) return false;
+        const textoLimpo = enunciado.trim().toLowerCase();
+        const snapshot = await this.db.collection('comunidade_questoes')
+            .where('enunciado_search', '==', textoLimpo)
+            .limit(1)
+            .get();
+
+        return !snapshot.empty;
+    },
+    async publicarQuestaoComunidade(questao) {
+        const questaoFinal = {
+            ...questao,
+            enunciado_search: questao.enunciado.trim().toLowerCase()
+        };
+        return this.db.collection('comunidade_questoes').add(questaoFinal);
+    },
+    async removerQuestaoComunidade(uid, questaoIdLocal) {
+        const snapshot = await this.db.collection('comunidade_questoes')
+            .where('uid_autor', '==', uid)
+            .where('id_local_origem', '==', String(questaoIdLocal))
+            .get();
+        if (snapshot.empty) return;
+        const batch = this.db.batch();
+        snapshot.forEach(doc => {
+            batch.delete(doc.ref);
+        });
+        return batch.commit();
     }
 };
 firebaseService.init();

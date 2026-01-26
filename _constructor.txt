@@ -1,34 +1,64 @@
 ==============================================================================
-1. MAPA COMPLETO DO SISTEMA DE ARQUIVOS (FILE SYSTEM)
+PLANNER PRO DOCENTE 2026 - MAPA DO SISTEMA (ARQUITETURA MVC)
 ==============================================================================
 
 RAIZ DO PROJETO (./)
 │
-├───index.html              # BOOT: Ponto de entrada. Define a ordem crítica de carregamento (Libs -> Services -> Model -> Views -> Controller).
-├───_constructor.txt        # DOCUMENTAÇÃO: Guia técnico da estrutura de arquivos e arquitetura (este arquivo).
+├── index.html              # BOOT: Ponto de entrada. Gerencia injeção de scripts (type="module") e o Global Modal.
+├── manifest.json           # PWA: Configurações de identidade visual, ícones e instalação nativa.
+├── sw.js                   # PWA: Service Worker para cache offline e interceptação de rede (ignora Firebase).
+├── _constructor.txt        # DOCUMENTAÇÃO: Guia técnico da estrutura de arquivos e arquitetura (este arquivo).
 │
-├───assets/                 # RECURSOS ESTÁTICOS
-│   └───BNCC/               # Bases de dados curriculares (JSON e XLSX) para consulta offline.
-│       ├── BNCC_Educação Infantil.*
-│       ├── BNCC_Ensino Fundamental.*
-│       └── BNCC_Ensino_Medio.*
+├── assets/                 # RECURSOS ESTÁTICOS
+│   ├── data/               # Banco de questões JSON (questoes_*.json) e manifest.json para carregamento dinâmico.
+│   └── icons/              # Ícones da aplicação (pasta corrigida para singular conforme estrutura real).
 │
-├───css/
-│   └── style.css           # ESTILOS: Configurações do Tailwind, animações (fade-in/slide) e scrollbars customizadas.
+├── css/
+│   └── final.css           # ESTILOS: Tailwind JIT, animações personalizadas e correções de profundidade (Eixo Z).
 │
-├───js/                     # LÓGICA CORE (MVC + SERVICES)
+├── js/                     # LÓGICA CORE (ARQUITETURA MODULAR)
 │   │
-│   ├───firebase-service.js # SERVIÇO: Camada de infraestrutura. Gerencia Auth (Google) e Firestore. Não manipula a UI.
-│   ├───model.js            # MODEL: Gerenciamento de estado (State), persistência local (localStorage) e sincronização de dados.
-│   ├───controller.js       # CONTROLLER: Cérebro da aplicação. Inicializa o app, gerencia rotas, eventos de clique e orquestra Model <-> Views.
+│   ├── controller.js       # HUB CENTRAL: Orquestrador de rotas e navegação via this.views.
+│   ├── model.js            # DATA LAYER: Estado global (State), persistência local, e lógica de compartilhamento.
+│   ├── firebase-service.js # INFRA: Comunicação direta com Firestore (Granular) e Auth. Gerencia Banco Global.
 │   │
-│   └───views/              # VIEWS: Renderizadores de Interface. Transformam dados em HTML strings.
-│       ├── bncc.js         # Consulta e filtros da base BNCC.
-│       ├── calendario.js   # Dashboard principal. Calendário anual interativo.
-│       ├── diario.js       # Planejamento diário, seleção de conteúdos e impressão.
-│       ├── mensal.js       # Grade de planejamento macro (anual/mensal).
-│       ├── planejamento.js # Planejamento por períodos (Bimestre/Trimestre/Semestre).
-│       ├── provas.js       # Gerador de avaliações e banco de questões.
-│       ├── sala.js         # Mapa de sala (disposição dos alunos).
-│       ├── settings.js     # Configurações do usuário, tema e backup.
-│       └── turmas.js       # Gestão de turmas, alunos e notas.
+│   ├── components/         # UI REUTILIZÁVEL
+│   │   └── toast.js        # Utilitário de notificações flutuantes vinculado ao window.Toast.
+│   │
+│   ├── controllers/        # ESPECIALISTAS (SUB-CONTROLLERS)
+│   │   ├── authController.js        # Gerencia login, logout e monitoramento de estado do usuário.
+│   │   ├── uiController.js          # Controla Sidebar, Modais, temas e destaques de navegação.
+│   │   ├── turmaController.js       # Lógica de gestão de turmas, alunos e avaliações.
+│   │   └── planejamentoController.js # Lógica de planos de aula, BNCC e cópia de planejamentos.
+│   │
+│   └── views/              # INTERFACE (REPRESENTAÇÃO VISUAL)
+│       ├── dashboard.js             # Painel geral do professor (estatísticas de turmas e frequência).
+│       ├── horario.js               # Grade horária configurável (matutino/vespertino/noturno).
+│       ├── calendario.js            # Visualização anual interativa com feriados e eventos.
+│       ├── mensal.js                # Planejamento macro (foco mensal).
+│       ├── planejamento.js          # Planejamento por períodos (Bimestre/Trimestre/Semestre).
+│       ├── diario.js                # Detalhes diários da aula e integração com BNCC.
+│       ├── turmas.js                # Lista de turmas e boletins.
+│       ├── sala.js                  # Mapa de sala interativo com suporte a desocupação de cadeiras.
+│       ├── bncc.js                  # Motor de busca e filtragem da base curricular nacional.
+│       ├── provas.js                # Gerador de provas e hub para compartilhamento na comunidade.
+│       ├── comunidade.js            # NOVO: Feed global de questões para exploração e importação.
+│       ├── estatisticas-provas.js   # Analytics do banco de questões (por matéria, tipo e ano).
+│       ├── frequencia.js            # Sistema de chamada rápida (P/F/J).
+│       └── settings.js              # Preferências, Backup, Períodos Letivos e Temas.
+
+==============================================================================
+NOTAS TÉCNICAS DE IMPLEMENTAÇÃO:
+==============================================================================
+1. FLUXO DE DADOS: View (Evento) -> Controller -> Model (Logic) -> Firebase (Sync).
+2. SEGURANÇA FIRESTORE: 
+   - /professores/{uid}: Privado (Silo por usuário).
+   - /comunidade_questoes: Público para leitura, escrita restrita ao autor (uid_autor).
+3. PERSISTÊNCIA: Uso mandatório de 'this.saveLocal()' após qualquer alteração no state
+   para evitar perda de dados no refresh (F5).
+4. COMUNIDADE: 
+   - Verificação de duplicatas via campo 'enunciado_search' (lowercase/trim).
+   - Somente questões do professor podem ser compartilhadas (exclui Banco do Sistema).
+5. VINCULAÇÃO GLOBAL: Objetos Model, View e Toast vinculados ao 'window' para 
+   compatibilidade com eventos 'onclick' em templates literais HTML.
+==============================================================================
