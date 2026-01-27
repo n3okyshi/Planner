@@ -18,9 +18,9 @@ export const planejamentoMethods = {
     savePlanoDiario(data, turmaId, conteudo) {
         if (!this.state.planosDiarios) this.state.planosDiarios = {};
         if (!this.state.planosDiarios[data]) this.state.planosDiarios[data] = {};
-        
+
         this.state.planosDiarios[data][turmaId] = conteudo;
-        
+
         this.saveLocal();
         this.saveCloudRoot();
     },
@@ -31,8 +31,8 @@ export const planejamentoMethods = {
      * @param {string} turmaId 
      * @returns {string|null}
      */
-    getPlanoDiario(data, turmaId) { 
-        return this.state.planosDiarios?.[data]?.[turmaId] || null; 
+    getPlanoDiario(data, turmaId) {
+        return this.state.planosDiarios?.[data]?.[turmaId] || null;
     },
 
     /**
@@ -44,12 +44,12 @@ export const planejamentoMethods = {
     addHabilidadePlanejamento(turmaId, periodoIdx, habilidade) {
         const turma = this.state.turmas.find(t => t.id == turmaId);
         if (!turma) return;
-        
+
         if (!turma.planejamento) turma.planejamento = {};
         const chavePeriodo = String(periodoIdx);
-        
+
         if (!turma.planejamento[chavePeriodo]) turma.planejamento[chavePeriodo] = [];
-        
+
         // Evita duplicatas de habilidades no mesmo período
         if (!turma.planejamento[chavePeriodo].some(h => h.codigo === habilidade.codigo)) {
             turma.planejamento[chavePeriodo].push(habilidade);
@@ -67,7 +67,7 @@ export const planejamentoMethods = {
     removeHabilidadePlanejamento(turmaId, periodoIdx, codigoHabilidade) {
         const turma = this.state.turmas.find(t => t.id == turmaId);
         if (!turma || !turma.planejamento || !turma.planejamento[periodoIdx]) return;
-        
+
         turma.planejamento[periodoIdx] = turma.planejamento[periodoIdx].filter(h => h.codigo !== codigoHabilidade);
         this.saveLocal();
         if (this.currentUser) window.firebaseService.saveTurma(this.currentUser.uid, turma);
@@ -82,10 +82,10 @@ export const planejamentoMethods = {
     addHabilidadeMensal(turmaId, mes, habilidade) {
         const turma = this.state.turmas.find(t => t.id == turmaId);
         if (!turma) return;
-        
+
         if (!turma.planejamentoMensal) turma.planejamentoMensal = {};
         if (!turma.planejamentoMensal[mes]) turma.planejamentoMensal[mes] = [];
-        
+
         if (!turma.planejamentoMensal[mes].some(h => h.codigo === habilidade.codigo)) {
             turma.planejamentoMensal[mes].push(habilidade);
             this.saveLocal();
@@ -132,7 +132,7 @@ export const planejamentoMethods = {
     getSugestoesDoMes(turmaId, dataIso) {
         const turma = this.state.turmas.find(t => t.id == turmaId);
         if (!turma?.planejamentoMensal) return [];
-        
+
         const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
         const mesIndex = parseInt(dataIso.split('-')[1]) - 1;
         return turma.planejamentoMensal[meses[mesIndex]] || [];
@@ -148,5 +148,20 @@ export const planejamentoMethods = {
         this.state.horario.config[turno] = slots;
         this.saveLocal();
         this.saveCloudRoot();
+    },
+    /**
+     * Busca global de habilidades na BNCC por texto
+     * @param {string} termo 
+     * @returns {Array} Habilidades encontradas
+     */
+    buscarHabilidadesBNCC(termo) {
+        if (!termo || termo.length < 3) return [];
+        const normalizar = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        const termoBusca = normalizar(termo);
+        if (!window.bnccData) return [];
+        return window.bnccData.filter(h =>
+            normalizar(h.codigo).includes(termoBusca) ||
+            normalizar(h.descricao).includes(termoBusca)
+        ).slice(0, 15); // Limita a 15 resultados para performance
     }
 };
