@@ -45,30 +45,30 @@ export const controller = {
         this.bindViews();
         uiController.aplicarTema();
         this.setupGlobalListeners();
-        authController.monitorAuth(); 
+        authController.monitorAuth();
         model.carregarQuestoesSistema();
-        
+
         // MIGRAR DADOS ANTIGOS (roda apenas uma vez se detectar campos indefinidos)
-        if(model.migrarAvaliacoesAntigas) model.migrarAvaliacoesAntigas();
+        if (model.migrarAvaliacoesAntigas) model.migrarAvaliacoesAntigas();
     },
 
     bindViews: function () {
-        this.views = { 
-            'dashboard': dashboardView, 
-            'horario': horarioView, 
-            'calendario': calendarioView, 
-            'mensal': mensalView, 
-            'periodo': planejamentoView, 
-            'dia': diarioView, 
-            'turmas': turmasView, 
-            'bncc': bnccView, 
-            'mapa': salaView, 
-            'provas': provasView, 
-            'frequencia': frequenciaView, 
-            'config': settingsView, 
-            'stats-provas': estatisticasProvasView, 
+        this.views = {
+            'dashboard': dashboardView,
+            'horario': horarioView,
+            'calendario': calendarioView,
+            'mensal': mensalView,
+            'periodo': planejamentoView,
+            'dia': diarioView,
+            'turmas': turmasView,
+            'bncc': bnccView,
+            'mapa': salaView,
+            'provas': provasView,
+            'frequencia': frequenciaView,
+            'config': settingsView,
+            'stats-provas': estatisticasProvasView,
             'comunidade': comunidadeView,
-            'notas-anuais': notasAnuaisView 
+            'notas-anuais': notasAnuaisView
         };
         Object.keys(this.views).forEach(key => { window[key + 'View'] = this.views[key]; });
     },
@@ -124,11 +124,11 @@ export const controller = {
     deleteAluno(t, a) { turmaController.deleteAluno(t, a); },
     openAddAlunoLote(id) { turmaController.openAddAlunoLote(id); },
     saveAlunoLote(id) { turmaController.saveAlunoLote(id); },
-    
+
     // --- ADIÇÃO: Suporte a Período na Avaliação ---
     openAddAvaliacao(id) { turmaController.openAddAvaliacao(id); },
     saveAvaliacao(id) { turmaController.saveAvaliacao(id); },
-    
+
     deleteAvaliacao(t, a) { turmaController.deleteAvaliacao(t, a); },
     updateNota(t, al, av, v) { turmaController.updateNota(t, al, av, v); },
 
@@ -144,17 +144,28 @@ export const controller = {
     openSeletorBnccMensal(t, m, n, s) { planejamentoController.openSeletorBnccMensal(t, m, n, s); },
     removeHabilidadeMensal(t, m, c) { planejamentoController.removeHabilidadeMensal(t, m, c); },
     openSeletorBnccQuestao() {
-        const callback = (h) => {
-            const rascunho = {
-                materia: document.getElementById('q-materia').value,
-                ano: document.getElementById('q-ano').value,
-                enunciado: document.getElementById('q-enunciado').value,
-                bncc: { codigo: h.codigo, descricao: h.descricao }
-            };
-            provasView.openAddQuestao(rascunho);
+        const elMateria = document.getElementById('q-materia');
+        const elAno = document.getElementById('q-ano');
+        const elEnunciado = document.getElementById('q-enunciado');
+        const rascunhoAtual = {
+            materia: elMateria ? elMateria.value : '',
+            ano: elAno ? elAno.value : '',
+            enunciado: elEnunciado ? elEnunciado.value : ''
         };
-        this.openModal('BNCC', '<div id="modal-bncc-container"></div>', 'large');
-        setTimeout(() => bnccView.render('modal-bncc-container', null, null, callback), 50);
+        const callback = (habilidadeEscolhida) => {
+            const dadosCompletos = {
+                ...rascunhoAtual,
+                bncc: {
+                    codigo: habilidadeEscolhida.codigo,
+                    descricao: habilidadeEscolhida.descricao
+                }
+            };
+            window.provasView.openAddQuestao(dadosCompletos);
+        };
+        this.openModal('Selecionar BNCC', '<div id="modal-bncc-container" class="h-[600px]"></div>', 'large');
+        setTimeout(() => {
+            window.bnccView.render('modal-bncc-container', null, null, callback);
+        }, 50);
     },
 
     // --- Funções de Configuração e Outros ---
@@ -212,6 +223,6 @@ export const controller = {
 // Vinculação Global
 window.salaView = salaView;
 window.estatisticasProvasView = estatisticasProvasView;
-window.notasAnuaisView = notasAnuaisView; 
+window.notasAnuaisView = notasAnuaisView;
 window.controller = controller;
 window.addEventListener('load', () => controller.init());

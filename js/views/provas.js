@@ -1,6 +1,7 @@
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
+import { aiService } from '../ai-service.js';
 
 export const provasView = {
     selecionadas: new Set(),
@@ -428,9 +429,18 @@ export const provasView = {
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Resposta / Gabarito Sugerido</label>
                     <textarea id="q-gabarito" rows="2" class="w-full border border-slate-200 p-3 rounded-xl outline-none focus:border-primary text-sm bg-emerald-50/30" placeholder="Resposta esperada...">${dados.gabarito || ''}</textarea>
                 </div>
-                <div class="flex justify-end gap-3 pt-2">
-                    <button onclick="controller.closeModal()" class="px-5 py-2.5 text-slate-500 font-bold hover:bg-slate-50 rounded-xl">Cancelar</button>
-                    <button onclick="provasView.salvarQuestao()" class="btn-primary px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-primary/20">${dados.id ? 'Atualizar' : 'Salvar'}</button>
+                <div id="ai-loading" class="hidden text-center p-3 bg-indigo-50 rounded-xl mb-3 animate-pulse">
+                    <i class="fas fa-robot text-indigo-600 mr-2"></i> <span class="text-xs font-bold text-indigo-600 uppercase">A IA está escrevendo...</span>
+                </div>
+
+                <div class="flex flex-col gap-3 pt-2">
+                    <button onclick="provasView.gerarComIA()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-bold shadow-lg hover:brightness-110 transition flex items-center justify-center gap-2">
+                        <i class="fas fa-robot"></i> Gerar Questão com IA
+                    </button>
+                    <div class="flex justify-end gap-3">
+                        <button onclick="controller.closeModal()" class="px-5 py-2.5 text-slate-500 font-bold hover:bg-slate-50 rounded-xl">Cancelar</button>
+                        <button onclick="provasView.salvarQuestao()" class="btn-primary px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-primary/20">${dados.id ? 'Atualizar' : 'Salvar'}</button>
+                    </div>
                 </div>
             </div>`;
 
@@ -440,6 +450,38 @@ export const provasView = {
             else provasView.mudarTipoQuestao();
         }, 50);
     },
+    async gerarComIA() {
+        const materia = document.getElementById('q-materia').value;
+        const codBncc = document.getElementById('q-bncc-cod').value;
+        const descBncc = document.getElementById('q-bncc-desc').value;
+        const dificuldade = document.getElementById('q-dificuldade').value;
+        const tipo = document.getElementById('q-tipo').value;
+        if (!materia || !codBncc) {
+            return Toast.show("Selecione a disciplina e a BNCC primeiro!", "warning");
+        }
+        const loading = document.getElementById('ai-loading');
+        loading.classList.remove('hidden');
+        try {
+            const questaoGerada = await aiService.gerarQuestao({
+                materia,
+                habilidade: { codigo: codBncc, descricao: descBncc },
+                dificuldade,
+                tipo
+            });
+            document.getElementById('q-enunciado').value = questaoGerada.enunciado;
+            if (tipo === 'multipla') {
+                document.getElementById('q-qtd-alt').value = questaoGerada.alternativas.length;
+                this.gerarInputsAlternativas(questaoGerada.alternativas, questaoGerada.correta);
+            } else {
+                document.getElementById('q-gabarito').value = questaoGerada.gabarito;
+            }
+            Toast.show("Questão gerada com sucesso!", "success");
+        } catch (err) {
+            Toast.show(err.message, "error");
+        } finally {
+            loading.classList.add('hidden');
+        }
+    },
     clonarQuestaoParaProfessor(questaoOriginal) {
         const novaQuestao = JSON.parse(JSON.stringify(questaoOriginal));
         delete novaQuestao.id;
@@ -448,7 +490,8 @@ export const provasView = {
         Toast.show("Cópia pronta para edição!", "info");
     },
     preservarEstadoEBuscarBNCC() {
-        this.tempDados = this.getDataModal();
+        const dadosAtuais = this.getDataModal();
+        this.tempDados = dadosAtuais;
         controller.openSeletorBnccQuestao();
     },
     mudarTipoQuestao() {
