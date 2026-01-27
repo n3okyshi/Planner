@@ -6,6 +6,25 @@ import { Toast } from '../components/toast.js';
 export const comunidadeView = {
     questoes: [],
     filtroMateria: '',
+    // HELPER PARA RENDERIZAR ESTRELAS DE DIFICULDADE (Igual ao provasView para consistência)
+    _renderEstrelasDificuldade(nivel = 0) {
+        const n = Number(nivel) || 0;
+        let estrelas = '';
+
+        for (let i = 1; i <= 3; i++) {
+            let cor = 'text-slate-200';
+            if (n > 0 && i <= n) {
+                cor = 'text-amber-400';
+            }
+            estrelas += `<i class="fas fa-star ${cor} text-[10px]"></i>`;
+        }
+        const labels = ["Não definida", "Fácil", "Média", "Difícil"];
+        return `
+            <div class="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100" title="Dificuldade original: ${labels[n]}">
+                ${estrelas}
+            </div>
+        `;
+    },
     async render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         const html = `
@@ -67,16 +86,20 @@ export const comunidadeView = {
         }
         grid.innerHTML = this.questoes.map(q => {
             const corMateria = model.coresComponentes[q.materia] || '#64748b';
+            const estrelasHtml = this._renderEstrelasDificuldade(q.dificuldade);
             return `
                 <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group flex flex-col h-full">
                     <div class="flex justify-between items-start mb-4">
-                        <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider" 
-                              style="background-color: ${corMateria}15; color: ${corMateria}">
-                            ${q.materia}
-                        </span>
+                        <div class="flex flex-col gap-2">
+                            <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider w-fit" 
+                                  style="background-color: ${corMateria}15; color: ${corMateria}">
+                                ${q.materia}
+                            </span>
+                            ${estrelasHtml}
+                        </div>
                         <div class="text-right">
                             <span class="block text-[10px] text-slate-400 font-bold uppercase">${q.ano || ''}</span>
-                            <span class="text-[10px] text-slate-300">Prof: ${q.autor || 'Anônimo'}</span>
+                            <span class="text-[10px] text-slate-300 font-medium">Por: ${q.autor || 'Anônimo'}</span>
                         </div>
                     </div>
                     <div class="text-slate-700 mb-6 flex-grow font-medium text-sm leading-relaxed">
@@ -113,6 +136,7 @@ export const comunidadeView = {
                 materia: questao.materia,
                 ano: questao.ano,
                 tipo: questao.tipo,
+                dificuldade: Number(questao.dificuldade) || 0,
                 suporte: questao.suporte || null,
                 bncc: questao.bncc || null,
                 origem: `Comunidade (${questao.autor || 'Prof.'})`

@@ -18,6 +18,27 @@ export const provasView = {
         "Arte", "Educação Física", "Língua Inglesa", "Física", "Química",
         "Biologia", "Filosofia", "Sociologia"
     ],
+
+    // HELPER PARA RENDERIZAR ESTRELAS DE DIFICULDADE
+    _renderEstrelasDificuldade(nivel = 0) {
+        const n = Number(nivel) || 0;
+        let estrelas = '';
+
+        for (let i = 1; i <= 3; i++) {
+            let cor = 'text-slate-200';
+            if (n > 0 && i <= n) {
+                cor = 'text-amber-400'; // Dourado apenas se houver nível
+            }
+            estrelas += `<i class="fas fa-star ${cor} text-[10px]"></i>`;
+        }
+        const labels = ["Não definida", "Fácil", "Média", "Difícil"];
+        return `
+        <div class="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100" title="Dificuldade: ${labels[n]}">
+            ${estrelas}
+        </div>
+    `;
+    },
+
     mudarAba(novaAba) {
         this.abaAtiva = novaAba;
         this.filtros = { materia: '', ano: '', tipo: '', bncc: '' };
@@ -89,7 +110,6 @@ export const provasView = {
                     </button>
                 </div>
                 </div>
-
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 <div class="lg:col-span-2 space-y-6">
                     <div class="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-2xl w-fit border border-slate-200">
@@ -210,17 +230,15 @@ export const provasView = {
         const isSistema = this.abaAtiva === 'sistema';
         const borderClass = isSelected ? 'border-primary ring-1 ring-primary bg-blue-50/30' : 'border-slate-200 hover:border-slate-300 bg-white';
         const btnClass = isSelected ? 'bg-red-100 text-red-500 hover:bg-red-200' : 'bg-slate-100 text-slate-400 hover:bg-primary hover:text-white';
-        
+
         let tagsHtml = `<span class="px-2 py-1 bg-slate-100 text-[10px] font-bold text-slate-600 rounded uppercase tracking-wider">${q.materia || 'Geral'}</span>`;
         if (q.ano) tagsHtml += `<span class="px-2 py-1 bg-indigo-50 text-[10px] font-bold text-indigo-600 rounded uppercase border border-indigo-100">${escapeHTML(q.ano)}</span>`;
         if (q.bncc && q.bncc.codigo) tagsHtml += `<span class="px-2 py-1 bg-yellow-50 text-[10px] font-bold text-yellow-700 rounded uppercase border border-yellow-100" title="${escapeHTML(q.bncc.descricao)}">${escapeHTML(q.bncc.codigo)}</span>`;
-        
         const tipoLabel = (q.tipo === 'multipla') ? 'Múltipla Escolha' : 'Dissertativa';
         const tipoCor = (q.tipo === 'multipla') ? 'text-purple-600 bg-purple-50 border-purple-100' : 'text-emerald-600 bg-emerald-50 border-emerald-100';
         tagsHtml += `<span class="px-2 py-1 ${tipoCor} text-[10px] font-bold rounded uppercase border">${tipoLabel}</span>`;
-        
+        tagsHtml += this._renderEstrelasDificuldade(q.dificuldade);
         let conteudoGabarito = '';
-        let htmlImagem = '';
         if (q.tipo === 'multipla' && q.alternativas) {
             const letras = ['a', 'b', 'c', 'd', 'e'];
             conteudoGabarito = `
@@ -241,10 +259,12 @@ export const provasView = {
                     <i class="fas fa-lightbulb"></i> Gabarito / Resposta Esperada
                 </p>
                 <p class="text-xs text-emerald-800 leading-relaxed">${escapeHTML(textoGabarito)}</p>
-                <p class="text-[9px] font-black text-emerald-700 uppercase mb-1 flex items-center gap-1">
-                    <i class="fas fa-lightbulb"></i> Gabarito Comentado
+                ${q.gabarito_comentado ? `
+                <p class="text-[9px] font-black text-emerald-700 uppercase mt-2 mb-1 flex items-center gap-1">
+                    <i class="fas fa-comment-dots"></i> Comentário Pedagógico
                 </p>
-                <p class="text-xs text-emerald-800 leading-relaxed">${escapeHTML(q.gabarito_comentado || '')}</p>
+                <p class="text-xs text-emerald-800 leading-relaxed italic">${escapeHTML(q.gabarito_comentado)}</p>
+                ` : ''}
             </div>`;
         }
         const dataJson = JSON.stringify(q).replace(/'/g, "&#39;").replace(/"/g, '&quot;');
@@ -284,7 +304,7 @@ export const provasView = {
         return `
         <div id="card-questao-${q.id}" class="p-6 rounded-2xl border transition-all duration-200 ${borderClass} group relative animate-slide-up">
             <div class="flex justify-between items-start gap-4 mb-4">
-                <div class="flex flex-wrap gap-2">${tagsHtml}</div>
+                <div class="flex flex-wrap gap-2 items-center">${tagsHtml}</div>
                 <div class="flex gap-1 shrink-0">
                     ${botoesAcao}
                     <button onclick="provasView.toggleSelecao('${q.id}')" class="w-8 h-8 rounded-lg flex items-center justify-center transition-colors shadow-sm ${btnClass}">
@@ -338,6 +358,7 @@ export const provasView = {
                  <button onclick="document.getElementById('q-bncc-cod').value=''; provasView.openAddQuestao({...provasView.getDataModal(), bncc: null})" class="text-yellow-600 hover:text-red-500"><i class="fas fa-times"></i></button>
                </div>`
             : `<button onclick="provasView.preservarEstadoEBuscarBNCC()" class="w-full py-3 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 hover:border-primary hover:text-primary hover:bg-blue-50 transition-all text-xs font-bold uppercase flex items-center justify-center gap-2"><i class="fas fa-search"></i> Selecionar Habilidade BNCC</button>`;
+
         const html = `
             <div class="p-6 space-y-4">
                 <input type="hidden" id="q-id" value="${dados.id || ''}">
@@ -362,7 +383,7 @@ export const provasView = {
                         </select>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-4 bg-slate-50 p-3 rounded-xl border border-slate-100">
+                <div class="grid grid-cols-2 gap-4">
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Tipo</label>
                         <select id="q-tipo" onchange="provasView.mudarTipoQuestao()" class="w-full border border-slate-200 p-2 rounded-lg outline-none focus:border-primary bg-white text-sm font-medium">
@@ -370,15 +391,26 @@ export const provasView = {
                             <option value="multipla" ${dados.tipo === 'multipla' ? 'selected' : ''}>Múltipla Escolha</option>
                         </select>
                     </div>
-                    <div id="container-qtd-alt" class="${dados.tipo === 'multipla' ? '' : 'hidden'}">
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Alternativas</label>
-                        <select id="q-qtd-alt" onchange="provasView.gerarInputsAlternativas()" class="w-full border border-slate-200 p-2 rounded-lg outline-none focus:border-primary bg-white text-sm font-medium">
-                            <option value="3" ${dados.alternativas?.length === 3 ? 'selected' : ''}>3</option>
-                            <option value="4" ${dados.alternativas?.length === 4 || !dados.id ? 'selected' : ''}>4</option>
-                            <option value="5" ${dados.alternativas?.length === 5 ? 'selected' : ''}>5</option>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Dificuldade</label>
+                        <select id="q-dificuldade" class="w-full border border-slate-200 p-2 rounded-lg outline-none focus:border-primary bg-white text-sm font-medium">
+                            <option value="0" ${!dados.dificuldade || dados.dificuldade == 0 ? 'selected' : ''}>Não Definida</option>
+                            <option value="1" ${dados.dificuldade == 1 ? 'selected' : ''}>★ (Fácil)</option>
+                            <option value="2" ${dados.dificuldade == 2 ? 'selected' : ''}>★★ (Média)</option>
+                            <option value="3" ${dados.dificuldade == 3 ? 'selected' : ''}>★★★ (Difícil)</option>
                         </select>
                     </div>
                 </div>
+
+                <div id="container-qtd-alt" class="${dados.tipo === 'multipla' ? '' : 'hidden'}">
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Quantidade de Alternativas</label>
+                    <select id="q-qtd-alt" onchange="provasView.gerarInputsAlternativas()" class="w-full border border-slate-200 p-2 rounded-lg outline-none focus:border-primary bg-white text-sm font-medium">
+                        <option value="3" ${dados.alternativas?.length === 3 ? 'selected' : ''}>3</option>
+                        <option value="4" ${dados.alternativas?.length === 4 || !dados.id ? 'selected' : ''}>4</option>
+                        <option value="5" ${dados.alternativas?.length === 5 ? 'selected' : ''}>5</option>
+                    </select>
+                </div>
+
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-1">BNCC</label>
                     <input type="hidden" id="q-bncc-cod" value="${dados.bncc ? dados.bncc.codigo : ''}">
@@ -415,15 +447,6 @@ export const provasView = {
         this.openAddQuestao(novaQuestao);
         Toast.show("Cópia pronta para edição!", "info");
     },
-    clonadoParaProfessor(questaoOriginal) {
-        const novaQuestao = JSON.parse(JSON.stringify(questaoOriginal));
-        delete novaQuestao.id;
-        delete novaQuestao.firebaseId;
-        delete novaQuestao.preDefinida;
-        novaQuestao.tags = [...(novaQuestao.tags || []), "Cópia"];
-        this.openAddQuestao(novaQuestao);
-        Toast.show("Cópia criada. Altere o que desejar e salve.", "info");
-    },
     preservarEstadoEBuscarBNCC() {
         this.tempDados = this.getDataModal();
         controller.openSeletorBnccQuestao();
@@ -434,10 +457,10 @@ export const provasView = {
         const areaAlt = document.getElementById('area-alternativas');
         const areaGab = document.getElementById('area-gabarito');
         if (tipo === 'multipla') {
-            containerQtd.classList.remove('hidden'); areaAlt.classList.remove('hidden'); areaGab.classList.add('hidden');
+            containerQtd?.classList.remove('hidden'); areaAlt?.classList.remove('hidden'); areaGab?.classList.add('hidden');
             if (!document.getElementById('inputs-alternativas').innerHTML) this.gerarInputsAlternativas();
         } else {
-            containerQtd.classList.add('hidden'); areaAlt.classList.add('hidden'); areaGab.classList.remove('hidden');
+            containerQtd?.classList.add('hidden'); areaAlt?.classList.add('hidden'); areaGab?.classList.remove('hidden');
         }
     },
     gerarInputsAlternativas(valores = null, correta = null) {
@@ -467,6 +490,7 @@ export const provasView = {
             ano: document.getElementById('q-ano')?.value,
             enunciado: document.getElementById('q-enunciado')?.value,
             tipo: document.getElementById('q-tipo')?.value,
+            dificuldade: Number(document.getElementById('q-dificuldade')?.value) || 0,
             bncc: document.getElementById('q-bncc-cod')?.value ? {
                 codigo: document.getElementById('q-bncc-cod').value,
                 descricao: document.getElementById('q-bncc-desc').value
@@ -488,8 +512,7 @@ export const provasView = {
     salvarQuestao() {
         const dados = this.getDataModal();
         if (!dados.enunciado) return Toast.show("O enunciado é obrigatório.", "error");
-        if (dados.id) model.updateQuestao(dados.id, dados);
-        else model.addQuestao(dados);
+        model.saveQuestao(dados);
         controller.closeModal();
         this.render('view-container');
     },
