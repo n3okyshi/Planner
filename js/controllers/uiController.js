@@ -2,18 +2,16 @@ import { model } from '../model.js';
 import { Toast } from '../components/toast.js';
 
 export const uiController = {
-    // No seu uiController.js
-openModal(titulo, conteudo, tamanho = 'medium') {
-    const modal = document.getElementById('global-modal');
-    if (!modal) return;
+    openModal(titulo, conteudo, tamanho = 'medium') {
+        const modal = document.getElementById('global-modal');
+        if (!modal) return;
 
-    const tamanhos = {
-        'small': 'max-w-md',
-        'medium': 'max-w-2xl',
-        'large': 'max-w-5xl'
-    };
-
-    modal.innerHTML = `
+        const tamanhos = {
+            'small': 'max-w-md',
+            'medium': 'max-w-2xl',
+            'large': 'max-w-5xl'
+        };
+        modal.innerHTML = `
         <div class="bg-white w-full ${tamanhos[tamanho]} rounded-[2.5rem] shadow-2xl overflow-hidden animate-pop-in relative border border-slate-100">
             <div class="p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50">
                 <h3 class="text-xl font-black text-slate-800 tracking-tight">${titulo}</h3>
@@ -26,18 +24,14 @@ openModal(titulo, conteudo, tamanho = 'medium') {
             </div>
         </div>
     `;
-
-    modal.classList.remove('hidden');
-    // Forçamos o body a não ter scroll enquanto o modal estiver aberto
-    document.body.style.overflow = 'hidden';
-},
-
-closeModal() {
-    const modal = document.getElementById('global-modal');
-    if (modal) modal.classList.add('hidden');
-    document.body.style.overflow = '';
-},
-
+        modal.classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+    },
+    closeModal() {
+        const modal = document.getElementById('global-modal');
+        if (modal) modal.classList.add('hidden');
+        document.body.style.overflow = '';
+    },
     confirmarAcao(titulo, mensagem, callbackConfirmacao) {
         const html = `
             <div class="p-8 text-center">
@@ -63,8 +57,6 @@ closeModal() {
             }
         }, 50);
     },
-
-    // --- Navegação e UX ---
     toggleSidebar() {
         const sidebar = document.getElementById('app-sidebar');
         const main = document.getElementById('main-content');
@@ -81,7 +73,6 @@ closeModal() {
             icon.className = (sidebar.classList.contains('collapsed') && !sidebar.classList.contains('mobile-open')) ? 'fas fa-bars' : 'fas fa-chevron-left';
         }
     },
-
     updateNavHighlight(viewName) {
         document.querySelectorAll('nav button').forEach(btn => {
             btn.classList.remove('bg-white/10', 'text-white');
@@ -97,7 +88,6 @@ closeModal() {
             activeBtn.classList.remove('text-slate-400');
         }
     },
-
     updateBreadcrumb(viewName) {
         const breadcrumb = document.getElementById('breadcrumb');
         if (!breadcrumb) return;
@@ -110,7 +100,6 @@ closeModal() {
         };
         breadcrumb.innerHTML = `<i class="fas fa-home text-slate-300"></i> <span class="text-slate-300">/</span> ${map[viewName] || viewName}`;
     },
-
     renderSkeleton(container, viewName) {
         const skeletons = {
             dashboard: `<div class="animate-pulse space-y-4 fade-in"><div class="h-8 bg-slate-200 rounded w-1/3 mb-6"></div><div class="grid grid-cols-1 md:grid-cols-3 gap-6"><div class="h-32 bg-slate-200 rounded-2xl"></div><div class="h-32 bg-slate-200 rounded-2xl"></div><div class="h-32 bg-slate-200 rounded-2xl"></div></div><div class="h-64 bg-slate-200 rounded-2xl mt-6"></div></div>`,
@@ -119,7 +108,6 @@ closeModal() {
         };
         container.innerHTML = skeletons[viewName] || skeletons.generic;
     },
-
     aplicarTema() {
         if (model.state.userConfig && model.state.userConfig.themeColor) {
             document.documentElement.style.setProperty('--primary-color', model.state.userConfig.themeColor);
