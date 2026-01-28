@@ -233,6 +233,26 @@ export const firebaseService = {
             batch.delete(doc.ref);
         });
         return batch.commit();
+    },
+    async verificarDuplicataComunidade(enunciado) {
+    try {
+        const snapshot = await this.db.collection('comunidade_questoes')
+            .where('enunciado', '==', enunciado)
+            .limit(1)
+            .get();
+        return !snapshot.empty;
+    } catch (e) {
+        console.error("Erro ao verificar duplicata:", e);
+        return false;
     }
+},
+async publicarQuestaoComunidade(dadosQuestao) {
+    try {
+        return await this.db.collection('comunidade_questoes').add(dadosQuestao);
+    } catch (e) {
+        console.error("Erro no Firestore ao publicar:", e);
+        throw e;
+    }
+}
 };
 firebaseService.init();

@@ -1,13 +1,25 @@
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 
+/**
+ * VIEW MENSAL - Planejamento de Curto Prazo
+ * Gerencia a distribuição de habilidades do planejamento periódico nos meses individuais.
+ * @namespace mensalView
+ */
 export const mensalView = {
     currentMes: null,
     currentTurmaId: null,
     meses: ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"],
+
+    /**
+     * Renderiza a interface de planejamento mensal.
+     * @param {HTMLElement|string} container - Elemento pai ou ID do container.
+     * @param {string|null} [turmaId=null] - ID da turma opcional para troca rápida.
+     */
     render(container, turmaId = null) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+
         if (turmaId) this.currentTurmaId = turmaId;
         const turmas = model.state.turmas || [];
         if (this.currentTurmaId && !turmas.find(t => t.id == this.currentTurmaId)) {
@@ -27,13 +39,21 @@ export const mensalView = {
         const turmaAtual = turmas.find(t => t.id == this.currentTurmaId);
         const periodoSugestao = this.identificarPeriodo(this.currentMes);
         const habilidadesDoPeriodo = turmaAtual.planejamento && turmaAtual.planejamento[periodoSugestao]
-            ? turmaAtual.planejamento[periodoSugestao]
+            ? [...turmaAtual.planejamento[periodoSugestao]]
             : [];
+
         const habilidadesDoMes = turmaAtual.planejamentoMensal && turmaAtual.planejamentoMensal[this.currentMes]
-            ? turmaAtual.planejamentoMensal[this.currentMes]
+            ? [...turmaAtual.planejamentoMensal[this.currentMes]]
             : [];
+        habilidadesDoMes.sort((a, b) => {
+            const codA = String(a.codigo || "");
+            const codB = String(b.codigo || "");
+            return codA.localeCompare(codB, undefined, { numeric: true });
+        });
+
         const codigosNoMes = new Set(habilidadesDoMes.map(h => h.codigo));
         const sugestoesFiltradas = habilidadesDoPeriodo.filter(h => !codigosNoMes.has(h.codigo));
+
         const html = `
             <div class="fade-in pb-24">
                 <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between sticky top-0 z-20">
@@ -56,6 +76,7 @@ export const mensalView = {
                         </div>
                     </div>
                 </div>
+
                 <div class="flex overflow-x-auto custom-scrollbar gap-2 mb-6 pb-2 px-1">
                     ${this.meses.map(mes => `
                         <button onclick="mensalView.mudarMes('${mes}')" 
@@ -67,6 +88,7 @@ export const mensalView = {
                         </button>
                     `).join('')}
                 </div>
+
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                     <div class="lg:col-span-2 space-y-4">
                         <div class="flex justify-between items-center mb-2 px-1">
@@ -80,6 +102,7 @@ export const mensalView = {
                                 <i class="fas fa-search"></i> Buscar na BNCC
                             </button>
                         </div>
+
                         ${habilidadesDoMes.length > 0 ? `
                             <div class="space-y-3 animate-slideIn">
                                 ${habilidadesDoMes.map(h => this.gerarCardHabilidade(h, turmaAtual.id, this.currentMes)).join('')}
@@ -94,6 +117,7 @@ export const mensalView = {
                             </div>
                         `}
                     </div>
+
                     <div class="lg:col-span-1 space-y-6">
                         <div class="bg-amber-50 rounded-2xl p-6 border border-amber-100 sticky top-24 shadow-sm">
                             <div class="flex items-center gap-3 mb-4 pb-4 border-b border-amber-100">
@@ -102,9 +126,7 @@ export const mensalView = {
                                 </div>
                                 <div>
                                     <h3 class="font-bold text-slate-800 text-sm">Sugestões do Período</h3>
-                                    <p class="text-[10px] text-amber-700 font-bold uppercase tracking-wide">
-                                        Importar do Planejamento
-                                    </p>
+                                    <p class="text-[10px] text-amber-700 font-bold uppercase tracking-wide">Importar do Planejamento</p>
                                 </div>
                             </div>
                             ${sugestoesFiltradas.length > 0 ? `
@@ -115,9 +137,7 @@ export const mensalView = {
                                             <div class="absolute inset-0 bg-amber-100/50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                             <div class="relative z-10">
                                                 <div class="flex justify-between items-start gap-2">
-                                                    <span class="text-[10px] font-bold text-amber-700 bg-amber-100/50 px-1.5 py-0.5 rounded">
-                                                        ${h.codigo}
-                                                    </span>
+                                                    <span class="text-[10px] font-bold text-amber-700 bg-amber-100/50 px-1.5 py-0.5 rounded">${h.codigo}</span>
                                                     <i class="fas fa-plus-circle text-amber-300 group-hover:text-amber-500 transition-colors"></i>
                                                 </div>
                                                 <p class="text-xs text-slate-600 mt-2 line-clamp-3 leading-snug">${h.descricao}</p>
@@ -135,24 +155,30 @@ export const mensalView = {
                 ? "Todas as habilidades deste período já estão neste mês!"
                 : "Nenhuma habilidade cadastrada no planejamento do período."}
                                     </p>
-                                    <button onclick="controller.navigate('planejamento')" class="text-xs font-bold text-amber-600 hover:text-amber-700 underline">
-                                        Gerenciar Período
-                                    </button>
+                                    <button onclick="controller.navigate('planejamento')" class="text-xs font-bold text-amber-600 hover:text-amber-700 underline">Gerenciar Período</button>
                                 </div>
                             `}
                         </div>
                     </div>
-
                 </div>
             </div>
         `;
         container.innerHTML = html;
     },
+
+    /**
+     * Gera o card HTML para uma habilidade já planejada no mês.
+     * @param {Object} habilidade - Dados da habilidade.
+     * @param {string} turmaId - ID da turma de referência.
+     * @param {string} mes - Nome do mês.
+     * @returns {string} HTML Template.
+     */
     gerarCardHabilidade(habilidade, turmaId, mes) {
+        if (!habilidade) return '';
         const cor = habilidade.cor || (model.coresComponentes && model.coresComponentes[habilidade.componente]) || "#64748b";
         const codigoSafe = String(habilidade.codigo || "").replace(/'/g, "");
         const eixo = habilidade.objeto || habilidade.eixo || habilidade.componente || "Habilidade";
-        habilidades.sort((a, b) => a.codigo.localeCompare(b.codigo, undefined, { numeric: true }));
+
         return `
             <div class="bg-white p-4 rounded-xl border-l-[4px] shadow-sm relative group hover:shadow-md hover:-translate-y-0.5 transition-all border-y border-r border-slate-100" 
                  style="border-left-color: ${cor} !important;">
@@ -178,20 +204,27 @@ export const mensalView = {
             </div>
         `;
     },
+
     mudarTurma(id) {
         this.currentTurmaId = id;
         this.render('view-container');
     },
+
     mudarMes(mes) {
         this.currentMes = mes;
         this.render('view-container');
     },
+
+    /**
+     * Identifica a qual período letivo o mês pertence.
+     * @param {string} mesNome - Nome do mês.
+     * @returns {string} Número do período (ex: "1").
+     */
     identificarPeriodo(mesNome) {
-        // Essa joça é mais difícil do que parece mas depois de fazer parece fácil
         try {
             const mesIndex = this.meses.indexOf(mesNome);
             const ano = new Date().getFullYear();
-            const dataTeste = `${ano}-${String(mesIndex + 1).padStart(2, '0')}-15`; // 15 arbitrariamente
+            const dataTeste = `${ano}-${String(mesIndex + 1).padStart(2, '0')}-15`;
             const periodo = model.getPeriodoPorData(dataTeste);
             return periodo || "1";
         } catch (e) {
@@ -199,6 +232,11 @@ export const mensalView = {
             return "1";
         }
     },
+
+    /**
+     * Adiciona uma habilidade da lista de sugestões ao mês selecionado.
+     * @param {string} codigoHabilidade - Código identificador (ex: EF06MA01).
+     */
     adicionarSugestao(codigoHabilidade) {
         const turma = model.state.turmas.find(t => t.id == this.currentTurmaId);
         if (!turma) return;

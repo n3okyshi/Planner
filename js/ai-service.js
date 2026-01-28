@@ -17,6 +17,7 @@ export const aiService = {
             return "";
         }
     },
+    /** @type {Array<{id: string, v: string}>} Lista de modelos disponíveis para tentativa e erro */
     MODELOS: [
         { id: 'gemini-2.5-flash-lite', v: 'v1beta' },
         { id: 'gemini-3-flash-preview', v: 'v1beta' },
@@ -24,9 +25,22 @@ export const aiService = {
         { id: 'gemini-flash-lite-latest', v: 'v1beta' }
 
     ],
-
+    /**
+         * Pausa a execução por um tempo determinado.
+         * @param {number} ms - Milissegundos.
+         * @returns {Promise<void>}
+         */
     _esperar: (ms) => new Promise(res => setTimeout(res, ms)),
-
+    /**
+         * Gera uma questão inédita baseada nos parâmetros pedagógicos.
+         * @async
+         * @param {Object} params - Parâmetros da questão.
+         * @param {string} params.materia - Disciplina escolar.
+         * @param {Object} params.habilidade - Objeto contendo codigo e descricao BNCC.
+         * @param {number} params.dificuldade - Nível (1 a 3).
+         * @param {string} params.tipo - 'multipla' ou 'aberta'.
+         * @returns {Promise<Object>} Objeto da questão formatado.
+         */
     async gerarQuestao({ materia, habilidade, dificuldade, tipo }) {
         const diffLabels = ["Aleatória", "Fácil", "Média", "Difícil"];
         const prompt = `Atue como um professor especialista. Crie uma questão inédita para a disciplina de ${materia}.

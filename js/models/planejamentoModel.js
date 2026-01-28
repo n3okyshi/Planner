@@ -163,5 +163,45 @@ export const planejamentoMethods = {
             normalizar(h.codigo).includes(termoBusca) ||
             normalizar(h.descricao).includes(termoBusca)
         ).slice(0, 15); // Limita a 15 resultados para performance
+    },
+    /**
+     * Remove uma habilidade do planejamento mensal de forma definitiva.
+     * @param {string} turmaId 
+     * @param {string} mes 
+     * @param {string} codigoHabilidade 
+     */
+    removeHabilidadeMensal(turmaId, mes, codigoHabilidade) {
+        // 1. Busca a turma (usando == para flexibilidade de string/number)
+        const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
+        
+        if (!turma || !turma.planejamentoMensal || !turma.planejamentoMensal[mes]) {
+            console.error("Turma ou mês não encontrados para remoção.");
+            return;
+        }
+
+        // 2. Filtro rigoroso com higienização de strings
+        const listaOriginal = turma.planejamentoMensal[mes];
+        const novaLista = listaOriginal.filter(h => {
+            const codExistente = String(h.codigo || "").trim();
+            const codRemover = String(codigoHabilidade || "").trim();
+            return codExistente !== codRemover;
+        });
+
+        // 3. Atualiza a referência no estado local
+        turma.planejamentoMensal[mes] = novaLista;
+
+        // 4. PERSISTÊNCIA COMPLETA
+        // Primeiro: Cache local imediato (para o F5)
+        this.saveLocal(); 
+        
+        // Segundo: Sincronização granular (conforme o padrão das suas outras funções)
+        if (this.currentUser) {
+            window.firebaseService.saveTurma(this.currentUser.uid, turma);
+        } else {
+            // Caso não haja saveTurma disponível, usa o root como garantia
+            this.saveCloudRoot();
+        }
+        
+        console.log(`✅ Habilidade ${codigoHabilidade} removida com sucesso de ${mes}.`);
     }
 };

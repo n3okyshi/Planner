@@ -348,6 +348,9 @@ export const provasView = {
         }
     },
     openAddQuestao(dados = {}) {
+
+        const exibirBotaoIA = !dados.id;
+
         dados = dados || {};
         if (this.tempDados) {
             dados = { ...this.tempDados, ...dados };
@@ -429,20 +432,32 @@ export const provasView = {
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Resposta / Gabarito Sugerido</label>
                     <textarea id="q-gabarito" rows="2" class="w-full border border-slate-200 p-3 rounded-xl outline-none focus:border-primary text-sm bg-emerald-50/30" placeholder="Resposta esperada...">${dados.gabarito || ''}</textarea>
                 </div>
-                <div id="ai-loading" class="hidden text-center p-3 bg-indigo-50 rounded-xl mb-3 animate-pulse">
-                    <i class="fas fa-robot text-indigo-600 mr-2"></i> <span class="text-xs font-bold text-indigo-600 uppercase">A IA está escrevendo...</span>
-                </div>
+                <div class="p-6 space-y-4">
+                    <div id="ai-section" class="${exibirBotaoIA ? '' : 'hidden'}">
+                        <div id="ai-loading" class="hidden text-center p-3 bg-indigo-50 rounded-xl mb-3 animate-pulse">
+                            <i class="fas fa-robot text-indigo-600 mr-2"></i> 
+                            <span class="text-xs font-bold text-indigo-600 uppercase">A IA está escrevendo...</span>
+                        </div>
 
-                <div class="flex flex-col gap-3 pt-2">
-                    <button onclick="provasView.gerarComIA()" class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-bold shadow-lg hover:brightness-110 transition flex items-center justify-center gap-2">
-                        <i class="fas fa-robot"></i> Gerar Questão com IA
-                    </button>
-                    <div class="flex justify-end gap-3">
-                        <button onclick="controller.closeModal()" class="px-5 py-2.5 text-slate-500 font-bold hover:bg-slate-50 rounded-xl">Cancelar</button>
-                        <button onclick="provasView.salvarQuestao()" class="btn-primary px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-primary/20">${dados.id ? 'Atualizar' : 'Salvar'}</button>
+                        <button onclick="provasView.gerarComIA()" 
+                            class="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-3 rounded-xl font-bold shadow-lg hover:brightness-110 transition flex items-center justify-center gap-2 mb-4">
+                            <i class="fas fa-robot"></i> Gerar Questão com IA
+                        </button>
+                        
+                        <div class="relative flex py-2 items-center">
+                            <div class="flex-grow border-t border-slate-100"></div>
+                            <span class="flex-shrink mx-4 text-[10px] font-bold text-slate-300 uppercase tracking-widest">Ou edite manualmente</span>
+                            <div class="flex-grow border-t border-slate-100"></div>
+                        </div>
                     </div>
-                </div>
-            </div>`;
+
+                    <div class="flex justify-end gap-3 pt-4">
+                        <button onclick="controller.closeModal()" class="px-5 py-2.5 text-slate-500 font-bold hover:bg-slate-50 rounded-xl">Cancelar</button>
+                        <button onclick="provasView.salvarQuestao()" class="btn-primary px-8 py-2.5 rounded-xl font-bold shadow-lg shadow-primary/20">
+                            ${dados.id ? 'Salvar Alterações' : 'Salvar Questão'}
+                        </button>
+                    </div>
+                </div>>`;
 
         controller.openModal(dados.id ? 'Editar Questão' : 'Nova Questão', html);
         setTimeout(() => {
@@ -456,6 +471,14 @@ export const provasView = {
         const descBncc = document.getElementById('q-bncc-desc').value;
         const dificuldade = document.getElementById('q-dificuldade').value;
         const tipo = document.getElementById('q-tipo').value;
+        const idExistente = document.getElementById('q-id')?.value;
+        const enunciadoAtual = document.getElementById('q-enunciado')?.value;
+
+        if (idExistente || (enunciadoAtual && enunciadoAtual.length > 20)) {
+            if (!confirm("Isso substituirá o conteúdo atual pela resposta da IA. Deseja continuar?")) {
+                return;
+            }
+        }
         if (!materia || !codBncc) {
             return Toast.show("Selecione a disciplina e a BNCC primeiro!", "warning");
         }

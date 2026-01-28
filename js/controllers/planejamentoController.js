@@ -2,8 +2,18 @@
 import { model } from '../model.js';
 import { Toast } from '../components/toast.js';
 
+/**
+ * CONTROLADOR DE PLANEJAMENTO
+ * Gerencia as ações de Diário, Planejamento Periódico, Mensal e integrações BNCC.
+ * @namespace planejamentoController
+ */
 export const planejamentoController = {
+    
     // --- Diário e Planejamento Diário ---
+    
+    /**
+     * Coleta dados do formulário e salva o planejamento do dia no model.
+     */
     salvarDiario() {
         const data = document.getElementById('diario-data').value;
         const turmaId = document.getElementById('diario-turma').value;
@@ -21,6 +31,10 @@ export const planejamentoController = {
         Toast.show("Planejamento salvo com sucesso!", 'success');
     },
 
+    /**
+     * Altera a data focada no diário e navega para a visão diária.
+     * @param {string} novaData - Data no formato YYYY-MM-DD.
+     */
     mudarDataDiario(novaData) {
         if (window.diarioView) {
             window.diarioView.currentDate = novaData;
@@ -47,6 +61,7 @@ export const planejamentoController = {
     },
 
     // --- Lógica de Replicação (Copiar Planejamento) ---
+
     abrirModalCopiarPlanejamento(turmaIdAtual) {
         const turmaAtual = model.state.turmas.find(t => t.id == turmaIdAtual);
         if (!turmaAtual) return;
@@ -96,6 +111,7 @@ export const planejamentoController = {
     },
 
     // --- Integração BNCC ---
+
     openSeletorBncc(turmaId, periodoIdx, nivelHtml, serieHtml) {
         const turma = model.state.turmas.find(t => t.id == turmaId);
         if (!turma) return;
@@ -115,6 +131,9 @@ export const planejamentoController = {
         }, 100);
     },
 
+    /**
+     * Remove habilidade do planejamento anual com opção de desfazer.
+     */
     removeHabilidade(turmaId, periodoIdx, codigoHabilidade) {
         const turma = model.state.turmas.find(t => t.id == turmaId);
         if (!turma || !turma.planejamento[periodoIdx]) return;
@@ -151,10 +170,51 @@ export const planejamentoController = {
         }, 50);
     },
 
+    /**
+     * Remove uma habilidade do planejamento mensal com confirmação e fallback de segurança.
+     * @param {string} turmaId 
+     * @param {string} mes 
+     * @param {string} codigo 
+     */
     removeHabilidadeMensal(turmaId, mes, codigo) {
-        window.controller.confirmarAcao("Remover?", "Deseja remover esta habilidade do planejamento mensal?", () => {
-            model.removeHabilidadeMensal(turmaId, mes, codigo);
-            window.controller.navigate('mensal');
-        });
+    window.controller.confirmarAcao("Remover?", "Deseja remover esta habilidade do mês?", () => {
+        // Chama o model para apagar DE VERDADE
+        model.removeHabilidadeMensal(turmaId, mes, codigo);
+        
+        // Dá um pequeno tempo para o processamento e re-renderiza
+        if (window.controller.currentView === 'mensal') {
+            window.mensalView.render('view-container');
+        }
+        
+        window.Toast?.show("Habilidade removida do planejamento mensal.", "info");
+    });
+},
+
+    /**
+     * Lógica de emergência para garantir a remoção mesmo em falhas de injeção de métodos.
+     * @private
+     */
+    _fallbackRemoveHabilidadeMensal(turmaId, mes, codigo) {
+        try {
+            const turmas = model.state.turmas || [];
+            const turma = turmas.find(t => String(t.id) === String(turmaId));
+            
+            if (turma && turma.planejamentoMensal && turma.planejamentoMensal[mes]) {
+                // Filtro rigoroso para garantir a exclusão
+                turma.planejamentoMensal[mes] = turma.planejamentoMensal[mes].filter(h => String(h.codigo).trim() !== String(codigo).trim());
+                
+                // Persistência manual via model
+                model.saveLocal();
+                model.saveCloudRoot();
+                
+                if (window.controller.currentView === 'mensal') {
+                    window.mensalView.render('view-container');
+                }
+                window.Toast?.show("Habilidade removida (FB).", "info");
+            }
+        } catch (err) {
+            console.error("Falha no fallback de remoção:", err);
+            Toast.show("Erro ao remover habilidade.", "error");
+        }
     }
 };
