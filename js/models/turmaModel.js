@@ -1,5 +1,5 @@
 export const turmaMethods = {
-    
+
     /**
      * Adiciona uma nova turma ao estado
      * @param {string} nome 
@@ -132,21 +132,24 @@ export const turmaMethods = {
      * @returns {string|null} Novo estado da frequência
      */
     toggleFrequencia(turmaId, alunoId, dataIso) {
-        const turma = this.state.turmas.find(t => t.id == turmaId);
-        const aluno = turma?.alunos.find(a => a.id == alunoId);
-        if (!aluno) return null;
+    const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
+    if (!turma) return null;
+    const aluno = turma.alunos.find(a => String(a.id) === String(alunoId));
+    if (!aluno) return null;
 
-        if (!aluno.frequencia) aluno.frequencia = {};
-        const atual = aluno.frequencia[dataIso];
-        let novo = !atual ? 'P' : atual === 'P' ? 'F' : atual === 'F' ? 'J' : null;
-        
-        if (novo) aluno.frequencia[dataIso] = novo;
-        else delete aluno.frequencia[dataIso];
+    const atual = aluno.frequencia?.[dataIso];
+    let novo = null;
 
-        this.saveLocal();
-        if (this.currentUser) window.firebaseService.saveFrequenciaAluno(this.currentUser.uid, turmaId, alunoId, aluno.frequencia);
-        return novo;
-    },
+    if (!atual) novo = 'P';
+    else if (atual === 'P') novo = 'F';
+    else if (atual === 'F') novo = 'J';
+    else novo = null;
+
+    // Chama a função unificada
+    this.registrarFrequencia(turmaId, alunoId, dataIso, novo);
+    
+    return novo;
+},
 
     /**
      * Calcula o resumo de notas de um aluno (Períodos e Média Anual)
@@ -194,5 +197,80 @@ export const turmaMethods = {
             this.saveLocal();
             this.saveCloudRoot();
         }
+    },
+    setFrequencia(turmaId, alunoId, dataIso, status) {
+    const turmas = this.state.turmas;
+    const turmaIndex = turmas.findIndex(t => String(t.id) === String(turmaId));
+    
+    if (turmaIndex === -1) return;
+
+    const alunoIndex = turmas[turmaIndex].alunos.findIndex(a => String(a.id) === String(alunoId));
+    if (alunoIndex === -1) return;
+
+    // Garante que o objeto de frequência existe
+    if (!turmas[turmaIndex].alunos[alunoIndex].frequencia) {
+        turmas[turmaIndex].alunos[alunoIndex].frequencia = {};
     }
+
+    // Grava o dado
+    turmas[turmaIndex].alunos[alunoIndex].frequencia[dataIso] = status;
+
+    // --- O SEGREDO DA PERSISTÊNCIA ---
+    // 1. Salva no LocalStorage imediatamente
+    this.saveLocal(); 
+    
+    // 2. Sincroniza a turma específica no Firebase (se houver usuário logado)
+    if (this.currentUser && window.firebaseService?.saveTurma) {
+        window.firebaseService.saveTurma(this.currentUser.uid, turmas[turmaIndex]);
+    } else {
+        // Fallback: salva o estado inteiro se não houver função granular
+        this.saveCloudRoot();
+    }
+    
+    console.log(`💾 Salvo: Aluno ${alunoId} -> ${status} em ${dataIso}`);
+},
+/**
+ * FUNÇÃO UNIFICADA DE FREQUÊNCIA
+ * Usada tanto pelo Swipe quanto pelo Clique na Tabela.
+ * @param {string} turmaId 
+ * @param {string} alunoId 
+ * @param {string} dataIso 
+ * @param {string|null} status - 'P', 'F', 'J' ou null
+ */
+async registrarFrequencia(turmaId, alunoId, dataIso, status) {
+    // 1. Localiza a turma e o aluno no estado local (RAM)
+    const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
+    if (!turma) return;
+
+    const aluno = turma.alunos.find(a => String(a.id) === String(alunoId));
+    if (!aluno) return;
+
+    // 2. Atualiza o estado local
+    if (!aluno.frequencia) aluno.frequencia = {};
+    
+    if (status) {
+        aluno.frequencia[dataIso] = status;
+    } else {
+        delete aluno.frequencia[dataIso];
+    }
+
+    // 3. PERSISTÊNCIA LOCAL (Previne perda no F5 imediato)
+    this.saveLocal();
+
+    // 4. PERSISTÊNCIA CLOUD (Unificada)
+    // Usamos a função granular do firebase-service que você já tem!
+    if (this.currentUser && window.firebaseService?.saveFrequenciaAluno) {
+        try {
+            await window.firebaseService.saveFrequenciaAluno(
+                this.currentUser.uid, 
+                turmaId, 
+                alunoId, 
+                aluno.frequencia // Envia o mapa completo de datas do aluno
+            );
+            console.log(`☁️ Cloud sync: Aluno ${aluno.nome} -> ${status || 'Limpado'}`);
+        } catch (error) {
+            console.error("Erro na sincronização cloud:", error);
+        }
+    }
+},
 };

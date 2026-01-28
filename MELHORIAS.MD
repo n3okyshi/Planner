@@ -23,7 +23,7 @@ Transformar dados de notas e chamadas em insights acionáveis.
 Acelerar as tarefas repetitivas do dia a dia em sala de aula.
 
 * **[ ] Diário por Voz:** Integração com a `Web Speech API` para ditado dos registros de aula e observações de alunos.
-* **[ ] Chamada "Quick-Action":** Interface otimizada para dispositivos móveis com gestos (swipe) para marcar presença/falta rapidamente.
+* **[x] Chamada "Quick-Action":** Interface otimizada para dispositivos móveis com gestos (swipe) para marcar presença/falta rapidamente.
 * **[ ] Sistema de Notificações Push:** Lembretes via Service Worker para fechamento de notas, preenchimento de diário e alertas de feriados.
 
 ## 4. Documentação & Relatórios

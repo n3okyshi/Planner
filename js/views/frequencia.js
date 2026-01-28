@@ -3,6 +3,10 @@ import { model } from '../model.js';
 export const frequenciaView = {
     currentTurmaId: null,
     currentDate: new Date(),
+    // Estado do Modo Chamada
+    chamadaAtiva: false,
+    alunoIndex: 0,
+    startX: 0,
 
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
@@ -16,6 +20,10 @@ export const frequenciaView = {
         const mes = this.currentDate.getMonth();
         const nomeMes = new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(this.currentDate);
         const diasNoMes = new Date(ano, mes + 1, 0).getDate();
+
+        // Formatar data atual para exibição no botão
+        const diaSelecionadoStr = this.currentDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+
         const html = `
             <div class="fade-in pb-24 h-full flex flex-col">
                 <div class="hidden print:block text-center mb-4">
@@ -28,6 +36,11 @@ export const frequenciaView = {
                         <p class="text-xs text-slate-500">Controle de chamadas e presença.</p>
                     </div>
                     <div class="flex flex-wrap gap-3 items-center justify-center">
+                        <button onclick="frequenciaView.iniciarChamada()" 
+                                class="bg-emerald-600 text-white px-5 py-2 rounded-xl font-bold hover:bg-emerald-700 transition flex items-center gap-2 shadow-lg shadow-emerald-100">
+                            <i class="fas fa-hand-pointer"></i> Iniciar Chamada (${diaSelecionadoStr})
+                        </button>
+
                         <div class="relative">
                             <i class="fas fa-users absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                             <select onchange="frequenciaView.mudarTurma(this.value)" 
@@ -51,20 +64,196 @@ export const frequenciaView = {
                 </div>
                 ${turmaSelecionada ? this.renderTabela(turmaSelecionada, ano, mes, diasNoMes) : this.estadoVazio()}
             </div>
+
+            <div id="chamada-rapida-overlay" class="fixed inset-0 bg-slate-900/90 z-[9999] hidden flex items-center justify-center backdrop-blur-sm p-6">
+                <div id="chamada-card-container" class="w-full max-w-md aspect-[3/4] relative">
+                    </div>
+            </div>
         `;
         container.innerHTML = html;
+        this.autoScrollParaHoje(ano, mes);
+    },
+
+    autoScrollParaHoje(ano, mes) {
         setTimeout(() => {
+            const hoje = new Date();
+            const isMesAtual = hoje.getMonth() === mes && hoje.getFullYear() === ano;
+            if (!isMesAtual) return;
+
             const elHoje = document.getElementById('dia-hoje');
             const scrollContainer = document.getElementById('scroll-frequencia');
             if (elHoje && scrollContainer) {
                 const scrollPos = elHoje.offsetLeft - (scrollContainer.clientWidth / 2) + (elHoje.clientWidth / 2);
-                scrollContainer.scrollTo({
-                    left: scrollPos,
-                    behavior: 'smooth'
-                });
+                scrollContainer.scrollTo({ left: scrollPos, behavior: 'smooth' });
             }
         }, 300);
     },
+
+    // --- Lógica da Chamada Tinder-Style ---
+
+    iniciarChamada() {
+        const turmas = model.state.turmas || [];
+        const turma = turmas.find(t => t.id == this.currentTurmaId);
+        if (!turma || !turma.alunos || turma.alunos.length === 0) {
+            return window.Toast?.show("Não há alunos para realizar a chamada.", "warning");
+        }
+
+        this.chamadaAtiva = true;
+        this.alunoIndex = 0;
+        document.getElementById('chamada-rapida-overlay').classList.remove('hidden');
+        this.renderProximoAluno();
+    },
+
+    renderProximoAluno() {
+        const turmas = model.state.turmas || [];
+        const turma = turmas.find(t => t.id == this.currentTurmaId);
+        const container = document.getElementById('chamada-card-container');
+        const aluno = turma.alunos[this.alunoIndex];
+
+        if (!aluno) {
+            this.finalizarChamada();
+            return;
+        }
+
+        container.innerHTML = `
+            <div id="chamada-card" class="w-full h-full bg-white rounded-[2rem] shadow-2xl flex flex-col items-center justify-center p-8 text-center touch-none select-none transition-transform duration-300">
+                <div class="mb-6">
+                    <div class="w-32 h-32 rounded-full bg-slate-100 flex items-center justify-center text-4xl font-black text-primary border-4 border-slate-50 mb-4 mx-auto">
+                        ${aluno.nome.charAt(0)}
+                    </div>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Aluno ${this.alunoIndex + 1} de ${turma.alunos.length}</p>
+                    <h3 class="text-2xl font-bold text-slate-800">${aluno.nome}</h3>
+                </div>
+                
+                <div class="flex gap-4 w-full mt-10">
+                    <div class="flex-1 border-2 border-dashed border-red-100 rounded-2xl p-4">
+                        <i class="fas fa-arrow-left text-red-300 mb-1"></i>
+                        <p class="text-[9px] font-bold text-red-400 uppercase">Arraste para Falta</p>
+                    </div>
+                    <div class="flex-1 border-2 border-dashed border-emerald-100 rounded-2xl p-4">
+                        <i class="fas fa-arrow-right text-emerald-300 mb-1"></i>
+                        <p class="text-[9px] font-bold text-emerald-400 uppercase">Arraste para Presença</p>
+                    </div>
+                </div>
+
+                <button onclick="frequenciaView.finalizarChamada()" class="absolute -bottom-16 left-1/2 -translate-x-1/2 text-white/50 hover:text-white text-xs font-bold uppercase tracking-widest">
+                    <i class="fas fa-times mr-1"></i> Cancelar Chamada
+                </button>
+            </div>
+        `;
+
+        this.vincularEventosSwipe(aluno.id);
+    },
+
+    vincularEventosSwipe(alunoId) {
+        const card = document.getElementById('chamada-card');
+        const overlay = document.getElementById('chamada-rapida-overlay');
+        if (!card) return;
+
+        let isDragging = false;
+
+        const handleStart = (e) => {
+            isDragging = true;
+            this.startX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
+            card.style.transition = 'none'; // Remove transição durante o arraste
+        };
+
+        const handleMove = (e) => {
+            if (!isDragging || !this.startX) return;
+
+            const currentX = e.type === 'touchmove' ? e.touches[0].clientX : e.clientX;
+            const diffX = currentX - this.startX;
+            const rotation = diffX / 20;
+
+            card.style.transform = `translateX(${diffX}px) rotate(${rotation}deg)`;
+
+            // Feedback de cor
+            if (diffX > 60) overlay.style.backgroundColor = 'rgba(16, 185, 129, 0.8)';
+            else if (diffX < -60) overlay.style.backgroundColor = 'rgba(239, 68, 68, 0.8)';
+            else overlay.style.backgroundColor = 'rgba(15, 23, 42, 0.9)';
+        };
+
+        const handleEnd = (e) => {
+            if (!isDragging) return;
+            isDragging = false;
+
+            const clientX = e.type === 'touchend' ? e.changedTouches[0].clientX : e.clientX;
+            const diffX = clientX - this.startX;
+            this.startX = 0;
+
+            if (diffX > 100) {
+                this.registrarFrequenciaSwipe(alunoId, 'P');
+            } else if (diffX < -100) {
+                this.registrarFrequenciaSwipe(alunoId, 'F');
+            } else {
+                card.style.transition = 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                card.style.transform = '';
+                overlay.style.backgroundColor = 'rgba(15, 23, 42, 0.9)';
+            }
+        };
+
+        // Eventos de Toque (Mobile)
+        card.addEventListener('touchstart', handleStart, { passive: true });
+        card.addEventListener('touchmove', handleMove, { passive: true });
+        card.addEventListener('touchend', handleEnd);
+
+        // Eventos de Mouse (Desktop)
+        card.addEventListener('mousedown', handleStart);
+        // Importante: Vincular ao window para não perder o rastro se o mouse sair do card
+        const mouseMoveHandler = (e) => handleMove(e);
+        const mouseUpHandler = (e) => {
+            handleEnd(e);
+            // Limpa os listeners globais após o uso
+            window.removeEventListener('mousemove', mouseMoveHandler);
+            window.removeEventListener('mouseup', mouseUpHandler);
+        };
+
+        card.addEventListener('mousedown', () => {
+            window.addEventListener('mousemove', mouseMoveHandler);
+            window.addEventListener('mouseup', mouseUpHandler);
+        });
+    },
+
+    registrarFrequenciaSwipe(alunoId, status) {
+        // SEGURANÇA: Verifica se o card ainda existe antes de mexer no style
+        const card = document.getElementById('chamada-card');
+        const overlay = document.getElementById('chamada-rapida-overlay');
+
+        if (!card) return;
+
+
+
+        const ano = this.currentDate.getFullYear();
+        const mesFmt = (this.currentDate.getMonth() + 1).toString().padStart(2, '0');
+        const diaFmt = this.currentDate.getDate().toString().padStart(2, '0');
+        const dataIso = `${ano}-${mesFmt}-${diaFmt}`;
+
+        // Salva no banco
+        model.setFrequencia(this.currentTurmaId, alunoId, dataIso, status);
+        model.registrarFrequencia(this.currentTurmaId, alunoId, dataIso, status);
+        // Animação de saída
+        card.style.transition = 'all 0.4s ease-in';
+        card.style.transform = `translateX(${status === 'P' ? '1000' : '-1000'}px) rotate(${status === 'P' ? '45' : '-45'}deg)`;
+        card.style.opacity = '0';
+
+        // Espera a animação acabar para renderizar o próximo
+        setTimeout(() => {
+            this.alunoIndex++;
+            if (overlay) overlay.style.backgroundColor = 'rgba(15, 23, 42, 0.9)';
+            this.renderProximoAluno();
+        }, 300);
+    },
+
+    finalizarChamada() {
+        this.chamadaAtiva = false;
+        const overlay = document.getElementById('chamada-rapida-overlay');
+        if (overlay) overlay.classList.add('hidden');
+        model.saveLocal();
+        model.saveCloudRoot();
+        this.render('view-container');
+        window.Toast?.show("Chamada finalizada e salva!", "success");
+    },
+
     renderTabela(turma, ano, mes, diasNoMes) {
         let headerDias = '';
         const hoje = new Date();

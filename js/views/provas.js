@@ -549,30 +549,44 @@ export const provasView = {
         container.innerHTML = html;
     },
     getDataModal() {
+        // Captura segura do elemento de dificuldade
+        const diffElement = document.getElementById('q-dificuldade');
+        const diffValor = diffElement ? diffElement.value : 0;
+
+        // Captura do ID (Fundamental para saber se é Edição ou Criação)
+        const idField = document.getElementById('q-id');
+        const idValue = idField && idField.value.trim() !== "" ? idField.value : null;
+
         const dados = {
-            id: document.getElementById('q-id')?.value || null,
+            id: idValue, // Se for null, o Model vai gerar um novo ID (Criação)
             createdAt: document.getElementById('q-created-at')?.value || null,
             materia: document.getElementById('q-materia')?.value,
             ano: document.getElementById('q-ano')?.value,
             enunciado: document.getElementById('q-enunciado')?.value,
             tipo: document.getElementById('q-tipo')?.value,
-            dificuldade: Number(document.getElementById('q-dificuldade')?.value) || 0,
+            // Conversão explícita para garantir que salve como número
+            dificuldade: parseInt(diffValor) || 0,
             bncc: document.getElementById('q-bncc-cod')?.value ? {
                 codigo: document.getElementById('q-bncc-cod').value,
                 descricao: document.getElementById('q-bncc-desc').value
             } : null
         };
+
+        // Tratamento específico para Múltipla Escolha
         if (dados.tipo === 'multipla') {
             const qtdEl = document.getElementById('q-qtd-alt');
             if (qtdEl) {
                 const qtd = parseInt(qtdEl.value);
                 dados.alternativas = Array.from({ length: qtd }, (_, i) => document.getElementById(`alt-${i}`)?.value || '');
                 const radio = document.querySelector('input[name="correta"]:checked');
+                // Se nenhum radio estiver marcado, mantém null
                 dados.correta = radio ? parseInt(radio.value) : null;
             }
         } else {
             dados.gabarito = document.getElementById('q-gabarito')?.value || '';
         }
+        
+        console.log("Dados capturados do modal:", dados); // Debug
         return dados;
     },
     salvarQuestao() {

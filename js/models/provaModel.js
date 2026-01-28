@@ -44,37 +44,43 @@ export const provaMethods = {
 
     /**
      * Salva ou atualiza uma questão no banco pessoal do professor
-     * @param {Object} questao 
+     * @param {Object} questaoRecebida 
      */
-    saveQuestao(questao) {
-        if (!questao.id) {
-            questao.id = "prof_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5);
-            questao.createdAt = new Date().toISOString();
+    async saveQuestao(questaoRecebida) {
+        const questaoSalvar = {
+            ...questaoRecebida,
+            dificuldade: Number(questaoRecebida.dificuldade) || 0,
+            updatedAt: new Date().toISOString()
+        };
+        
+        if (!questaoSalvar.id) {
+            questaoSalvar.id = "prof_" + Date.now() + "_" + Math.random().toString(36).substr(2, 5);
+            questaoSalvar.createdAt = new Date().toISOString();
         }
-        
-        // Garante que a dificuldade seja sempre um número (0, 1, 2 ou 3)
-        questao.dificuldade = Number(questao.dificuldade) || 0;
-
-        const index = this.state.questoes.findIndex(q => String(q.id) === String(questao.id));
-        
+        if (!this.state.questoes) this.state.questoes = [];
+        const index = this.state.questoes.findIndex(q => String(q.id) === String(questaoSalvar.id));
         if (index !== -1) {
-            this.state.questoes[index] = { ...this.state.questoes[index], ...questao };
+            this.state.questoes[index] = { ...this.state.questoes[index], ...questaoSalvar };
         } else {
-            this.state.questoes.push({ ...questao });
+            this.state.questoes.push(questaoSalvar);
         }
-
         this.saveLocal();
-        this.saveCloudRoot();
+        if (this.currentUser) {
+            this.saveCloudRoot().catch(err => console.warn("Sync background falhou, mas local está salvo.", err));
+        }
     },
 
     /**
      * Remove uma questão do banco pessoal
      * @param {string} id 
      */
-    deleteQuestao(id) {
-        this.state.questoes = this.state.questoes.filter(q => String(q.id) !== String(id));
+    async deleteQuestao(id) {
+        if (!this.state.questoes) return;
+        this.state.questoes = this.state.questoes.filter(q => q.id !== id);
         this.saveLocal();
-        this.saveCloudRoot();
+        if (this.currentUser && this.state.isCloudSynced) {
+            await this.saveCloudRoot();
+        }
     },
 
     /**
@@ -88,7 +94,6 @@ export const provaMethods = {
         const enunciadoNormalizado = (questao.enunciado || "").trim();
 
         try {
-            // Verifica duplicatas antes de subir
             const jaExiste = await window.firebaseService.verificarDuplicataComunidade(enunciadoNormalizado);
             if (jaExiste) {
                 window.Toast.show("Essa questão já existe na comunidade.", "warning");
@@ -116,12 +121,10 @@ export const provaMethods = {
                 id_local_origem: String(questao.id),
                 data_partilha: new Date().toISOString()
             };
-
             await window.firebaseService.publicarQuestaoComunidade(qPublica);
             questao.compartilhada = true;
             this.saveLocal();
             this.saveCloudRoot();
-
             window.Toast.show("Compartilhado com sucesso!", "success");
             if (window.provasView) window.provasView.render('view-container');
 
@@ -144,7 +147,6 @@ export const provaMethods = {
                 delete questao.compartilhada;
                 this.saveLocal();
                 this.saveCloudRoot();
-                
                 window.Toast.show("Retirada da comunidade.", "info");
                 if (window.provasView) window.provasView.render('view-container');
             }
