@@ -1,16 +1,36 @@
-import { model } from '../model.js';
+/**
+ * @file bncc.js
+ * @description View responsável pela interface de busca e seleção da Base Nacional Comum Curricular (BNCC).
+ * @module views/bnccView
+ */
 
+import { model } from '../model.js';
+import { Toast } from '../components/toast.js';
+
+/**
+ * View da BNCC.
+ * @namespace bnccView
+ */
 export const bnccView = {
     selecionarCallback: null,
     dataCache: {},
     filtrosVisiveisMobile: false,
+    
     // Armazena a lista completa após o primeiro carregamento para busca global rápida
     bancoCompleto: [],
     estaCarregandoBanco: false,
 
+    /**
+     * Renderiza o componente principal da BNCC.
+     * @param {HTMLElement|string} container - Elemento onde a view será montada.
+     * @param {string|null} [preNivel=null] - Nível pré-selecionado (para modal).
+     * @param {string|null} [preSerie=null] - Série pré-selecionada.
+     * @param {Function|null} [callbackExterno=null] - Função a ser chamada ao selecionar uma habilidade.
+     */
     async render(container, preNivel = null, preSerie = null, callbackExterno = null) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+        
         this.selecionarCallback = callbackExterno;
         this.filtrosVisiveisMobile = false;
 
@@ -45,7 +65,7 @@ export const bnccView = {
                 </div>
 
                 <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 flex-1 min-h-0 relative">
-                    <aside id="bncc-sidebar" class="hidden lg:block space-y-4 overflow-y-auto custom-scrollbar pr-2 h-full absolute lg:relative z-20 w-full lg:w-auto bg-white lg:bg-transparent shadow-2xl lg:shadow-none p-4 lg:p-0 top-0 left-0 h-full">
+                    <aside id="bncc-sidebar" class="hidden lg:block space-y-4 overflow-y-auto custom-scrollbar pr-2 h-full absolute lg:relative z-20 w-full lg:w-auto bg-white lg:bg-transparent shadow-2xl lg:shadow-none p-4 lg:p-0 top-0 left-0">
                         <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4">
                             <div class="flex justify-between items-center lg:hidden mb-2 pb-2 border-b border-slate-50">
                                 <h4 class="font-bold text-slate-700">Filtros por Nível</h4>
@@ -111,62 +131,80 @@ export const bnccView = {
         `;
         container.innerHTML = html;
 
-        // Pré-carregamento do banco global em segundo plano se necessário
+        // Pré-carregamento do banco global em segundo plano
         this.garantirBancoCompleto();
 
+        // Auto-seleção se vier de um contexto específico
         if (preNivel) {
             const nivelSelect = document.getElementById('bncc-nivel');
             if (preNivel.includes("Fundamental")) nivelSelect.value = "Ensino Fundamental";
             else if (preNivel.includes("Médio") || preNivel.includes("Medio")) nivelSelect.value = "Ensino Médio";
             else if (preNivel.includes("Infantil")) nivelSelect.value = "Educação Infantil";
+            
             await this.updateFiltros(nivelSelect.value);
+            
             if (preSerie) {
                 const anoSelect = document.getElementById('bncc-ano');
                 const serieLimpa = preSerie.toLowerCase();
                 let melhorMatch = "";
+                
+                // Lógica fuzzy para tentar encontrar a série certa
                 Array.from(anoSelect.options).forEach(opt => {
                     const optVal = opt.value.toLowerCase();
                     if (optVal === "") return;
-                    const numSerie = serieLimpa.match(/\d+/);
+                    
+                    const numSerie = serieLimpa.match(/\d+/); // Pega números (6, 7, 1...)
                     const numOpt = optVal.match(/\d+/);
+                    
                     if (nivelSelect.value === "Educação Infantil") {
                         if (serieLimpa.includes(optVal) || optVal.includes(serieLimpa)) melhorMatch = opt.value;
                     } else {
+                        // Compara apenas o primeiro dígito encontrado
                         if (numSerie && numOpt && numSerie[0] === numOpt[0]) melhorMatch = opt.value;
                     }
                 });
+                
                 if (melhorMatch) anoSelect.value = melhorMatch;
             }
             this.pesquisar();
         }
     },
 
-    // FUNÇÃO PARA BUSCA GLOBAL RÁPIDA (O UPGRADE SOLICITADO)
+    /**
+     * Executa a busca em todo o banco de dados carregado.
+     * @param {string} valor - Termo de busca.
+     */
     async executarBuscaRapida(valor) {
-        const resContainer = document.getElementById('bncc-resultados');
         const loadingIcon = document.getElementById('loading-global');
 
-        if (valor.length < 3) return;
+        if (valor.length < 3) {
+            if (loadingIcon) loadingIcon.classList.add('hidden');
+            return;
+        }
 
-        loadingIcon.classList.remove('hidden');
+        if (loadingIcon) loadingIcon.classList.remove('hidden');
 
-        // Garante que temos todos os dados
+        // Garante que temos todos os dados antes de filtrar
         await this.garantirBancoCompleto();
 
-        const normalizar = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        const normalizar = (str) => str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
         const termo = normalizar(valor);
 
+        // Busca otimizada nos campos principais
         const resultados = this.bancoCompleto.filter(h =>
             normalizar(h.codigo).includes(termo) ||
             normalizar(h.descricao).includes(termo) ||
             normalizar(h.componente).includes(termo) ||
             (h.objeto_conhecimento && normalizar(h.objeto_conhecimento).includes(termo))
-        ).slice(0, 100); // Limite de 100 para não travar a UI
+        ).slice(0, 100); // Limite de segurança para renderização
 
-        loadingIcon.classList.add('hidden');
+        if (loadingIcon) loadingIcon.classList.add('hidden');
         this.renderCards(resultados);
     },
 
+    /**
+     * Carrega todos os arquivos JSON da BNCC em memória (Cache Global).
+     */
     async garantirBancoCompleto() {
         if (this.bancoCompleto.length > 0 || this.estaCarregandoBanco) return;
 
@@ -178,7 +216,7 @@ export const bnccView = {
             const promises = arquivos.map(async (arq, i) => {
                 const res = await fetch(`./assets/BNCC/${arq}`);
                 const json = await res.json();
-                this.dataCache[niveis[i]] = json;
+                this.dataCache[niveis[i]] = json; // Salva no cache por nível
                 return this._normalizarDados(json, niveis[i]);
             });
 
@@ -194,27 +232,38 @@ export const bnccView = {
 
     toggleFiltrosMobile() {
         const sidebar = document.getElementById('bncc-sidebar');
+        if (!sidebar) return;
         this.filtrosVisiveisMobile = !this.filtrosVisiveisMobile;
         sidebar.classList.toggle('hidden', !this.filtrosVisiveisMobile);
         sidebar.classList.toggle('block', this.filtrosVisiveisMobile);
     },
 
     limparFiltros() {
-        document.getElementById('bncc-nivel').value = "";
-        document.getElementById('bncc-busca-global').value = "";
+        const nivelEl = document.getElementById('bncc-nivel');
+        const buscaEl = document.getElementById('bncc-busca-global');
+        const resContainer = document.getElementById('bncc-resultados');
+
+        if (nivelEl) nivelEl.value = "";
+        if (buscaEl) buscaEl.value = "";
+        
         this.updateFiltros("");
-        document.getElementById('bncc-resultados').innerHTML = `
-            <div class="h-full flex flex-col items-center justify-center text-slate-400 opacity-60">
-                <i class="fas fa-search text-4xl mb-4"></i>
-                <p>Filtros limpos.</p>
-            </div>
-        `;
+        
+        if (resContainer) {
+            resContainer.innerHTML = `
+                <div class="h-full flex flex-col items-center justify-center text-slate-400 opacity-60">
+                    <i class="fas fa-search text-4xl mb-4"></i>
+                    <p>Filtros limpos.</p>
+                </div>
+            `;
+        }
     },
 
     async updateFiltros(nivel) {
         const compSelect = document.getElementById('bncc-componente');
         const eixoSelect = document.getElementById('bncc-eixo');
         const anoSelect = document.getElementById('bncc-ano');
+
+        if (!compSelect || !eixoSelect || !anoSelect) return;
 
         compSelect.innerHTML = '<option value="">Carregando...</option>';
         compSelect.disabled = true;
@@ -259,9 +308,11 @@ export const bnccView = {
     },
 
     updateEixos() {
-        const nivel = document.getElementById('bncc-nivel').value;
-        const componenteSelecionado = document.getElementById('bncc-componente').value;
+        const nivel = document.getElementById('bncc-nivel')?.value;
+        const componenteSelecionado = document.getElementById('bncc-componente')?.value;
         const eixoSelect = document.getElementById('bncc-eixo');
+
+        if (!eixoSelect) return;
 
         eixoSelect.innerHTML = '<option value="">Todos os Eixos</option>';
 
@@ -273,6 +324,7 @@ export const bnccView = {
 
         const dados = this.dataCache[nivel];
         let eixosEncontrados = [];
+        
         if (nivel !== "Educação Infantil") {
             const compObj = dados.componentes.find(c => c.nome === componenteSelecionado);
             if (compObj) {
@@ -291,21 +343,25 @@ export const bnccView = {
     },
 
     async pesquisar() {
-        const nivel = document.getElementById('bncc-nivel').value;
-        const componenteSelecionado = document.getElementById('bncc-componente').value;
-        const eixoSelecionado = document.getElementById('bncc-eixo').value;
-        const anoSelecionado = document.getElementById('bncc-ano').value;
+        const nivel = document.getElementById('bncc-nivel')?.value;
+        const componenteSelecionado = document.getElementById('bncc-componente')?.value;
+        const eixoSelecionado = document.getElementById('bncc-eixo')?.value;
+        const anoSelecionado = document.getElementById('bncc-ano')?.value;
         const resContainer = document.getElementById('bncc-resultados');
 
-        if (!nivel) return alert("Selecione o Nível de Ensino.");
+        if (!nivel) return Toast.show("Selecione o Nível de Ensino.", "warning");
 
-        resContainer.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-primary py-10"><i class="fas fa-circle-notch fa-spin text-4xl mb-3"></i><p>Processando filtros...</p></div>`;
+        if (resContainer) {
+            resContainer.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-primary py-10"><i class="fas fa-circle-notch fa-spin text-4xl mb-3"></i><p>Processando filtros...</p></div>`;
+        }
 
         if (this.filtrosVisiveisMobile) this.toggleFiltrosMobile();
 
+        // Timeout para permitir que a UI desenhe o loader antes de processar
         setTimeout(() => {
             const dadosBrutos = this.dataCache[nivel];
             const listaHabilidades = this._normalizarDados(dadosBrutos, nivel);
+            
             const resultados = listaHabilidades.filter(item => {
                 if (componenteSelecionado && componenteSelecionado !== "Todos" && item.componente !== componenteSelecionado) return false;
                 if (eixoSelecionado && eixoSelecionado !== "Todos os Eixos" && eixoSelecionado !== "" && item.eixo !== eixoSelecionado) return false;
@@ -313,17 +369,26 @@ export const bnccView = {
                 if (anoSelecionado && anoSelecionado !== "Todos") {
                     const anoItem = (item.ano || "").toLowerCase();
                     const anoFiltro = anoSelecionado.toLowerCase();
+                    
+                    // Tratamento especial para Ensino Médio que agrupa séries (1, 2 e 3)
                     if (nivel === "Ensino Médio" && (anoItem.includes("1ª, 2ª e 3ª") || anoItem.includes("1, 2 e 3"))) return true;
+                    
                     if (!anoItem.includes(anoFiltro) && !anoFiltro.includes(anoItem)) return false;
                 }
                 return true;
             });
 
+            // Ordenação Alfanumérica Natural (ex: EF01 vem antes de EF10)
             resultados.sort((a, b) => a.codigo.localeCompare(b.codigo, undefined, { numeric: true, sensitivity: 'base' }));
+            
             this.renderCards(resultados);
         }, 50);
     },
 
+    /**
+     * Normaliza os dados heterogêneos dos JSONs em uma estrutura plana única.
+     * @private
+     */
     _normalizarDados(json, nivel) {
         let lista = [];
         if (!json) return lista;
@@ -388,6 +453,8 @@ export const bnccView = {
 
         container.innerHTML = data.map(item => {
             const cor = item.cor || '#64748b';
+            
+            // Sanitização manual para JSON string
             const objSafe = JSON.stringify({
                 codigo: item.codigo,
                 descricao: item.descricao,
@@ -401,10 +468,10 @@ export const bnccView = {
                         class="shrink-0 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white border border-emerald-200 px-4 py-2 rounded-lg transition-all text-xs font-bold flex flex-col items-center gap-1 min-w-[70px]">
                     <i class="fas fa-plus text-sm"></i><span class="text-[9px] uppercase">Usar</span>
                 </button>` :
-                `<button onclick="bnccView.copiarParaAreaTransferencia('${item.codigo}', '${item.descricao.replace(/'/g, "\\'")}')" 
-            class="shrink-0 text-slate-400 hover:text-primary p-2 transition-colors hover:bg-slate-50 rounded-xl" title="Copiar habilidade">
-        <i class="far fa-copy text-xl"></i>
-    </button>`;
+                `<button onclick="bnccView.copiarParaAreaTransferencia('${item.codigo}', '${item.descricao.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" 
+                    class="shrink-0 text-slate-400 hover:text-primary p-2 transition-colors hover:bg-slate-50 rounded-xl" title="Copiar habilidade">
+                    <i class="far fa-copy text-xl"></i>
+                </button>`;
 
             return `
                 <div class="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 border-l-[6px] hover:border-slate-200 hover:shadow-md transition-all flex flex-col animate-slide-up" style="border-left-color: ${cor} !important;">
@@ -442,14 +509,32 @@ export const bnccView = {
             }
         }
     },
+
     copiarParaAreaTransferencia(codigo, descricao) {
         const textoCompleto = `${codigo} - ${descricao}`;
         navigator.clipboard.writeText(textoCompleto).then(() => {
-            import('../components/toast.js').then(module => {
-                module.Toast.show(`Código ${codigo} copiado para a área de transferência!`, "success");
-            }).catch(() => {
-                if (window.Toast) window.Toast.show(`Código ${codigo} copiado!`, "success");
-            });
+            Toast.show(`Código ${codigo} copiado!`, "success");
+        }).catch(() => {
+            Toast.show(`Erro ao copiar ${codigo}.`, "error");
         });
     },
+
+    /**
+     * Filtra os cards visíveis na tela (Busca local rápida).
+     */
+    filterHabilidades(termo) {
+        const cards = document.querySelectorAll('.bncc-card-habilidade');
+        const termoLimpo = termo ? termo.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
+
+        cards.forEach(card => {
+            // Verifica se o texto interno do card contém o termo
+            const texto = card.innerText ? card.innerText.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() : "";
+            
+            if (texto.includes(termoLimpo)) {
+                card.style.display = 'flex'; // ou 'block', dependendo do layout original
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
 };

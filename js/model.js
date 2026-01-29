@@ -1,17 +1,24 @@
+/**
+ * @file model.js
+ * @description Core Model da aplicação. Centraliza o estado, persistência (Local/Cloud) e orquestra sub-módulos.
+ * @module model
+ */
+
 import { firebaseService } from './firebase-service.js';
 import { initialState, coresComponentes, tiposEventos } from './models/state.js';
 import { turmaMethods } from './models/turmaModel.js';
 import { provaMethods } from './models/provaModel.js';
 import { planejamentoMethods } from './models/planejamentoModel.js';
+import { debounce } from './utils.js';
 
 /**
- * @typedef {import('./models/state.js').initialState} AppState
+ * @typedef {import('./models/state.js').AppState} AppState
  */
 
 /**
- * CORE MODEL - Planner Pro Docente 2026
- * Centraliza o estado da aplicação e distribui métodos especializados para turmas, provas e planejamentos.
- * * @namespace model
+ * Modelo Central da Aplicação.
+ * Combina estado reativo, persistência e lógica de negócios modularizada.
+ * @namespace model
  */
 export const model = {
     /** @type {string} Chave utilizada para persistência no LocalStorage */
@@ -20,26 +27,26 @@ export const model = {
     /** @type {Object|null} Objeto de usuário do Firebase Auth */
     currentUser: null,
 
-    /** @type {Object} Mapeamento de cores por componente curricular */
+    /** @type {Object} Configurações estáticas de cores */
     coresComponentes,
 
-    /** @type {Object} Configurações de tipos de eventos do calendário */
+    /** @type {Object} Configurações estáticas de tipos de eventos */
     tiposEventos,
 
-    /** @type {AppState} Estado reativo global da aplicação */
+    /** @type {AppState} Estado global reativo da aplicação */
     state: initialState,
 
     /**
      * Inicializa o modelo carregando dados salvos localmente.
-     * Realiza um merge profundo básico entre o estado inicial e o salvo.
-     * @returns {void}
      */
     init() {
         const savedData = localStorage.getItem(this.STORAGE_KEY);
         if (savedData) {
             try {
                 const parsed = JSON.parse(savedData);
+                // Merge seguro com o estado inicial para garantir que novos campos existam
                 this.state = { ...this.state, ...parsed };
+                console.log("📦 Cache local carregado.");
             } catch (e) {
                 console.error("❌ Erro ao restaurar cache local:", e);
             }
@@ -47,135 +54,155 @@ export const model = {
     },
 
     /**
-     * Sincroniza o estado local com o Firestore após o login do usuário.
-     * Ativa também o listener para atualizações em tempo real.
-     * @async
-     * @returns {Promise<void>}
+     * Sincroniza o estado local com o Firestore após o login.
+     * Implementa estratégia de "Merge Inteligente" baseada em timestamp.
      */
     async loadUserData() {
         if (!firebaseService.auth.currentUser) return;
         this.currentUser = firebaseService.auth.currentUser;
-        
+
         this.updateStatusCloud('<i class="fas fa-download"></i> Verificando dados...', 'text-blue-600');
-        
+
         try {
             const cloudData = await firebaseService.loadFullData(this.currentUser.uid);
-            
+
             if (cloudData) {
-                // --- INÍCIO DO MERGE INTELIGENTE ---
-                
-                // 1. Prepara as listas para comparação
+                // Estratégia de Merge para Questões (Item a Item)
                 const cloudQuestoes = cloudData.questoes || [];
                 const localQuestoes = this.state.questoes || [];
-                
-                // Vamos criar um Map para unificar as questões pelo ID
                 const mapaUnificado = new Map();
-                
-                // Função auxiliar para decidir quem ganha
+
                 const processarQuestao = (q) => {
                     const id = String(q.id);
                     const existente = mapaUnificado.get(id);
-                    
+
                     if (!existente) {
                         mapaUnificado.set(id, q);
                     } else {
-                        // Se já existe, comparamos as datas de atualização
+                        // Conflito: Vence o mais recente
                         const dataNova = new Date(q.updatedAt || q.createdAt || 0).getTime();
                         const dataExistente = new Date(existente.updatedAt || existente.createdAt || 0).getTime();
-                        
-                        // Se a questão processada agora for mais recente, ela substitui a anterior
+
                         if (dataNova > dataExistente) {
                             mapaUnificado.set(id, q);
                         }
                     }
                 };
 
-                // Processamos PRIMEIRO a nuvem, DEPOIS o local.
-                // Isso garante que, em caso de empate de datas, o Local (último a entrar) ganhe.
                 cloudQuestoes.forEach(processarQuestao);
                 localQuestoes.forEach(processarQuestao);
-                
-                // Gera a lista final blindada
-                const listaFinalQuestoes = Array.from(mapaUnificado.values());
-                
-                // --- FIM DO MERGE INTELIGENTE ---
 
-                // Aplica os dados gerais da nuvem (configurações, turmas, etc), mas preserva nossas questões tratadas
+                const listaFinalQuestoes = Array.from(mapaUnificado.values());
+
+                // Merge do Estado Global (Prioridade para Cloud em configurações gerais)
                 this.state = { ...this.state, ...cloudData };
                 this.state.questoes = listaFinalQuestoes;
-                
-                // Salva o resultado da fusão no LocalStorage
-                this.saveLocal();
-                
-                // Se o Local tinha coisas mais novas que a Nuvem, precisamos subir essa versão final atualizada
-                // Verificamos isso comparando o tamanho ou conteúdo, mas por segurança forçamos um sync se houver diferença
-                if (listaFinalQuestoes.length !== cloudQuestoes.length) {
-                     this.state.isCloudSynced = true;
-                     await this.saveCloudRoot();
-                     this.updateStatusCloud('<i class="fas fa-check"></i> Sincronizado (Merge)', 'text-emerald-600');
-                } else {
-                     this.state.isCloudSynced = true;
-                     this.updateStatusCloud('<i class="fas fa-check"></i> Sincronizado', 'text-emerald-600');
-                }
+
+                // Salva o resultado do merge
+                this.saveLocal(); // Dispara saveLocal + CloudSync automático
+
+                this.state.isCloudSynced = true;
+                this.updateStatusCloud('<i class="fas fa-check"></i> Sincronizado', 'text-emerald-600');
 
             } else {
-                // Primeiro acesso
+                // Primeiro acesso ou nuvem vazia: Envia dados locais
                 this.state.isCloudSynced = true;
-                this.saveCloudRoot();
+                this.saveLocal(); // Força envio inicial
             }
         } catch (e) {
             console.error("❌ Erro no sync cloud:", e);
             this.updateStatusCloud('Modo Offline', 'text-slate-500');
-            this.state.isCloudSynced = true; // Permite trabalhar offline
+            this.state.isCloudSynced = true; // Permite continuar trabalhando offline
         }
 
-        // Listener para mudanças em tempo real (mantém atualizado se você mexer em outro PC)
+        // Listener em Tempo Real
         firebaseService.subscribeToUserChanges(this.currentUser.uid, (newData) => {
-            if (newData && newData.questoes) {
-                // Aqui poderíamos replicar a lógica de merge, mas para simplificar, 
-                // assumimos que eventos em tempo real devem ser respeitados.
-                // Mas cuidado: isso pode sobrescrever se você estiver digitando AGORA.
-                // Como melhoria futura, não aplicamos patches diretos se houver edições pendentes.
-                console.log("Recebendo atualização em tempo real...");
+            if (newData) {
+                console.log("🔄 Atualização remota recebida.");
+                
+                // Atualiza apenas campos raiz para evitar sobrescrever trabalho em andamento nas turmas
+                if (newData.userConfig) this.state.userConfig = { ...this.state.userConfig, ...newData.userConfig };
+                if (newData.eventos) this.state.eventos = { ...this.state.eventos, ...newData.eventos };
+
+                // Apenas salva no localStorage, sem disparar o cloudSave de volta (loop infinito)
+                try {
+                    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.state));
+                } catch (e) { console.error(e); }
             }
         });
     },
 
     /**
-     * Persiste o estado atual da aplicação no LocalStorage do navegador.
-     * @returns {void}
+     * PERSISTÊNCIA CENTRALIZADA
+     * 1. Salva no LocalStorage Imediatamente (Segurança contra fechar aba).
+     * 2. Agenda salvamento na Nuvem após 1s (Debounce para performance).
      */
     saveLocal() {
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.state));
+        // 1. Salvamento Local Síncrono (Imediato)
+        try {
+            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.state));
+        } catch (e) {
+            console.error("Quota Exceeded ou erro de disco", e);
+        }
+
+        // 2. Disparo para Nuvem (Assíncrono e Debounced)
+        this._debouncedCloudSave();
     },
 
     /**
-     * Salva o estado completo no banco de dados Firebase (Firestore).
-     * @async
-     * @returns {Promise<void>}
+     * Função interna com Debounce (1000ms) para não sobrecarregar o Firebase.
+     * Só executa se o usuário parar de chamar saveLocal por 1 segundo.
      */
-
-    _saveTimeout: null,
-
-    async saveCloudRoot() {
+    _debouncedCloudSave: debounce(async function () {
         if (!this.state.isCloudSynced || !this.currentUser) return;
-        this.updateStatusCloud('<i class="fas fa-pen"></i> Editando...', 'text-yellow-600');
-        if (this._saveTimeout) clearTimeout(this._saveTimeout);
-        this._saveTimeout = setTimeout(async () => {
-            try {
-                this.updateStatusCloud('<i class="fas fa-sync fa-spin"></i> Salvando...', 'text-blue-600');
-                await firebaseService.saveRoot(this.currentUser.uid, this.state);
-                this.updateStatusCloud('<i class="fas fa-check"></i> Salvo', 'text-emerald-600');
-            } catch (err) {
-            }
-        }, 2000);
+
+        // Feedback Visual: Editando
+        this.updateStatusCloud('<i class="fas fa-pen"></i> Sincronizando...', 'text-yellow-600');
+
+        try {
+            // Salva dados raiz (Config, Eventos, Questões)
+            await firebaseService.saveRoot(this.currentUser.uid, this.state);
+            // Feedback Visual: Sucesso
+            this.updateStatusCloud('<i class="fas fa-check"></i> Salvo na Nuvem', 'text-emerald-600');
+        } catch (err) {
+            console.warn("Erro no AutoSave Cloud:", err);
+            this.updateStatusCloud('Offline (Salvo Local)', 'text-slate-500');
+        }
+    }, 1000),
+
+    /**
+     * Método legado mantido para compatibilidade, agora apenas chama saveLocal.
+     * @deprecated
+     */
+    saveCloudRoot() {
+        this.saveLocal(); // Redireciona para o fluxo principal
     },
 
     /**
-     * Atualiza o indicador visual de sincronização na interface.
-     * @param {string} html - Conteúdo HTML a ser inserido no elemento de status.
-     * @param {string} colorClass - Classe CSS do Tailwind para definir a cor.
-     * @returns {void}
+     * Salva o horário completo (Config + Grade).
+     * @param {Object} novoHorario 
+     */
+    async saveHorarioCompleto(novoHorario) {
+        this.state.horario = novoHorario;
+        this.saveLocal(); // Salva local e agenda root update
+        
+        // Horário é pesado, garantimos envio específico se online
+        if (this.currentUser) {
+            try {
+                await firebaseService.saveHorarioOnly(this.currentUser.uid, novoHorario);
+                return true;
+            } catch (e) {
+                console.error(e);
+                return false;
+            }
+        }
+        return true;
+    },
+
+    /**
+     * Atualiza o indicador visual de status da nuvem na UI.
+     * @param {string} html 
+     * @param {string} colorClass 
      */
     updateStatusCloud(html, colorClass) {
         const el = document.getElementById('cloud-status');
@@ -186,40 +213,52 @@ export const model = {
     },
 
     /**
-     * Gera e dispara o download de um arquivo JSON contendo o backup completo dos dados.
-     * @returns {void}
+     * Exporta os dados atuais para um arquivo JSON (Backup).
      */
     exportData() {
         const dataStr = JSON.stringify(this.state, null, 2);
         const blob = new Blob([dataStr], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        
         const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
+        a.href = url;
         a.download = `backup_planner_${new Date().toISOString().split('T')[0]}.json`;
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
     },
 
+    /**
+     * Executa operação de persistência granular (ex: salvar turma específica).
+     * @param {Function} cloudOperation - Função do firebaseService.
+     */
+    async persist(cloudOperation) {
+        this.saveLocal(); // Garante consistência local
+
+        if (this.currentUser && cloudOperation) {
+            try {
+                await cloudOperation(this.currentUser.uid);
+            } catch (error) {
+                console.error("Erro silencioso no Cloud Save Granular:", error);
+            }
+        }
+    },
+
+    // --- Importação de Métodos Modulares (Mixins) ---
     ...turmaMethods,
     ...provaMethods,
     ...planejamentoMethods,
 
-    /**
-     * Alias para saveQuestao - Mantido para evitar quebra de chamadas legadas.
-     * @param {Object} obj - Objeto da questão.
-     * @deprecated Use saveQuestao diretamente.
-     */
+    // --- Aliases de Compatibilidade (Legacy Support) ---
+    /** @deprecated Use saveQuestao */
     addQuestao(obj) { this.saveQuestao(obj); },
-
-    /**
-     * Alias para atualização de questão.
-     * @param {string|number} id - ID da questão.
-     * @param {Object} dados - Novos dados da questão.
-     * @deprecated Use saveQuestao enviando o objeto com ID.
-     */
+    
+    /** @deprecated Use saveQuestao */
     updateQuestao(id, dados) { this.saveQuestao({ ...dados, id }); }
 };
 
+// Exposição Global
 if (typeof window !== 'undefined') {
     window.model = model;
-    window.firebaseService = firebaseService;
-    model.init();
 }

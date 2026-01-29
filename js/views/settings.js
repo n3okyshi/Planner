@@ -1,18 +1,42 @@
+/**
+ * @file settings.js
+ * @description View responsável pelas Configurações do sistema (Perfil, Tema, Sincronização e Backup).
+ * @module views/settingsView
+ */
+
 import { model } from '../model.js';
 
+/**
+ * View de Configurações.
+ * @namespace settingsView
+ */
 export const settingsView = {
+
+    /**
+     * Renderiza a tela de configurações.
+     * @param {HTMLElement|string} container - Elemento pai.
+     * @param {Object} [userConfig] - Configuração opcional para renderização direta.
+     */
     render(container, userConfig) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+
         const config = userConfig || (model.state && model.state.userConfig) || {};
         const user = model.currentUser;
+        
         let lastSyncText = "Agora mesmo";
         if (model.state.lastUpdate) {
             const date = new Date(model.state.lastUpdate);
             lastSyncText = date.toLocaleDateString() + ' às ' + date.toLocaleTimeString().slice(0, 5);
         }
+
         const tipoAtual = config.periodType || 'bimestre';
         const listaPeriodos = model.state.periodosDatas ? (model.state.periodosDatas[tipoAtual] || []) : [];
+
+        // Escape seguro para inputs
+        const safeProfName = config.profName ? config.profName.replace(/"/g, '&quot;') : '';
+        const safeSchoolName = config.schoolName ? config.schoolName.replace(/"/g, '&quot;') : '';
+
         container.innerHTML = `
             <div class="fade-in max-w-3xl mx-auto pb-20">
                 <div class="mb-8 flex items-end justify-between">
@@ -47,7 +71,7 @@ export const settingsView = {
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Nome do Professor(a)</label>
                                 <div class="relative">
                                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><i class="far fa-user"></i></span>
-                                    <input type="text" value="${config.profName || ''}" placeholder="Como quer ser chamado?"
+                                    <input type="text" value="${safeProfName}" placeholder="Como quer ser chamado?"
                                            class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-primary outline-none transition-all"
                                            onchange="model.state.userConfig.profName = this.value; model.saveLocal(); model.saveCloudRoot();">
                                 </div>
@@ -56,7 +80,7 @@ export const settingsView = {
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Nome da Escola</label>
                                 <div class="relative">
                                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><i class="fas fa-school"></i></span>
-                                    <input type="text" value="${config.schoolName || ''}" placeholder="Ex: Escola Estadual..."
+                                    <input type="text" value="${safeSchoolName}" placeholder="Ex: Escola Estadual..."
                                            class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-primary outline-none transition-all"
                                            onchange="model.state.userConfig.schoolName = this.value; model.saveLocal(); model.saveCloudRoot();">
                                 </div>
@@ -115,6 +139,7 @@ export const settingsView = {
                             </p>
                         </div>
                     </div>
+
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
                         <div class="p-4 border-b border-slate-100 bg-slate-50/50 flex items-center gap-3">
                             <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center">
@@ -160,15 +185,20 @@ export const settingsView = {
             </div>
         `;
     },
+
     renderLogado(user, lastSyncText) {
+        const safeName = window.escapeHTML ? window.escapeHTML(user.displayName) : user.displayName;
+        const safeEmail = window.escapeHTML ? window.escapeHTML(user.email) : user.email;
+        const avatarUrl = user.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(safeName);
+
         return `
             <div class="flex flex-col md:flex-row items-center justify-between gap-6 animate-slideIn">
                 <div class="flex items-center gap-4">
-                    <img src="${user.photoURL || 'https://ui-avatars.com/api/?name=' + user.displayName}" 
+                    <img src="${avatarUrl}" 
                          class="w-16 h-16 rounded-full border-4 border-emerald-50 shadow-sm" alt="Foto de perfil">
                     <div>
-                        <h4 class="font-bold text-slate-800 text-lg">${escapeHTML(user.displayName)}</h4>
-                        <p class="text-sm text-slate-500">${escapeHTML(user.email)}</p>
+                        <h4 class="font-bold text-slate-800 text-lg">${safeName}</h4>
+                        <p class="text-sm text-slate-500">${safeEmail}</p>
                         <div class="flex items-center gap-2 mt-1">
                             <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
                                 <i class="fas fa-check-circle"></i> Sincronizado
@@ -185,6 +215,7 @@ export const settingsView = {
             </div>
         `;
     },
+
     renderDeslogado() {
         return `
             <div class="flex flex-col md:flex-row items-center justify-between gap-6">
@@ -202,26 +233,31 @@ export const settingsView = {
             </div>
         `;
     },
+
     renderOptionPeriodo(value, label, current) {
         const safeCurrent = current || 'bimestre';
         const active = value === safeCurrent;
         const classes = active
             ? "border-primary bg-primary/5 ring-1 ring-primary text-primary shadow-sm"
             : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600";
+        
+        const iconClass = value === 'bimestre' ? 'fa-columns' : (value === 'trimestre' ? 'fa-th-large' : 'fa-pause');
+
         return `
             <button onclick="controller.updatePeriodType('${value}')" 
                     class="border rounded-xl p-4 text-sm font-bold transition-all flex flex-col items-center justify-center gap-2 ${classes}">
-                <i class="fas ${value === 'bimestre' ? 'fa-columns' : (value === 'trimestre' ? 'fa-th-large' : 'fa-pause')} text-lg opacity-80"></i>
+                <i class="fas ${iconClass} text-lg opacity-80"></i>
                 ${label}
             </button>
         `;
     },
+
     renderColorOption(color, label, current) {
         const active = color === current;
         return `
             <div class="flex flex-col items-center gap-2 group cursor-pointer" onclick="controller.updateTheme('${color}')">
                 <button class="w-10 h-10 rounded-full border-2 transition-transform group-hover:scale-110 flex items-center justify-center shadow-sm ${active ? 'ring-2 ring-offset-2 ring-slate-300 scale-110 border-white' : 'border-transparent'}"
-                        style="background-color: ${color};">
+                        style="background-color: ${color};" title="${label}">
                     ${active ? '<i class="fas fa-check text-white text-xs drop-shadow-md"></i>' : ''}
                 </button>
             </div>

@@ -1,43 +1,67 @@
-import { model } from '../model.js';
+/**
+ * @file frequencia.js
+ * @description View responsável pelo controle de frequência (chamada), incluindo modo tabela e modo "Swipe" rápido.
+ * @module views/frequenciaView
+ */
 
+import { model } from '../model.js';
+import { controller } from '../controller.js';
+import { Toast } from '../components/toast.js';
+
+/**
+ * View de Frequência.
+ * @namespace frequenciaView
+ */
 export const frequenciaView = {
     currentTurmaId: null,
     currentDate: new Date(),
-    // Estado do Modo Chamada
+    
+    // Estado do Modo Chamada Rápida (Swipe)
     chamadaAtiva: false,
     alunoIndex: 0,
     startX: 0,
 
+    /**
+     * Renderiza a interface de frequência.
+     * @param {HTMLElement|string} container 
+     */
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+
         const turmas = model.state.turmas || [];
+        
+        // Seleção automática da primeira turma válida
         if (!this.currentTurmaId && turmas.length > 0) {
             this.currentTurmaId = turmas[0].id;
+        } else if (this.currentTurmaId && !turmas.find(t => String(t.id) === String(this.currentTurmaId))) {
+            this.currentTurmaId = turmas.length > 0 ? turmas[0].id : null;
         }
-        const turmaSelecionada = turmas.find(t => t.id == this.currentTurmaId);
+
+        const turmaSelecionada = turmas.find(t => String(t.id) === String(this.currentTurmaId));
         const ano = this.currentDate.getFullYear();
         const mes = this.currentDate.getMonth();
         const nomeMes = new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(this.currentDate);
         const diasNoMes = new Date(ano, mes + 1, 0).getDate();
 
-        // Formatar data atual para exibição no botão
         const diaSelecionadoStr = this.currentDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 
         const html = `
             <div class="fade-in pb-24 h-full flex flex-col">
                 <div class="hidden print:block text-center mb-4">
                     <h1 class="text-2xl font-bold">Frequência - ${nomeMes} / ${ano}</h1>
-                    <p class="text-sm">Turma: ${turmaSelecionada ? turmaSelecionada.nome : 'N/A'}</p>
+                    <p class="text-sm">Turma: ${turmaSelecionada ? window.escapeHTML(turmaSelecionada.nome) : 'N/A'}</p>
                 </div>
+                
                 <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-4 flex flex-col md:flex-row gap-4 items-center justify-between shrink-0 no-print">
                     <div>
                         <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Frequência</h2>
                         <p class="text-xs text-slate-500">Controle de chamadas e presença.</p>
                     </div>
+                    
                     <div class="flex flex-wrap gap-3 items-center justify-center">
                         <button onclick="frequenciaView.iniciarChamada()" 
-                                class="bg-emerald-600 text-white px-5 py-2 rounded-xl font-bold hover:bg-emerald-700 transition flex items-center gap-2 shadow-lg shadow-emerald-100">
+                                class="bg-emerald-600 text-white px-5 py-2 rounded-xl font-bold hover:bg-emerald-700 transition flex items-center gap-2 shadow-lg shadow-emerald-100 active:scale-95">
                             <i class="fas fa-hand-pointer"></i> Iniciar Chamada (${diaSelecionadoStr})
                         </button>
 
@@ -45,10 +69,11 @@ export const frequenciaView = {
                             <i class="fas fa-users absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                             <select onchange="frequenciaView.mudarTurma(this.value)" 
                                     class="bg-slate-50 border border-slate-200 text-slate-700 font-bold rounded-xl pl-10 pr-8 py-2 outline-none focus:border-primary cursor-pointer min-w-[200px]">
-                                ${turmas.map(t => `<option value="${t.id}" ${t.id == this.currentTurmaId ? 'selected' : ''}>${t.nome}</option>`).join('')}
+                                ${turmas.map(t => `<option value="${t.id}" ${String(t.id) === String(this.currentTurmaId) ? 'selected' : ''}>${window.escapeHTML(t.nome)}</option>`).join('')}
                                 ${turmas.length === 0 ? '<option>Nenhuma turma</option>' : ''}
                             </select>
                         </div>
+                        
                         <div class="flex items-center bg-slate-50 rounded-xl border border-slate-200 p-1">
                             <button onclick="frequenciaView.mudarMes(-1)" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-primary hover:bg-white rounded-lg transition-all">
                                 <i class="fas fa-chevron-left"></i>
@@ -62,14 +87,16 @@ export const frequenciaView = {
                         </div>
                     </div>
                 </div>
+                
                 ${turmaSelecionada ? this.renderTabela(turmaSelecionada, ano, mes, diasNoMes) : this.estadoVazio()}
             </div>
 
-            <div id="chamada-rapida-overlay" class="fixed inset-0 bg-slate-900/90 z-[9999] hidden flex items-center justify-center backdrop-blur-sm p-6">
+            <div id="chamada-rapida-overlay" class="fixed inset-0 bg-slate-900/90 z-[9999] hidden flex items-center justify-center backdrop-blur-sm p-6 transition-opacity duration-300">
                 <div id="chamada-card-container" class="w-full max-w-md aspect-[3/4] relative">
-                    </div>
+                </div>
             </div>
         `;
+        
         container.innerHTML = html;
         this.autoScrollParaHoje(ano, mes);
     },
@@ -82,6 +109,7 @@ export const frequenciaView = {
 
             const elHoje = document.getElementById('dia-hoje');
             const scrollContainer = document.getElementById('scroll-frequencia');
+            
             if (elHoje && scrollContainer) {
                 const scrollPos = elHoje.offsetLeft - (scrollContainer.clientWidth / 2) + (elHoje.clientWidth / 2);
                 scrollContainer.scrollTo({ left: scrollPos, behavior: 'smooth' });
@@ -89,54 +117,57 @@ export const frequenciaView = {
         }, 300);
     },
 
-    // --- Lógica da Chamada Tinder-Style ---
+    // --- Lógica da Chamada Swipe ---
 
     iniciarChamada() {
         const turmas = model.state.turmas || [];
-        const turma = turmas.find(t => t.id == this.currentTurmaId);
+        const turma = turmas.find(t => String(t.id) === String(this.currentTurmaId));
+        
         if (!turma || !turma.alunos || turma.alunos.length === 0) {
-            return window.Toast?.show("Não há alunos para realizar a chamada.", "warning");
+            return Toast.show("Não há alunos para realizar a chamada.", "warning");
         }
 
         this.chamadaAtiva = true;
         this.alunoIndex = 0;
-        document.getElementById('chamada-rapida-overlay').classList.remove('hidden');
+        const overlay = document.getElementById('chamada-rapida-overlay');
+        if (overlay) overlay.classList.remove('hidden');
         this.renderProximoAluno();
     },
 
     renderProximoAluno() {
         const turmas = model.state.turmas || [];
-        const turma = turmas.find(t => t.id == this.currentTurmaId);
+        const turma = turmas.find(t => String(t.id) === String(this.currentTurmaId));
         const container = document.getElementById('chamada-card-container');
-        const aluno = turma.alunos[this.alunoIndex];
-
-        if (!aluno) {
+        
+        if (this.alunoIndex >= turma.alunos.length) {
             this.finalizarChamada();
             return;
         }
 
+        const aluno = turma.alunos[this.alunoIndex];
+
         container.innerHTML = `
-            <div id="chamada-card" class="w-full h-full bg-white rounded-[2rem] shadow-2xl flex flex-col items-center justify-center p-8 text-center touch-none select-none transition-transform duration-300">
-                <div class="mb-6">
-                    <div class="w-32 h-32 rounded-full bg-slate-100 flex items-center justify-center text-4xl font-black text-primary border-4 border-slate-50 mb-4 mx-auto">
+            <div id="chamada-card" class="w-full h-full bg-white rounded-[2rem] shadow-2xl flex flex-col items-center justify-center p-8 text-center touch-none select-none transition-transform duration-300 transform cursor-grab active:cursor-grabbing">
+                <div class="mb-6 pointer-events-none">
+                    <div class="w-32 h-32 rounded-full bg-slate-100 flex items-center justify-center text-4xl font-black text-primary border-4 border-slate-50 mb-4 mx-auto shadow-inner">
                         ${aluno.nome.charAt(0)}
                     </div>
                     <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Aluno ${this.alunoIndex + 1} de ${turma.alunos.length}</p>
-                    <h3 class="text-2xl font-bold text-slate-800">${aluno.nome}</h3>
+                    <h3 class="text-2xl font-bold text-slate-800 line-clamp-2">${window.escapeHTML(aluno.nome)}</h3>
                 </div>
                 
-                <div class="flex gap-4 w-full mt-10">
-                    <div class="flex-1 border-2 border-dashed border-red-100 rounded-2xl p-4">
-                        <i class="fas fa-arrow-left text-red-300 mb-1"></i>
+                <div class="flex gap-4 w-full mt-10 pointer-events-none">
+                    <div class="flex-1 border-2 border-dashed border-red-100 rounded-2xl p-4 bg-red-50/30">
+                        <i class="fas fa-arrow-left text-red-300 mb-1 text-xl"></i>
                         <p class="text-[9px] font-bold text-red-400 uppercase">Arraste para Falta</p>
                     </div>
-                    <div class="flex-1 border-2 border-dashed border-emerald-100 rounded-2xl p-4">
-                        <i class="fas fa-arrow-right text-emerald-300 mb-1"></i>
+                    <div class="flex-1 border-2 border-dashed border-emerald-100 rounded-2xl p-4 bg-emerald-50/30">
+                        <i class="fas fa-arrow-right text-emerald-300 mb-1 text-xl"></i>
                         <p class="text-[9px] font-bold text-emerald-400 uppercase">Arraste para Presença</p>
                     </div>
                 </div>
 
-                <button onclick="frequenciaView.finalizarChamada()" class="absolute -bottom-16 left-1/2 -translate-x-1/2 text-white/50 hover:text-white text-xs font-bold uppercase tracking-widest">
+                <button onclick="frequenciaView.finalizarChamada()" class="absolute -bottom-16 left-1/2 -translate-x-1/2 text-white/50 hover:text-white text-xs font-bold uppercase tracking-widest transition-colors p-4">
                     <i class="fas fa-times mr-1"></i> Cancelar Chamada
                 </button>
             </div>
@@ -155,7 +186,7 @@ export const frequenciaView = {
         const handleStart = (e) => {
             isDragging = true;
             this.startX = e.type === 'touchstart' ? e.touches[0].clientX : e.clientX;
-            card.style.transition = 'none'; // Remove transição durante o arraste
+            card.style.transition = 'none';
         };
 
         const handleMove = (e) => {
@@ -167,7 +198,6 @@ export const frequenciaView = {
 
             card.style.transform = `translateX(${diffX}px) rotate(${rotation}deg)`;
 
-            // Feedback de cor
             if (diffX > 60) overlay.style.backgroundColor = 'rgba(16, 185, 129, 0.8)';
             else if (diffX < -60) overlay.style.backgroundColor = 'rgba(239, 68, 68, 0.8)';
             else overlay.style.backgroundColor = 'rgba(15, 23, 42, 0.9)';
@@ -192,18 +222,15 @@ export const frequenciaView = {
             }
         };
 
-        // Eventos de Toque (Mobile)
         card.addEventListener('touchstart', handleStart, { passive: true });
         card.addEventListener('touchmove', handleMove, { passive: true });
         card.addEventListener('touchend', handleEnd);
 
-        // Eventos de Mouse (Desktop)
         card.addEventListener('mousedown', handleStart);
-        // Importante: Vincular ao window para não perder o rastro se o mouse sair do card
+        
         const mouseMoveHandler = (e) => handleMove(e);
         const mouseUpHandler = (e) => {
             handleEnd(e);
-            // Limpa os listeners globais após o uso
             window.removeEventListener('mousemove', mouseMoveHandler);
             window.removeEventListener('mouseup', mouseUpHandler);
         };
@@ -215,28 +242,27 @@ export const frequenciaView = {
     },
 
     registrarFrequenciaSwipe(alunoId, status) {
-        // SEGURANÇA: Verifica se o card ainda existe antes de mexer no style
         const card = document.getElementById('chamada-card');
         const overlay = document.getElementById('chamada-rapida-overlay');
 
         if (!card) return;
-
-
 
         const ano = this.currentDate.getFullYear();
         const mesFmt = (this.currentDate.getMonth() + 1).toString().padStart(2, '0');
         const diaFmt = this.currentDate.getDate().toString().padStart(2, '0');
         const dataIso = `${ano}-${mesFmt}-${diaFmt}`;
 
-        // Salva no banco
-        model.setFrequencia(this.currentTurmaId, alunoId, dataIso, status);
-        model.registrarFrequencia(this.currentTurmaId, alunoId, dataIso, status);
-        // Animação de saída
+        if (model.registrarFrequencia) {
+            model.registrarFrequencia(this.currentTurmaId, alunoId, dataIso, status);
+        } else {
+            // Compatibilidade
+            model.setFrequencia(this.currentTurmaId, alunoId, dataIso, status);
+        }
+
         card.style.transition = 'all 0.4s ease-in';
         card.style.transform = `translateX(${status === 'P' ? '1000' : '-1000'}px) rotate(${status === 'P' ? '45' : '-45'}deg)`;
         card.style.opacity = '0';
 
-        // Espera a animação acabar para renderizar o próximo
         setTimeout(() => {
             this.alunoIndex++;
             if (overlay) overlay.style.backgroundColor = 'rgba(15, 23, 42, 0.9)';
@@ -248,21 +274,25 @@ export const frequenciaView = {
         this.chamadaAtiva = false;
         const overlay = document.getElementById('chamada-rapida-overlay');
         if (overlay) overlay.classList.add('hidden');
+        
         model.saveLocal();
         model.saveCloudRoot();
+        
         this.render('view-container');
-        window.Toast?.show("Chamada finalizada e salva!", "success");
+        Toast.show("Chamada finalizada e salva!", "success");
     },
 
     renderTabela(turma, ano, mes, diasNoMes) {
         let headerDias = '';
         const hoje = new Date();
+        
         for (let d = 1; d <= diasNoMes; d++) {
             const dataObj = new Date(ano, mes, d);
             const diaSemana = dataObj.getDay();
             const isFimDeSemana = diaSemana === 0 || diaSemana === 6;
             const letraSemana = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'][diaSemana];
             const isHoje = hoje.getDate() === d && hoje.getMonth() === mes && hoje.getFullYear() === ano;
+            
             headerDias += `
                 <div ${isHoje ? 'id="dia-hoje"' : ''} 
                      class="flex flex-col items-center justify-center min-w-[40px] h-14 border-r border-slate-100 
@@ -273,23 +303,27 @@ export const frequenciaView = {
                 </div>
             `;
         }
+
         const linhasAlunos = turma.alunos.map(aluno => {
             let colunas = '';
             for (let d = 1; d <= diasNoMes; d++) {
                 const mesFmt = (mes + 1).toString().padStart(2, '0');
                 const diaFmt = d.toString().padStart(2, '0');
                 const dataIso = `${ano}-${mesFmt}-${diaFmt}`;
+                
                 const status = (aluno.frequencia || {})[dataIso];
                 const dataObj = new Date(ano, mes, d);
                 const isFimDeSemana = dataObj.getDay() === 0 || dataObj.getDay() === 6;
                 const isHoje = hoje.getDate() === d && hoje.getMonth() === mes && hoje.getFullYear() === ano;
+                
                 let cellBg = '';
                 if (isHoje) cellBg = 'bg-blue-50/40';
                 else if (isFimDeSemana) cellBg = 'bg-slate-50/30';
+                
                 colunas += `
                     <div onclick="frequenciaView.toggleStatus('${turma.id}', '${aluno.id}', '${dataIso}', this)"
                          class="min-w-[40px] h-12 border-r border-slate-100 flex items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors ${cellBg}"
-                         title="${aluno.nome} - ${d}/${mes + 1}">
+                         title="${window.escapeHTML(aluno.nome)} - ${d}/${mes + 1}">
                          ${this.getIconeStatus(status)}
                     </div>
                 `;
@@ -300,19 +334,21 @@ export const frequenciaView = {
                         <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 text-xs font-bold border border-slate-200">
                             ${aluno.nome.charAt(0)}
                         </div>
-                        <span class="text-sm font-medium text-slate-700 truncate">${aluno.nome}</span>
+                        <span class="text-sm font-medium text-slate-700 truncate">${window.escapeHTML(aluno.nome)}</span>
                     </div>
                     ${colunas}
                 </div>
             `;
         }).join('');
+
         if (turma.alunos.length === 0) {
             return `
-                <div class="flex-1 flex flex-col items-center justify-center text-slate-400 bg-white rounded-2xl border border-slate-200">
+                <div class="flex-1 flex flex-col items-center justify-center text-slate-400 bg-white rounded-2xl border border-slate-200 py-10">
                     <i class="fas fa-user-slash text-4xl mb-3"></i>
                     <p>Nenhum aluno nesta turma.</p>
                 </div>`;
         }
+
         return `
             <div class="flex-1 bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden relative">
                 <div class="flex border-b border-slate-200 bg-slate-50 sticky top-0 z-20">
@@ -338,27 +374,40 @@ export const frequenciaView = {
             </div>
         `;
     },
+
     getIconeStatus(status) {
-        if (!status) return `<span class="w-2 h-2 rounded-full bg-slate-200"></span>`;
+        // Correção para exibir estado vazio corretamente
+        if (status === null || status === undefined || status === '') { 
+            return `<span class="w-2 h-2 rounded-full bg-slate-200 opacity-50"></span>`; 
+        }
         if (status === 'P') return `<i class="fas fa-check text-emerald-500 text-lg"></i>`;
         if (status === 'F') return `<i class="fas fa-times text-red-500 text-lg"></i>`;
         if (status === 'J') return `<span class="text-xs font-black text-yellow-600 bg-yellow-100 px-1.5 py-0.5 rounded border border-yellow-200">J</span>`;
-        return '';
+        
+        return `<span class="w-2 h-2 rounded-full bg-slate-200 opacity-50"></span>`;
     },
+
     toggleStatus(turmaId, alunoId, dataIso, element) {
+        // Usa o método do model para alternar e persistir (P -> F -> J -> null)
         const novoStatus = model.toggleFrequencia(turmaId, alunoId, dataIso);
+        
+        // Atualiza UI instantaneamente com o novo ícone
         element.innerHTML = this.getIconeStatus(novoStatus);
+        
         element.classList.add('scale-125');
         setTimeout(() => element.classList.remove('scale-125'), 150);
     },
+
     mudarTurma(id) {
         this.currentTurmaId = id;
         this.render('view-container');
     },
+
     mudarMes(delta) {
         this.currentDate.setMonth(this.currentDate.getMonth() + delta);
         this.render('view-container');
     },
+
     estadoVazio() {
         return `
             <div class="flex flex-col items-center justify-center p-10 bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl text-center flex-1">

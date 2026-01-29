@@ -4,35 +4,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <meta name="description" content="Planner Docente 2026">
+    <meta name="description" content="Planner Docente 2026 - Organização e Planejamento para Professores">
+    <meta name="theme-color" content="#0f172a">
     <title>Planner Pro Docente 2026</title>
+
     <link rel="icon"
         href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎓</text></svg>">
     <link rel="manifest" href="./manifest.json">
     <link rel="apple-touch-icon" href="./assets/icon/icon-192.png">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+
     <link rel="stylesheet" href="./css/final.css">
 
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 
+    <style>
+        #toast-container {
+            position: fixed !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            display: flex !important;
+            z-index: 999999 !important;
+            pointer-events: none;
+            /* Permite clicar através do container vazio */
+        }
+
+        #toast-container>div {
+            pointer-events: auto;
+            /* Reativa cliques nos toasts */
+        }
+
+        /* Ajuste para Sidebar Responsiva */
+        @media (max-width: 768px) {
+            .sidebar.collapsed {
+                transform: translateX(-100%);
+            }
+
+            #main-content {
+                margin-left: 0 !important;
+                width: 100% !important;
+            }
+        }
+    </style>
 </head>
 
-<style>
-    #toast-container {
-        position: fixed !important;
-        left: 50% !important;
-        transform: translateX(-50%) !important;
-        display: flex !important;
-        z-index: 999999 !important;
-    }
-</style>
-
 <body class="flex min-h-screen bg-slate-50 text-slate-900 font-sans overflow-x-hidden w-full">
+
     <aside id="app-sidebar"
-        class="sidebar w-64 text-white flex flex-col shadow-2xl fixed h-full z-20 bg-slate-900 overflow-hidden">
+        class="sidebar w-64 text-white flex flex-col shadow-2xl fixed h-full z-20 bg-slate-900 overflow-hidden transition-transform duration-300">
         <div class="p-4 flex items-center justify-between border-b border-white/10 h-16">
             <div class="flex items-center gap-3 overflow-hidden whitespace-nowrap">
                 <div
@@ -45,10 +68,11 @@
                 </div>
             </div>
             <button onclick="controller.toggleSidebar()"
-                class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors">
+                class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 transition-colors md:hidden">
                 <i id="sidebar-toggle-icon" class="fas fa-bars"></i>
             </button>
         </div>
+
         <nav class="flex-1 overflow-y-auto overflow-x-hidden px-3 py-4 space-y-1 custom-scrollbar">
             <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-2 nav-label truncate">
                 Visão Geral</p>
@@ -61,6 +85,7 @@
                 </div>
                 <span class="text-sm font-medium nav-label">Início</span>
             </button>
+
             <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6 nav-label truncate">
                 Planejamento</p>
             <button id="nav-periodo" onclick="controller.navigate('periodo')"
@@ -92,13 +117,14 @@
             </button>
             <button id="nav-frequencia" onclick="controller.navigate('frequencia')"
                 class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group whitespace-nowrap"
-                title="Frequência / Chamada">
+                title="Frequência">
                 <div
                     class="w-8 h-8 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center shrink-0 transition-all group-hover:bg-white group-hover:text-primary group-hover:border-white">
                     <i class="fas fa-check-double"></i>
                 </div>
                 <span class="text-sm font-medium nav-label">Frequência</span>
             </button>
+
             <p class="px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-2 mt-6 nav-label truncate">
                 Acadêmico</p>
             <button id="nav-turmas" onclick="controller.navigate('turmas')"
@@ -110,7 +136,6 @@
                 </div>
                 <span class="text-sm font-medium nav-label">Turmas</span>
             </button>
-            
             <button id="nav-notas-anuais" onclick="controller.navigate('notas-anuais')"
                 class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group whitespace-nowrap"
                 title="Notas Anuais">
@@ -120,7 +145,6 @@
                 </div>
                 <span class="text-sm font-medium nav-label">Notas Anuais</span>
             </button>
-
             <button id="nav-horario" onclick="controller.navigate('horario')"
                 class="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group whitespace-nowrap"
                 title="Grade Horária">
@@ -166,6 +190,7 @@
                 </div>
                 <span class="text-sm font-medium nav-label">Comunidade</span>
             </button>
+
             <div class="mt-auto pt-6 pb-2 space-y-2">
                 <button id="nav-config" onclick="controller.navigate('config')"
                     class="w-full flex items-center gap-3 px-3 py-3 rounded-xl text-slate-400 hover:text-white hover:bg-white/5 transition-all group font-medium text-sm border-t border-white/5 whitespace-nowrap"
@@ -191,6 +216,7 @@
             v1.3.1 (Cloud)
         </div>
     </aside>
+
     <main id="main-content"
         class="flex-1 ml-64 min-h-screen relative flex flex-col bg-slate-50 w-full max-w-full overflow-x-hidden transition-all duration-300">
         <header
@@ -204,22 +230,27 @@
             <div class="flex items-center gap-2 md:gap-4">
                 <div id="cloud-status"
                     class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-50 border border-slate-100 transition-all cursor-help"
-                    title="Status">
+                    title="Status de Sincronização">
                     <i class="fas fa-cloud text-slate-300"></i>
                 </div>
-                <button onclick="window.print()" class="btn-primary flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold">
-                    <i class="fas fa-print"></i> Gerar PDF
+
+                <button onclick="window.print()"
+                    class="btn-primary flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-bold">
+                    <i class="fas fa-print"></i> <span class="hidden md:inline">Gerar PDF</span>
                 </button>
+
                 <button onclick="controller.exportData()"
                     class="w-9 h-9 rounded-full flex items-center justify-center text-slate-400 hover:text-primary hover:bg-primary/10 transition-all"
-                    title="Backup">
+                    title="Backup Local (JSON)">
                     <i class="fas fa-download"></i>
                 </button>
+
                 <div id="current-date"
                     class="text-xs font-bold text-slate-500 bg-slate-100 px-4 py-1.5 rounded-full border border-slate-200 hidden md:block">
                 </div>
             </div>
         </header>
+
         <section id="view-container" class="p-4 md:p-8 max-w-7xl mx-auto w-full flex-1">
         </section>
     </main>
@@ -236,9 +267,11 @@
 
     <script>
         window.addEventListener('load', () => {
+            // Ajuste responsivo inicial
             if (window.innerWidth < 768) {
                 document.getElementById('app-sidebar').classList.add('collapsed');
                 document.getElementById('main-content').classList.add('expanded-content');
+                document.getElementById('main-content').style.marginLeft = '0';
             }
         });
     </script>

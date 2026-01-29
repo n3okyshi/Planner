@@ -1,8 +1,14 @@
+/**
+ * @file planejamento.js
+ * @description View responsável pelo Planejamento Anual/Periódico (Bimestral, Trimestral, Semestral).
+ * @module views/planejamentoView
+ */
+
 import { model } from '../model.js';
+import { controller } from '../controller.js';
 
 /**
- * VIEW DE PLANEJAMENTO ANUAL/PERIÓDICO
- * Gerencia a visualização em colunas (Bimestres/Trimestres/Semestres) e a alocação de habilidades BNCC.
+ * View de Planejamento Periódico.
  * @namespace planejamentoView
  */
 export const planejamentoView = {
@@ -16,9 +22,12 @@ export const planejamentoView = {
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+
         const turmas = (model.state && model.state.turmas) ? model.state.turmas : [];
-        const tipoPeriodo = (model.state && model.state.userConfig && model.state.userConfig.periodType) || 'bimestre';
-        if (this.currentTurmaId && !turmas.find(t => t.id == this.currentTurmaId)) {
+        const tipoPeriodo = (model.state?.userConfig?.periodType) || 'bimestre';
+        
+        // Validação da Turma Ativa
+        if (this.currentTurmaId && !turmas.find(t => String(t.id) === String(this.currentTurmaId))) {
             this.currentTurmaId = null;
         }
         if (!this.currentTurmaId && turmas.length > 0) {
@@ -33,7 +42,7 @@ export const planejamentoView = {
         };
 
         const config = configPeriodos[tipoPeriodo] || configPeriodos['bimestre'];
-        const turmaSelecionada = turmas.find(t => t.id == this.currentTurmaId);
+        const turmaSelecionada = turmas.find(t => String(t.id) === String(this.currentTurmaId));
 
         const html = `
             <div class="fade-in pb-24">
@@ -50,18 +59,9 @@ export const planejamentoView = {
                                     onchange="planejamentoView.mudarTurma(this.value)" 
                                     class="w-full bg-slate-50 border border-slate-200 text-slate-700 font-bold rounded-xl pl-10 pr-4 py-2 outline-none focus:border-primary cursor-pointer hover:bg-slate-100 transition-colors">
                                 ${turmas.length > 0
-                                    ? turmas.map(t => `<option value="${t.id}" ${t.id == this.currentTurmaId ? 'selected' : ''}>${t.nome} - ${t.disciplina || 'Geral'}</option>`).join('')
+                                    ? turmas.map(t => `<option value="${t.id}" ${String(t.id) === String(this.currentTurmaId) ? 'selected' : ''}>${window.escapeHTML(t.nome)}</option>`).join('')
                                     : `<option value="">Nenhuma turma cadastrada</option>`
                                 }
-                            </select>
-                        </div>
-                        <div class="relative w-32 hidden">
-                            <select id="plan-tipo-periodo" name="plan-tipo-periodo" aria-label="Tipo de Período"
-                                    onchange="controller.updatePeriodType(this.value)" 
-                                    class="w-full bg-white border border-slate-200 text-slate-600 text-sm font-medium rounded-xl px-3 py-2 outline-none focus:border-primary cursor-pointer">
-                                <option value="bimestre" ${tipoPeriodo === 'bimestre' ? 'selected' : ''}>Bimestral</option>
-                                <option value="trimestre" ${tipoPeriodo === 'trimestre' ? 'selected' : ''}>Trimestral</option>
-                                <option value="semestre" ${tipoPeriodo === 'semestre' ? 'selected' : ''}>Semestral</option>
                             </select>
                         </div>
                     </div>
@@ -74,6 +74,7 @@ export const planejamentoView = {
                 </div>
             </div>
         `;
+        
         container.innerHTML = html;
     },
 
@@ -95,9 +96,12 @@ export const planejamentoView = {
     gerarCardTurma(turma, config) {
         const plan = turma.planejamento || {};
         let colunasHtml = '';
+        
         for (let i = 1; i <= config.qtd; i++) {
             const habilidades = plan[i] ? [...plan[i]] : [];
             const isVazio = habilidades.length === 0;
+            
+            // Ordenação alfanumérica
             habilidades.sort((a, b) => {
                 const codA = String(a.codigo || "");
                 const codB = String(b.codigo || "");
@@ -151,10 +155,10 @@ export const planejamentoView = {
             <div class="animate-slideIn">
                 <div class="flex items-center gap-2 mb-4 px-1">
                     <span class="px-2 py-1 bg-slate-200 text-slate-600 text-[10px] font-bold uppercase rounded-md tracking-wider">
-                        <i class="fas fa-layer-group mr-1"></i>${turma.nivel}
+                        <i class="fas fa-layer-group mr-1"></i>${window.escapeHTML(turma.nivel)}
                     </span>
                     <span class="px-2 py-1 bg-slate-200 text-slate-600 text-[10px] font-bold uppercase rounded-md tracking-wider">
-                        <i class="fas fa-graduation-cap mr-1"></i>${turma.serie}
+                        <i class="fas fa-graduation-cap mr-1"></i>${window.escapeHTML(turma.serie)}
                     </span>
                 </div>
                 <div class="grid grid-cols-1 md:grid-cols-2 ${config.gridCols} gap-6">
@@ -174,7 +178,8 @@ export const planejamentoView = {
     gerarMiniCardHabilidade(habilidade, turmaId, periodoIdx) {
         const codigoSafe = window.escapeHTML ? window.escapeHTML(habilidade.codigo) : habilidade.codigo;
         const descSafe = window.escapeHTML ? window.escapeHTML(habilidade.descricao) : habilidade.descricao;
-        const subtitulo = window.escapeHTML ? window.escapeHTML(habilidade.objeto || habilidade.eixo || habilidade.componente || "Habilidade") : "Habilidade";
+        const eixo = habilidade.objeto || habilidade.eixo || habilidade.componente || "Habilidade";
+        const subtitulo = window.escapeHTML ? window.escapeHTML(eixo) : "Habilidade";
         const cor = habilidade.cor || (model.coresComponentes ? model.coresComponentes[habilidade.componente] : "#64748b") || "#64748b";
 
         return `

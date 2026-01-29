@@ -1,9 +1,14 @@
+/**
+ * @file mensal.js
+ * @description View responsável pelo Planejamento Mensal, permitindo distribuir as habilidades do período em meses específicos.
+ * @module views/mensalView
+ */
+
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 
 /**
- * VIEW MENSAL - Planejamento de Curto Prazo
- * Gerencia a distribuição de habilidades do planejamento periódico nos meses individuais.
+ * View do Planejamento Mensal.
  * @namespace mensalView
  */
 export const mensalView = {
@@ -21,36 +26,49 @@ export const mensalView = {
         if (!container) return;
 
         if (turmaId) this.currentTurmaId = turmaId;
+        
         const turmas = model.state.turmas || [];
-        if (this.currentTurmaId && !turmas.find(t => t.id == this.currentTurmaId)) {
+        
+        // Validação da Turma Ativa
+        if (this.currentTurmaId && !turmas.find(t => String(t.id) === String(this.currentTurmaId))) {
             this.currentTurmaId = null;
         }
         if (!this.currentTurmaId && turmas.length > 0) {
             this.currentTurmaId = turmas[0].id;
         }
+        
+        // Define mês atual se não houver seleção
         if (!this.currentMes) {
             const mesIndex = new Date().getMonth();
             this.currentMes = this.meses[mesIndex];
         }
+
         if (turmas.length === 0) {
             container.innerHTML = `<div class="p-10 text-center text-slate-400">Nenhuma turma cadastrada. <button onclick="controller.navigate('turmas')" class="text-primary font-bold hover:underline">Cadastrar agora</button></div>`;
             return;
         }
-        const turmaAtual = turmas.find(t => t.id == this.currentTurmaId);
+
+        const turmaAtual = turmas.find(t => String(t.id) === String(this.currentTurmaId));
         const periodoSugestao = this.identificarPeriodo(this.currentMes);
+        
+        // Habilidades do Período (para sugestão)
         const habilidadesDoPeriodo = turmaAtual.planejamento && turmaAtual.planejamento[periodoSugestao]
             ? [...turmaAtual.planejamento[periodoSugestao]]
             : [];
 
+        // Habilidades já no Mês
         const habilidadesDoMes = turmaAtual.planejamentoMensal && turmaAtual.planejamentoMensal[this.currentMes]
             ? [...turmaAtual.planejamentoMensal[this.currentMes]]
             : [];
+            
+        // Ordenação alfanumérica
         habilidadesDoMes.sort((a, b) => {
             const codA = String(a.codigo || "");
             const codB = String(b.codigo || "");
             return codA.localeCompare(codB, undefined, { numeric: true });
         });
 
+        // Filtragem para não sugerir o que já está adicionado
         const codigosNoMes = new Set(habilidadesDoMes.map(h => h.codigo));
         const sugestoesFiltradas = habilidadesDoPeriodo.filter(h => !codigosNoMes.has(h.codigo));
 
@@ -71,7 +89,7 @@ export const mensalView = {
                             <i class="fas fa-users absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                             <select onchange="mensalView.mudarTurma(this.value)" 
                                     class="w-full bg-slate-50 border border-slate-200 text-slate-700 font-bold rounded-xl pl-10 pr-4 py-2 outline-none focus:border-primary cursor-pointer hover:bg-slate-100 transition-colors">
-                                ${turmas.map(t => `<option value="${t.id}" ${t.id == turmaAtual.id ? 'selected' : ''}>${t.nome}</option>`).join('')}
+                                ${turmas.map(t => `<option value="${t.id}" ${String(t.id) === String(turmaAtual.id) ? 'selected' : ''}>${t.nome}</option>`).join('')}
                             </select>
                         </div>
                     </div>
@@ -82,8 +100,8 @@ export const mensalView = {
                         <button onclick="mensalView.mudarMes('${mes}')" 
                                 class="px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all flex-shrink-0
                                 ${this.currentMes === mes
-                ? 'bg-primary text-white shadow-lg shadow-primary/30 ring-2 ring-offset-1 ring-primary/20'
-                : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-100 hover:border-slate-300'}">
+                                ? 'bg-primary text-white shadow-lg shadow-primary/30 ring-2 ring-offset-1 ring-primary/20'
+                                : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-100 hover:border-slate-300'}">
                             ${mes}
                         </button>
                     `).join('')}
@@ -152,8 +170,8 @@ export const mensalView = {
                                 <div class="text-center py-8">
                                     <p class="text-xs text-slate-500 mb-2">
                                         ${habilidadesDoPeriodo.length > 0
-                ? "Todas as habilidades deste período já estão neste mês!"
-                : "Nenhuma habilidade cadastrada no planejamento do período."}
+                                            ? "Todas as habilidades deste período já estão neste mês!"
+                                            : "Nenhuma habilidade cadastrada no planejamento do período."}
                                     </p>
                                     <button onclick="controller.navigate('planejamento')" class="text-xs font-bold text-amber-600 hover:text-amber-700 underline">Gerenciar Período</button>
                                 </div>
@@ -224,7 +242,10 @@ export const mensalView = {
         try {
             const mesIndex = this.meses.indexOf(mesNome);
             const ano = new Date().getFullYear();
+            // Data estimada para cálculo (dia 15 do mês selecionado)
             const dataTeste = `${ano}-${String(mesIndex + 1).padStart(2, '0')}-15`;
+            
+            // Usa o método do Model para precisão
             const periodo = model.getPeriodoPorData(dataTeste);
             return periodo || "1";
         } catch (e) {
@@ -238,12 +259,16 @@ export const mensalView = {
      * @param {string} codigoHabilidade - Código identificador (ex: EF06MA01).
      */
     adicionarSugestao(codigoHabilidade) {
-        const turma = model.state.turmas.find(t => t.id == this.currentTurmaId);
+        const turma = model.state.turmas.find(t => String(t.id) === String(this.currentTurmaId));
         if (!turma) return;
+        
         const periodo = this.identificarPeriodo(this.currentMes);
-        const habilidade = turma.planejamento[periodo].find(h => h.codigo === codigoHabilidade);
+        const habilidade = turma.planejamento?.[periodo]?.find(h => h.codigo === codigoHabilidade);
+        
         if (habilidade) {
             model.addHabilidadeMensal(turma.id, this.currentMes, habilidade);
+            
+            // Feedback visual rápido
             const toast = document.createElement('div');
             toast.className = 'fixed bottom-4 right-4 bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-xl z-50 text-sm font-bold animate-slideIn';
             toast.innerHTML = '<i class="fas fa-check mr-2"></i> Adicionado!';

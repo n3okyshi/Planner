@@ -1,8 +1,18 @@
+/**
+ * @file provas.js
+ * @description View responsável pela gestão do Banco de Questões e geração de avaliações.
+ * @module views/provasView
+ */
+
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
 import { aiService } from '../ai-service.js';
 
+/**
+ * View de Provas e Questões.
+ * @namespace provasView
+ */
 export const provasView = {
     selecionadas: new Set(),
     termoBusca: '',
@@ -20,7 +30,12 @@ export const provasView = {
         "Biologia", "Filosofia", "Sociologia"
     ],
 
-    // HELPER PARA RENDERIZAR ESTRELAS DE DIFICULDADE
+    /**
+     * Helper para renderizar estrelas de dificuldade.
+     * @private
+     * @param {number|string} nivel - Nível de dificuldade (0-3).
+     * @returns {string} HTML.
+     */
     _renderEstrelasDificuldade(nivel = 0) {
         const n = Number(nivel) || 0;
         let estrelas = '';
@@ -28,7 +43,7 @@ export const provasView = {
         for (let i = 1; i <= 3; i++) {
             let cor = 'text-slate-200';
             if (n > 0 && i <= n) {
-                cor = 'text-amber-400'; // Dourado apenas se houver nível
+                cor = 'text-amber-400';
             }
             estrelas += `<i class="fas fa-star ${cor} text-[10px]"></i>`;
         }
@@ -46,10 +61,12 @@ export const provasView = {
         this.termoBusca = '';
         this.render('view-container');
     },
+
     atualizarFiltro(campo, valor) {
         this.filtros[campo] = valor;
         this.render('view-container');
     },
+
     filtrarQuestoes(todas) {
         return todas.filter(q => {
             const termo = this.termoBusca.toLowerCase();
@@ -64,6 +81,7 @@ export const provasView = {
             return matchBusca && matchMateria && matchAno && matchTipo && matchUnidade;
         });
     },
+
     async verificarImagem(url) {
         try {
             const response = await fetch(url, { method: 'HEAD' });
@@ -72,18 +90,26 @@ export const provasView = {
             return false;
         }
     },
+
+    /**
+     * Renderiza a interface principal de provas.
+     * @param {HTMLElement|string} container 
+     */
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+
         const minhasQuestoes = model.state.questoes || [];
         const questoesSistema = model.state.questoesSistema || [];
         const listaParaFiltrar = this.abaAtiva === 'minhas' ? minhasQuestoes : questoesSistema;
         const questoesFiltradas = this.filtrarQuestoes(listaParaFiltrar);
 
+        // Limpeza de IDs órfãos na seleção
         const todosIdsExistentes = new Set([...minhasQuestoes, ...questoesSistema].map(q => String(q.id)));
         for (const id of this.selecionadas) {
             if (!todosIdsExistentes.has(String(id))) this.selecionadas.delete(id);
         }
+
         const html = `
         <div class="fade-in pb-24 print:hidden">
             <div class="flex flex-wrap justify-between items-end mb-8 gap-4">
@@ -110,7 +136,8 @@ export const provasView = {
                         <i class="fas fa-plus"></i> Nova Questão
                     </button>
                 </div>
-                </div>
+            </div>
+
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 <div class="lg:col-span-2 space-y-6">
                     <div class="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-2xl w-fit border border-slate-200">
@@ -161,8 +188,8 @@ export const provasView = {
                     </div>
                     <div class="space-y-4" id="lista-questoes">
                         ${questoesFiltradas.length > 0
-                ? questoesFiltradas.map(q => provasView.cardQuestao(q)).join('')
-                : this.estadoVazio()}
+                            ? questoesFiltradas.map(q => provasView.cardQuestao(q)).join('')
+                            : this.estadoVazio()}
                     </div>
                 </div>
                 <div class="lg:col-span-1 sticky top-24">
@@ -196,18 +223,24 @@ export const provasView = {
                 </div>
             </div>
         </div>
-    `;
+        `;
+        
         container.innerHTML = html;
+        
         const listaQuestoesEl = document.getElementById('lista-questoes');
         if (listaQuestoesEl && listaQuestoesEl.innerHTML.includes('$')) {
             this.renderizarLatex(listaQuestoesEl);
         }
+
+        // Carregamento Lazy de imagens
         questoesFiltradas.forEach(async (q) => {
             if (q.suporte && q.suporte.tem_imagem) {
                 const containerImg = document.getElementById(`img-container-${q.id}`);
                 if (!containerImg) return;
+                
                 const url = q.suporte.url_imagem;
                 const existe = await this.verificarImagem(url);
+                
                 if (existe) {
                     containerImg.classList.remove('hidden');
                     containerImg.innerHTML = '';
@@ -215,6 +248,7 @@ export const provasView = {
                     img.src = url;
                     img.className = "max-h-48 rounded shadow-sm object-contain";
                     containerImg.appendChild(img);
+                    
                     if (q.suporte.legenda) {
                         const p = document.createElement('p');
                         p.className = "text-[9px] text-slate-400 mt-2 italic text-center";
@@ -225,6 +259,7 @@ export const provasView = {
             }
         });
     },
+
     cardQuestao(q) {
         const isSelected = this.selecionadas.has(String(q.id));
         const isCompartilhada = q.compartilhada === true;
@@ -233,12 +268,14 @@ export const provasView = {
         const btnClass = isSelected ? 'bg-red-100 text-red-500 hover:bg-red-200' : 'bg-slate-100 text-slate-400 hover:bg-primary hover:text-white';
 
         let tagsHtml = `<span class="px-2 py-1 bg-slate-100 text-[10px] font-bold text-slate-600 rounded uppercase tracking-wider">${q.materia || 'Geral'}</span>`;
-        if (q.ano) tagsHtml += `<span class="px-2 py-1 bg-indigo-50 text-[10px] font-bold text-indigo-600 rounded uppercase border border-indigo-100">${escapeHTML(q.ano)}</span>`;
-        if (q.bncc && q.bncc.codigo) tagsHtml += `<span class="px-2 py-1 bg-yellow-50 text-[10px] font-bold text-yellow-700 rounded uppercase border border-yellow-100" title="${escapeHTML(q.bncc.descricao)}">${escapeHTML(q.bncc.codigo)}</span>`;
+        if (q.ano) tagsHtml += `<span class="px-2 py-1 bg-indigo-50 text-[10px] font-bold text-indigo-600 rounded uppercase border border-indigo-100">${window.escapeHTML(q.ano)}</span>`;
+        if (q.bncc && q.bncc.codigo) tagsHtml += `<span class="px-2 py-1 bg-yellow-50 text-[10px] font-bold text-yellow-700 rounded uppercase border border-yellow-100" title="${window.escapeHTML(q.bncc.descricao)}">${window.escapeHTML(q.bncc.codigo)}</span>`;
+        
         const tipoLabel = (q.tipo === 'multipla') ? 'Múltipla Escolha' : 'Dissertativa';
         const tipoCor = (q.tipo === 'multipla') ? 'text-purple-600 bg-purple-50 border-purple-100' : 'text-emerald-600 bg-emerald-50 border-emerald-100';
         tagsHtml += `<span class="px-2 py-1 ${tipoCor} text-[10px] font-bold rounded uppercase border">${tipoLabel}</span>`;
         tagsHtml += this._renderEstrelasDificuldade(q.dificuldade);
+
         let conteudoGabarito = '';
         if (q.tipo === 'multipla' && q.alternativas) {
             const letras = ['a', 'b', 'c', 'd', 'e'];
@@ -259,16 +296,18 @@ export const provasView = {
                 <p class="text-[9px] font-black text-emerald-700 uppercase mb-1 flex items-center gap-1">
                     <i class="fas fa-lightbulb"></i> Gabarito / Resposta Esperada
                 </p>
-                <p class="text-xs text-emerald-800 leading-relaxed">${escapeHTML(textoGabarito)}</p>
+                <p class="text-xs text-emerald-800 leading-relaxed">${window.escapeHTML(textoGabarito)}</p>
                 ${q.gabarito_comentado ? `
                 <p class="text-[9px] font-black text-emerald-700 uppercase mt-2 mb-1 flex items-center gap-1">
                     <i class="fas fa-comment-dots"></i> Comentário Pedagógico
                 </p>
-                <p class="text-xs text-emerald-800 leading-relaxed italic">${escapeHTML(q.gabarito_comentado)}</p>
+                <p class="text-xs text-emerald-800 leading-relaxed italic">${window.escapeHTML(q.gabarito_comentado)}</p>
                 ` : ''}
             </div>`;
         }
+
         const dataJson = JSON.stringify(q).replace(/'/g, "&#39;").replace(/"/g, '&quot;');
+        
         const btnComunidade = isCompartilhada ?
             `
             <button onclick="model.removerDaComunidade('${q.id}')" 
@@ -284,6 +323,7 @@ export const provasView = {
                 <i class="fas fa-share-nodes"></i>
             </button>
             `;
+
         const botoesAcao = isSistema ?
             `
             <button onclick='provasView.clonarQuestaoParaProfessor(${dataJson})' 
@@ -302,6 +342,7 @@ export const provasView = {
             </button>
             ${!isSelected ? `<button onclick="provasView.excluirQuestao('${q.id}')" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-colors" title="Excluir"><i class="fas fa-trash-alt"></i></button>` : ''}
             `;
+
         return `
         <div id="card-questao-${q.id}" class="p-6 rounded-2xl border transition-all duration-200 ${borderClass} group relative animate-slide-up">
             <div class="flex justify-between items-start gap-4 mb-4">
@@ -314,7 +355,7 @@ export const provasView = {
                 </div>
             </div>
             <div class="text-slate-700 text-sm leading-relaxed font-medium font-serif">
-                ${escapeHTML(q.enunciado).replace(/\n/g, '<br>')}
+                ${window.escapeHTML(q.enunciado).replace(/\n/g, '<br>')}
                 <div id="img-container-${q.id}" class="mt-4 hidden flex flex-col items-center"></div>
             </div>
             ${conteudoGabarito}
@@ -323,6 +364,7 @@ export const provasView = {
             </div>
         </div>`;
     },
+
     atualizarBusca(valor) {
         this.termoBusca = valor;
         const lista = this.abaAtiva === 'minhas' ? (model.state.questoes || []) : (model.state.questoesSistema || []);
@@ -334,6 +376,7 @@ export const provasView = {
         }
         document.getElementById('input-busca-provas')?.focus();
     },
+
     renderizarLatex(elemento) {
         if (typeof renderMathInElement === 'function') {
             renderMathInElement(elemento, {
@@ -347,15 +390,15 @@ export const provasView = {
             });
         }
     },
+
     openAddQuestao(dados = {}) {
-
         const exibirBotaoIA = !dados.id;
-
         dados = dados || {};
         if (this.tempDados) {
             dados = { ...this.tempDados, ...dados };
             this.tempDados = null;
         }
+        
         const habilidadeHtml = dados.bncc
             ? `<div class="bg-yellow-50 border border-yellow-100 p-3 rounded-lg flex items-center justify-between">
                  <div><span class="font-bold text-yellow-700 text-xs">${dados.bncc.codigo}</span><p class="text-xs text-yellow-600 line-clamp-1">${dados.bncc.descricao}</p></div>
@@ -457,14 +500,16 @@ export const provasView = {
                             ${dados.id ? 'Salvar Alterações' : 'Salvar Questão'}
                         </button>
                     </div>
-                </div>>`;
+                </div>`;
 
         controller.openModal(dados.id ? 'Editar Questão' : 'Nova Questão', html);
+        
         setTimeout(() => {
             if (dados.tipo === 'multipla') provasView.gerarInputsAlternativas(dados.alternativas, dados.correta);
             else provasView.mudarTipoQuestao();
         }, 50);
     },
+
     async gerarComIA() {
         const materia = document.getElementById('q-materia').value;
         const codBncc = document.getElementById('q-bncc-cod').value;
@@ -505,6 +550,7 @@ export const provasView = {
             loading.classList.add('hidden');
         }
     },
+
     clonarQuestaoParaProfessor(questaoOriginal) {
         const novaQuestao = JSON.parse(JSON.stringify(questaoOriginal));
         delete novaQuestao.id;
@@ -512,23 +558,30 @@ export const provasView = {
         this.openAddQuestao(novaQuestao);
         Toast.show("Cópia pronta para edição!", "info");
     },
+
     preservarEstadoEBuscarBNCC() {
         const dadosAtuais = this.getDataModal();
         this.tempDados = dadosAtuais;
         controller.openSeletorBnccQuestao();
     },
+
     mudarTipoQuestao() {
         const tipo = document.getElementById('q-tipo').value;
         const containerQtd = document.getElementById('container-qtd-alt');
         const areaAlt = document.getElementById('area-alternativas');
         const areaGab = document.getElementById('area-gabarito');
         if (tipo === 'multipla') {
-            containerQtd?.classList.remove('hidden'); areaAlt?.classList.remove('hidden'); areaGab?.classList.add('hidden');
+            containerQtd?.classList.remove('hidden'); 
+            areaAlt?.classList.remove('hidden'); 
+            areaGab?.classList.add('hidden');
             if (!document.getElementById('inputs-alternativas').innerHTML) this.gerarInputsAlternativas();
         } else {
-            containerQtd?.classList.add('hidden'); areaAlt?.classList.add('hidden'); areaGab?.classList.remove('hidden');
+            containerQtd?.classList.add('hidden'); 
+            areaAlt?.classList.add('hidden'); 
+            areaGab?.classList.remove('hidden');
         }
     },
+
     gerarInputsAlternativas(valores = null, correta = null) {
         const qtdEl = document.getElementById('q-qtd-alt');
         if (!qtdEl) return;
@@ -548,6 +601,7 @@ export const provasView = {
         }
         container.innerHTML = html;
     },
+
     getDataModal() {
         // Captura segura do elemento de dificuldade
         const diffElement = document.getElementById('q-dificuldade');
@@ -558,13 +612,12 @@ export const provasView = {
         const idValue = idField && idField.value.trim() !== "" ? idField.value : null;
 
         const dados = {
-            id: idValue, // Se for null, o Model vai gerar um novo ID (Criação)
+            id: idValue,
             createdAt: document.getElementById('q-created-at')?.value || null,
             materia: document.getElementById('q-materia')?.value,
             ano: document.getElementById('q-ano')?.value,
             enunciado: document.getElementById('q-enunciado')?.value,
             tipo: document.getElementById('q-tipo')?.value,
-            // Conversão explícita para garantir que salve como número
             dificuldade: parseInt(diffValor) || 0,
             bncc: document.getElementById('q-bncc-cod')?.value ? {
                 codigo: document.getElementById('q-bncc-cod').value,
@@ -572,30 +625,32 @@ export const provasView = {
             } : null
         };
 
-        // Tratamento específico para Múltipla Escolha
         if (dados.tipo === 'multipla') {
             const qtdEl = document.getElementById('q-qtd-alt');
             if (qtdEl) {
                 const qtd = parseInt(qtdEl.value);
                 dados.alternativas = Array.from({ length: qtd }, (_, i) => document.getElementById(`alt-${i}`)?.value || '');
                 const radio = document.querySelector('input[name="correta"]:checked');
-                // Se nenhum radio estiver marcado, mantém null
                 dados.correta = radio ? parseInt(radio.value) : null;
             }
         } else {
             dados.gabarito = document.getElementById('q-gabarito')?.value || '';
         }
-        
-        console.log("Dados capturados do modal:", dados); // Debug
+
         return dados;
     },
+
     salvarQuestao() {
         const dados = this.getDataModal();
         if (!dados.enunciado) return Toast.show("O enunciado é obrigatório.", "error");
+        
+        // Model injetado (provaMethods) cuidará da persistência e sync
         model.saveQuestao(dados);
+        
         controller.closeModal();
         this.render('view-container');
     },
+
     excluirQuestao(id) {
         if (confirm("Tem certeza que deseja excluir esta questão?")) {
             model.deleteQuestao(id);
@@ -603,21 +658,25 @@ export const provasView = {
             Toast.show("Questão excluída.", "info");
         }
     },
+
     toggleSelecao(id) {
         const idStr = String(id);
         if (this.selecionadas.has(idStr)) { this.selecionadas.delete(idStr); }
         else { this.selecionadas.add(idStr); }
         this.render('view-container');
     },
+
     limparSelecao() {
         if (confirm("Limpar todas as questões da prova atual?")) {
             this.selecionadas.clear();
             this.render('view-container');
         }
     },
+
     estadoVazio() {
         return `<div class="p-10 text-center bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl text-slate-400">Nenhuma questão encontrada para este filtro.</div>`;
     },
+
     abrirOpcoesImpressao() {
         const html = `
             <div class="p-6 text-center space-y-4">
@@ -635,6 +694,7 @@ export const provasView = {
             </div>`;
         controller.openModal('Impressão', html);
     },
+
     imprimirProva(tipo = 'aluno') {
         if (this.selecionadas.size === 0) {
             Toast.show("Nenhuma questão selecionada!", "warning");
@@ -646,10 +706,12 @@ export const provasView = {
         ];
         const selecionadas = bancoTotal.filter(q => this.selecionadas.has(String(q.id)));
         if (selecionadas.length === 0) { Toast.show("Erro ao recuperar questões selecionadas.", "error"); return; }
+        
         let nomeProf = model.state.userConfig.profName || '__________________________';
         if ((!model.state.userConfig.profName || model.state.userConfig.profName.trim() === "") && model.currentUser) {
             nomeProf = model.currentUser.displayName;
         }
+        
         const isProf = tipo === 'professor';
         const questoesHtml = selecionadas.map((q, i) => {
             const letras = ['a', 'b', 'c', 'd', 'e'];
@@ -680,7 +742,7 @@ export const provasView = {
                         ${isProf && q.gabarito ? `
                             <div style="margin-top: 15px; padding: 10px; background-color: #f0fdf4; border: 1px dashed #16a34a; border-radius: 6px; font-size: 12px; color: #15803d;">
                                 <strong>Gabarito Esperado:</strong><br>
-                                ${escapeHTML(q.gabarito).replace(/\n/g, '<br>')}
+                                ${window.escapeHTML(q.gabarito).replace(/\n/g, '<br>')}
                             </div>
                         ` : ''}
                     </div>
@@ -688,13 +750,14 @@ export const provasView = {
             }
             return `
                 <div class="questao">
-                    ${q.bncc ? `<div class="questao-info no-print">Habilidade: ${escapeHTML(q.bncc.codigo)}</div>` : ''}
+                    ${q.bncc ? `<div class="questao-info no-print">Habilidade: ${window.escapeHTML(q.bncc.codigo)}</div>` : ''}
                     <span class="questao-numero">${i + 1})</span>
-                    <span class="questao-texto">${escapeHTML(q.enunciado).replace(/\n/g, '<br>')}</span>
+                    <span class="questao-texto">${window.escapeHTML(q.enunciado).replace(/\n/g, '<br>')}</span>
                     ${conteudoResposta}
                 </div>
             `;
         }).join('');
+        
         const divTemporaria = document.createElement('div');
         divTemporaria.innerHTML = questoesHtml;
         if (window.renderMathInElement) {
@@ -705,8 +768,10 @@ export const provasView = {
                 ]
             });
         }
+        
         const htmlProcessado = divTemporaria.innerHTML;
         const tituloDoc = isProf ? 'GABARITO - Avaliação' : 'Avaliação de Aprendizagem';
+        
         const estiloImpressao = `
             <style>
                 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
@@ -719,14 +784,12 @@ export const provasView = {
                 .questao { margin-bottom: 30px; page-break-inside: avoid; }
                 .questao-info { font-size: 10px; color: #666; margin-bottom: 5px; text-transform: uppercase; font-weight: bold; }
                 
-                /* CORREÇÃO DE ALINHAMENTO */
                 .questao-numero { font-weight: bold; font-size: 16px; margin-right: 5px; }
                 .questao-texto { font-size: 14px; line-height: 1.5; text-align: justify; margin-bottom: 15px; }
                 
                 .resposta-area { border-bottom: 1px solid #ccc; height: 25px; width: 100%; display: block; margin-top: 5px; }
                 .alternativa { margin-bottom: 5px; font-size: 14px; }
 
-                /* BOTÃO FLUTUANTE DE VOLTAR */
                 .btn-voltar {
                     position: fixed; top: 20px; right: 20px;
                     background-color: #ef4444; color: white; padding: 12px 20px;
@@ -737,7 +800,6 @@ export const provasView = {
                 }
                 .btn-voltar:hover { background-color: #dc2626; }
 
-                /* ESCONDER NA IMPRESSÃO */
                 @media print {
                     .no-print, .btn-voltar { display: none !important; }
                     body { padding: 0; }
@@ -746,6 +808,7 @@ export const provasView = {
             <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
         `;
+        
         const conteudoFinal = `
             <html>
             <head>
@@ -758,7 +821,7 @@ export const provasView = {
                 </button>
                 <div class="header">
                     <p><strong>ESCOLA:</strong> ${model.state.userConfig.schoolName || '________________________________________________'}</p>
-                    <p><strong>PROFESSOR(A):</strong> ${escapeHTML(nomeProf)} &nbsp;&nbsp; <strong>DATA:</strong> ____/____/____</p>
+                    <p><strong>PROFESSOR(A):</strong> ${window.escapeHTML(nomeProf)} &nbsp;&nbsp; <strong>DATA:</strong> ____/____/____</p>
                     <p><strong>ALUNO(A):</strong> _______________________________________________________ <strong>TURMA:</strong> ________</p>
                 </div>
                 <div class="titulo-prova">${tituloDoc}</div>
@@ -769,6 +832,7 @@ export const provasView = {
             </body>
             </html>
         `;
+        
         const win = window.open('', '_blank');
         win.document.write(conteudoFinal);
         win.document.close();

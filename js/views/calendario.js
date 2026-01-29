@@ -1,6 +1,29 @@
+/**
+ * @file calendario.js
+ * @description View responsável pela renderização do Calendário Acadêmico anual.
+ * @module views/calendarioView
+ */
+
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 
+/**
+ * Utilitário para escapar HTML e prevenir XSS (se não existir globalmente).
+ * @param {string} str 
+ * @returns {string}
+ */
+function safeHTML(str) {
+    if (typeof window.escapeHTML === 'function') return window.escapeHTML(str);
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, function(m) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
+    });
+}
+
+/**
+ * View do Calendário.
+ * @namespace calendarioView
+ */
 export const calendarioView = {
     // Estado local para controlar a visualização da legenda
     exibirLegenda: false,
@@ -10,18 +33,26 @@ export const calendarioView = {
         "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
     ],
 
+    /**
+     * Alterna a visibilidade da caixa de legenda.
+     */
     toggleLegenda() {
         this.exibirLegenda = !this.exibirLegenda;
-        // Re-renderiza para atualizar a interface (mostrar/esconder a div)
+        // Re-renderiza para atualizar a interface
         this.render('view-container');
     },
 
+    /**
+     * Renderiza o calendário completo no container.
+     * @param {HTMLElement|string} container 
+     */
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
         
         const config = (model.state && model.state.userConfig) || {};
         let nomeProf = 'Professor(a)';
+        
         if (config.profName && config.profName.trim() !== '') {
             nomeProf = config.profName.split(' ')[0];
         } else if (model.currentUser && model.currentUser.displayName) {
@@ -33,12 +64,12 @@ export const calendarioView = {
                 
                 <div class="hidden print:block text-center mb-6 border-b border-slate-200 pb-4">
                     <h1 class="text-2xl font-bold text-slate-800">Calendário Acadêmico 2026</h1>
-                    <p class="text-sm text-slate-500">${escapeHTML(nomeProf)}</p>
+                    <p class="text-sm text-slate-500">${safeHTML(nomeProf)}</p>
                 </div>
 
                 <div class="flex flex-wrap justify-between items-end mb-6 gap-6 no-print">
                     <div>
-                        <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Olá, ${escapeHTML(nomeProf)}!</h2>
+                        <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Olá, ${safeHTML(nomeProf)}!</h2>
                         <p class="text-slate-500 mt-1">Calendário Acadêmico 2026</p>
                     </div>
                     
@@ -81,10 +112,16 @@ export const calendarioView = {
         this.atualizarDataHeader();
     },
 
+    /**
+     * Gera os itens HTML da legenda baseados no Model.
+     * @param {boolean} isPrint - Se true, gera estilo otimizado para impressão.
+     * @returns {string} HTML string.
+     */
     gerarLegendaItens(isPrint = false) {
         if (!model.tiposEventos) return '';
+        
         return Object.entries(model.tiposEventos)
-            .filter(([key]) => !key.includes('Antigo'))
+            .filter(([key]) => !key.includes('Antigo')) // Exemplo de filtro de legado
             .map(([key, estilo]) => `
                 <div class="flex items-center gap-2 p-2 ${isPrint ? '' : 'bg-white border border-slate-100 shadow-sm'} rounded-lg">
                     <div class="w-4 h-4 rounded-md shadow-sm shrink-0 ${estilo.bg} border ${estilo.border} print:border-2"></div>
@@ -93,6 +130,12 @@ export const calendarioView = {
             `).join('');
     },
 
+    /**
+     * Gera o HTML de um mês específico.
+     * @param {number} mes - Número do mês (1-12).
+     * @param {string} nome - Nome do mês.
+     * @returns {string} HTML string.
+     */
     gerarTemplateMes(mes, nome) {
         const ano = 2026;
         const primeiroDiaSemana = new Date(ano, mes - 1, 1).getDay();
@@ -118,10 +161,10 @@ export const calendarioView = {
                 const configEvento = model.tiposEventos[evento.tipo];
                 if (configEvento) {
                     estiloCor = `${configEvento.bg} ${configEvento.text} font-bold ring-1 ring-inset ${configEvento.border}`;
-                    tooltipText = `${configEvento.label}: ${escapeHTML(evento.descricao)}`;
+                    tooltipText = `${configEvento.label}: ${safeHTML(evento.descricao)}`;
                 } else {
                     estiloCor = "bg-gray-100 text-gray-500 font-bold border border-gray-200";
-                    tooltipText = `Evento: ${escapeHTML(evento.descricao)}`;
+                    tooltipText = `Evento: ${safeHTML(evento.descricao)}`;
                 }
             }
             
@@ -130,6 +173,7 @@ export const calendarioView = {
             const isHoje = hoje.getDate() === dia && (hoje.getMonth() + 1) === mes && hoje.getFullYear() === ano;
             if (isHoje) {
                 classesBase += "ring-2 ring-primary ring-offset-1 z-10 font-bold ";
+                // Se hoje não tiver evento, destaca em azul
                 if (!evento) estiloCor = "bg-primary text-white hover:bg-primary/90";
             }
 
@@ -159,6 +203,9 @@ export const calendarioView = {
         `;
     },
 
+    /**
+     * Atualiza o cabeçalho de data global (se existir na página).
+     */
     atualizarDataHeader() {
         const el = document.getElementById('current-date');
         if (el) {

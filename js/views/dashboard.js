@@ -1,33 +1,58 @@
+/**
+ * @file dashboard.js
+ * @description View principal (Home) do aplicativo. Exibe resumo do dia, pendências e calendário.
+ * @module views/dashboardView
+ */
+
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { calendarioView } from './calendario.js';
 
+/**
+ * View da Dashboard.
+ * @namespace dashboardView
+ */
 export const dashboardView = {
+
+    /**
+     * Renderiza o painel principal.
+     * @param {HTMLElement|string} container 
+     */
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+
         const saudacao = this.getSaudacao();
         const pendencias = this.calcularPendencias();
         const aniversariantes = this.buscarAniversariantes(); 
+        
         const hoje = new Date();
         const dataHojeIso = hoje.toISOString().split('T')[0];
-        const aulasHoje = model.state.turmas.filter(t => {
+        
+        // Calcula quantas turmas já têm plano de aula hoje
+        const turmas = model.state.turmas || [];
+        const aulasHoje = turmas.filter(t => {
             const planos = model.state.planosDiarios || {};
             return planos[dataHojeIso] && planos[dataHojeIso][t.id];
         });
+
+        // Nome seguro para exibição
+        const nomeProf = this.getNomeProf();
+        const nomeSafe = nomeProf.replace(/[<>]/g, '');
+
         const html = `
             <div class="fade-in pb-20 space-y-8">
                 
                 <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 border-b border-slate-200 pb-6">
                     <div>
-                        <h1 class="text-3xl font-bold text-slate-800 tracking-tight">${saudacao.texto}, ${this.getNomeProf()}!</h1>
+                        <h1 class="text-3xl font-bold text-slate-800 tracking-tight">${saudacao.texto}, ${nomeSafe}!</h1>
                         <p class="text-slate-500 mt-1 flex items-center gap-2">
                             <i class="far fa-calendar text-primary"></i>
                             ${hoje.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
                         </p>
                     </div>
                     <div class="flex gap-2">
-                         <button onclick="controller.navigate('dia')" class="bg-primary text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-primary/20 hover:brightness-110 transition flex items-center gap-2">
+                         <button onclick="controller.navigate('dia')" class="bg-primary text-white px-4 py-2 rounded-xl font-bold shadow-lg shadow-primary/20 hover:brightness-110 transition flex items-center gap-2 active:scale-95">
                             <i class="fas fa-plus"></i> Novo Diário
                          </button>
                     </div>
@@ -42,17 +67,17 @@ export const dashboardView = {
                         <h3 class="font-bold text-slate-500 text-xs uppercase tracking-wider mb-3">Situação de Hoje</h3>
                         <div class="relative z-10">
                             <div class="text-4xl font-black text-slate-800 mb-1">
-                                ${aulasHoje.length} / ${model.state.turmas.length}
+                                ${aulasHoje.length} / ${turmas.length}
                             </div>
                             <p class="text-sm text-slate-500 font-medium">Turmas planejadas</p>
                             
                             <div class="mt-4 flex flex-col gap-2">
-                                ${model.state.turmas.length === 0 
+                                ${turmas.length === 0 
                                     ? '<span class="text-xs text-orange-500">Nenhuma turma cadastrada.</span>' 
-                                    : aulasHoje.length === model.state.turmas.length 
+                                    : aulasHoje.length === turmas.length 
                                         ? '<span class="text-xs text-emerald-600 font-bold flex items-center gap-1"><i class="fas fa-check-circle"></i> Tudo pronto para hoje!</span>'
                                         : `<button onclick="controller.navigate('dia')" class="text-xs text-primary font-bold hover:underline text-left">
-                                             <i class="fas fa-arrow-right"></i> Planejar ${model.state.turmas.length - aulasHoje.length} turmas restantes
+                                             <i class="fas fa-arrow-right"></i> Planejar ${turmas.length - aulasHoje.length} turmas restantes
                                            </button>`
                                 }
                             </div>
@@ -74,7 +99,7 @@ export const dashboardView = {
                             <div class="mt-4">
                                 ${pendencias.total > 0 
                                     ? `<button onclick="controller.navigate('mensal')" class="text-xs font-bold text-orange-500 hover:text-orange-600 bg-orange-50 px-2 py-1 rounded transition">
-                                        Ver pendências
+                                         Ver pendências
                                        </button>` 
                                     : '<span class="text-xs text-emerald-600 font-bold">Você está em dia!</span>'
                                 }
@@ -119,14 +144,26 @@ export const dashboardView = {
         `;
 
         container.innerHTML = html;
+        
+        // Renderiza o calendário de forma assíncrona para não bloquear a UI principal
         setTimeout(() => {
             const calContainer = document.getElementById('calendar-wrapper');
-            if(calContainer) calendarioView.render(calContainer);
-            const oldHeader = calContainer.querySelector('h2.text-3xl'); 
-            if(oldHeader && oldHeader.parentElement) oldHeader.parentElement.style.display = 'none';
+            if(calContainer) {
+                calendarioView.render(calContainer);
+                
+                // Remove o header duplicado do componente calendário, pois já temos um título na section
+                const oldHeader = calContainer.querySelector('h1.text-2xl'); 
+                if(oldHeader && oldHeader.parentElement) oldHeader.parentElement.style.display = 'none';
+                const oldHello = calContainer.querySelector('h2.text-3xl');
+                if(oldHello && oldHello.parentElement) oldHello.parentElement.parentElement.style.display = 'none';
+            }
         }, 0);
     },
 
+    /**
+     * Retorna a saudação baseada na hora do dia.
+     * @returns {{texto: string, icon: string}}
+     */
     getSaudacao() {
         const hora = new Date().getHours();
         if (hora < 12) return { texto: 'Bom dia', icon: 'fa-sun' };
@@ -134,27 +171,49 @@ export const dashboardView = {
         return { texto: 'Boa noite', icon: 'fa-moon' };
     },
 
+    /**
+     * Recupera o nome do professor das configurações ou do auth.
+     * @returns {string} Primeiro nome.
+     */
     getNomeProf() {
         const config = model.state.userConfig || {};
-        if (config.profName) return config.profName.split(' ')[0];
-        if (model.currentUser && model.currentUser.displayName) return model.currentUser.displayName.split(' ')[0];
+        if (config.profName && config.profName.trim() !== '') {
+            return config.profName.split(' ')[0];
+        }
+        if (model.currentUser && model.currentUser.displayName) {
+            return model.currentUser.displayName.split(' ')[0];
+        }
         return 'Professor(a)';
     },
 
+    /**
+     * Calcula se houve dias letivos recentes sem diário preenchido.
+     * @returns {{total: number}}
+     */
     calcularPendencias() {
         let pendencias = 0;
         const hoje = new Date();
-        const turmas = model.state.turmas;
+        const turmas = model.state.turmas || [];
         
         if (turmas.length === 0) return { total: 0 };
+
+        // Verifica os últimos 3 dias
         for (let i = 1; i <= 3; i++) {
             const d = new Date();
             d.setDate(hoje.getDate() - i);
+            
+            // Pula fim de semana (0=Dom, 6=Sab)
             if (d.getDay() === 0 || d.getDay() === 6) continue;
 
             const dataIso = d.toISOString().split('T')[0];
+            
+            // Se for feriado/evento, não cobra
             if (model.state.eventos && model.state.eventos[dataIso]) continue;
+            
+            // Verifica se tem plano
             const temDiario = model.state.planosDiarios && model.state.planosDiarios[dataIso];
+            
+            // Simplificação: Se não tem NENHUM registro no dia, conta como 1 pendência (dia não trabalhado)
             if (!temDiario) {
                 pendencias++;
             }
@@ -163,9 +222,12 @@ export const dashboardView = {
         return { total: pendencias };
     },
 
+    /**
+     * Placeholder para busca de aniversariantes (Futuro).
+     * @returns {Array} Lista vazia por enquanto.
+     */
     buscarAniversariantes() {
-        // Como o model atual não tem data de nascimento, retornamos vazio
-        // Mas deixamos a lógica preparada para quando tiver:
+        // Futuro: Implementar campo data_nascimento no cadastro de aluno
         // return model.state.turmas.flatMap(t => t.alunos).filter(a => isAniversario(a.nascimento));
         return []; 
     }

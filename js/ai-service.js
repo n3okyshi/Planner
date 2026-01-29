@@ -1,97 +1,149 @@
+/**
+ * @file ai-service.js
+ * @description Módulo responsável pela comunicação com a IA do Google (Gemini) para geração automática de conteúdo.
+ * @module services/aiService
+ */
+
 export const aiService = {
-    /** * Chave de API obscurecida em Base64 para evitar detecção automática pelo GitHub.
-     * Nota: Isso não protege contra humanos, apenas contra bots de 'leak'.
+    /** * Chave de API obscurecida em Base64 para evitar detecção automática por scrapers simples.
+     * Nota: Isso não é criptografia de segurança, apenas ofuscação.
      * @private
+     * @type {string}
      */
     _k: 'QUl6YVN5RGowZ2k5cWVNMkxocFdCWFMzNUNEdHhZUW1PR3JDVzVJ',
-    //API_KEY: atob(this._k),
+
     /**
-     * Retorna a chave de API decodificada.
-     * @returns {string}
+     * Retorna a chave de API decodificada em tempo de execução.
+     * @returns {string} A chave da API decodificada ou string vazia se falhar.
      */
     get API_KEY() {
         try {
             return atob(this._k);
         } catch (e) {
-            console.error("Erro ao decodificar API Key.");
+            console.error("Erro ao decodificar API Key:", e);
             return "";
         }
     },
-    /** @type {Array<{id: string, v: string}>} Lista de modelos disponíveis para tentativa e erro */
+
+    /** * Lista de modelos disponíveis para estratégia de fallback (tentativa e erro).
+     * Se o primeiro falhar (ex: rate limit), tenta o próximo.
+     * @type {Array<{id: string, v: string}>}
+     */
     MODELOS: [
         { id: 'gemini-2.5-flash-lite', v: 'v1beta' },
         { id: 'gemini-3-flash-preview', v: 'v1beta' },
         { id: 'gemini-2.5-flash', v: 'v1beta' },
         { id: 'gemini-flash-lite-latest', v: 'v1beta' }
-
     ],
+
     /**
-         * Pausa a execução por um tempo determinado.
-         * @param {number} ms - Milissegundos.
-         * @returns {Promise<void>}
-         */
+     * Pausa a execução por um tempo determinado (útil para backoff exponencial).
+     * @private
+     * @param {number} ms - Milissegundos para esperar.
+     * @returns {Promise<void>}
+     */
     _esperar: (ms) => new Promise(res => setTimeout(res, ms)),
+
     /**
-         * Gera uma questão inédita baseada nos parâmetros pedagógicos.
-         * @async
-         * @param {Object} params - Parâmetros da questão.
-         * @param {string} params.materia - Disciplina escolar.
-         * @param {Object} params.habilidade - Objeto contendo codigo e descricao BNCC.
-         * @param {number} params.dificuldade - Nível (1 a 3).
-         * @param {string} params.tipo - 'multipla' ou 'aberta'.
-         * @returns {Promise<Object>} Objeto da questão formatado.
-         */
+     * Gera uma questão inédita baseada nos parâmetros pedagógicos fornecidos.
+     * Utiliza uma estratégia de rotação de modelos para garantir alta disponibilidade.
+     * @async
+     * @param {Object} params - Parâmetros da questão.
+     * @param {string} params.materia - Disciplina escolar (ex: Matemática).
+     * @param {Object} params.habilidade - Objeto contendo {codigo, descricao} da BNCC.
+     * @param {number} params.dificuldade - Nível de dificuldade (1=Fácil a 3=Difícil).
+     * @param {string} params.tipo - 'multipla' ou 'aberta'.
+     * @returns {Promise<Object>} Objeto da questão formatado com enunciado e alternativas/gabarito.
+     * @throws {Error} Se todos os modelos falharem.
+     */
     async gerarQuestao({ materia, habilidade, dificuldade, tipo }) {
         const diffLabels = ["Aleatória", "Fácil", "Média", "Difícil"];
-        const prompt = `Atue como um professor especialista. Crie uma questão inédita para a disciplina de ${materia}.
-        Baseie-se na habilidade BNCC: ${habilidade.codigo} - ${habilidade.descricao}.
-        Dificuldade: ${diffLabels[dificuldade]}.
-        Tipo: ${tipo === 'multipla' ? 'Múltipla escolha com 4 alternativas' : 'Dissertativa/Aberta'}.
         
-        IMPORTANTE: Responda APENAS o objeto JSON puro, sem markdown.
-        Estrutura:
-        {
-            "enunciado": "texto da questão",
-            "alternativas": ["A", "B", "C", "D"],
-            "correta": 0,
-            "gabarito": "resposta esperada"
-        }`;
+        // Prompt otimizado para gerar JSON puro
+        const prompt = `
+            Atue como um professor especialista. Crie uma questão inédita para a disciplina de ${materia}.
+            Baseie-se na habilidade BNCC: ${habilidade.codigo} - ${habilidade.descricao}.
+            Dificuldade: ${diffLabels[dificuldade]}.
+            Tipo: ${tipo === 'multipla' ? 'Múltipla escolha com 4 ou 5 alternativas' : 'Dissertativa/Aberta'}.
+            
+            REGRAS OBRIGATÓRIAS:
+            1. Responda APENAS o objeto JSON puro.
+            2. NÃO use markdown (como \`\`\`json).
+            3. NÃO adicione texto antes ou depois do JSON.
+            
+            Estrutura do JSON de retorno:
+            {
+                "enunciado": "texto da questão",
+                "alternativas": ["A", "B", "C", "D"],
+                "correta": 0, // Índice da alternativa correta (0 a 3/4) - Apenas se múltipla escolha
+                "gabarito": "resposta esperada ou explicação"
+            }
+        `;
 
         let ultimoErro = "";
 
+        // Loop de Tentativas (Fallback Strategy)
         for (let i = 0; i < this.MODELOS.length; i++) {
             const modelInfo = this.MODELOS[i];
+            
             try {
                 const url = `https://generativelanguage.googleapis.com/${modelInfo.v}/models/${modelInfo.id}:generateContent?key=${this.API_KEY}`;
-                console.log(`🤖 Tentativa ${i + 1}/${this.MODELOS.length}: ${modelInfo.id}...`);
+                
+                console.log(`🤖 Tentativa IA ${i + 1}/${this.MODELOS.length}: Usando ${modelInfo.id}...`);
+                
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }]
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: {
+                            temperature: 0.7, // Criatividade controlada
+                            topK: 40,
+                            topP: 0.95,
+                            maxOutputTokens: 1024,
+                        }
                     })
                 });
+
                 const data = await response.json();
+
+                // Tratamento de Erros da API
                 if (!response.ok || data.error) {
-                    const msg = data.error?.message || `Erro ${response.status}`;
-                    console.warn(`⚠️ Modelo ${modelInfo.id} indisponível: ${msg}`);
+                    const msg = data.error?.message || `Erro HTTP ${response.status}`;
+                    console.warn(`⚠️ Modelo ${modelInfo.id} falhou: ${msg}`);
                     ultimoErro = msg;
+                    
+                    // Se for erro de limite (429), espera um pouco antes de tentar o próximo
                     if (response.status === 429) await this._esperar(1000);
-                    throw new Error(msg);
+                    
+                    throw new Error(msg); // Força ir para o catch e tentar o próximo loop
                 }
+
+                // Validação da Resposta
                 if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
                     throw new Error("Resposta vazia da IA.");
                 }
+
                 const textResponse = data.candidates[0].content.parts[0].text;
-                const cleanJson = textResponse.replace(/```json/gi, "").replace(/```/g, "").trim();
+                
+                // Limpeza do JSON (caso a IA insista em markdown)
+                const cleanJson = textResponse
+                    .replace(/```json/gi, "")
+                    .replace(/```/g, "")
+                    .trim();
+
                 const finalResult = JSON.parse(cleanJson);
-                console.log(`✅ Sucesso com: ${modelInfo.id}`);
+                
+                console.log(`✅ Sucesso na geração com: ${modelInfo.id}`);
                 return finalResult;
+
             } catch (error) {
+                // Se foi a última tentativa, lança o erro para o usuário
                 if (i === this.MODELOS.length - 1) {
-                    console.error("❌ Todos os modelos falharam.");
-                    throw new Error(`Não foi possível gerar a questão: ${ultimoErro || error.message}`);
+                    console.error("❌ Falha crítica: Todos os modelos de IA falharam.");
+                    throw new Error(`Não foi possível gerar a questão no momento. Tente novamente. Detalhe: ${ultimoErro || error.message}`);
                 }
+                // Se não foi a última, o loop continua e tenta o próximo modelo
             }
         }
     }

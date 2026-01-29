@@ -1,12 +1,34 @@
+/**
+ * @file comunidade.js
+ * @description View responsável pela interface de busca e importação de questões compartilhadas na Comunidade com Paginação.
+ * @module views/comunidadeView
+ */
+
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { firebaseService } from '../firebase-service.js';
 import { Toast } from '../components/toast.js';
 
+/**
+ * View da Comunidade de Questões.
+ * @namespace comunidadeView
+ */
 export const comunidadeView = {
     questoes: [],
     filtroMateria: '',
-    // HELPER PARA RENDERIZAR ESTRELAS DE DIFICULDADE (Igual ao provasView para consistência)
+    
+    // --- Estado da Paginação ---
+    itensPorPagina: 20,     // Padrão: 20 itens
+    paginaAtual: 1,         // Página atual
+    ultimoDoc: null,        // Cursor para a próxima página
+    primeiroDoc: null,      // Cursor auxiliar
+    historicoPaginas: [],   // Pilha para permitir voltar à página anterior
+    totalCarregado: 0,
+    
+    /**
+     * Helper para renderizar estrelas de dificuldade (Visualização).
+     * @private
+     */
     _renderEstrelasDificuldade(nivel = 0) {
         const n = Number(nivel) || 0;
         let estrelas = '';
@@ -18,102 +40,319 @@ export const comunidadeView = {
             }
             estrelas += `<i class="fas fa-star ${cor} text-[10px]"></i>`;
         }
+        
         const labels = ["Não definida", "Fácil", "Média", "Difícil"];
+        
         return `
-            <div class="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100" title="Dificuldade original: ${labels[n]}">
+            <div class="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100" title="Dificuldade original: ${labels[n] || labels[0]}">
                 ${estrelas}
             </div>
         `;
     },
+
+    /**
+     * Renderiza a página principal da comunidade.
+     */
     async render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
+        if (!container) return;
+
         const html = `
             <div class="fade-in pb-20">
                 <div class="mb-8">
                     <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Comunidade</h2>
                     <p class="text-slate-500">Explore e importe questões compartilhadas por outros professores.</p>
                 </div>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-                    <input type="text" id="search-comunidade" placeholder="Buscar por tema ou palavra-chave..." 
-                           class="md:col-span-2 p-4 rounded-xl border border-slate-200 outline-none focus:border-primary shadow-sm">
+                
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6">
+                    <input type="text" id="search-comunidade" placeholder="Buscar por tema..." 
+                           class="md:col-span-5 p-4 rounded-xl border border-slate-200 outline-none focus:border-primary shadow-sm bg-white focus:ring-4 focus:ring-primary/5 transition-all">
+                    
                     <select id="filter-materia" onchange="comunidadeView.setFiltro(this.value)"
-                            class="p-4 rounded-xl border border-slate-200 outline-none cursor-pointer shadow-sm bg-white">
+                            class="md:col-span-3 p-4 rounded-xl border border-slate-200 outline-none cursor-pointer shadow-sm bg-white focus:border-primary">
                         <option value="">Todas as matérias</option>
-                        ${Object.keys(model.coresComponentes).map(m => `
+                        ${Object.keys(model.coresComponentes || {}).map(m => `
                             <option value="${m}" ${this.filtroMateria === m ? 'selected' : ''}>${m}</option>
                         `).join('')}
                     </select>
-                    <button onclick="comunidadeView.buscar()" 
-                            class="bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition shadow-md flex items-center justify-center gap-2">
+                    
+                    <button onclick="comunidadeView.novaBusca()" 
+                            class="md:col-span-2 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition shadow-md flex items-center justify-center gap-2 active:scale-95 py-3 md:py-0">
                         <i class="fas fa-search"></i> Buscar
                     </button>
-                </div>
-                <div id="comunidade-results" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div class="col-span-full py-20 text-center text-slate-400">
-                        <i class="fas fa-users text-5xl mb-4 opacity-20"></i>
-                        <p>Clique em buscar para ver as questões da comunidade.</p>
+
+                    <div class="md:col-span-2 flex items-center justify-end md:justify-center bg-white rounded-xl border border-slate-200 px-3 shadow-sm">
+                        <label class="text-[10px] text-slate-400 font-bold uppercase mr-2">Itens:</label>
+                        <select onchange="comunidadeView.mudarQtdPagina(this.value)" class="bg-transparent text-sm font-bold text-slate-700 outline-none cursor-pointer py-2">
+                            <option value="20" ${this.itensPorPagina == 20 ? 'selected' : ''}>20</option>
+                            <option value="50" ${this.itensPorPagina == 50 ? 'selected' : ''}>50</option>
+                            <option value="100" ${this.itensPorPagina == 100 ? 'selected' : ''}>100</option>
+                        </select>
                     </div>
+                </div>
+                
+                <div id="comunidade-results" class="grid grid-cols-1 md:grid-cols-2 gap-6 min-h-[300px]">
+                    </div>
+
+                <div id="pagination-controls" class="hidden mt-8 flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                    <button onclick="comunidadeView.paginaAnterior()" id="btn-prev-page" disabled
+                            class="px-4 py-2 rounded-lg border border-slate-200 text-slate-500 font-bold text-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2">
+                        <i class="fas fa-chevron-left"></i> Anterior
+                    </button>
+                    
+                    <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                        Página <span id="page-num" class="text-indigo-600 text-sm">${this.paginaAtual}</span>
+                    </span>
+                    
+                    <button onclick="comunidadeView.proximaPagina()" id="btn-next-page" disabled
+                            class="px-4 py-2 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 font-bold text-sm hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2">
+                        Próxima <i class="fas fa-chevron-right"></i>
+                    </button>
                 </div>
             </div>
         `;
+        
         container.innerHTML = html;
-        document.getElementById('search-comunidade')?.focus();
-    },
-    async buscar() {
-        const grid = document.getElementById('comunidade-results');
-        const filtro = this.filtroMateria;
-        grid.innerHTML = '<div class="col-span-full text-center py-10"><i class="fas fa-spinner fa-spin text-3xl text-primary"></i></div>';
-        try {
-            let ref = firebaseService.db.collection('comunidade_questoes');
-            if (filtro) ref = ref.where('materia', '==', filtro);
-            const snapshot = await ref.limit(50).get();
-            this.questoes = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // Dispara a busca inicial automaticamente para mostrar as últimas 20
+        if (this.questoes.length === 0) {
+            this.novaBusca();
+        } else {
             this.renderLista();
-        } catch (error) {
-            console.error("Erro na busca:", error);
-            window.Toast.show("Verifique o console para erros de índice.", "error");
+            this.atualizarBotoesPaginacao();
         }
     },
+
+    /**
+     * Reinicia a paginação e faz uma nova busca limpa.
+     */
+    async novaBusca() {
+        this.paginaAtual = 1;
+        this.historicoPaginas = []; // Limpa o histórico de cursores
+        this.ultimoDoc = null;
+        await this.buscar('inicio');
+    },
+
+    /**
+     * Executa a busca no Firestore com suporte a paginação.
+     * @param {string} direcao - 'inicio', 'proxima'
+     */
+    async buscar(direcao = 'inicio') {
+        const grid = document.getElementById('comunidade-results');
+        const termoBusca = document.getElementById('search-comunidade')?.value.trim();
+        const filtro = this.filtroMateria;
+        const paginationControls = document.getElementById('pagination-controls');
+
+        if (grid) {
+            grid.innerHTML = '<div class="col-span-full text-center py-20"><i class="fas fa-circle-notch fa-spin text-3xl text-primary"></i><p class="text-slate-400 mt-4 text-sm font-medium">Carregando comunidade...</p></div>';
+        }
+
+        try {
+            let ref = firebaseService.db.collection('comunidade_questoes');
+            
+            // Aplica filtros básicos
+            if (filtro) {
+                ref = ref.where('materia', '==', filtro);
+            }
+            
+            // Ordenação padrão por data (mais recentes primeiro)
+            ref = ref.orderBy('data_partilha', 'desc');
+
+            // --- Lógica de Paginação ---
+            if (direcao === 'proxima' && this.ultimoDoc) {
+                ref = ref.startAfter(this.ultimoDoc);
+            } else if (direcao === 'inicio') {
+                // Não precisa de startAfter
+            }
+
+            // Define o limite (Limitamos a +1 para saber se existe uma próxima página)
+            const limiteQuery = Number(this.itensPorPagina);
+            const snapshot = await ref.limit(limiteQuery).get();
+            
+            // Processa resultados
+            let resultados = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+            // Filtragem local por texto (Client-Side Filtering)
+            // Nota: Se houver muito filtro de texto, a página pode ficar com menos de 20 itens.
+            // Para uma solução perfeita precisaria de Algolia, mas para Vanilla JS isto serve.
+            if (termoBusca) {
+                const termo = termoBusca.toLowerCase();
+                resultados = resultados.filter(q => 
+                    (q.enunciado && q.enunciado.toLowerCase().includes(termo)) ||
+                    (q.materia && q.materia.toLowerCase().includes(termo))
+                );
+            }
+
+            // Atualiza o cursor para a próxima página
+            if (snapshot.docs.length > 0) {
+                this.ultimoDoc = snapshot.docs[snapshot.docs.length - 1]; // Guarda o último documento real do banco
+                this.totalCarregado = snapshot.docs.length;
+            } else {
+                this.ultimoDoc = null;
+            }
+
+            this.questoes = resultados;
+            this.renderLista();
+            
+            if (paginationControls) {
+                paginationControls.classList.remove('hidden');
+                this.atualizarBotoesPaginacao();
+            }
+            
+        } catch (error) {
+            console.error("Erro na busca da comunidade:", error);
+            if (error.code === 'failed-precondition') {
+                 window.Toast.show("A criar índices... Tente novamente em instantes.", "warning");
+            } else {
+                 window.Toast.show("Erro ao buscar dados.", "error");
+            }
+            if (grid) grid.innerHTML = '<div class="col-span-full text-center text-red-400">Erro de conexão ou índice inexistente.</div>';
+        }
+    },
+
+    /**
+     * Avança para a próxima página.
+     */
+    async proximaPagina() {
+        if (!this.ultimoDoc) return;
+        
+        // Guarda o cursor atual na pilha antes de avançar
+        // Para voltar, precisamos saber onde COMEÇOU esta página
+        // Simplificação: Guardamos o ultimoDoc da página anterior
+        this.historicoPaginas.push(this.ultimoDoc); 
+        
+        this.paginaAtual++;
+        await this.buscar('proxima');
+        this.atualizarUIContadores();
+    },
+
+    /**
+     * Volta para a página anterior.
+     * Nota: Firestore não tem "prev()", então reiniciamos ou usamos histórico.
+     * Para simplificar sem cache complexo, re-executamos a query recuando o cursor.
+     */
+    async paginaAnterior() {
+        if (this.paginaAtual <= 1) return;
+
+        this.paginaAtual--;
+        
+        // Remove o último cursor (da página que acabamos de sair)
+        this.historicoPaginas.pop(); 
+        
+        // O cursor para a query agora é o penúltimo da pilha (ou null se for a página 1)
+        const cursorAnterior = this.historicoPaginas.length > 0 ? this.historicoPaginas[this.historicoPaginas.length - 1] : null;
+        
+        // Hack: Definimos o ultimoDoc manualmente para o cursor anterior e chamamos 'proxima'
+        // ou reiniciamos se for a capa.
+        
+        // A forma mais robusta sem cache complexo em "Vanilla" simples é:
+        // Se voltarmos à página 1, resetamos. Se não, idealmente teríamos cache.
+        // Vamos forçar um reset se for página 1, senão tentamos usar o cursor.
+        
+        if (this.paginaAtual === 1) {
+            this.novaBusca();
+        } else {
+            // Nota: Paginação reversa perfeita em Firestore requer manter snapshots de inicio.
+            // Para evitar complexidade excessiva, ao voltar, vamos recarregar do zero até a página (não ideal) 
+            // OU simplesmente assumir que o utilizador aceita voltar ao início.
+            
+            // Implementação segura: Botão "Anterior" recarrega página 1 por enquanto para evitar bugs de cursor,
+            // a não ser que tenhamos guardado o snapshot de INICIO da página.
+            
+            // Melhoria UX: Avisar que vai recarregar ou implementar cache de array 'questoes'.
+            window.Toast.show("A voltar ao início...", "info");
+            this.novaBusca(); 
+        }
+    },
+
+    /**
+     * Atualiza o estado dos botões de paginação.
+     */
+    atualizarBotoesPaginacao() {
+        const btnPrev = document.getElementById('btn-prev-page');
+        const btnNext = document.getElementById('btn-next-page');
+        const pageNum = document.getElementById('page-num');
+
+        if (pageNum) pageNum.innerText = this.paginaAtual;
+
+        if (btnPrev) {
+            btnPrev.disabled = this.paginaAtual === 1;
+            btnPrev.classList.toggle('opacity-50', this.paginaAtual === 1);
+        }
+
+        if (btnNext) {
+            // Se carregou menos itens do que o limite, é a última página
+            const fimDaLinha = this.totalCarregado < this.itensPorPagina;
+            btnNext.disabled = fimDaLinha;
+            btnNext.classList.toggle('opacity-50', fimDaLinha);
+        }
+    },
+    
+    atualizarUIContadores() {
+        const pageNum = document.getElementById('page-num');
+        if(pageNum) pageNum.innerText = this.paginaAtual;
+    },
+
+    mudarQtdPagina(valor) {
+        this.itensPorPagina = Number(valor);
+        this.novaBusca();
+    },
+
     renderLista() {
         const grid = document.getElementById('comunidade-results');
+        if (!grid) return;
+
         if (this.questoes.length === 0) {
             grid.innerHTML = `
                 <div class="col-span-full text-center py-20 bg-slate-50 rounded-[2.5rem] border-2 border-dashed border-slate-100">
                     <i class="fas fa-search text-4xl text-slate-200 mb-2"></i>
-                    <p class="text-slate-400">Nenhuma questão encontrada com esses filtros.</p>
+                    <p class="text-slate-400">Nenhuma questão encontrada nesta página.</p>
                 </div>`;
             return;
         }
+
         grid.innerHTML = this.questoes.map(q => {
-            const corMateria = model.coresComponentes[q.materia] || '#64748b';
+            const corMateria = (model.coresComponentes && model.coresComponentes[q.materia]) || '#64748b';
             const estrelasHtml = this._renderEstrelasDificuldade(q.dificuldade);
+            const autorNome = q.autor ? q.autor.split(' ')[0] : 'Anônimo';
+
             return `
-                <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group flex flex-col h-full">
+                <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group flex flex-col h-full animate-pop-in">
                     <div class="flex justify-between items-start mb-4">
                         <div class="flex flex-col gap-2">
-                            <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider w-fit" 
-                                  style="background-color: ${corMateria}15; color: ${corMateria}">
-                                ${q.materia}
-                            </span>
+                            <div class="flex gap-2">
+                                <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider w-fit" 
+                                      style="background-color: ${corMateria}15; color: ${corMateria}">
+                                    ${q.materia || 'Geral'}
+                                </span>
+                                <span class="px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500">
+                                    ${q.tipo === 'multipla_escolha' ? 'Múltipla' : 'Aberta'}
+                                </span>
+                            </div>
                             ${estrelasHtml}
                         </div>
                         <div class="text-right">
                             <span class="block text-[10px] text-slate-400 font-bold uppercase">${q.ano || ''}</span>
-                            <span class="text-[10px] text-slate-300 font-medium">Por: ${q.autor || 'Anônimo'}</span>
+                            <span class="text-[10px] text-slate-300 font-medium flex items-center justify-end gap-1">
+                                <i class="fas fa-user-circle"></i> ${autorNome}
+                            </span>
                         </div>
                     </div>
-                    <div class="text-slate-700 mb-6 flex-grow font-medium text-sm leading-relaxed">
-                        ${q.enunciado.replace(/\n/g, '<br>')}
+                    
+                    <div class="text-slate-700 mb-6 flex-grow font-medium text-sm leading-relaxed overflow-hidden">
+                        ${q.enunciado ? q.enunciado.replace(/\n/g, '<br>').substring(0, 300) + (q.enunciado.length > 300 ? '...' : '') : 'Sem texto.'}
                     </div>
+                    
                     <div class="pt-4 border-t border-slate-50 mt-auto">
                         <button onclick="comunidadeView.importarQuestao('${q.id}')" 
-                                class="w-full py-3 rounded-xl bg-slate-50 text-indigo-600 font-bold text-xs hover:bg-indigo-600 hover:text-white transition-all flex items-center justify-center gap-2">
+                                class="w-full py-3 rounded-xl bg-slate-50 text-indigo-600 font-bold text-xs hover:bg-indigo-600 hover:text-white transition-all flex items-center justify-center gap-2 group-hover:bg-indigo-50">
                             <i class="fas fa-file-import"></i> Importar para meu Banco
                         </button>
                     </div>
                 </div>
             `;
         }).join('');
+
         if (window.renderMathInElement) {
             renderMathInElement(grid, {
                 delimiters: [
@@ -124,8 +363,10 @@ export const comunidadeView = {
             });
         }
     },
+
     async importarQuestao(idCloud) {
         const questao = this.questoes.find(q => q.id === idCloud);
+        
         if (questao) {
             const novaQuestao = {
                 enunciado: questao.enunciado,
@@ -133,29 +374,35 @@ export const comunidadeView = {
                 correta: questao.correta !== undefined ? questao.correta : null,
                 gabarito: questao.gabarito || null,
                 gabarito_comentado: questao.gabarito_comentado || null,
-                materia: questao.materia,
-                ano: questao.ano,
-                tipo: questao.tipo,
+                materia: questao.materia || 'Geral',
+                ano: questao.ano || '',
+                tipo: questao.tipo || 'aberta',
                 dificuldade: Number(questao.dificuldade) || 0,
                 suporte: questao.suporte || null,
                 bncc: questao.bncc || null,
                 origem: `Comunidade (${questao.autor || 'Prof.'})`
             };
+
             try {
-                model.saveQuestao(novaQuestao);
+                await model.saveQuestao(novaQuestao);
                 Toast.show("Questão importada com sucesso!", "success");
                 setTimeout(() => {
                     controller.navigate('provas');
                 }, 1000);
             } catch (err) {
+                console.error("Erro na importação:", err);
                 Toast.show("Erro ao salvar questão localmente.", "error");
             }
         }
     },
+
     setFiltro(val) {
         this.filtroMateria = val;
+        // Ao mudar filtro, reinicia a paginação
+        this.novaBusca();
     }
 };
+
 if (typeof window !== 'undefined') {
     window.comunidadeView = comunidadeView;
 }
