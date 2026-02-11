@@ -22,7 +22,7 @@ export const comunidadeView = {
     paginaAtual: 1,         // Página atual
     ultimoDoc: null,        // Cursor para a próxima página
     primeiroDoc: null,      // Cursor auxiliar
-    historicoPaginas: [],   // Pilha para permitir voltar à página anterior
+    paginasCache: new Map(),// Cache de páginas visitadas para navegação rápida
     totalCarregado: 0,
     
     /**
@@ -128,7 +128,7 @@ export const comunidadeView = {
      */
     async novaBusca() {
         this.paginaAtual = 1;
-        this.historicoPaginas = []; // Limpa o histórico de cursores
+        this.paginasCache.clear(); // Limpa o cache
         this.ultimoDoc = null;
         await this.buscar('inicio');
     },
@@ -192,6 +192,14 @@ export const comunidadeView = {
             }
 
             this.questoes = resultados;
+            
+            // Salva no cache
+            this.paginasCache.set(this.paginaAtual, {
+                questoes: [...this.questoes],
+                ultimoDoc: this.ultimoDoc,
+                totalCarregado: this.totalCarregado
+            });
+
             this.renderLista();
             
             if (paginationControls) {
@@ -211,15 +219,35 @@ export const comunidadeView = {
     },
 
     /**
+     * Helper para restaurar uma página do cache.
+     * @private
+     */
+    _carregarPaginaDoCache(numPagina) {
+        if (!this.paginasCache.has(numPagina)) return false;
+
+        const dados = this.paginasCache.get(numPagina);
+        this.questoes = dados.questoes;
+        this.ultimoDoc = dados.ultimoDoc;
+        this.totalCarregado = dados.totalCarregado;
+        this.paginaAtual = numPagina;
+        
+        this.renderLista();
+        this.atualizarBotoesPaginacao();
+        return true;
+    },
+
+    /**
      * Avança para a próxima página.
      */
     async proximaPagina() {
+        const proxima = this.paginaAtual + 1;
+
+        // Tenta carregar do cache primeiro
+        if (this._carregarPaginaDoCache(proxima)) {
+            return;
+        }
+
         if (!this.ultimoDoc) return;
-        
-        // Guarda o cursor atual na pilha antes de avançar
-        // Para voltar, precisamos saber onde COMEÇOU esta página
-        // Simplificação: Guardamos o ultimoDoc da página anterior
-        this.historicoPaginas.push(this.ultimoDoc); 
         
         this.paginaAtual++;
         await this.buscar('proxima');
@@ -227,41 +255,25 @@ export const comunidadeView = {
     },
 
     /**
-     * Volta para a página anterior.
-     * Nota: Firestore não tem "prev()", então reiniciamos ou usamos histórico.
-     * Para simplificar sem cache complexo, re-executamos a query recuando o cursor.
+     * Volta para a página anterior usando cache.
      */
     async paginaAnterior() {
         if (this.paginaAtual <= 1) return;
 
-        this.paginaAtual--;
-        
-        // Remove o último cursor (da página que acabamos de sair)
-        this.historicoPaginas.pop(); 
-        
-        // O cursor para a query agora é o penúltimo da pilha (ou null se for a página 1)
-        const cursorAnterior = this.historicoPaginas.length > 0 ? this.historicoPaginas[this.historicoPaginas.length - 1] : null;
-        
-        // Hack: Definimos o ultimoDoc manualmente para o cursor anterior e chamamos 'proxima'
-        // ou reiniciamos se for a capa.
-        
-        // A forma mais robusta sem cache complexo em "Vanilla" simples é:
-        // Se voltarmos à página 1, resetamos. Se não, idealmente teríamos cache.
-        // Vamos forçar um reset se for página 1, senão tentamos usar o cursor.
-        
-        if (this.paginaAtual === 1) {
+        const anterior = this.paginaAtual - 1;
+
+        // Tenta carregar do cache
+        if (this._carregarPaginaDoCache(anterior)) {
+            return;
+        }
+
+        // Fallback se não estiver no cache (raro, pois deve ter sido visitada)
+        if (anterior === 1) {
             this.novaBusca();
         } else {
-            // Nota: Paginação reversa perfeita em Firestore requer manter snapshots de inicio.
-            // Para evitar complexidade excessiva, ao voltar, vamos recarregar do zero até a página (não ideal) 
-            // OU simplesmente assumir que o utilizador aceita voltar ao início.
-            
-            // Implementação segura: Botão "Anterior" recarrega página 1 por enquanto para evitar bugs de cursor,
-            // a não ser que tenhamos guardado o snapshot de INICIO da página.
-            
-            // Melhoria UX: Avisar que vai recarregar ou implementar cache de array 'questoes'.
-            window.Toast.show("A voltar ao início...", "info");
-            this.novaBusca(); 
+            // Se perdermos o cache de páginas intermediárias, forçamos reset
+            window.Toast.show("Cache expirado. Voltando ao início.", "info");
+            this.novaBusca();
         }
     },
 
