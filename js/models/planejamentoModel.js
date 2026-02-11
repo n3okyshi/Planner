@@ -29,7 +29,6 @@ export const planejamentoMethods = {
         this.state.planosDiarios[data][turmaId] = conteudo;
 
         this.saveLocal();
-        this.saveCloudRoot();
     },
 
     /**
@@ -136,7 +135,6 @@ export const planejamentoMethods = {
         }
         
         this.saveLocal();
-        this.saveCloudRoot();
     },
 
     /**
@@ -180,7 +178,6 @@ export const planejamentoMethods = {
         this.state.horario.config[turno] = slots;
         
         this.saveLocal();
-        this.saveCloudRoot();
     },
 
     /**
@@ -233,8 +230,6 @@ export const planejamentoMethods = {
         
         if (this.currentUser && window.firebaseService) {
             window.firebaseService.saveTurma(this.currentUser.uid, turma);
-        } else {
-            this.saveCloudRoot();
         }
         
         console.log(`✅ Habilidade ${codigoHabilidade} removida com sucesso de ${mes}.`);

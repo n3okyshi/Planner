@@ -97,9 +97,6 @@ export const provaMethods = {
 
         this.saveLocal();
 
-        if (this.currentUser) {
-            this.saveCloudRoot().catch(err => console.warn("⚠️ Sync background falhou (dados locais ok):", err));
-        }
     },
 
     /**
@@ -134,10 +131,6 @@ export const provaMethods = {
 
             this.saveLocal();
 
-            // Sincroniza se estiver online e já sincronizado
-            if (this.currentUser && this.state.isCloudSynced) {
-                await this.saveCloudRoot();
-            }
 
             console.log(`🗑️ Questão ${id} removida.`);
         }
@@ -192,7 +185,6 @@ export const provaMethods = {
 
             questao.compartilhada = true;
             this.saveLocal();
-            this.saveCloudRoot();
 
             if (window.Toast) window.Toast.show("Compartilhado com sucesso!", "success");
 
@@ -225,7 +217,6 @@ export const provaMethods = {
             if (questao) {
                 delete questao.compartilhada;
                 this.saveLocal();
-                this.saveCloudRoot();
 
                 window.Toast.show("Retirada da comunidade.", "info");
 

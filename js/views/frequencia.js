@@ -282,7 +282,6 @@ export const frequenciaView = {
         if (overlay) overlay.classList.add('hidden');
 
         model.saveLocal();
-        model.saveCloudRoot();
 
         this.render('view-container');
         Toast.show("Chamada finalizada e salva!", "success");
