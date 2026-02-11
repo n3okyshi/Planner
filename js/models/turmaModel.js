@@ -276,11 +276,13 @@ export const turmaMethods = {
      * Calcula o resumo de notas de um aluno (Períodos e Média Anual).
      * @param {string} turmaId 
      * @param {string} alunoId 
+     * @param {Object|null} turmaObj - Otimização: Objeto da turma já carregado.
+     * @param {Object|null} alunoObj - Otimização: Objeto do aluno já carregado.
      * @returns {Object|null} Objeto contendo médias por período e anual.
      */
-    getResumoAcademico(turmaId, alunoId) {
-        const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
-        const aluno = turma?.alunos.find(a => String(a.id) === String(alunoId));
+    getResumoAcademico(turmaId, alunoId, turmaObj = null, alunoObj = null) {
+        const turma = turmaObj || this.state.turmas.find(t => String(t.id) === String(turmaId));
+        const aluno = alunoObj || turma?.alunos.find(a => String(a.id) === String(alunoId));
 
         if (!turma || !aluno) return null;
 
