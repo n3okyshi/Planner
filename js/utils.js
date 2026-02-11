@@ -57,10 +57,21 @@ export function escapeHTML(str) {
 }
 
 /**
- * Gera um ID único simples (baseado em timestamp e random).
+ * Gera um ID único simples (UUID v4 se disponível).
  * Útil para criação de objetos temporários antes de enviar ao banco.
  * @returns {string} ID único.
  */
 export function generateUUID() {
+    if (typeof crypto !== 'undefined') {
+        if (crypto.randomUUID) {
+            return crypto.randomUUID();
+        }
+        if (crypto.getRandomValues) {
+            return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+                (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+            );
+        }
+    }
+    // Fallback inseguro apenas se crypto não estiver disponível
     return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
