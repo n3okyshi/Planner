@@ -250,7 +250,6 @@ export const model = {
     ...provaMethods,
     ...planejamentoMethods,
 
-    // --- Aliases de Compatibilidade (Legacy Support) ---
 };
 
 // Exposição Global
