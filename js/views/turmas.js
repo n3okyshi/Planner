@@ -448,7 +448,7 @@ export const turmasView = {
             </thead>
             <tbody>
                 ${turma.alunos.map(aluno => {
-                    const resumo = model.getResumoAcademico(turma.id, aluno.id);
+                    const resumo = model.getResumoAcademico(turma.id, aluno.id, turma, aluno);
                     if(!resumo) return "";
                     return `
                         <tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
