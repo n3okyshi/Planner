@@ -23,7 +23,7 @@ export const settingsView = {
 
         const config = userConfig || (model.state && model.state.userConfig) || {};
         const user = model.currentUser;
-
+        
         let lastSyncText = "Agora mesmo";
         if (model.state.lastUpdate) {
             const date = new Date(model.state.lastUpdate);
@@ -119,13 +119,13 @@ export const settingsView = {
                                         <span class="font-bold text-slate-700 w-24">${window.escapeHTML ? window.escapeHTML(p.nome) : p.nome}</span>
                                         <div class="flex items-center gap-2 flex-1 w-full">
                                             <div class="flex-1">
-                                                <input type="date" value="${window.escapeHTML ? window.escapeHTML(p.inicio) : p.inicio}"
+                                                <input type="date" value="${window.escapeHTML ? window.escapeHTML(p.inicio) : p.inicio}" 
                                                     onchange="controller.updatePeriodDate(${idx}, 'inicio', this.value)"
                                                     class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-primary">
                                             </div>
                                             <span class="text-slate-400 text-xs font-bold">ATÉ</span>
                                             <div class="flex-1">
-                                                <input type="date" value="${window.escapeHTML ? window.escapeHTML(p.fim) : p.fim}"
+                                                <input type="date" value="${window.escapeHTML ? window.escapeHTML(p.fim) : p.fim}" 
                                                     onchange="controller.updatePeriodDate(${idx}, 'fim', this.value)"
                                                     class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-primary">
                                             </div>
@@ -134,7 +134,7 @@ export const settingsView = {
                                 `).join('')}
                             </div>
                             <p class="text-[10px] text-slate-400 mt-4 italic">
-                                <i class="fas fa-info-circle mr-1"></i>
+                                <i class="fas fa-info-circle mr-1"></i> 
                                 Estas datas definem quais habilidades serão sugeridas no Planejamento Mensal.
                             </p>
                         </div>
@@ -195,7 +195,7 @@ export const settingsView = {
         return `
             <div class="flex flex-col md:flex-row items-center justify-between gap-6 animate-slideIn">
                 <div class="flex items-center gap-4">
-                    <img src="${urlFoto}"
+                    <img src="${urlFoto}" 
                          class="w-16 h-16 rounded-full border-4 border-emerald-50 shadow-sm" alt="Foto de perfil">
                     <div>
                         <h4 class="font-bold text-slate-800 text-lg">${nomeSafe}</h4>
@@ -226,7 +226,7 @@ export const settingsView = {
                         Faça login com sua conta Google para acessar seus planejamentos de qualquer dispositivo e garantir que nada seja perdido.
                     </p>
                 </div>
-                <button onclick="controller.handleLogin()"
+                <button onclick="controller.handleLogin()" 
                         class="px-6 py-3 bg-white border border-slate-200 text-slate-700 font-bold rounded-xl hover:bg-slate-50 hover:text-slate-900 shadow-sm hover:shadow-md transition flex items-center gap-2 shrink-0">
                     <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" class="w-5 h-5" alt="Google Logo">
                     Entrar com Google
@@ -241,11 +241,11 @@ export const settingsView = {
         const classes = active
             ? "border-primary bg-primary/5 ring-1 ring-primary text-primary shadow-sm"
             : "border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-600";
-
+        
         const iconClass = value === 'bimestre' ? 'fa-columns' : (value === 'trimestre' ? 'fa-th-large' : 'fa-pause');
 
         return `
-            <button onclick="controller.updatePeriodType('${value}')"
+            <button onclick="controller.updatePeriodType('${value}')" 
                     class="border rounded-xl p-4 text-sm font-bold transition-all flex flex-col items-center justify-center gap-2 ${classes}">
                 <i class="fas ${iconClass} text-lg opacity-80"></i>
                 ${window.escapeHTML ? window.escapeHTML(label) : label}

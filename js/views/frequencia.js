@@ -23,7 +23,7 @@ export const frequenciaView = {
 
     /**
      * Renderiza a interface de frequência.
-     * @param {HTMLElement|string} container
+     * @param {HTMLElement|string} container 
      */
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
@@ -52,28 +52,28 @@ export const frequenciaView = {
                     <h1 class="text-2xl font-bold">Frequência - ${nomeMes} / ${ano}</h1>
                     <p class="text-sm">Turma: ${turmaSelecionada ? window.escapeHTML(turmaSelecionada.nome) : 'N/A'}</p>
                 </div>
-
+                
                 <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-4 flex flex-col md:flex-row gap-4 items-center justify-between shrink-0 no-print">
                     <div>
                         <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Frequência</h2>
                         <p class="text-xs text-slate-500">Controle de chamadas e presença.</p>
                     </div>
-
+                    
                     <div class="flex flex-wrap gap-3 items-center justify-center">
-                        <button onclick="frequenciaView.iniciarChamada()"
+                        <button onclick="frequenciaView.iniciarChamada()" 
                                 class="bg-emerald-600 text-white px-5 py-2 rounded-xl font-bold hover:bg-emerald-700 transition flex items-center gap-2 shadow-lg shadow-emerald-100 active:scale-95">
                             <i class="fas fa-hand-pointer"></i> Iniciar Chamada (${diaSelecionadoStr})
                         </button>
 
                         <div class="relative">
                             <i class="fas fa-users absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                            <select onchange="frequenciaView.mudarTurma(this.value)"
+                            <select onchange="frequenciaView.mudarTurma(this.value)" 
                                     class="bg-slate-50 border border-slate-200 text-slate-700 font-bold rounded-xl pl-10 pr-8 py-2 outline-none focus:border-primary cursor-pointer min-w-[200px]">
                                 ${turmas.map(t => `<option value="${t.id}" ${String(t.id) === String(this.currentTurmaId) ? 'selected' : ''}>${window.escapeHTML(t.nome)}</option>`).join('')}
                                 ${turmas.length === 0 ? '<option>Nenhuma turma</option>' : ''}
                             </select>
                         </div>
-
+                        
                         <div class="flex items-center bg-slate-50 rounded-xl border border-slate-200 p-1">
                             <button onclick="frequenciaView.mudarMes(-1)" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-primary hover:bg-white rounded-lg transition-all">
                                 <i class="fas fa-chevron-left"></i>
@@ -87,13 +87,13 @@ export const frequenciaView = {
                         </div>
                     </div>
                 </div>
-
+                
                 ${turmaSelecionada ? this.renderTabela(turmaSelecionada, ano, mes, diasNoMes) : this.estadoVazio()}
             </div>
 
             <div id="chamada-rapida-overlay" class="fixed inset-0 bg-slate-900/95 z-[9999] hidden flex flex-col items-center justify-center backdrop-blur-sm p-4 transition-opacity duration-300">
                 <div class="w-full max-w-md flex flex-col items-center justify-center h-full max-h-[90vh]">
-
+                    
                     <div id="chamada-card-container" class="w-full flex-1 relative flex items-center justify-center min-h-0">
                         </div>
 
@@ -157,7 +157,7 @@ export const frequenciaView = {
         // O card agora usa max-h-full e aspect-ratio ajustável para caber na tela
         container.innerHTML = `
             <div id="chamada-card" class="w-full max-h-full aspect-[3/4] bg-white rounded-[2rem] shadow-2xl flex flex-col items-center justify-center p-4 md:p-8 text-center touch-none select-none transition-transform duration-300 transform cursor-grab active:cursor-grabbing relative overflow-hidden">
-
+                
                 <div class="flex-1 flex flex-col items-center justify-center pointer-events-none w-full">
                     <div class="w-24 h-24 md:w-32 md:h-32 rounded-full bg-slate-100 flex items-center justify-center text-3xl md:text-4xl font-black text-primary border-4 border-slate-50 mb-4 shadow-inner shrink-0">
                         ${aluno.nome.charAt(0)}
@@ -165,7 +165,7 @@ export const frequenciaView = {
                     <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Aluno ${this.alunoIndex + 1} de ${turma.alunos.length}</p>
                     <h3 class="text-xl md:text-2xl font-bold text-slate-800 line-clamp-2 px-2">${window.escapeHTML(aluno.nome)}</h3>
                 </div>
-
+                
                 <div class="flex gap-2 md:gap-4 w-full mt-auto pt-4 pointer-events-none shrink-0">
                     <div class="flex-1 border-2 border-dashed border-red-100 rounded-2xl p-3 bg-red-50/30">
                         <i class="fas fa-arrow-left text-red-300 mb-1 text-lg"></i>
@@ -290,18 +290,18 @@ export const frequenciaView = {
     renderTabela(turma, ano, mes, diasNoMes) {
         let headerDias = '';
         const hoje = new Date();
-
+        
         for (let d = 1; d <= diasNoMes; d++) {
             const dataObj = new Date(ano, mes, d);
             const diaSemana = dataObj.getDay();
             const isFimDeSemana = diaSemana === 0 || diaSemana === 6;
             const letraSemana = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'][diaSemana];
             const isHoje = hoje.getDate() === d && hoje.getMonth() === mes && hoje.getFullYear() === ano;
-
+            
             headerDias += `
-                <div ${isHoje ? 'id="dia-hoje"' : ''}
-                     class="flex flex-col items-center justify-center min-w-[40px] h-14 border-r border-slate-100
-                     ${isFimDeSemana ? 'bg-slate-50/50' : ''}
+                <div ${isHoje ? 'id="dia-hoje"' : ''} 
+                     class="flex flex-col items-center justify-center min-w-[40px] h-14 border-r border-slate-100 
+                     ${isFimDeSemana ? 'bg-slate-50/50' : ''} 
                      ${isHoje ? 'bg-blue-100 text-primary border-blue-200' : ''}">
                     <span class="text-[10px] font-bold text-slate-400">${letraSemana}</span>
                     <span class="text-sm font-bold ${isHoje ? 'text-primary' : 'text-slate-700'}">${d}</span>
@@ -320,16 +320,16 @@ export const frequenciaView = {
                 const mesFmt = (mes + 1).toString().padStart(2, '0');
                 const diaFmt = d.toString().padStart(2, '0');
                 const dataIso = `${ano}-${mesFmt}-${diaFmt}`;
-
+                
                 const status = (aluno.frequencia || {})[dataIso];
                 const dataObj = new Date(ano, mes, d);
                 const isFimDeSemana = dataObj.getDay() === 0 || dataObj.getDay() === 6;
                 const isHoje = hoje.getDate() === d && hoje.getMonth() === mes && hoje.getFullYear() === ano;
-
+                
                 let cellBg = '';
                 if (isHoje) cellBg = 'bg-blue-50/40';
                 else if (isFimDeSemana) cellBg = 'bg-slate-50/30';
-
+                
                 colunas += `
                     <div onclick="frequenciaView.toggleStatus('${turma.id}', '${aluno.id}', '${dataIso}', this)"
                          class="min-w-[40px] h-12 border-r border-slate-100 flex items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors ${cellBg}"
@@ -369,7 +369,7 @@ export const frequenciaView = {
                         ${headerDias}
                     </div>
                 </div>
-                <div id="scroll-frequencia"
+                <div id="scroll-frequencia" 
                      onscroll="document.getElementById('header-dias').scrollLeft = this.scrollLeft"
                      class="overflow-auto custom-scrollbar flex-1 relative">
                     <div class="min-w-fit">

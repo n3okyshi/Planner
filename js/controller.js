@@ -278,11 +278,11 @@ export const controller = {
     },
 
     // Métodos delegados para o calendário (abrir modal do dia)
-    openDayOptions(data) {
+    openDayOptions(data) { 
         if (calendarioView && calendarioView.openDayOptions) {
-            calendarioView.openDayOptions(data);
+            calendarioView.openDayOptions(data); 
         } else {
-            const tiposHtml = Object.entries(model.tiposEventos).map(([key, valor]) =>
+            const tiposHtml = Object.entries(model.tiposEventos).map(([key, valor]) => 
                 `<option value="${window.escapeHTML(key)}">${window.escapeHTML(valor.label)}</option>`
             ).join('');
 

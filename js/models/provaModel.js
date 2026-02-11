@@ -96,6 +96,7 @@ export const provaMethods = {
         }
 
         this.saveLocal();
+
     },
 
     /**
@@ -118,7 +119,7 @@ export const provaMethods = {
             } else {
                 Toast.show(
                     "Esta questão está compartilhada na comunidade. Você deve removê-la de lá antes de apagar do seu banco pessoal.",
-                    "warning" // Define o tipo como alerta
+                    "warning" // Define o tipo como alerta 
                 );
             }
             return; // Bloqueia exclusão
@@ -129,6 +130,7 @@ export const provaMethods = {
             this.state.questoes = this.state.questoes.filter(q => String(q.id) !== String(id));
 
             this.saveLocal();
+
 
             console.log(`🗑️ Questão ${id} removida.`);
         }

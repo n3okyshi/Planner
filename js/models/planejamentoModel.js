@@ -52,7 +52,7 @@ export const planejamentoMethods = {
         if (!turma) return;
 
         if (!turma.planejamento) turma.planejamento = {};
-
+        
         // FORÇA STRING para consistência de chave JSON
         const chavePeriodo = String(periodoIdx);
 
@@ -60,14 +60,14 @@ export const planejamentoMethods = {
 
         // Evita duplicatas exatas
         const jaExiste = turma.planejamento[chavePeriodo].some(h => h.codigo === habilidade.codigo);
-
+        
         if (!jaExiste) {
             turma.planejamento[chavePeriodo].push(habilidade);
-
+            
             console.log(`💾 Salvando habilidade ${habilidade.codigo} no período ${chavePeriodo}`);
-
+            
             this.saveLocal(); // Persistência imediata
-
+            
             if (this.currentUser && window.firebaseService) {
                 window.firebaseService.saveTurma(this.currentUser.uid, turma);
             }
@@ -76,20 +76,20 @@ export const planejamentoMethods = {
 
     /**
      * Remove uma habilidade do planejamento por período.
-     * @param {string} turmaId
-     * @param {number|string} periodoIdx
-     * @param {string} codigoHabilidade
+     * @param {string} turmaId 
+     * @param {number|string} periodoIdx 
+     * @param {string} codigoHabilidade 
      */
     removeHabilidadePlanejamento(turmaId, periodoIdx, codigoHabilidade) {
         const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
-
+        
         // Verificação robusta: garante que o array do período existe antes de filtrar
         if (!turma || !turma.planejamento || !Array.isArray(turma.planejamento[periodoIdx])) return;
 
         turma.planejamento[periodoIdx] = turma.planejamento[periodoIdx].filter(h => h.codigo !== codigoHabilidade);
-
+        
         this.saveLocal();
-
+        
         if (this.currentUser && window.firebaseService) {
             window.firebaseService.saveTurma(this.currentUser.uid, turma);
         }
@@ -97,9 +97,9 @@ export const planejamentoMethods = {
 
     /**
      * Adiciona habilidade ao planejamento macro (Mensal).
-     * @param {string} turmaId
+     * @param {string} turmaId 
      * @param {string} mes - Nome do mês (ex: "Janeiro").
-     * @param {HabilidadeBNCC} habilidade
+     * @param {HabilidadeBNCC} habilidade 
      */
     addHabilidadeMensal(turmaId, mes, habilidade) {
         const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
@@ -112,9 +112,9 @@ export const planejamentoMethods = {
 
         if (!jaExiste) {
             turma.planejamentoMensal[mes].push(habilidade);
-
+            
             this.saveLocal();
-
+            
             if (this.currentUser && window.firebaseService) {
                 window.firebaseService.saveTurma(this.currentUser.uid, turma);
             }
@@ -133,7 +133,7 @@ export const planejamentoMethods = {
         } else {
             this.state.eventos[data] = { tipo, descricao };
         }
-
+        
         this.saveLocal();
     },
 
@@ -146,7 +146,7 @@ export const planejamentoMethods = {
         const periodosDatas = this.state.periodosDatas || {};
         const tipo = this.state.userConfig?.periodType || 'bimestre';
         const periodos = periodosDatas[tipo] || [];
-
+        
         const index = periodos.findIndex(p => dataIso >= p.inicio && dataIso <= p.fim);
         return index !== -1 ? String(index + 1) : "1";
     },
@@ -154,8 +154,8 @@ export const planejamentoMethods = {
     /**
      * Recupera as habilidades planejadas para o mês de uma data específica.
      * Útil para sugerir autocompletar no diário de classe.
-     * @param {string} turmaId
-     * @param {string} dataIso
+     * @param {string} turmaId 
+     * @param {string} dataIso 
      * @returns {HabilidadeBNCC[]} Lista de habilidades.
      */
     getSugestoesDoMes(turmaId, dataIso) {
@@ -164,7 +164,7 @@ export const planejamentoMethods = {
 
         const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
         const mesIndex = parseInt(dataIso.split('-')[1]) - 1;
-
+        
         return turma.planejamentoMensal[meses[mesIndex]] || [];
     },
 
@@ -176,7 +176,7 @@ export const planejamentoMethods = {
     saveHorarioConfig(turno, slots) {
         if (!this.state.horario) this.state.horario = { config: {}, grade: {} };
         this.state.horario.config[turno] = slots;
-
+        
         this.saveLocal();
     },
 
@@ -187,12 +187,12 @@ export const planejamentoMethods = {
      */
     buscarHabilidadesBNCC(termo) {
         if (!termo || termo.length < 3) return [];
-
+        
         const normalizar = (str) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
         const termoBusca = normalizar(termo);
-
+        
         if (!window.bnccData) return [];
-
+        
         return window.bnccData.filter(h =>
             normalizar(h.codigo).includes(termoBusca) ||
             normalizar(h.descricao).includes(termoBusca)
@@ -201,14 +201,14 @@ export const planejamentoMethods = {
 
     /**
      * Remove uma habilidade do planejamento mensal de forma definitiva.
-     * @param {string} turmaId
-     * @param {string} mes
-     * @param {string} codigoHabilidade
+     * @param {string} turmaId 
+     * @param {string} mes 
+     * @param {string} codigoHabilidade 
      */
     removeHabilidadeMensal(turmaId, mes, codigoHabilidade) {
         // 1. Busca a turma de forma segura
         const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
-
+        
         if (!turma || !turma.planejamentoMensal || !turma.planejamentoMensal[mes]) {
             console.warn("RemoveHabilidadeMensal: Turma ou mês não encontrados.");
             return;
@@ -226,12 +226,12 @@ export const planejamentoMethods = {
         turma.planejamentoMensal[mes] = novaLista;
 
         // 4. PERSISTÊNCIA COMPLETA
-        this.saveLocal();
-
+        this.saveLocal(); 
+        
         if (this.currentUser && window.firebaseService) {
             window.firebaseService.saveTurma(this.currentUser.uid, turma);
         }
-
+        
         console.log(`✅ Habilidade ${codigoHabilidade} removida com sucesso de ${mes}.`);
     }
 };

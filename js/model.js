@@ -243,9 +243,6 @@ export const model = {
     ...provaMethods,
     ...planejamentoMethods,
 
-    // --- Aliases de Compatibilidade (Legacy Support) ---
-    /** @deprecated Use saveQuestao */
-    addQuestao(obj) { this.saveQuestao(obj); }
 };
 
 // Exposição Global
