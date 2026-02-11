@@ -7,6 +7,7 @@
 import { model } from './model.js';
 import { firebaseService } from './firebase-service.js';
 import { Toast } from './components/toast.js';
+import { escapeHTML } from './utils.js';
 
 // Importação dos Sub-Controllers (Lógica de Negócio Modularizada)
 import { uiController } from './controllers/uiController.js';
@@ -36,13 +37,7 @@ import { notasAnuaisView } from './views/notasAnuais.js';
  * Transforma caracteres especiais em entidades HTML.
  * @global
  */
-window.escapeHTML = function (str) {
-    if (!str) return '';
-    return String(str).replace(/[&<>"']/g, function (match) {
-        const escape = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
-        return escape[match];
-    });
-};
+window.escapeHTML = escapeHTML;
 
 /**
  * Controlador Principal.
