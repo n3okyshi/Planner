@@ -1,6 +1,6 @@
 /**
  * Configuração do Firebase.
- *
+ * 
  * Copie este arquivo para 'js/config.js' e preencha com suas credenciais.
  * O arquivo 'js/config.js' é ignorado pelo Git para segurança.
  */

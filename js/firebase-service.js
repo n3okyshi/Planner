@@ -288,23 +288,21 @@ export const firebaseService = {
 
             // 2. Salva turmas e sub-dados
             if (oldState.turmas && Array.isArray(oldState.turmas)) {
-                const promises = [];
                 for (const turma of oldState.turmas) {
-                    promises.push(this.saveTurma(uid, turma));
+                    await this.saveTurma(uid, turma);
 
                     if (turma.alunos) {
                         for (const aluno of turma.alunos) {
-                            promises.push(this.saveAluno(uid, turma.id, aluno));
+                            await this.saveAluno(uid, turma.id, aluno);
                         }
                     }
 
                     if (turma.avaliacoes) {
                         for (const av of turma.avaliacoes) {
-                            promises.push(this.saveAvaliacao(uid, turma.id, av));
+                            await this.saveAvaliacao(uid, turma.id, av);
                         }
                     }
                 }
-                await Promise.all(promises);
             }
 
             // 3. Remove o campo antigo para não migrar de novo
