@@ -12,24 +12,34 @@ export const firebaseService = {
      * Inicializa a conexão com o Firebase usando a configuração segura.
      */
     init() {
-        // Decodificação da API Key (Base64) para segurança básica
-        const rawKey = "QUl6YVN5REJZOWhERVR1Z3pVYWNXcm1mcUgwNm9CTlpmR0FIXzJz";
-        let apiKey;
-        try {
-            apiKey = atob(rawKey);
-        } catch (e) {
-            console.error("Erro ao decodificar API Key do Firebase.");
-            return;
-        }
+        let firebaseConfig;
 
-        const firebaseConfig = {
-            apiKey: apiKey,
-            authDomain: "planner-9aeac.firebaseapp.com",
-            projectId: "planner-9aeac",
-            storageBucket: "planner-9aeac.firebasestorage.app",
-            messagingSenderId: "196600313427",
-            appId: "1:196600313427:web:8a8e76842163021d48b8a6"
-        };
+        // Tenta usar configuração global (js/config.js)
+        if (window.FIREBASE_CONFIG) {
+            firebaseConfig = window.FIREBASE_CONFIG;
+        } else {
+            // Fallback: Decodificação da API Key (Base64) para segurança básica
+            // TODO: Remover este fallback em futuras versões e exigir js/config.js
+            console.warn("Usando configuração fallback. Recomendado criar js/config.js.");
+
+            const rawKey = "QUl6YVN5REJZOWhERVR1Z3pVYWNXcm1mcUgwNm9CTlpmR0FIXzJz";
+            let apiKey;
+            try {
+                apiKey = atob(rawKey);
+            } catch (e) {
+                console.error("Erro ao decodificar API Key do Firebase.");
+                return;
+            }
+
+            firebaseConfig = {
+                apiKey: apiKey,
+                authDomain: "planner-9aeac.firebaseapp.com",
+                projectId: "planner-9aeac",
+                storageBucket: "planner-9aeac.firebasestorage.app",
+                messagingSenderId: "196600313427",
+                appId: "1:196600313427:web:8a8e76842163021d48b8a6"
+            };
+        }
 
         if (typeof firebase === 'undefined') {
             console.error("ERRO: Firebase SDK não carregado.");
