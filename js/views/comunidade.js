@@ -323,7 +323,7 @@ export const comunidadeView = {
                             <div class="flex gap-2">
                                 <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider w-fit" 
                                       style="background-color: ${corMateria}15; color: ${corMateria}">
-                                    ${q.materia || 'Geral'}
+                                    ${window.escapeHTML(q.materia || 'Geral')}
                                 </span>
                                 <span class="px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500">
                                     ${q.tipo === 'multipla_escolha' ? 'Múltipla' : 'Aberta'}
@@ -332,15 +332,15 @@ export const comunidadeView = {
                             ${estrelasHtml}
                         </div>
                         <div class="text-right">
-                            <span class="block text-[10px] text-slate-400 font-bold uppercase">${q.ano || ''}</span>
+                            <span class="block text-[10px] text-slate-400 font-bold uppercase">${window.escapeHTML(q.ano || '')}</span>
                             <span class="text-[10px] text-slate-300 font-medium flex items-center justify-end gap-1">
-                                <i class="fas fa-user-circle"></i> ${autorNome}
+                                <i class="fas fa-user-circle"></i> ${window.escapeHTML(autorNome)}
                             </span>
                         </div>
                     </div>
                     
                     <div class="text-slate-700 mb-6 flex-grow font-medium text-sm leading-relaxed overflow-hidden">
-                        ${q.enunciado ? q.enunciado.replace(/\n/g, '<br>').substring(0, 300) + (q.enunciado.length > 300 ? '...' : '') : 'Sem texto.'}
+                        ${q.enunciado ? window.escapeHTML(q.enunciado.substring(0, 300)).replace(/\n/g, '<br>') + (q.enunciado.length > 300 ? '...' : '') : 'Sem texto.'}
                     </div>
                     
                     <div class="pt-4 border-t border-slate-50 mt-auto">

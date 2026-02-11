@@ -1,0 +1,495 @@
+[
+    {
+        "id": "8ano_un1_cap1_q01",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "Retomada (EF06MA01)",
+            "descricao": "Leitura, escrita, comparação e ordenação de números naturais.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Os números naturais são usados para contar, ordenar, medir ou codificar. Responda às perguntas a seguir:\n\na) Qual é o código de Discagem Direta a Distância (DDD) da cidade onde você mora?\nb) A Constituição da República Federativa do Brasil, promulgada em 5 de outubro de 1988, tem 250 artigos. Considere o início do artigo 5º: “Todos são iguais perante a lei.”. Nessa informação, qual número natural foi usado para contagem? E qual foi usado para indicar uma ordem?\nc) O que indica o prefixo telefônico 0800?",
+        "gabarito": "a) Resposta pessoal; b) 250 (contagem), 5º (ordem); c) Indica uma chamada gratuita (código de serviço).",
+        "gabarito_comentado": "No item b, 250 indica a quantidade total de artigos (contagem) e 5º indica a posição do artigo na sequência (ordem).",
+        "tags": ["números naturais", "contagem", "ordem", "código"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q02",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "Retomada (EF06MA01)",
+            "descricao": "Identificação e utilização de números naturais em diferentes contextos.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Responda:\n\na) Quantas unidades de Federação o Brasil tem?\nb) As unidades de Federação são separadas em regiões. Quantas são essas regiões? Quais são elas?\nc) Em qual região você mora? Quantos estados ela tem?",
+        "gabarito": "a) 27 (26 estados e 1 Distrito Federal); b) 5 regiões: Norte, Nordeste, Centro-Oeste, Sudeste e Sul; c) Resposta pessoal.",
+        "gabarito_comentado": "O Brasil possui 26 estados mais o Distrito Federal, totalizando 27 unidades federativas. As 5 grandes regiões são definidas pelo IBGE.",
+        "tags": ["geografia", "números naturais", "contagem"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q03",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "Retomada (EF06MA01)",
+            "descricao": "Relação de sucessor e antecessor em números naturais.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Qual é o sucessor do maior número natural formado por 4 algarismos?",
+        "gabarito": "10 000",
+        "gabarito_comentado": "O maior número de 4 algarismos é $9\\,999$. Seu sucessor é $9\\,999 + 1 = 10\\,000$.",
+        "tags": ["números naturais", "sucessor"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q04",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "Retomada (EF06MA01)",
+            "descricao": "Relação de sucessor e antecessor em números naturais.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Qual é o antecessor do menor número natural formado por 5 algarismos?",
+        "gabarito": "9 999",
+        "gabarito_comentado": "O menor número de 5 algarismos é $10\\,000$. Seu antecessor é $10\\,000 - 1 = 9\\,999$.",
+        "tags": ["números naturais", "antecessor"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q05",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "Retomada (EF06MA03)",
+            "descricao": "Operações com números naturais.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Determine a soma do sucessor de 126 com o antecessor de 235.",
+        "gabarito": "361",
+        "gabarito_comentado": "Sucessor de 126 é 127. Antecessor de 235 é 234. A soma é $127 + 234 = 361$.",
+        "tags": ["números naturais", "operações", "soma"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q06",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Médio",
+        "bncc": {
+            "codigo": "EF08MA03",
+            "descricao": "Resolver e elaborar problemas de contagem cuja resolução envolva a aplicação do princípio multiplicativo.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Os números naturais também são usados para resolver problemas que envolvem contagem e possibilidades. Resolva os problemas a seguir:\n\na) Ricardo comprou 3 camisas: uma branca, uma azul e uma vermelha. Comprou também 2 bermudas: uma preta e uma cinza. De quantas maneiras diferentes Ricardo pode se vestir com essas peças?\nb) Uma agência de turismo oferece um plano de viagens ao Nordeste do Brasil no qual é possível escolher 2 das 4 capitais disponíveis: Salvador (S), Recife (R), Maceió (M) e Natal (N). Quantas e quais são as possibilidades de escolha?\nc) Um time de vôlei é formado por 6 jogadores. Antes de iniciar uma partida, cada jogador cumprimentou os demais com um aperto de mão. Qual foi o total de apertos de mão?",
+        "gabarito": "a) 6 maneiras; b) 6 possibilidades: {S, R}, {S, M}, {S, N}, {R, M}, {R, N}, {M, N}; c) 15 apertos de mão.",
+        "gabarito_comentado": "a) Pelo princípio multiplicativo: $3 \\times 2 = 6$. <br>b) Combinação de 4 elementos tomados 2 a 2: SR, SM, SN, RM, RN, MN (total 6). <br>c) Cada um dos 6 jogadores cumprimenta 5 outros, totalizando $6 \\times 5 = 30$. Como o aperto de A com B é o mesmo de B com A, divide-se por 2: $\\frac{30}{2} = 15$.",
+        "tags": ["princípio multiplicativo", "contagem", "combinatória"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q07",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "EF08MA03",
+            "descricao": "Resolver e elaborar problemas de contagem cuja resolução envolva a aplicação do princípio multiplicativo.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Elabore 2 problemas de contagem e possibilidades: um envolvendo 3 tipos de peças de roupa (camiseta, calça e sapatos) e outro envolvendo 2 tipos de alimentos (refeição e sobremesa).",
+        "gabarito": "Resposta pessoal.",
+        "gabarito_comentado": "O aluno deve criar enunciados que utilizem a multiplicação das quantidades de opções para encontrar o total de combinações.",
+        "tags": ["produção de texto", "contagem"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q08",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "EF08MA03",
+            "descricao": "Resolver e elaborar problemas de contagem cuja resolução envolva a aplicação do princípio multiplicativo.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Elabore um problema de contagem envolvendo os números naturais 2 e 4. Em seguida, troque o problema que você elaborou com um colega para que ele o resolva e você resolva o problema proposto por ele.",
+        "gabarito": "Resposta pessoal.",
+        "gabarito_comentado": "Espera-se que o aluno crie uma situação onde se tenha 2 opções de um item e 4 de outro (ou vice-versa), resultando em $2 \\times 4 = 8$ possibilidades.",
+        "tags": ["produção de texto", "contagem"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q09",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Médio",
+        "bncc": {
+            "codigo": "EF08MA10",
+            "descricao": "Identificar a regularidade de uma sequência numérica ou figural não recursiva e construir um algoritmo por meio de um fluxograma que permita indicar os números ou as figuras seguintes.",
+            "unidade_tematica": "Álgebra"
+        },
+        "enunciado": "Quais são os 2 próximos números naturais de cada sequência?\n\na) $(3, 6, 9, 12, 15, \\dots)$\nb) $(2, 4, 8, 16, 32, \\dots)$\nc) $(3, 9, 27, 81, \\dots)$\nd) $(2, 2, 4, 6, 10, 16, \\dots)$",
+        "gabarito": "a) 18 e 21; b) 64 e 128; c) 243 e 729; d) 26 e 42.",
+        "gabarito_comentado": "a) Adicionando 3 ao anterior ($15+3=18$, $18+3=21$).\nb) Multiplicando por 2 o anterior ($32 \\times 2=64$, $64 \\times 2=128$).\nc) Multiplicando por 3 o anterior ($81 \\times 3=243$, $243 \\times 3=729$).\nd) Sequência de Fibonacci, somando os dois anteriores ($10+16=26$, $16+26=42$).",
+        "tags": ["sequências", "lógica", "padrões"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q10",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Médio",
+        "bncc": {
+            "codigo": "Retomada (EF06MA02)",
+            "descricao": "Leitura e escrita de números naturais (sistema de numeração decimal).",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "A Federação Russa é o maior país do mundo em extensão territorial. De acordo com o Instituto Brasileiro de Geografia e Estatística (IBGE), a medida aproximada da área do país é dada por um número natural seguido da unidade de medida de área: $17\\,098\\,242\\text{ km}^2$.\n\n[Imagem: O edifício histórico do Teatro Bolshoi]\n\na) Como se lê esse número?\nb) Qual é o valor posicional do algarismo 8?\nc) Qual é o sucessor desse número?\nd) Qual é o arredondamento desse número para a unidade de milhão mais próxima?",
+        "gabarito": "a) Dezessete milhões, noventa e oito mil, duzentos e quarenta e dois; b) 8.000 (oito mil); c) 17.098.243; d) 17.000.000.",
+        "gabarito_comentado": "b) O 8 está na casa das unidades de milhar.\nd) Como a casa das centenas de milhar é 0 (menor que 5), arredonda-se para baixo mantendo o 17 milhões.",
+        "tags": ["leitura de números", "valor posicional", "arredondamento"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q11",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "Retomada (EF07MA03)",
+            "descricao": "Comparação e ordenação de números inteiros em diferentes contextos.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Indique com números inteiros as medidas de temperatura descritas em cada item.\n\na) 28 graus Celsius acima de zero.\nb) 5 graus Celsius abaixo de zero.\nc) 6 graus Celsius positivos.\nd) 2 graus Celsius negativos.",
+        "gabarito": "a) $+28^\\circ\\text{C}$ (ou $28^\\circ\\text{C}$); b) $-5^\\circ\\text{C}$; c) $+6^\\circ\\text{C}$ (ou $6^\\circ\\text{C}$); d) $-2^\\circ\\text{C}$.",
+        "gabarito_comentado": "Temperaturas acima de zero são representadas por inteiros positivos e abaixo de zero por inteiros negativos.",
+        "tags": ["números inteiros", "temperatura"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q12",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "Retomada",
+            "descricao": "Reconhecimento de pertinência a conjuntos numéricos (N e Z).",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Copie os itens e complete com $\\in$ (pertence) ou $\\notin$ (não pertence).\n\na) $-28 \\dots \\mathbb{N}$\nb) $0 \\dots \\mathbb{N}$\nc) $0 \\dots \\mathbb{Z}$\nd) $25 \\dots \\mathbb{Z}$\ne) $-1\\,000 \\dots \\mathbb{Z}$\nf) $1\\,205\\,378 \\dots \\mathbb{N}$\ng) $0,4 \\dots \\mathbb{Z}$\nh) $-45 \\dots \\mathbb{N}$",
+        "gabarito": "a) $\\notin$; b) $\\in$; c) $\\in$; d) $\\in$; e) $\\in$; f) $\\in$; g) $\\notin$; h) $\\notin$.",
+        "gabarito_comentado": "Números negativos e decimais não pertencem aos Naturais ($\\mathbb{N}$). Decimais não inteiros não pertencem aos Inteiros ($\\mathbb{Z}$).",
+        "tags": ["conjuntos", "pertinência", "números inteiros", "números naturais"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q13",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "Retomada (EF07MA03)",
+            "descricao": "Comparação e ordenação de números inteiros.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Escreva o sucessor e o antecessor de cada número.\n\na) $-10$\nb) $0$\nc) $-76$\nd) $-398$",
+        "gabarito": "a) Sucessor: $-9$, Antecessor: $-11$; b) Sucessor: $1$, Antecessor: $-1$; c) Sucessor: $-75$, Antecessor: $-77$; d) Sucessor: $-397$, Antecessor: $-399$.",
+        "gabarito_comentado": "Nos números inteiros negativos, o sucessor é o número à direita na reta numérica (mais próximo de zero ou positivo), e o antecessor à esquerda (mais negativo).",
+        "tags": ["números inteiros", "sucessor", "antecessor"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q14",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Médio",
+        "bncc": {
+            "codigo": "Retomada",
+            "descricao": "Representação de subconjuntos numéricos por meio de desigualdades.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Note que, se $x \\in \\mathbb{N}$ e $x > 5$, então podemos representar os possíveis valores de $x$ pelo conjunto $\\{6, 7, 8, 9, \\dots\\}$. Do mesmo modo, se $y \\in \\mathbb{Z}$ e $y < -2$, então temos o conjunto $\\{\\dots, -5, -4, -3\\}$. Represente o conjunto formado pelos possíveis valores de $x$ em cada item.\n\na) $x \\in \\mathbb{N}$ e $x < 3$.\nb) $x \\in \\mathbb{Z}$ e $x > -2$.\nc) $x \\in \\mathbb{N}$ e $x < 0$.\nd) $x \\in \\mathbb{Z}$ e $x < 0$.",
+        "gabarito": "a) $\\{0, 1, 2\\}$; b) $\\{-1, 0, 1, 2, \\dots\\}$; c) $\\emptyset$ (Conjunto vazio); d) $\\{\\dots, -3, -2, -1\\}$.",
+        "gabarito_comentado": "a) Naturais menores que 3. c) Não existem números naturais menores que 0.",
+        "tags": ["conjuntos", "desigualdades"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q15",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "Retomada (EF07MA04)",
+            "descricao": "Identificar números racionais em diferentes contextos.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Considere estes números: $-2$, $5$, $-1,5$, $3$, $4$, $2$. \n\na) Quais desses números são números inteiros?\nb) Quais são racionais?\nc) Quais são racionais não inteiros?\nd) Quais são naturais?\ne) Qual está entre 0 e 1?",
+        "gabarito": "a) $-2, 5, 3, 4, 2$; b) Todos; c) $-1,5$; d) $5, 3, 4, 2$ (se considerar N sem o zero, ou se os positivos forem inteiros); e) Nenhum listado explicitamente (Note: a questão original parece ter números como frações ou decimais na lista que não ficaram claros no texto sujo, assumindo $1/2$ na resposta 'e' do gabarito original). *Adaptado: Verifique os números originais.*",
+        "gabarito_comentado": "Todos os inteiros são racionais. Racionais não inteiros são as frações não exatas e decimais. Naturais são os inteiros não negativos.",
+        "tags": ["números racionais", "classificação numérica"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q16",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "Retomada",
+            "descricao": "Identificação de números em intervalos.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Escreva os números:\n\na) Os números naturais entre 11 e 15.\nb) Os números inteiros de -2 a 2.\nc) Três números racionais entre -1 e 3.\nd) Um número inteiro não natural.\ne) Um número racional não inteiro.",
+        "gabarito": "a) 12, 13, 14; b) -2, -1, 0, 1, 2; c) Exemplos: 0, 1, 2,5; d) Exemplo: -5; e) Exemplo: 0,5.",
+        "gabarito_comentado": "\"Entre\" geralmente exclui os extremos, \"de... a...\" inclui os extremos.",
+        "tags": ["intervalos", "números inteiros", "números racionais"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q17",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "multiplaEscolha",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "Retomada",
+            "descricao": "Relação de inclusão entre os conjuntos numéricos N, Z e Q.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Verifique se cada afirmação é verdadeira (V) ou falsa (F). Assinale apenas a alternativa que contém todas as verdadeiras.\n\nI. Todo número natural é inteiro.\nII. Todo número racional é inteiro.\nIII. Todo número inteiro é racional.\nIV. Todo número natural é racional.",
+        "gabarito": "I, III e IV são verdadeiras.",
+        "gabarito_comentado": "A afirmação II é falsa porque existem racionais que não são inteiros (ex: $0,5$). As outras são verdadeiras pois $\\mathbb{N} \\subset \\mathbb{Z} \\subset \\mathbb{Q}$.",
+        "tags": ["conjuntos", "teoria dos conjuntos"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q18",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "Retomada",
+            "descricao": "Classificação de números nos conjuntos N, Z e Q.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Copie o quadro a seguir e assinale com um X o conjunto numérico $\\mathbb{N}$, $\\mathbb{Z}$ ou $\\mathbb{Q}$ a que cada número pertence.",
+        "gabarito": "<table border='1'><thead><tr><th>Número</th><th>-8</th><th>17</th><th>-8,2</th><th>0,5</th><th>12</th><th>0</th><th>-23</th><th>1/4</th></tr></thead><tbody><tr><td>N</td><td></td><td>X</td><td></td><td></td><td>X</td><td>X</td><td></td><td></td></tr><tr><td>Z</td><td>X</td><td>X</td><td></td><td></td><td>X</td><td>X</td><td>X</td><td></td></tr><tr><td>Q</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td></tr></tbody></table>",
+        "gabarito_comentado": "Naturais são positivos inteiros e zero. Inteiros incluem os negativos inteiros. Racionais incluem todos os anteriores mais frações e decimais.",
+        "tags": ["tabela", "conjuntos numéricos"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q19",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Médio",
+        "bncc": {
+            "codigo": "Retomada (EF07MA18)",
+            "descricao": "Resolução de equações de 1º grau e verificação de solução no conjunto universo.",
+            "unidade_tematica": "Álgebra"
+        },
+        "enunciado": "A equação $x + 5 = 3$ não tem solução em $\\mathbb{N}$, pois não existe número natural que adicionado a 5 resulte em 3. Em $\\mathbb{Z}$, porém, essa equação tem solução: $x = -2$, pois $-2 + 5 = 3$. Determine as soluções das equações dadas, quando existirem, nos conjuntos indicados.\n\na) $x^2 = 9$, em $\\mathbb{N}$.\nb) $x^2 = 9$, em $\\mathbb{Z}$.\nc) $3x = -2$, em $\\mathbb{Z}$.\nd) $3x = -2$, em $\\mathbb{Q}$.\ne) $2x = 6$, em $\\mathbb{N}$.\nf) $2x = 9$, em $\\mathbb{N}$.",
+        "gabarito": "a) $x=3$; b) $x=3$ ou $x=-3$; c) Não existe solução em $\\mathbb{Z}$; d) $x = -\\frac{2}{3}$; e) $x=3$; f) Não existe solução em $\\mathbb{N}$.",
+        "gabarito_comentado": "b) Tanto $3$ quanto $-3$ elevados ao quadrado resultam em 9. c) O resultado $-\\frac{2}{3}$ não é inteiro. f) O resultado $4,5$ não é natural.",
+        "tags": ["equações", "conjunto universo"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q20",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Médio",
+        "bncc": {
+            "codigo": "EF08MA04",
+            "descricao": "Resolver e elaborar problemas, envolvendo cálculo de porcentagens (implícito no cálculo de índices e medidas).",
+            "unidade_tematica": "Grandezas e Medidas"
+        },
+        "enunciado": "Os índices IMC (índice de massa corporal) são utilizados para avaliar a massa de uma pessoa. Fórmula: $IMC = \\frac{\\text{massa}}{\\text{altura}^2}$. <br>Tabela de Classificação:<br><table border='1'><tr><td>IMC</td><td>Classificação</td></tr><tr><td>Menor que 18,5</td><td>Magreza</td></tr><tr><td>De 18,5 a 24,9</td><td>Peso normal</td></tr><tr><td>De 25 a 29,9</td><td>Sobrepeso</td></tr><tr><td>De 30 a 40</td><td>Obesidade</td></tr><tr><td>Maior que 40</td><td>Obesidade grave</td></tr></table><br>a) Qual é a classificação de IMC de uma pessoa que tem altura de $1,70\\text{ m}$ e massa de $70\\text{ kg}$?<br>b) Pesquise as medidas de altura e massa de adultos que morem com você e calcule o IMC.<br>c) Uma pessoa tem $1,80\\text{ m}$ de altura. Qual deve ser a massa dessa pessoa para que o IMC seja igual a 20?",
+        "gabarito": "a) Peso normal; b) Resposta pessoal; c) $64,8\\text{ kg}$.",
+        "gabarito_comentado": "a) $IMC = \\frac{70}{1,70^2} \\approx 24,22$. Classificação: Peso normal. <br>c) $20 = \\frac{m}{1,80^2} \\Rightarrow m = 20 \\times 3,24 = 64,8$.",
+        "tags": ["IMC", "cálculo de medidas", "tabela"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q21",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Médio",
+        "bncc": {
+            "codigo": "EF08MA04",
+            "descricao": "Resolver e elaborar problemas, envolvendo cálculo de porcentagens.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Qual é a porcentagem de água na mistura de 6 litros de água com 2 litros de suco?",
+        "gabarito": "75%",
+        "gabarito_comentado": "Total da mistura = $6 + 2 = 8$ litros. Porcentagem de água = $\\frac{6}{8} = 0,75 = 75\\%$.",
+        "tags": ["porcentagem", "razão"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q22",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Médio",
+        "bncc": {
+            "codigo": "EF08MA04",
+            "descricao": "Resolver e elaborar problemas, envolvendo cálculo de porcentagens.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "O gerente de uma loja consultou 200 clientes sobre a qualidade do atendimento. Desse total, 102 avaliaram como bom.\n\na) Qual é o percentual de clientes que avaliaram o atendimento como bom?\nb) Quantas pessoas avaliaram o atendimento como regular se essa quantidade equivale a 20% dos clientes?",
+        "gabarito": "a) 51%; b) 40 pessoas.",
+        "gabarito_comentado": "a) $\\frac{102}{200} = \\frac{51}{100} = 51\\%$. <br>b) $20\\% \\text{ de } 200 = 0,20 \\times 200 = 40$.",
+        "tags": ["porcentagem", "estatística"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q23",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Médio",
+        "bncc": {
+            "codigo": "EF08MA04",
+            "descricao": "Resolver e elaborar problemas, envolvendo cálculo de porcentagens (acréscimos).",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Um fogão custa, à vista, R$ 820,00. Se ele for pago em 5 prestações iguais, então o preço final terá um acréscimo de 8%. Qual será o valor de cada prestação?",
+        "gabarito": "R$ 177,12",
+        "gabarito_comentado": "Acréscimo: $8\\% \\text{ de } 820 = 0,08 \\times 820 = 65,60$. Preço final: $820 + 65,60 = 885,60$. Prestação: $\\frac{885,60}{5} = 177,12$.",
+        "tags": ["porcentagem", "matemática financeira"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q24",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Difícil",
+        "bncc": {
+            "codigo": "EF08MA04",
+            "descricao": "Resolver e elaborar problemas, envolvendo cálculo de porcentagens (aumentos e descontos sucessivos).",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Um produto custava R$ 200,00, teve um aumento de 10% e, em seguida, uma redução de 10%. Qual passou a ser o preço desse produto?",
+        "gabarito": "R$ 198,00",
+        "gabarito_comentado": "Aumento: $200 + 10\\% = 220$. Redução: $220 - 10\\% = 220 - 22 = 198$. O valor não volta ao original.",
+        "tags": ["porcentagem", "aumentos sucessivos"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q25",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "EF08MA04",
+            "descricao": "Elaborar problemas envolvendo cálculo de porcentagens.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Elabore um problema envolvendo porcentagem em uma situação de acréscimo ou decréscimo. Depois troque o problema com um colega.",
+        "gabarito": "Resposta pessoal.",
+        "gabarito_comentado": "Atividade de elaboração de problemas.",
+        "tags": ["produção de texto", "porcentagem"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q26",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Médio",
+        "bncc": {
+            "codigo": "EF08MA04",
+            "descricao": "Resolver problemas envolvendo cálculo de porcentagens.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Em uma empresa alimentícia, trabalham 648 pessoas com idade menor do que 30 anos e sabe-se que 46% dos funcionários têm 30 anos ou mais. Qual é o total de funcionários dessa empresa?",
+        "gabarito": "1200 funcionários",
+        "gabarito_comentado": "Se 46% têm 30 anos ou mais, então $100\\% - 46\\% = 54\\%$ têm menos de 30 anos. Logo, 54% do total ($x$) = 648. $0,54x = 648 \\Rightarrow x = \\frac{648}{0,54} = 1200$.",
+        "tags": ["porcentagem", "equação"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q27",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Difícil",
+        "bncc": {
+            "codigo": "EF08MA04",
+            "descricao": "Resolver problemas envolvendo porcentagens e sistemas/equações.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Em uma escola particular, 60% dos estudantes são do Ensino Médio, e cada um deles paga R$ 400,00 de mensalidade. Os estudantes restantes são do Ensino Fundamental, e cada um deles paga R$ 300,00 por mês. Sabendo que a arrecadação mensal é R$ 216.000,00, calcule a quantidade de estudantes no Ensino Médio e no Ensino Fundamental dessa escola.",
+        "gabarito": "360 no Ensino Médio e 240 no Ensino Fundamental.",
+        "gabarito_comentado": "Seja $x$ o total. Médio: $0,6x$ (pagam 400). Fundamental: $0,4x$ (pagam 300). Equação: $(0,6x \\times 400) + (0,4x \\times 300) = 216\\,000$. $240x + 120x = 216\\,000 \\Rightarrow 360x = 216\\,000 \\Rightarrow x = 600$. Médio: $0,6 \\times 600 = 360$. Fund: $0,4 \\times 600 = 240$.",
+        "tags": ["porcentagem", "problema matemático"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q28",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Fácil",
+        "bncc": {
+            "codigo": "EF08MA04",
+            "descricao": "Elaborar problemas envolvendo cálculo de porcentagens.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Elabore um problema envolvendo porcentagem e a imagem a seguir.\n\n[Imagem: Animais de estimação]",
+        "gabarito": "Resposta pessoal.",
+        "gabarito_comentado": "Espera-se que o aluno utilize a imagem para criar dados estatísticos ou situações de compra/venda envolvendo percentuais.",
+        "tags": ["produção de texto", "porcentagem"],
+        "preDefinida": true
+    },
+    {
+        "id": "8ano_un1_cap1_q29",
+        "materia": "Matemática",
+        "ano": "8º Ano",
+        "tipo": "dissertativa",
+        "dificuldade": "Médio",
+        "bncc": {
+            "codigo": "EF08MA05",
+            "descricao": "Reconhecer e utilizar procedimentos para a obtenção de uma fração geratriz para uma dízima periódica.",
+            "unidade_tematica": "Números"
+        },
+        "enunciado": "Transforme cada dízima periódica em fração irredutível.\n\na) $0,555\\dots$\nb) $0,222\\dots$\nc) $0,1515\\dots$\nd) $0,3131\\dots$\ne) $0,287287\\dots$\nf) $1,111\\dots$\ng) $0,0101\\dots$\nh) $0,3232\\dots$",
+        "gabarito": "a) $\\frac{5}{9}$; b) $\\frac{2}{9}$; c) $\\frac{15}{99} = \\frac{5}{33}$; d) $\\frac{31}{99}$; e) $\\frac{287}{999}$; f) $\\frac{10}{9}$; g) $\\frac{1}{99}$; h) $\\frac{32}{99}$.",
+        "gabarito_comentado": "Para dízimas simples, o numerador é o período e o denominador tem tantos noves quantos forem os algarismos do período. Ex: a) $5/9$. f) $1 + 0,111\\dots = 1 + 1/9 = 10/9$.",
+        "tags": ["fração geratriz", "dízima periódica"],
+        "preDefinida": true
+    }
+]

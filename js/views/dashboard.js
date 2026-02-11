@@ -38,7 +38,7 @@ export const dashboardView = {
 
         // Nome seguro para exibição
         const nomeProf = this.getNomeProf();
-        const nomeSafe = nomeProf.replace(/[<>]/g, '');
+        const nomeSafe = window.escapeHTML ? window.escapeHTML(nomeProf) : nomeProf.replace(/[<>]/g, '');
 
         const html = `
             <div class="fade-in pb-20 space-y-8">
@@ -116,9 +116,9 @@ export const dashboardView = {
                         <div class="relative z-10 h-full">
                             ${aniversariantes.length > 0 
                                 ? `<div class="flex -space-x-2 overflow-hidden mb-2">
-                                     ${aniversariantes.map(a => `
-                                        <div class="inline-block h-8 w-8 rounded-full ring-2 ring-white bg-pink-100 flex items-center justify-center text-xs font-bold text-pink-600" title="${a.nome}">
-                                            ${a.nome.charAt(0)}
+                                    ${aniversariantes.map(a => `
+                                        <div class="inline-block h-8 w-8 rounded-full ring-2 ring-white bg-pink-100 flex items-center justify-center text-xs font-bold text-pink-600" title="${window.escapeHTML(a.nome)}">
+                                            ${window.escapeHTML(a.nome.charAt(0))}
                                         </div>
                                      `).join('')}
                                    </div>

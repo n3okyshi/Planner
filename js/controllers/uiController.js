@@ -34,7 +34,7 @@ export const uiController = {
         modal.innerHTML = `
         <div class="bg-white w-full ${classeTamanho} rounded-[2.5rem] shadow-2xl overflow-hidden animate-pop-in relative border border-slate-100 mx-4 md:mx-0 flex flex-col max-h-[90vh]">
             <div class="p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50 shrink-0">
-                <h3 class="text-xl font-black text-slate-800 tracking-tight">${titulo}</h3>
+                <h3 class="text-xl font-black text-slate-800 tracking-tight">${window.escapeHTML(titulo)}</h3>
                 <button onclick="uiController.closeModal()" class="w-10 h-10 rounded-full hover:bg-white hover:shadow-sm flex items-center justify-center text-slate-400 hover:text-red-500 transition-all">
                     <i class="fas fa-times"></i>
                 </button>
@@ -190,7 +190,7 @@ export const uiController = {
         };
 
         const label = map[viewName] || viewName.charAt(0).toUpperCase() + viewName.slice(1);
-        breadcrumb.innerHTML = `<i class="fas fa-home text-slate-300"></i> <span class="text-slate-300 mx-2">/</span> ${label}`;
+        breadcrumb.innerHTML = `<i class="fas fa-home text-slate-300"></i> <span class="text-slate-300 mx-2">/</span> ${window.escapeHTML(label)}`;
     },
 
     /**

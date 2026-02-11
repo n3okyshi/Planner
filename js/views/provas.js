@@ -267,7 +267,7 @@ export const provasView = {
         const borderClass = isSelected ? 'border-primary ring-1 ring-primary bg-blue-50/30' : 'border-slate-200 hover:border-slate-300 bg-white';
         const btnClass = isSelected ? 'bg-red-100 text-red-500 hover:bg-red-200' : 'bg-slate-100 text-slate-400 hover:bg-primary hover:text-white';
 
-        let tagsHtml = `<span class="px-2 py-1 bg-slate-100 text-[10px] font-bold text-slate-600 rounded uppercase tracking-wider">${q.materia || 'Geral'}</span>`;
+        let tagsHtml = `<span class="px-2 py-1 bg-slate-100 text-[10px] font-bold text-slate-600 rounded uppercase tracking-wider">${window.escapeHTML(q.materia || 'Geral')}</span>`;
         if (q.ano) tagsHtml += `<span class="px-2 py-1 bg-indigo-50 text-[10px] font-bold text-indigo-600 rounded uppercase border border-indigo-100">${window.escapeHTML(q.ano)}</span>`;
         if (q.bncc && q.bncc.codigo) tagsHtml += `<span class="px-2 py-1 bg-yellow-50 text-[10px] font-bold text-yellow-700 rounded uppercase border border-yellow-100" title="${window.escapeHTML(q.bncc.descricao)}">${window.escapeHTML(q.bncc.codigo)}</span>`;
         
@@ -284,7 +284,7 @@ export const provasView = {
                 ${q.alternativas.map((alt, i) => `
                     <div class="text-xs flex gap-2 ${q.correta == i ? 'text-emerald-600 font-bold' : 'text-slate-500'}">
                         <span class="uppercase font-bold">${letras[i]})</span> 
-                        <span>${alt}</span>
+                        <span>${window.escapeHTML(alt)}</span>
                         ${q.correta == i ? '<i class="fas fa-check-circle text-[10px] mt-0.5"></i>' : ''}
                     </div>
                 `).join('')}
@@ -726,7 +726,7 @@ export const provasView = {
                     const iconCheck = (isProf && q.correta == idx) ? ' ✓' : '';
                     return `
                                 <div class="alternativa" style="${styleCorrect} padding: 4px 8px;">
-                                    <strong>${letras[idx]})</strong> ${alt} ${iconCheck}
+                                    <strong>${letras[idx]})</strong> ${window.escapeHTML(alt)} ${iconCheck}
                                 </div>
                             `;
                 }).join('')}
@@ -820,7 +820,7 @@ export const provasView = {
                     <i class="fas fa-arrow-left"></i> Voltar para o App
                 </button>
                 <div class="header">
-                    <p><strong>ESCOLA:</strong> ${model.state.userConfig.schoolName || '________________________________________________'}</p>
+                    <p><strong>ESCOLA:</strong> ${window.escapeHTML(model.state.userConfig.schoolName || '________________________________________________')}</p>
                     <p><strong>PROFESSOR(A):</strong> ${window.escapeHTML(nomeProf)} &nbsp;&nbsp; <strong>DATA:</strong> ____/____/____</p>
                     <p><strong>ALUNO(A):</strong> _______________________________________________________ <strong>TURMA:</strong> ________</p>
                 </div>

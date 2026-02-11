@@ -147,13 +147,14 @@ export const planejamentoController = {
         const optionsHtml = outrasTurmas.map(t => {
             const isMesmaSerie = t.serie === turmaAtual.serie;
             const destaque = isMesmaSerie ? 'font-bold text-blue-600' : '';
-            return `<option value="${t.id}" class="${destaque}">${t.nome} ${isMesmaSerie ? '(Mesma Série)' : ''}</option>`;
+            const nomeEsc = window.escapeHTML ? window.escapeHTML(t.nome) : t.nome;
+            return `<option value="${window.escapeHTML(t.id)}" class="${destaque}">${nomeEsc} ${isMesmaSerie ? '(Mesma Série)' : ''}</option>`;
         }).join('');
 
         window.controller.openModal('Replicar Planejamento', `
             <div class="p-6 space-y-4">
                 <div class="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-4">
-                    <p class="text-sm text-blue-800"><i class="fas fa-info-circle mr-1"></i> Copiando de <strong>${turmaAtual.nome}</strong>.</p>
+                    <p class="text-sm text-blue-800"><i class="fas fa-info-circle mr-1"></i> Copiando de <strong>${window.escapeHTML ? window.escapeHTML(turmaAtual.nome) : turmaAtual.nome}</strong>.</p>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Para a Turma</label>
@@ -162,7 +163,7 @@ export const planejamentoController = {
                 <div class="bg-red-50 border border-red-100 p-3 rounded-xl text-xs text-red-600 mt-2">
                     <i class="fas fa-exclamation-triangle"></i> Substituirá todo o planejamento da turma destino.
                 </div>
-                <button onclick="planejamentoController.confirmarCopiaPlanejamento('${turmaIdAtual}')" class="btn-primary w-full py-3 rounded-xl font-bold shadow-lg mt-2">Confirmar Cópia</button>
+                <button onclick="planejamentoController.confirmarCopiaPlanejamento('${window.escapeHTML(turmaIdAtual)}')" class="btn-primary w-full py-3 rounded-xl font-bold shadow-lg mt-2">Confirmar Cópia</button>
             </div>
         `);
     },

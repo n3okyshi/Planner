@@ -147,8 +147,9 @@ export const authController = {
 
         if (isLoggedIn && user) {
             // Sanitização básica do nome
-            const safeName = user.displayName ? user.displayName.split(' ')[0] : 'Professor(a)';
-            const photoUrl = user.photoURL || `https://ui-avatars.com/api/?name=${safeName}&background=0D8ABC&color=fff`;
+            const nomeSafe = user.displayName ? user.displayName.split(' ')[0] : 'Professor(a)';
+            const nomeEncodado = encodeURIComponent(nomeSafe);
+            const urlFoto = user.photoURL || `https://ui-avatars.com/api/?name=${nomeEncodado}&background=0D8ABC&color=fff`;
             
             // Renderiza Cartão de Perfil
             container.innerHTML = `
@@ -156,7 +157,7 @@ export const authController = {
                      onclick="authController.handleLogout()"
                      title="Clique para sair">
                     
-                    <img src="${photoUrl}" 
+                    <img src="${window.escapeHTML(urlFoto)}" 
                          class="w-8 h-8 rounded-full border border-white/20 shrink-0 object-cover bg-slate-700"
                          onerror="this.src='assets/icons/icon-192.png'"
                          alt="Avatar">
@@ -166,7 +167,7 @@ export const authController = {
                             <i class="fas fa-circle text-[6px]"></i> Online
                         </p>
                         <p class="text-sm font-bold text-white truncate w-28 leading-tight">
-                            ${safeName}
+                            ${window.escapeHTML(nomeSafe)}
                         </p>
                     </div>
                     

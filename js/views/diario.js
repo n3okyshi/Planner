@@ -240,11 +240,21 @@ export const diarioView = {
                         </div>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Metodologia</label>
+                        <div class="flex justify-between items-end mb-2">
+                            <label class="block text-xs font-bold text-slate-400 uppercase">Metodologia</label>
+                            <button id="btn-mic-plan-metodologia" onclick="diarioView.startDictation('plan-metodologia')" class="text-slate-400 hover:text-primary transition" title="Ditar texto">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                        </div>
                         <textarea id="plan-metodologia" rows="8" class="autosave-input w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:border-primary focus:bg-white transition-all resize-none custom-scrollbar" placeholder="Passo a passo da aula..."></textarea>
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Avaliação / Tarefa</label>
+                        <div class="flex justify-between items-end mb-2">
+                            <label class="block text-xs font-bold text-slate-400 uppercase">Avaliação / Tarefa</label>
+                            <button id="btn-mic-plan-avaliacao" onclick="diarioView.startDictation('plan-avaliacao')" class="text-slate-400 hover:text-primary transition" title="Ditar texto">
+                                <i class="fas fa-microphone"></i>
+                            </button>
+                        </div>
                         <textarea id="plan-avaliacao" rows="3" class="autosave-input w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:border-primary focus:bg-white transition-all resize-none custom-scrollbar" placeholder="Como será avaliado? Tarefa de casa?"></textarea>
                     </div>
                 </div>
@@ -301,6 +311,54 @@ export const diarioView = {
                 <button onclick="controller.navigate('turmas')" class="text-primary font-bold mt-2 hover:underline">Ir para Turmas</button>
             </div>
         `;
+    },
+
+    /**
+     * Inicia o ditado por voz para um campo específico.
+     * @param {string} targetId ID do elemento alvo (textarea).
+     */
+    startDictation(targetId) {
+        if (!('webkitSpeechRecognition' in window)) {
+            alert("Seu navegador não suporta ditado por voz. Tente usar o Google Chrome.");
+            return;
+        }
+
+        const recognition = new webkitSpeechRecognition();
+        recognition.lang = 'pt-BR';
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+
+        const el = document.getElementById(targetId);
+        const btn = document.getElementById(`btn-mic-${targetId}`);
+        const originalColor = btn ? btn.className : '';
+        
+        if (btn) {
+            btn.className = 'text-red-500 animate-pulse';
+        }
+
+        recognition.start();
+
+        recognition.onresult = (event) => {
+            const transcript = event.results[0][0].transcript;
+            if (el) {
+                const currentText = el.value;
+                el.value = currentText ? currentText + " " + transcript : transcript;
+                el.dispatchEvent(new Event('input')); // Dispara autosave
+            }
+        };
+
+        recognition.onerror = (event) => {
+            console.error("Erro no reconhecimento de voz:", event.error);
+            if (event.error === 'not-allowed') {
+                alert("Permissão de microfone negada.");
+            }
+        };
+
+        recognition.onend = () => {
+            if (btn) {
+                btn.className = "text-slate-400 hover:text-primary transition";
+            }
+        };
     },
 
     /**

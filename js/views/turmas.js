@@ -280,11 +280,28 @@ export const turmasView = {
                                         // Calcula a soma apenas das notas do período que está filtrado
                                         const somaPeriodo = avaliacoesFiltradas.reduce((acc, av) => acc + (Number(aluno.notas?.[av.id]) || 0), 0);
                                         
+                                        // Análise de Risco Preventivo
+                                        const freq = this._calcularFrequencia(aluno);
+                                        const totalDistribuido = avaliacoesFiltradas.reduce((acc, av) => acc + Number(av.max), 0);
+                                        const mediaPerc = totalDistribuido > 0 ? (somaPeriodo / totalDistribuido) * 100 : 100;
+
+                                        const riscoFrequencia = freq < 75;
+                                        const riscoNota = totalDistribuido > 0 && mediaPerc < 60; // Menor que 60% de aproveitamento
+
+                                        let alertaHtml = '';
+                                        if (riscoFrequencia || riscoNota) {
+                                            const motivos = [];
+                                            if (riscoFrequencia) motivos.push(`Freq: ${freq.toFixed(0)}%`);
+                                            if (riscoNota) motivos.push('Nota Baixa');
+                                            alertaHtml = `<div class="text-[10px] font-bold text-red-500 bg-red-50 px-2 py-1 rounded border border-red-100 mt-1 w-fit flex items-center gap-1" title="Alerta de Risco Preventivo"><i class="fas fa-exclamation-circle"></i> ${motivos.join(', ')}</div>`;
+                                        }
+
                                         return `
                                             <tr class="hover:bg-slate-50 transition">
                                                 <td class="p-4 text-xs font-bold text-slate-400">${idx + 1}</td>
                                                 <td class="p-4">
                                                     <div class="font-bold text-slate-700 text-sm">${window.escapeHTML(aluno.nome)}</div>
+                                                    ${alertaHtml}
                                                 </td>
                                                 
                                                 ${avaliacoesFiltradas.map(av => {
@@ -395,6 +412,22 @@ export const turmasView = {
         stats.totalAlunos = alunosComNota;
         stats.mediaGeral = alunosComNota > 0 ? (somaMedias / alunosComNota).toFixed(1) : '-';
         return stats;
+    },
+
+    /**
+     * Calcula o percentual de frequência do aluno.
+     * @private
+     */
+    _calcularFrequencia(aluno) {
+        if (!aluno.frequencia) return 100;
+        
+        const registros = Object.values(aluno.frequencia);
+        const presencas = registros.filter(s => s === 'P').length;
+        const faltas = registros.filter(s => s === 'F').length;
+        const totalAulas = presencas + faltas;
+        
+        if (totalAulas === 0) return 100;
+        return (presencas / totalAulas) * 100;
     },
 
     renderBoletimAnual(turmaId) {

@@ -9,7 +9,7 @@ Foco em reduzir o trabalho braçal do professor na alimentação do banco de dad
 
 * **[ ] Importação Inteligente (OCR/PDF):** Implementar módulo utilizando `pdf.js` e Regex para extrair enunciados e alternativas de arquivos PDF/Word antigos, automatizando o cadastro no banco.
 * **[ ] Taxonomia e Dificuldade:** Adicionar metadados às questões (Fácil, Médio, Difícil) e níveis da Taxonomia de Bloom.
-* **[ ] Gerador Estatístico de Provas:** Algoritmo para montar avaliações baseadas em equilíbrio de dificuldade (ex: 20% Difícil, 50% Médio, 30% Fácil).
+* **[/] Gerador Estatístico de Provas:** Algoritmo para montar avaliações baseadas em equilíbrio de dificuldade (ex: 20% Difícil, 50% Médio, 30% Fácil).
 * **[x] Banco Compartilhado (Comunidade):** Sistema global de troca de questões entre usuários. *(Concluído)*
 
 ## 2. Analytics & Suporte Pedagógico (Dashboard 2.0)
@@ -39,6 +39,14 @@ Melhorias na infraestrutura para garantir escalabilidade.
 * **[ ] Sincronização Delta (Firestore):** Otimizar o `model.js` para atualizar apenas campos modificados no Firebase, reduzindo o consumo de dados e custo de escrita.
 * **[ ] Resolução de Conflitos Offline:** Implementar lógica de timestamp para decidir qual versão prevalece quando o professor edita o mesmo dado em múltiplos dispositivos offline.
 * **[ ] Refatoração de Persistência (DRY):** Centralizar as chamadas de `saveLocal` e `firebaseService` em um único orquestrador dentro do Model.
+
+## 8. Padrões de Código & Manutenibilidade ✅
+Padronização de nomenclatura e segurança implementada
+
+* **[x] Convenções de Nomenclatura:** Implementado guia completo de nomes consistentes (`turmaId`, `nomeProf`, `dataIso`, etc.). Ver [NAMING_CONVENTIONS.md](NAMING_CONVENTIONS.md)
+* **[x] Proteção XSS:** Implementado escape de todas as variáveis de usuário em `innerHTML`. Ver resumo em [STANDARDIZATION_COMPLETE.md](STANDARDIZATION_COMPLETE.md)
+* **[ ] ESLint Configuration:** Adicionar regras de linting para validar nomenclatura automaticamente
+* **[ ] Unit Tests:** Criar testes para validar nomenclatura e XSS patterns
 
 ---
 **Legenda:**

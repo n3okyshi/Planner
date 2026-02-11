@@ -298,11 +298,11 @@ export const bnccView = {
         const list = nivel === "Educação Infantil" ? (dados.campos_experiencia || dados.componentes || []) : (dados.componentes || []);
         const listaComponentes = list.map(c => c.nome);
 
-        compSelect.innerHTML = `<option value="">Todos</option>` + listaComponentes.map(c => `<option value="${c}">${c}</option>`).join('');
+        compSelect.innerHTML = `<option value="">Todos</option>` + listaComponentes.map(c => `<option value="${window.escapeHTML(c)}">${window.escapeHTML(c)}</option>`).join('');
         compSelect.disabled = false;
         compSelect.classList.replace('bg-slate-50', 'bg-white');
 
-        anoSelect.innerHTML = `<option value="">Todos</option>` + anos.map(a => `<option value="${a}">${a}</option>`).join('');
+        anoSelect.innerHTML = `<option value="">Todos</option>` + anos.map(a => `<option value="${window.escapeHTML(a)}">${window.escapeHTML(a)}</option>`).join('');
         anoSelect.disabled = false;
         anoSelect.classList.replace('bg-slate-50', 'bg-white');
     },
@@ -334,7 +334,7 @@ export const bnccView = {
         }
 
         if (eixosEncontrados.length > 0) {
-            eixoSelect.innerHTML = `<option value="">Todos os Eixos</option>` + eixosEncontrados.map(e => `<option value="${e}">${e}</option>`).join('');
+            eixoSelect.innerHTML = `<option value="">Todos os Eixos</option>` + eixosEncontrados.map(e => `<option value="${window.escapeHTML(e)}">${window.escapeHTML(e)}</option>`).join('');
             eixoSelect.disabled = false;
             eixoSelect.classList.replace('bg-slate-50', 'bg-white');
         } else {
@@ -468,7 +468,7 @@ export const bnccView = {
                         class="shrink-0 bg-emerald-50 text-emerald-600 hover:bg-emerald-600 hover:text-white border border-emerald-200 px-4 py-2 rounded-lg transition-all text-xs font-bold flex flex-col items-center gap-1 min-w-[70px]">
                     <i class="fas fa-plus text-sm"></i><span class="text-[9px] uppercase">Usar</span>
                 </button>` :
-                `<button onclick="bnccView.copiarParaAreaTransferencia('${item.codigo}', '${item.descricao.replace(/'/g, "\\'").replace(/"/g, '&quot;')}')" 
+                `<button onclick="bnccView.copiarParaAreaTransferencia('${window.escapeHTML(item.codigo)}', '${window.escapeHTML(item.descricao).replace(/'/g, "\\'")}')" 
                     class="shrink-0 text-slate-400 hover:text-primary p-2 transition-colors hover:bg-slate-50 rounded-xl" title="Copiar habilidade">
                     <i class="far fa-copy text-xl"></i>
                 </button>`;
@@ -478,13 +478,13 @@ export const bnccView = {
                     <div class="flex justify-between items-start gap-4">
                         <div class="flex-1">
                             <div class="flex items-center flex-wrap gap-2 mb-3">
-                                <span class="text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest" style="background-color: ${cor} !important;">${item.codigo}</span>
-                                <span class="text-slate-400 text-[9px] font-bold uppercase tracking-wider border border-slate-100 px-1.5 rounded">${item.componente}</span>
-                                <span class="text-slate-400 text-[9px] font-bold uppercase tracking-wider border border-slate-100 px-1.5 rounded">${item.ano}</span>
-                                ${item.eixo && item.eixo !== item.componente ? `<span class="text-slate-500 text-[9px] font-bold bg-slate-50 px-2 py-0.5 rounded uppercase">${item.eixo}</span>` : ''}
+                                <span class="text-white text-[10px] font-black px-2 py-0.5 rounded uppercase tracking-widest" style="background-color: ${cor} !important;">${window.escapeHTML(item.codigo)}</span>
+                                <span class="text-slate-400 text-[9px] font-bold uppercase tracking-wider border border-slate-100 px-1.5 rounded">${window.escapeHTML(item.componente)}</span>
+                                <span class="text-slate-400 text-[9px] font-bold uppercase tracking-wider border border-slate-100 px-1.5 rounded">${window.escapeHTML(item.ano)}</span>
+                                ${item.eixo && item.eixo !== item.componente ? `<span class="text-slate-500 text-[9px] font-bold bg-slate-50 px-2 py-0.5 rounded uppercase">${window.escapeHTML(item.eixo)}</span>` : ''}
                             </div>
-                            <p class="text-slate-700 text-sm leading-relaxed font-medium">${item.descricao}</p>
-                            ${item.objeto_conhecimento ? `<div class="mt-3 pt-3 border-t border-slate-50 flex items-start gap-2"><i class="fas fa-lightbulb text-yellow-500 text-[10px] mt-1"></i><span class="text-xs text-slate-500 font-medium italic">${item.objeto_conhecimento}</span></div>` : ''}
+                            <p class="text-slate-700 text-sm leading-relaxed font-medium">${window.escapeHTML(item.descricao)}</p>
+                            ${item.objeto_conhecimento ? `<div class="mt-3 pt-3 border-t border-slate-50 flex items-start gap-2"><i class="fas fa-lightbulb text-yellow-500 text-[10px] mt-1"></i><span class="text-xs text-slate-500 font-medium italic">${window.escapeHTML(item.objeto_conhecimento)}</span></div>` : ''}
                         </div>
                         <div class="flex flex-col justify-center pl-2 border-l border-slate-50">${btnAcao}</div>
                     </div>

@@ -130,14 +130,14 @@ export const Toast = {
                 text-transform: uppercase; 
                 white-space: nowrap;
                 margin-left: 8px;">
-                ${action.label}
+                ${window.escapeHTML(action.label)}
             </button>`;
         }
 
         toast.innerHTML = `
             <div style="display: flex; align-items: center; gap: 12px;">
                 <i class="fas ${config.icon}" style="font-size: 18px;"></i>
-                <span style="font-weight: 600; font-size: 14px; line-height: 1.2;">${message}</span>
+                <span style="font-weight: 600; font-size: 14px; line-height: 1.2;">${window.escapeHTML(message)}</span>
             </div>
             ${actionBtnHtml}
         `;
