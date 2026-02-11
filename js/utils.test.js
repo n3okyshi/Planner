@@ -58,3 +58,34 @@ test('normalizeText', async (t) => {
         assert.strictEqual(normalizeText("  test  "), "  test  ");
     });
 });
+
+test('escapeHTML', async (t) => {
+    await t.test('should return empty string for null/undefined/empty input', () => {
+        assert.strictEqual(escapeHTML(null), '');
+        assert.strictEqual(escapeHTML(undefined), '');
+        assert.strictEqual(escapeHTML(''), '');
+    });
+
+    await t.test('should return original string if no special characters', () => {
+        const safeString = 'Hello World 123';
+        assert.strictEqual(escapeHTML(safeString), safeString);
+    });
+
+    await t.test('should escape special characters', () => {
+        const input = '& < > " \'';
+        const expected = '&amp; &lt; &gt; &quot; &#39;';
+        assert.strictEqual(escapeHTML(input), expected);
+    });
+
+    await t.test('should escape mixed content', () => {
+        const input = '<script>alert("xss")</script>';
+        const expected = '&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;';
+        assert.strictEqual(escapeHTML(input), expected);
+    });
+
+    await t.test('should escape repeated special characters', () => {
+        const input = '<<<>>>&&&"""\'\'\'';
+        const expected = '&lt;&lt;&lt;&gt;&gt;&gt;&amp;&amp;&amp;&quot;&quot;&quot;&#39;&#39;&#39;';
+        assert.strictEqual(escapeHTML(input), expected);
+    });
+});
