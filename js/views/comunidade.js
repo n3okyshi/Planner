@@ -16,15 +16,15 @@ import { Toast } from '../components/toast.js';
 export const comunidadeView = {
     questoes: [],
     filtroMateria: '',
-    
+
     // --- Estado da Paginação ---
     itensPorPagina: 20,     // Padrão: 20 itens
     paginaAtual: 1,         // Página atual
     ultimoDoc: null,        // Cursor para a próxima página
     primeiroDoc: null,      // Cursor auxiliar
-    historicoPaginas: [],   // Pilha para permitir voltar à página anterior
+    paginasCache: new Map(),// Cache de páginas visitadas para navegação rápida
     totalCarregado: 0,
-    
+
     /**
      * Helper para renderizar estrelas de dificuldade (Visualização).
      * @private
@@ -40,9 +40,9 @@ export const comunidadeView = {
             }
             estrelas += `<i class="fas fa-star ${cor} text-[10px]"></i>`;
         }
-        
+
         const labels = ["Não definida", "Fácil", "Média", "Difícil"];
-        
+
         return `
             <div class="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100" title="Dificuldade original: ${labels[n] || labels[0]}">
                 ${estrelas}
@@ -63,11 +63,11 @@ export const comunidadeView = {
                     <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Comunidade</h2>
                     <p class="text-slate-500">Explore e importe questões compartilhadas por outros professores.</p>
                 </div>
-                
+
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-4 mb-6">
-                    <input type="text" id="search-comunidade" placeholder="Buscar por tema..." 
+                    <input type="text" id="search-comunidade" placeholder="Buscar por tema..."
                            class="md:col-span-5 p-4 rounded-xl border border-slate-200 outline-none focus:border-primary shadow-sm bg-white focus:ring-4 focus:ring-primary/5 transition-all">
-                    
+
                     <select id="filter-materia" onchange="comunidadeView.setFiltro(this.value)"
                             class="md:col-span-3 p-4 rounded-xl border border-slate-200 outline-none cursor-pointer shadow-sm bg-white focus:border-primary">
                         <option value="">Todas as matérias</option>
@@ -75,8 +75,8 @@ export const comunidadeView = {
                             <option value="${m}" ${this.filtroMateria === m ? 'selected' : ''}>${m}</option>
                         `).join('')}
                     </select>
-                    
-                    <button onclick="comunidadeView.novaBusca()" 
+
+                    <button onclick="comunidadeView.novaBusca()"
                             class="md:col-span-2 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition shadow-md flex items-center justify-center gap-2 active:scale-95 py-3 md:py-0">
                         <i class="fas fa-search"></i> Buscar
                     </button>
@@ -90,7 +90,7 @@ export const comunidadeView = {
                         </select>
                     </div>
                 </div>
-                
+
                 <div id="comunidade-results" class="grid grid-cols-1 md:grid-cols-2 gap-6 min-h-[300px]">
                     </div>
 
@@ -99,11 +99,11 @@ export const comunidadeView = {
                             class="px-4 py-2 rounded-lg border border-slate-200 text-slate-500 font-bold text-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2">
                         <i class="fas fa-chevron-left"></i> Anterior
                     </button>
-                    
+
                     <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">
                         Página <span id="page-num" class="text-indigo-600 text-sm">${this.paginaAtual}</span>
                     </span>
-                    
+
                     <button onclick="comunidadeView.proximaPagina()" id="btn-next-page" disabled
                             class="px-4 py-2 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 font-bold text-sm hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2">
                         Próxima <i class="fas fa-chevron-right"></i>
@@ -111,9 +111,9 @@ export const comunidadeView = {
                 </div>
             </div>
         `;
-        
+
         container.innerHTML = html;
-        
+
         // Dispara a busca inicial automaticamente para mostrar as últimas 20
         if (this.questoes.length === 0) {
             this.novaBusca();
@@ -128,7 +128,7 @@ export const comunidadeView = {
      */
     async novaBusca() {
         this.paginaAtual = 1;
-        this.historicoPaginas = []; // Limpa o histórico de cursores
+        this.paginasCache.clear(); // Limpa o cache
         this.ultimoDoc = null;
         await this.buscar('inicio');
     },
@@ -149,12 +149,12 @@ export const comunidadeView = {
 
         try {
             let ref = firebaseService.db.collection('comunidade_questoes');
-            
+
             // Aplica filtros básicos
             if (filtro) {
                 ref = ref.where('materia', '==', filtro);
             }
-            
+
             // Ordenação padrão por data (mais recentes primeiro)
             ref = ref.orderBy('data_partilha', 'desc');
 
@@ -168,7 +168,7 @@ export const comunidadeView = {
             // Define o limite (Limitamos a +1 para saber se existe uma próxima página)
             const limiteQuery = Number(this.itensPorPagina);
             const snapshot = await ref.limit(limiteQuery).get();
-            
+
             // Processa resultados
             let resultados = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
@@ -177,7 +177,7 @@ export const comunidadeView = {
             // Para uma solução perfeita precisaria de Algolia, mas para Vanilla JS isto serve.
             if (termoBusca) {
                 const termo = termoBusca.toLowerCase();
-                resultados = resultados.filter(q => 
+                resultados = resultados.filter(q =>
                     (q.enunciado && q.enunciado.toLowerCase().includes(termo)) ||
                     (q.materia && q.materia.toLowerCase().includes(termo))
                 );
@@ -192,13 +192,21 @@ export const comunidadeView = {
             }
 
             this.questoes = resultados;
+
+            // Salva no cache
+            this.paginasCache.set(this.paginaAtual, {
+                questoes: [...this.questoes],
+                ultimoDoc: this.ultimoDoc,
+                totalCarregado: this.totalCarregado
+            });
+
             this.renderLista();
-            
+
             if (paginationControls) {
                 paginationControls.classList.remove('hidden');
                 this.atualizarBotoesPaginacao();
             }
-            
+
         } catch (error) {
             console.error("Erro na busca da comunidade:", error);
             if (error.code === 'failed-precondition') {
@@ -211,57 +219,61 @@ export const comunidadeView = {
     },
 
     /**
+     * Helper para restaurar uma página do cache.
+     * @private
+     */
+    _carregarPaginaDoCache(numPagina) {
+        if (!this.paginasCache.has(numPagina)) return false;
+
+        const dados = this.paginasCache.get(numPagina);
+        this.questoes = dados.questoes;
+        this.ultimoDoc = dados.ultimoDoc;
+        this.totalCarregado = dados.totalCarregado;
+        this.paginaAtual = numPagina;
+
+        this.renderLista();
+        this.atualizarBotoesPaginacao();
+        return true;
+    },
+
+    /**
      * Avança para a próxima página.
      */
     async proximaPagina() {
+        const proxima = this.paginaAtual + 1;
+
+        // Tenta carregar do cache primeiro
+        if (this._carregarPaginaDoCache(proxima)) {
+            return;
+        }
+
         if (!this.ultimoDoc) return;
-        
-        // Guarda o cursor atual na pilha antes de avançar
-        // Para voltar, precisamos saber onde COMEÇOU esta página
-        // Simplificação: Guardamos o ultimoDoc da página anterior
-        this.historicoPaginas.push(this.ultimoDoc); 
-        
+
         this.paginaAtual++;
         await this.buscar('proxima');
         this.atualizarUIContadores();
     },
 
     /**
-     * Volta para a página anterior.
-     * Nota: Firestore não tem "prev()", então reiniciamos ou usamos histórico.
-     * Para simplificar sem cache complexo, re-executamos a query recuando o cursor.
+     * Volta para a página anterior usando cache.
      */
     async paginaAnterior() {
         if (this.paginaAtual <= 1) return;
 
-        this.paginaAtual--;
-        
-        // Remove o último cursor (da página que acabamos de sair)
-        this.historicoPaginas.pop(); 
-        
-        // O cursor para a query agora é o penúltimo da pilha (ou null se for a página 1)
-        const cursorAnterior = this.historicoPaginas.length > 0 ? this.historicoPaginas[this.historicoPaginas.length - 1] : null;
-        
-        // Hack: Definimos o ultimoDoc manualmente para o cursor anterior e chamamos 'proxima'
-        // ou reiniciamos se for a capa.
-        
-        // A forma mais robusta sem cache complexo em "Vanilla" simples é:
-        // Se voltarmos à página 1, resetamos. Se não, idealmente teríamos cache.
-        // Vamos forçar um reset se for página 1, senão tentamos usar o cursor.
-        
-        if (this.paginaAtual === 1) {
+        const anterior = this.paginaAtual - 1;
+
+        // Tenta carregar do cache
+        if (this._carregarPaginaDoCache(anterior)) {
+            return;
+        }
+
+        // Fallback se não estiver no cache (raro, pois deve ter sido visitada)
+        if (anterior === 1) {
             this.novaBusca();
         } else {
-            // Nota: Paginação reversa perfeita em Firestore requer manter snapshots de inicio.
-            // Para evitar complexidade excessiva, ao voltar, vamos recarregar do zero até a página (não ideal) 
-            // OU simplesmente assumir que o utilizador aceita voltar ao início.
-            
-            // Implementação segura: Botão "Anterior" recarrega página 1 por enquanto para evitar bugs de cursor,
-            // a não ser que tenhamos guardado o snapshot de INICIO da página.
-            
-            // Melhoria UX: Avisar que vai recarregar ou implementar cache de array 'questoes'.
-            window.Toast.show("A voltar ao início...", "info");
-            this.novaBusca(); 
+            // Se perdermos o cache de páginas intermediárias, forçamos reset
+            window.Toast.show("Cache expirado. Voltando ao início.", "info");
+            this.novaBusca();
         }
     },
 
@@ -287,7 +299,7 @@ export const comunidadeView = {
             btnNext.classList.toggle('opacity-50', fimDaLinha);
         }
     },
-    
+
     atualizarUIContadores() {
         const pageNum = document.getElementById('page-num');
         if(pageNum) pageNum.innerText = this.paginaAtual;
@@ -321,7 +333,7 @@ export const comunidadeView = {
                     <div class="flex justify-between items-start mb-4">
                         <div class="flex flex-col gap-2">
                             <div class="flex gap-2">
-                                <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider w-fit" 
+                                <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider w-fit"
                                       style="background-color: ${corMateria}15; color: ${corMateria}">
                                     ${window.escapeHTML(q.materia || 'Geral')}
                                 </span>
@@ -338,13 +350,13 @@ export const comunidadeView = {
                             </span>
                         </div>
                     </div>
-                    
+
                     <div class="text-slate-700 mb-6 flex-grow font-medium text-sm leading-relaxed overflow-hidden">
                         ${q.enunciado ? window.escapeHTML(q.enunciado.substring(0, 300)).replace(/\n/g, '<br>') + (q.enunciado.length > 300 ? '...' : '') : 'Sem texto.'}
                     </div>
-                    
+
                     <div class="pt-4 border-t border-slate-50 mt-auto">
-                        <button onclick="comunidadeView.importarQuestao('${q.id}')" 
+                        <button onclick="comunidadeView.importarQuestao('${q.id}')"
                                 class="w-full py-3 rounded-xl bg-slate-50 text-indigo-600 font-bold text-xs hover:bg-indigo-600 hover:text-white transition-all flex items-center justify-center gap-2 group-hover:bg-indigo-50">
                             <i class="fas fa-file-import"></i> Importar para meu Banco
                         </button>
@@ -366,7 +378,7 @@ export const comunidadeView = {
 
     async importarQuestao(idCloud) {
         const questao = this.questoes.find(q => q.id === idCloud);
-        
+
         if (questao) {
             const novaQuestao = {
                 enunciado: questao.enunciado,
