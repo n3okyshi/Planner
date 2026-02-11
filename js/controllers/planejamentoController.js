@@ -95,11 +95,11 @@ export const planejamentoController = {
     mudarDataDiario(novaData) {
         if (window.diarioView) {
             window.diarioView.currentDate = novaData;
-            
+
             // Atualiza também a referência visual do calendário
             const [ano, mes] = novaData.split('-');
             window.diarioView.viewDate = new Date(parseInt(ano), parseInt(mes) - 1, 1);
-            
+
             window.controller.navigate('dia');
         }
     },
@@ -174,7 +174,7 @@ export const planejamentoController = {
      */
     confirmarCopiaPlanejamento(idOrigem) {
         const idDestino = document.getElementById('select-turma-destino')?.value;
-        
+
         if (idOrigem && idDestino) {
             window.controller.confirmarAcao("Tem certeza?", "O planejamento da turma de destino será substituído.", () => {
                 const sucesso = model.copiarPlanejamentoEntreTurmas(idOrigem, idDestino);
@@ -192,8 +192,8 @@ export const planejamentoController = {
 
     /**
      * Abre o modal seletor da BNCC para o Planejamento Periódico.
-     * @param {string} turmaId 
-     * @param {string|number} periodoIdx 
+     * @param {string} turmaId
+     * @param {string|number} periodoIdx
      * @param {string} nivelHtml - Nome do nível (para display).
      * @param {string} serieHtml - Nome da série (para display).
      */
@@ -219,9 +219,9 @@ export const planejamentoController = {
 
     /**
      * Remove habilidade do planejamento anual com opção de "Desfazer".
-     * @param {string} turmaId 
-     * @param {string|number} periodoIdx 
-     * @param {string} codigoHabilidade 
+     * @param {string} turmaId
+     * @param {string|number} periodoIdx
+     * @param {string} codigoHabilidade
      */
     removeHabilidade(turmaId, periodoIdx, codigoHabilidade) {
         const turma = model.state.turmas.find(t => String(t.id) === String(turmaId));
@@ -229,7 +229,7 @@ export const planejamentoController = {
 
         // Guarda cópia para o "Desfazer"
         const habilidadeRemovida = turma.planejamento[periodoIdx].find(h => h.codigo === codigoHabilidade);
-        
+
         // Remove
         model.removeHabilidadePlanejamento(turmaId, periodoIdx, codigoHabilidade);
 
@@ -249,10 +249,10 @@ export const planejamentoController = {
 
     /**
      * Abre o seletor BNCC para o Planejamento Mensal.
-     * @param {string} turmaId 
+     * @param {string} turmaId
      * @param {string} mes - Nome do mês (ex: "Março").
-     * @param {string} nivelHtml 
-     * @param {string} serieHtml 
+     * @param {string} nivelHtml
+     * @param {string} serieHtml
      */
     openSeletorBnccMensal(turmaId, mes, nivelHtml, serieHtml) {
         const turma = model.state.turmas.find(t => String(t.id) === String(turmaId));
@@ -272,13 +272,13 @@ export const planejamentoController = {
 
     /**
      * Remove uma habilidade do planejamento mensal.
-     * @param {string} turmaId 
-     * @param {string} mes 
-     * @param {string} codigo 
+     * @param {string} turmaId
+     * @param {string} mes
+     * @param {string} codigo
      */
     removeHabilidadeMensal(turmaId, mes, codigo) {
         window.controller.confirmarAcao("Remover?", "Deseja remover esta habilidade do mês?", () => {
-            
+
             model.removeHabilidadeMensal(turmaId, mes, codigo);
 
             // Re-renderiza a view se estiver nela
@@ -288,34 +288,6 @@ export const planejamentoController = {
 
             if (window.Toast) window.Toast.show("Habilidade removida do planejamento mensal.", "info");
         });
-    },
-
-    /**
-     * Lógica de emergência para garantir a remoção.
-     * @deprecated Este método é um fallback e deve ser evitado se o model funcionar corretamente.
-     * @private
-     */
-    _fallbackRemoveHabilidadeMensal(turmaId, mes, codigo) {
-        try {
-            const turmas = model.state.turmas || [];
-            const turma = turmas.find(t => String(t.id) === String(turmaId));
-
-            if (turma && turma.planejamentoMensal && turma.planejamentoMensal[mes]) {
-                turma.planejamentoMensal[mes] = turma.planejamentoMensal[mes].filter(h => String(h.codigo).trim() !== String(codigo).trim());
-
-                model.saveLocal();
-                model.saveCloudRoot();
-
-                if (window.controller.currentView === 'mensal' && window.mensalView) {
-                    window.mensalView.render('view-container');
-                }
-                
-                if (window.Toast) window.Toast.show("Habilidade removida (FB).", "info");
-            }
-        } catch (err) {
-            console.error("Falha no fallback de remoção:", err);
-            Toast.show("Erro ao remover habilidade.", "error");
-        }
     }
 };
 
