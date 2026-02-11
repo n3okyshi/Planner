@@ -22,10 +22,9 @@ test('generateUUID', async (t) => {
         }
     });
 
-    await t.test('should follow expected format (alphanumeric)', () => {
+    await t.test('should follow expected format (alphanumeric or UUID)', () => {
         const uuid = generateUUID();
-        // Date.now().toString(36) is alphanumeric
-        // Math.random().toString(36).substr(2) is alphanumeric
-        assert.match(uuid, /^[a-z0-9]+$/i);
+        // Updated to allow hyphens for standard UUIDs
+        assert.match(uuid, /^[a-z0-9-]+$/i);
     });
 });
