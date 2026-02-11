@@ -4,14 +4,14 @@ from playwright.sync_api import sync_playwright
 def verify(page):
     # Capture console messages
     page.on("console", lambda msg: print(f"Console: {msg.text}"))
-
+    
     cwd = os.getcwd()
     page.goto(f"file://{cwd}/index.html")
     # page.wait_for_load_state("networkidle")
-
+    
     # Wait a bit
     page.wait_for_timeout(2000)
-
+    
     # Check if window.model exists
     exists = page.evaluate("() => typeof window.model !== 'undefined'")
     print(f"window.model exists: {exists}")
@@ -29,16 +29,16 @@ def verify(page):
             });
             window.controller.navigate('dia');
         """)
-
+        
         page.wait_for_timeout(1000)
-
+        
         # Check for buttons
         mic_btn = page.locator("#btn-mic-plan-metodologia")
         if mic_btn.is_visible():
             print("Microphone button found!")
         else:
             print("Microphone button NOT found.")
-
+            
         page.screenshot(path="verification/diario_with_class.png")
         print("Diario screenshot taken.")
 

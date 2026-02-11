@@ -124,16 +124,22 @@ export const firebaseService = {
             // Carregamento de Sub-coleções (Turmas -> Alunos/Avaliações)
             const turmasSnap = await docRef.collection('turmas').get();
             const turmasPromises = turmasSnap.docs.map(async (turmaDoc) => {
-                const turmaData = turmaDoc.data();
-                turmaData.id = turmaDoc.id;
+                const turmaData = {
+                    ...turmaDoc.data(),
+                    id: turmaDoc.id
+                };
 
-                const alunosSnap = await turmaDoc.ref.collection('alunos').get();
+                // Otimização: Carregamento paralelo de sub-coleções (Alunos e Avaliações) para reduzir latência
+                const [alunosSnap, avSnap] = await Promise.all([
+                    turmaDoc.ref.collection('alunos').get(),
+                    turmaDoc.ref.collection('avaliacoes').get()
+                ]);
+
                 turmaData.alunos = alunosSnap.docs.map(alunoDoc => ({
                     ...alunoDoc.data(),
                     id: alunoDoc.id
                 }));
 
-                const avSnap = await turmaDoc.ref.collection('avaliacoes').get();
                 turmaData.avaliacoes = avSnap.docs.map(avDoc => ({
                     ...avDoc.data(),
                     id: avDoc.id

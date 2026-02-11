@@ -15,7 +15,7 @@ import { Toast } from '../components/toast.js';
 export const frequenciaView = {
     currentTurmaId: null,
     currentDate: new Date(),
-    
+
     // Estado do Modo Chamada Rápida (Swipe)
     chamadaAtiva: false,
     alunoIndex: 0,
@@ -30,7 +30,7 @@ export const frequenciaView = {
         if (!container) return;
 
         const turmas = model.state.turmas || [];
-        
+
         // Seleção automática da primeira turma válida
         if (!this.currentTurmaId && turmas.length > 0) {
             this.currentTurmaId = turmas[0].id;
@@ -91,12 +91,19 @@ export const frequenciaView = {
                 ${turmaSelecionada ? this.renderTabela(turmaSelecionada, ano, mes, diasNoMes) : this.estadoVazio()}
             </div>
 
-            <div id="chamada-rapida-overlay" class="fixed inset-0 bg-slate-900/90 z-[9999] hidden flex items-center justify-center backdrop-blur-sm p-6 transition-opacity duration-300">
-                <div id="chamada-card-container" class="w-full max-w-md aspect-[3/4] relative">
+            <div id="chamada-rapida-overlay" class="fixed inset-0 bg-slate-900/95 z-[9999] hidden flex flex-col items-center justify-center backdrop-blur-sm p-4 transition-opacity duration-300">
+                <div class="w-full max-w-md flex flex-col items-center justify-center h-full max-h-[90vh]">
+                    
+                    <div id="chamada-card-container" class="w-full flex-1 relative flex items-center justify-center min-h-0">
+                        </div>
+
+                    <button onclick="frequenciaView.finalizarChamada()" class="mt-6 text-white/50 hover:text-white text-xs font-bold uppercase tracking-widest transition-colors py-4 px-8 border border-white/10 rounded-full hover:bg-white/10 shrink-0">
+                        <i class="fas fa-times mr-1"></i> Cancelar Chamada
+                    </button>
                 </div>
             </div>
         `;
-        
+
         container.innerHTML = html;
         this.autoScrollParaHoje(ano, mes);
     },
@@ -109,7 +116,7 @@ export const frequenciaView = {
 
             const elHoje = document.getElementById('dia-hoje');
             const scrollContainer = document.getElementById('scroll-frequencia');
-            
+
             if (elHoje && scrollContainer) {
                 const scrollPos = elHoje.offsetLeft - (scrollContainer.clientWidth / 2) + (elHoje.clientWidth / 2);
                 scrollContainer.scrollTo({ left: scrollPos, behavior: 'smooth' });
@@ -122,7 +129,7 @@ export const frequenciaView = {
     iniciarChamada() {
         const turmas = model.state.turmas || [];
         const turma = turmas.find(t => String(t.id) === String(this.currentTurmaId));
-        
+
         if (!turma || !turma.alunos || turma.alunos.length === 0) {
             return Toast.show("Não há alunos para realizar a chamada.", "warning");
         }
@@ -138,7 +145,7 @@ export const frequenciaView = {
         const turmas = model.state.turmas || [];
         const turma = turmas.find(t => String(t.id) === String(this.currentTurmaId));
         const container = document.getElementById('chamada-card-container');
-        
+
         if (this.alunoIndex >= turma.alunos.length) {
             this.finalizarChamada();
             return;
@@ -146,30 +153,29 @@ export const frequenciaView = {
 
         const aluno = turma.alunos[this.alunoIndex];
 
+        // ALTERAÇÃO: Removido o botão de cancelar de dentro do card
+        // O card agora usa max-h-full e aspect-ratio ajustável para caber na tela
         container.innerHTML = `
-            <div id="chamada-card" class="w-full h-full bg-white rounded-[2rem] shadow-2xl flex flex-col items-center justify-center p-8 text-center touch-none select-none transition-transform duration-300 transform cursor-grab active:cursor-grabbing">
-                <div class="mb-6 pointer-events-none">
-                    <div class="w-32 h-32 rounded-full bg-slate-100 flex items-center justify-center text-4xl font-black text-primary border-4 border-slate-50 mb-4 mx-auto shadow-inner">
+            <div id="chamada-card" class="w-full max-h-full aspect-[3/4] bg-white rounded-[2rem] shadow-2xl flex flex-col items-center justify-center p-4 md:p-8 text-center touch-none select-none transition-transform duration-300 transform cursor-grab active:cursor-grabbing relative overflow-hidden">
+                
+                <div class="flex-1 flex flex-col items-center justify-center pointer-events-none w-full">
+                    <div class="w-24 h-24 md:w-32 md:h-32 rounded-full bg-slate-100 flex items-center justify-center text-3xl md:text-4xl font-black text-primary border-4 border-slate-50 mb-4 shadow-inner shrink-0">
                         ${aluno.nome.charAt(0)}
                     </div>
                     <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Aluno ${this.alunoIndex + 1} de ${turma.alunos.length}</p>
-                    <h3 class="text-2xl font-bold text-slate-800 line-clamp-2">${window.escapeHTML(aluno.nome)}</h3>
+                    <h3 class="text-xl md:text-2xl font-bold text-slate-800 line-clamp-2 px-2">${window.escapeHTML(aluno.nome)}</h3>
                 </div>
                 
-                <div class="flex gap-4 w-full mt-10 pointer-events-none">
-                    <div class="flex-1 border-2 border-dashed border-red-100 rounded-2xl p-4 bg-red-50/30">
-                        <i class="fas fa-arrow-left text-red-300 mb-1 text-xl"></i>
-                        <p class="text-[9px] font-bold text-red-400 uppercase">Arraste para Falta</p>
+                <div class="flex gap-2 md:gap-4 w-full mt-auto pt-4 pointer-events-none shrink-0">
+                    <div class="flex-1 border-2 border-dashed border-red-100 rounded-2xl p-3 bg-red-50/30">
+                        <i class="fas fa-arrow-left text-red-300 mb-1 text-lg"></i>
+                        <p class="text-[9px] font-bold text-red-400 uppercase">Falta</p>
                     </div>
-                    <div class="flex-1 border-2 border-dashed border-emerald-100 rounded-2xl p-4 bg-emerald-50/30">
-                        <i class="fas fa-arrow-right text-emerald-300 mb-1 text-xl"></i>
-                        <p class="text-[9px] font-bold text-emerald-400 uppercase">Arraste para Presença</p>
+                    <div class="flex-1 border-2 border-dashed border-emerald-100 rounded-2xl p-3 bg-emerald-50/30">
+                        <i class="fas fa-arrow-right text-emerald-300 mb-1 text-lg"></i>
+                        <p class="text-[9px] font-bold text-emerald-400 uppercase">Presença</p>
                     </div>
                 </div>
-
-                <button onclick="frequenciaView.finalizarChamada()" class="absolute -bottom-16 left-1/2 -translate-x-1/2 text-white/50 hover:text-white text-xs font-bold uppercase tracking-widest transition-colors p-4">
-                    <i class="fas fa-times mr-1"></i> Cancelar Chamada
-                </button>
             </div>
         `;
 
@@ -200,7 +206,7 @@ export const frequenciaView = {
 
             if (diffX > 60) overlay.style.backgroundColor = 'rgba(16, 185, 129, 0.8)';
             else if (diffX < -60) overlay.style.backgroundColor = 'rgba(239, 68, 68, 0.8)';
-            else overlay.style.backgroundColor = 'rgba(15, 23, 42, 0.9)';
+            else overlay.style.backgroundColor = 'rgba(15, 23, 42, 0.95)';
         };
 
         const handleEnd = (e) => {
@@ -218,7 +224,7 @@ export const frequenciaView = {
             } else {
                 card.style.transition = 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
                 card.style.transform = '';
-                overlay.style.backgroundColor = 'rgba(15, 23, 42, 0.9)';
+                overlay.style.backgroundColor = 'rgba(15, 23, 42, 0.95)';
             }
         };
 
@@ -227,7 +233,7 @@ export const frequenciaView = {
         card.addEventListener('touchend', handleEnd);
 
         card.addEventListener('mousedown', handleStart);
-        
+
         const mouseMoveHandler = (e) => handleMove(e);
         const mouseUpHandler = (e) => {
             handleEnd(e);
@@ -265,7 +271,7 @@ export const frequenciaView = {
 
         setTimeout(() => {
             this.alunoIndex++;
-            if (overlay) overlay.style.backgroundColor = 'rgba(15, 23, 42, 0.9)';
+            if (overlay) overlay.style.backgroundColor = 'rgba(15, 23, 42, 0.95)';
             this.renderProximoAluno();
         }, 300);
     },
@@ -274,10 +280,10 @@ export const frequenciaView = {
         this.chamadaAtiva = false;
         const overlay = document.getElementById('chamada-rapida-overlay');
         if (overlay) overlay.classList.add('hidden');
-        
+
         model.saveLocal();
         model.saveCloudRoot();
-        
+
         this.render('view-container');
         Toast.show("Chamada finalizada e salva!", "success");
     },
@@ -304,7 +310,12 @@ export const frequenciaView = {
             `;
         }
 
-        const linhasAlunos = turma.alunos.map(aluno => {
+        // --- MELHORIA APLICADA: Ordenação Alfabética ---
+        const alunosOrdenados = [...turma.alunos].sort((a, b) => {
+            return a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' });
+        });
+
+        const linhasAlunos = alunosOrdenados.map(aluno => {
             let colunas = '';
             for (let d = 1; d <= diasNoMes; d++) {
                 const mesFmt = (mes + 1).toString().padStart(2, '0');
@@ -376,24 +387,21 @@ export const frequenciaView = {
     },
 
     getIconeStatus(status) {
-        // Correção para exibir estado vazio corretamente
-        if (status === null || status === undefined || status === '') { 
-            return `<span class="w-2 h-2 rounded-full bg-slate-200 opacity-50"></span>`; 
+        if (status === null || status === undefined || status === '') {
+            return `<span class="w-2 h-2 rounded-full bg-slate-200 opacity-50"></span>`;
         }
         if (status === 'P') return `<i class="fas fa-check text-emerald-500 text-lg"></i>`;
         if (status === 'F') return `<i class="fas fa-times text-red-500 text-lg"></i>`;
         if (status === 'J') return `<span class="text-xs font-black text-yellow-600 bg-yellow-100 px-1.5 py-0.5 rounded border border-yellow-200">J</span>`;
-        
+
         return `<span class="w-2 h-2 rounded-full bg-slate-200 opacity-50"></span>`;
     },
 
     toggleStatus(turmaId, alunoId, dataIso, element) {
-        // Usa o método do model para alternar e persistir (P -> F -> J -> null)
         const novoStatus = model.toggleFrequencia(turmaId, alunoId, dataIso);
-        
-        // Atualiza UI instantaneamente com o novo ícone
+
         element.innerHTML = this.getIconeStatus(novoStatus);
-        
+
         element.classList.add('scale-125');
         setTimeout(() => element.classList.remove('scale-125'), 150);
     },

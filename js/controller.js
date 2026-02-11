@@ -137,7 +137,7 @@ export const controller = {
                 authController.updateSidebarUserArea();
             } catch (e) {
                 console.error(`Erro na view ${target}:`, e);
-                container.innerHTML = `<div class="p-4 text-red-500">Erro ao carregar a view: ${e.message}</div>`;
+                container.innerHTML = `<div class="p-4 text-red-500">Erro ao carregar a view: ${window.escapeHTML(e.message)}</div>`;
             }
         }, 50);
     },
@@ -286,7 +286,7 @@ export const controller = {
             calendarioView.openDayOptions(data); 
         } else {
             const tiposHtml = Object.entries(model.tiposEventos).map(([key, valor]) => 
-                `<option value="${key}">${valor.label}</option>`
+                `<option value="${window.escapeHTML(key)}">${window.escapeHTML(valor.label)}</option>`
             ).join('');
 
             const html = `

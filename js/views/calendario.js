@@ -125,7 +125,7 @@ export const calendarioView = {
             .map(([key, estilo]) => `
                 <div class="flex items-center gap-2 p-2 ${isPrint ? '' : 'bg-white border border-slate-100 shadow-sm'} rounded-lg">
                     <div class="w-4 h-4 rounded-md shadow-sm shrink-0 ${estilo.bg} border ${estilo.border} print:border-2"></div>
-                    <span class="${isPrint ? 'text-[9px]' : 'text-[10px]'} font-bold text-slate-600 uppercase tracking-wide truncate" title="${estilo.label}">${estilo.label}</span>
+                    <span class="${isPrint ? 'text-[9px]' : 'text-[10px]'} font-bold text-slate-600 uppercase tracking-wide truncate" title="${window.escapeHTML(estilo.label)}">${window.escapeHTML(estilo.label)}</span>
                 </div>
             `).join('');
     },
@@ -159,9 +159,9 @@ export const calendarioView = {
             if (evento) {
                 // Recupera configuração do Model
                 const configEvento = model.tiposEventos[evento.tipo];
-                if (configEvento) {
+                    if (configEvento) {
                     estiloCor = `${configEvento.bg} ${configEvento.text} font-bold ring-1 ring-inset ${configEvento.border}`;
-                    tooltipText = `${configEvento.label}: ${safeHTML(evento.descricao)}`;
+                    tooltipText = `${window.escapeHTML(configEvento.label)}: ${safeHTML(evento.descricao)}`;
                 } else {
                     estiloCor = "bg-gray-100 text-gray-500 font-bold border border-gray-200";
                     tooltipText = `Evento: ${safeHTML(evento.descricao)}`;
@@ -190,7 +190,7 @@ export const calendarioView = {
         return `
             <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow h-full flex flex-col break-inside-avoid print:border print:shadow-none print:p-2">
                 <h3 class="font-bold text-slate-800 mb-2 text-center border-b border-slate-50 pb-2 uppercase tracking-widest text-xs flex justify-between items-center px-2">
-                    <span>${nome}</span>
+                    <span>${window.escapeHTML(nome)}</span>
                 </h3>
                 <div class="grid grid-cols-7 gap-1 text-[9px] font-black text-slate-400 text-center mb-1 uppercase">
                     <div class="text-red-300">D</div>

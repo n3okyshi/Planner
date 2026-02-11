@@ -18,14 +18,15 @@ export const turmasView = {
     /**
      * Renderiza a lista de turmas.
      * @param {HTMLElement|string} container
+     * @param {HTMLElement|string} container 
      */
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
-
+        
         this.confirmandoExclusao = null;
         const turmas = model.state.turmas || [];
-
+        
         const html = `
             <div class="fade-in pb-20">
                 <div class="flex justify-between items-center mb-8 border-b border-slate-200 pb-6">
@@ -52,7 +53,7 @@ export const turmasView = {
                 }
             </div>
         `;
-
+        
         container.innerHTML = html;
     },
 
@@ -63,9 +64,9 @@ export const turmasView = {
     _renderCardTurma(turma) {
         // Extrai apenas os números da série para o ícone (ex: "6º Ano" -> "6")
         const serieNum = turma.serie ? turma.serie.replace(/\D/g, '') : '?';
-
+        
         return `
-            <div onclick="controller.views['turmas'].renderDetalhesTurma('view-container', '${turma.id}')"
+            <div onclick="controller.views['turmas'].renderDetalhesTurma('view-container', '${turma.id}')" 
                  class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 cursor-pointer hover:shadow-md hover:border-primary/30 transition group relative overflow-hidden">
                 <div class="flex justify-between items-start mb-4">
                     <div class="w-12 h-12 rounded-xl bg-blue-50 text-primary flex items-center justify-center text-xl font-bold group-hover:bg-primary group-hover:text-white transition-colors">
@@ -97,11 +98,11 @@ export const turmasView = {
         if (this.confirmandoExclusao === turmaId) {
             return `
                 <div class="flex items-center gap-2 animate-bounce-in">
-                    <button onclick="controller.deleteTurma('${turmaId}')"
+                    <button onclick="controller.deleteTurma('${turmaId}')" 
                             class="bg-red-500 text-white px-3 py-2 rounded-xl text-sm font-bold hover:bg-red-600 transition shadow-md flex items-center gap-2">
                         <i class="fas fa-exclamation-circle"></i> Confirmar?
                     </button>
-                    <button onclick="turmasView.cancelarExclusao('${turmaId}')"
+                    <button onclick="turmasView.cancelarExclusao('${turmaId}')" 
                             class="w-10 h-10 flex items-center justify-center bg-slate-100 text-slate-500 rounded-xl hover:bg-slate-200 transition"
                             title="Cancelar">
                         <i class="fas fa-times"></i>
@@ -110,7 +111,7 @@ export const turmasView = {
             `;
         }
         return `
-            <button onclick="turmasView.iniciarExclusao('${turmaId}')"
+            <button onclick="turmasView.iniciarExclusao('${turmaId}')" 
                     class="w-10 h-10 flex items-center justify-center bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition"
                     title="Excluir Turma">
                 <i class="fas fa-trash-alt"></i>
@@ -138,7 +139,7 @@ export const turmasView = {
         const stats = this._calcularEstatisticas(turma);
         let gradientParts = [];
         let currentPerc = 0;
-
+        
         const cores = [
             { id: 'vermelho', cor: '#ef4444', label: '1 - 2,99' },
             { id: 'laranja', cor: '#f97316', label: '3 - 4,99' },
@@ -146,7 +147,7 @@ export const turmasView = {
             { id: 'ciano', cor: '#06b6d4', label: '7 - 8,99' },
             { id: 'verde', cor: '#10b981', label: '9 - 10' }
         ];
-
+        
         cores.forEach(c => {
             const count = stats.distribuicao[c.id];
             const perc = stats.totalAlunos > 0 ? (count / stats.totalAlunos) * 100 : 0;
@@ -155,11 +156,11 @@ export const turmasView = {
                 currentPerc += perc;
             }
         });
-
+        
         const gradientStyle = gradientParts.length > 0
             ? `background: conic-gradient(${gradientParts.join(', ')});`
             : 'background: #f1f5f9;';
-
+        
         const html = `
             <div class="fade-in pb-20">
                 <div class="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center mb-8">
@@ -190,7 +191,7 @@ export const turmasView = {
 
                 <div class="flex items-center gap-2 mb-6 p-1 bg-slate-100 rounded-2xl w-fit border border-slate-200">
                     ${Array.from({length: numPeriodos}, (_, i) => `
-                        <button onclick="turmasView.mudarPeriodo('${turmaId}', ${i+1})"
+                        <button onclick="turmasView.mudarPeriodo('${turmaId}', ${i+1})" 
                                 class="px-6 py-2 rounded-xl text-xs font-black uppercase tracking-widest transition-all ${this.periodoAtivo === (i+1) ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}">
                             ${i+1}º ${tipoConfig.slice(0,3)}
                         </button>
@@ -232,7 +233,7 @@ export const turmasView = {
                                     <div>
                                         <p class="text-xs font-bold text-orange-700">Atenção Necessária</p>
                                         <p class="text-[10px] text-orange-600 leading-relaxed">
-                                            Há <strong>${stats.distribuicao.vermelho + stats.distribuicao.laranja} alunos</strong> com desempenho abaixo de 5,0.
+                                            Há <strong>${stats.distribuicao.vermelho + stats.distribuicao.laranja} alunos</strong> com desempenho abaixo de 5,0. 
                                             Considere atividades de recuperação.
                                         </p>
                                     </div>
@@ -279,7 +280,7 @@ export const turmasView = {
                                     : turma.alunos.map((aluno, idx) => {
                                         // Calcula a soma apenas das notas do período que está filtrado
                                         const somaPeriodo = avaliacoesFiltradas.reduce((acc, av) => acc + (Number(aluno.notas?.[av.id]) || 0), 0);
-
+                                        
                                         // Análise de Risco Preventivo
                                         const freq = this._calcularFrequencia(aluno);
                                         const totalDistribuido = avaliacoesFiltradas.reduce((acc, av) => acc + Number(av.max), 0);
@@ -303,13 +304,13 @@ export const turmasView = {
                                                     <div class="font-bold text-slate-700 text-sm">${window.escapeHTML(aluno.nome)}</div>
                                                     ${alertaHtml}
                                                 </td>
-
+                                                
                                                 ${avaliacoesFiltradas.map(av => {
                                                     const nota = aluno.notas && aluno.notas[av.id] !== undefined ? aluno.notas[av.id] : '';
                                                     return `
                                                         <td class="p-2 text-center">
-                                                            <input type="number"
-                                                                   value="${nota}"
+                                                            <input type="number" 
+                                                                   value="${nota}" 
                                                                    placeholder="-"
                                                                    onchange="controller.updateNota('${turmaId}', '${aluno.id}', '${av.id}', this.value)"
                                                                    class="w-16 text-center bg-white border border-slate-200 rounded-lg py-1.5 text-sm font-bold text-slate-700 focus:border-primary focus:ring-2 focus:ring-primary/20 outline-none transition-all placeholder:text-slate-200">
@@ -341,7 +342,7 @@ export const turmasView = {
                 </div>
             </div>
         `;
-
+        
         container.innerHTML = html;
     },
 
@@ -359,7 +360,7 @@ export const turmasView = {
         let totalPontos = 0;
         let totalMax = 0;
         let temNota = false;
-
+        
         avaliacoes.forEach(av => {
             if (aluno.notas[av.id] !== undefined && aluno.notas[av.id] !== "") {
                 totalPontos += parseFloat(aluno.notas[av.id]);
@@ -367,7 +368,7 @@ export const turmasView = {
                 temNota = true;
             }
         });
-
+        
         if (!temNota || totalMax === 0) return null;
         // Normaliza para base 10
         return (totalPontos / totalMax) * 10;
@@ -389,12 +390,12 @@ export const turmasView = {
                 verde: 0     // 9-10
             }
         };
-
+        
         if (!turma.alunos || turma.alunos.length === 0) return stats;
-
+        
         let somaMedias = 0;
         let alunosComNota = 0;
-
+        
         turma.alunos.forEach(aluno => {
             const media = this._calcularMediaAluno(aluno, turma.avaliacoes);
 
@@ -408,7 +409,7 @@ export const turmasView = {
                 else stats.distribuicao.verde++;
             }
         });
-
+        
         stats.totalAlunos = alunosComNota;
         stats.mediaGeral = alunosComNota > 0 ? (somaMedias / alunosComNota).toFixed(1) : '-';
         return stats;
@@ -420,12 +421,12 @@ export const turmasView = {
      */
     _calcularFrequencia(aluno) {
         if (!aluno.frequencia) return 100;
-
+        
         const registros = Object.values(aluno.frequencia);
         const presencas = registros.filter(s => s === 'P').length;
         const faltas = registros.filter(s => s === 'F').length;
         const totalAulas = presencas + faltas;
-
+        
         if (totalAulas === 0) return 100;
         return (presencas / totalAulas) * 100;
     },

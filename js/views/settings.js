@@ -33,9 +33,9 @@ export const settingsView = {
         const tipoAtual = config.periodType || 'bimestre';
         const listaPeriodos = model.state.periodosDatas ? (model.state.periodosDatas[tipoAtual] || []) : [];
 
-        // Escape seguro para inputs
-        const safeProfName = config.profName ? config.profName.replace(/"/g, '&quot;') : '';
-        const safeSchoolName = config.schoolName ? config.schoolName.replace(/"/g, '&quot;') : '';
+        // Escape seguro para inputs - nomes padronizados
+        const nomeProfSafe = config.profName ? (window.escapeHTML ? window.escapeHTML(config.profName) : config.profName) : '';
+        const nomeEscolaSafe = config.schoolName ? (window.escapeHTML ? window.escapeHTML(config.schoolName) : config.schoolName) : '';
 
         container.innerHTML = `
             <div class="fade-in max-w-3xl mx-auto pb-20">
@@ -71,7 +71,7 @@ export const settingsView = {
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Nome do Professor(a)</label>
                                 <div class="relative">
                                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><i class="far fa-user"></i></span>
-                                    <input type="text" value="${safeProfName}" placeholder="Como quer ser chamado?"
+                                    <input type="text" value="${nomeProfSafe}" placeholder="Como quer ser chamado?"
                                            class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-primary outline-none transition-all"
                                            onchange="model.state.userConfig.profName = this.value; model.saveLocal(); model.saveCloudRoot();">
                                 </div>
@@ -80,7 +80,7 @@ export const settingsView = {
                                 <label class="block text-xs font-bold text-slate-500 uppercase mb-2">Nome da Escola</label>
                                 <div class="relative">
                                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><i class="fas fa-school"></i></span>
-                                    <input type="text" value="${safeSchoolName}" placeholder="Ex: Escola Estadual..."
+                                    <input type="text" value="${nomeEscolaSafe}" placeholder="Ex: Escola Estadual..."
                                            class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-primary outline-none transition-all"
                                            onchange="model.state.userConfig.schoolName = this.value; model.saveLocal(); model.saveCloudRoot();">
                                 </div>
@@ -116,16 +116,16 @@ export const settingsView = {
                             <div class="grid grid-cols-1 gap-4">
                                 ${listaPeriodos.map((p, idx) => `
                                     <div class="flex flex-col md:flex-row items-center gap-4 p-3 bg-slate-50 rounded-xl border border-slate-100">
-                                        <span class="font-bold text-slate-700 w-24">${p.nome}</span>
+                                        <span class="font-bold text-slate-700 w-24">${window.escapeHTML ? window.escapeHTML(p.nome) : p.nome}</span>
                                         <div class="flex items-center gap-2 flex-1 w-full">
                                             <div class="flex-1">
-                                                <input type="date" value="${p.inicio}" 
+                                                <input type="date" value="${window.escapeHTML ? window.escapeHTML(p.inicio) : p.inicio}" 
                                                     onchange="controller.updatePeriodDate(${idx}, 'inicio', this.value)"
                                                     class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-primary">
                                             </div>
                                             <span class="text-slate-400 text-xs font-bold">ATÉ</span>
                                             <div class="flex-1">
-                                                <input type="date" value="${p.fim}" 
+                                                <input type="date" value="${window.escapeHTML ? window.escapeHTML(p.fim) : p.fim}" 
                                                     onchange="controller.updatePeriodDate(${idx}, 'fim', this.value)"
                                                     class="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-primary">
                                             </div>
@@ -187,18 +187,19 @@ export const settingsView = {
     },
 
     renderLogado(user, lastSyncText) {
-        const safeName = window.escapeHTML ? window.escapeHTML(user.displayName) : user.displayName;
-        const safeEmail = window.escapeHTML ? window.escapeHTML(user.email) : user.email;
-        const avatarUrl = user.photoURL || 'https://ui-avatars.com/api/?name=' + encodeURIComponent(safeName);
+        const nomeSafe = window.escapeHTML ? window.escapeHTML(user.displayName) : user.displayName;
+        const emailSafe = window.escapeHTML ? window.escapeHTML(user.email) : user.email;
+        const nomeEncodado = encodeURIComponent(nomeSafe);
+        const urlFoto = user.photoURL || 'https://ui-avatars.com/api/?name=' + nomeEncodado;
 
         return `
             <div class="flex flex-col md:flex-row items-center justify-between gap-6 animate-slideIn">
                 <div class="flex items-center gap-4">
-                    <img src="${avatarUrl}" 
+                    <img src="${urlFoto}" 
                          class="w-16 h-16 rounded-full border-4 border-emerald-50 shadow-sm" alt="Foto de perfil">
                     <div>
-                        <h4 class="font-bold text-slate-800 text-lg">${safeName}</h4>
-                        <p class="text-sm text-slate-500">${safeEmail}</p>
+                        <h4 class="font-bold text-slate-800 text-lg">${nomeSafe}</h4>
+                        <p class="text-sm text-slate-500">${emailSafe}</p>
                         <div class="flex items-center gap-2 mt-1">
                             <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
                                 <i class="fas fa-check-circle"></i> Sincronizado
@@ -247,7 +248,7 @@ export const settingsView = {
             <button onclick="controller.updatePeriodType('${value}')" 
                     class="border rounded-xl p-4 text-sm font-bold transition-all flex flex-col items-center justify-center gap-2 ${classes}">
                 <i class="fas ${iconClass} text-lg opacity-80"></i>
-                ${label}
+                ${window.escapeHTML ? window.escapeHTML(label) : label}
             </button>
         `;
     },
@@ -257,7 +258,7 @@ export const settingsView = {
         return `
             <div class="flex flex-col items-center gap-2 group cursor-pointer" onclick="controller.updateTheme('${color}')">
                 <button class="w-10 h-10 rounded-full border-2 transition-transform group-hover:scale-110 flex items-center justify-center shadow-sm ${active ? 'ring-2 ring-offset-2 ring-slate-300 scale-110 border-white' : 'border-transparent'}"
-                        style="background-color: ${color};" title="${label}">
+                        style="background-color: ${color};" title="${window.escapeHTML ? window.escapeHTML(label) : label}">
                     ${active ? '<i class="fas fa-check text-white text-xs drop-shadow-md"></i>' : ''}
                 </button>
             </div>

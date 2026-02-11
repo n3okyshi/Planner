@@ -5,7 +5,7 @@ def verify(page):
     cwd = os.getcwd()
     page.goto(f"file://{cwd}/index.html")
     page.wait_for_load_state("networkidle")
-
+    
     # Wait for global model to be exposed
     page.wait_for_function("() => window.model !== undefined")
 
@@ -21,16 +21,16 @@ def verify(page):
         });
         window.controller.navigate('dia');
     """)
-
+    
     page.wait_for_timeout(1000)
-
+    
     # Check for buttons
     mic_btn = page.locator("#btn-mic-plan-metodologia")
     if mic_btn.is_visible():
         print("Microphone button found!")
     else:
         print("Microphone button NOT found.")
-
+        
     page.screenshot(path="verification/diario_with_class.png")
     print("Diario screenshot taken.")
 

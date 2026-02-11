@@ -77,7 +77,7 @@ export const estatisticasProvasView = {
                             <div class="grid grid-cols-2 gap-4">
                                 ${Object.entries(porAno).map(([nome, total]) => `
                                     <div class="p-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                        <div class="text-[10px] font-black text-slate-400 uppercase mb-1 truncate" title="${nome}">${nome}</div>
+                                        <div class="text-[10px] font-black text-slate-400 uppercase mb-1 truncate" title="${window.escapeHTML(nome)}">${window.escapeHTML(nome)}</div>
                                         <div class="text-2xl font-black text-slate-700">${total}</div>
                                     </div>
                                 `).join('')}
@@ -115,6 +115,7 @@ export const estatisticasProvasView = {
      * @returns {string} HTML.
      */
     renderMiniCard(label, valor, icone, bg) {
+        const labelSafe = window.escapeHTML ? window.escapeHTML(label) : label;
         return `
             <div class="p-5 rounded-3xl border border-slate-100 bg-white shadow-sm hover:shadow-md transition-shadow">
                 <div class="flex justify-between items-start mb-2">
@@ -123,7 +124,7 @@ export const estatisticasProvasView = {
                     </div>
                     <span class="text-2xl font-black text-slate-800">${valor}</span>
                 </div>
-                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate" title="${label}">${label}</div>
+                <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider truncate" title="${labelSafe}">${labelSafe}</div>
             </div>
         `;
     },
@@ -140,10 +141,11 @@ export const estatisticasProvasView = {
         // Evita divisão por zero
         const percent = total > 0 ? ((valor / total) * 100).toFixed(1) : 0;
         
+        const labelSafe = window.escapeHTML ? window.escapeHTML(label) : label;
         return `
             <div class="space-y-1">
                 <div class="flex justify-between text-xs font-bold">
-                    <span class="text-slate-600 truncate max-w-[70%]" title="${label}">${label}</span>
+                    <span class="text-slate-600 truncate max-w-[70%]" title="${labelSafe}">${labelSafe}</span>
                     <span class="text-slate-400">${valor} <span class="font-normal opacity-70">(${percent}%)</span></span>
                 </div>
                 <div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">

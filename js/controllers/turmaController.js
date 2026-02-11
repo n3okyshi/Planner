@@ -76,7 +76,7 @@ export const turmaController = {
         };
 
         if (opcoes[nivel]) {
-            select.innerHTML = opcoes[nivel].map(op => `<option value="${op}">${op}</option>`).join('');
+            select.innerHTML = opcoes[nivel].map(op => `<option value="${window.escapeHTML(op)}">${window.escapeHTML(op)}</option>`).join('');
             select.disabled = false;
             select.classList.remove('bg-slate-50');
             select.classList.add('bg-white');
@@ -134,7 +134,7 @@ export const turmaController = {
         window.controller.openModal('Novo Aluno', `
             <div class="p-6">
                 <input type="text" id="input-aluno-nome" placeholder="Nome Completo" class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary mb-4">
-                <button onclick="turmaController.saveAluno('${turmaId}')" class="btn-primary w-full py-3 rounded-xl font-bold">Salvar</button>
+                <button onclick="turmaController.saveAluno('${window.escapeHTML(turmaId)}')" class="btn-primary w-full py-3 rounded-xl font-bold">Salvar</button>
             </div>
         `);
         // Foco automático para agilidade
@@ -207,7 +207,7 @@ export const turmaController = {
             <div class="p-6">
                 <p class="text-xs text-slate-500 mb-2">Cole a lista de nomes (um por linha):</p>
                 <textarea id="input-lote" rows="10" class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary text-sm placeholder:text-slate-300" placeholder="Ana Silva&#10;Bruno Souza&#10;Carlos..."></textarea>
-                <button onclick="turmaController.saveAlunoLote('${turmaId}')" class="btn-primary w-full py-3 rounded-xl font-bold mt-4">Importar</button>
+                <button onclick="turmaController.saveAlunoLote('${window.escapeHTML(turmaId)}')" class="btn-primary w-full py-3 rounded-xl font-bold mt-4">Importar</button>
             </div>
         `);
     },

@@ -89,7 +89,7 @@ export const mensalView = {
                             <i class="fas fa-users absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                             <select onchange="mensalView.mudarTurma(this.value)" 
                                     class="w-full bg-slate-50 border border-slate-200 text-slate-700 font-bold rounded-xl pl-10 pr-4 py-2 outline-none focus:border-primary cursor-pointer hover:bg-slate-100 transition-colors">
-                                ${turmas.map(t => `<option value="${t.id}" ${String(t.id) === String(turmaAtual.id) ? 'selected' : ''}>${t.nome}</option>`).join('')}
+                                ${turmas.map(t => `<option value="${t.id}" ${String(t.id) === String(turmaAtual.id) ? 'selected' : ''}>${window.escapeHTML(t.nome)}</option>`).join('')}
                             </select>
                         </div>
                     </div>
@@ -102,7 +102,7 @@ export const mensalView = {
                                 ${this.currentMes === mes
                                 ? 'bg-primary text-white shadow-lg shadow-primary/30 ring-2 ring-offset-1 ring-primary/20'
                                 : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-100 hover:border-slate-300'}">
-                            ${mes}
+                            ${window.escapeHTML(mes)}
                         </button>
                     `).join('')}
                 </div>
@@ -155,10 +155,10 @@ export const mensalView = {
                                             <div class="absolute inset-0 bg-amber-100/50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                                             <div class="relative z-10">
                                                 <div class="flex justify-between items-start gap-2">
-                                                    <span class="text-[10px] font-bold text-amber-700 bg-amber-100/50 px-1.5 py-0.5 rounded">${h.codigo}</span>
+                                                        <span class="text-[10px] font-bold text-amber-700 bg-amber-100/50 px-1.5 py-0.5 rounded">${window.escapeHTML(h.codigo)}</span>
                                                     <i class="fas fa-plus-circle text-amber-300 group-hover:text-amber-500 transition-colors"></i>
                                                 </div>
-                                                <p class="text-xs text-slate-600 mt-2 line-clamp-3 leading-snug">${h.descricao}</p>
+                                                    <p class="text-xs text-slate-600 mt-2 line-clamp-3 leading-snug">${window.escapeHTML(h.descricao)}</p>
                                             </div>
                                         </div>
                                     `).join('')}
@@ -202,12 +202,12 @@ export const mensalView = {
                  style="border-left-color: ${cor} !important;">
                 <div class="flex justify-between items-start gap-3 mb-2">
                     <div>
-                        <span class="inline-block px-2 py-0.5 rounded text-[10px] font-black text-white uppercase tracking-wider mb-1"
-                              style="background-color: ${cor}">
-                            ${habilidade.codigo}
-                        </span>
+                                                <span class="inline-block px-2 py-0.5 rounded text-[10px] font-black text-white uppercase tracking-wider mb-1"
+                                                            style="background-color: ${cor}">
+                                                        ${window.escapeHTML(habilidade.codigo)}
+                                                </span>
                         <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
-                            ${eixo}
+                            ${window.escapeHTML(eixo)}
                         </p>
                     </div>
                     <button onclick="controller.removeHabilidadeMensal('${turmaId}', '${mes}', '${codigoSafe}')" 
@@ -217,7 +217,7 @@ export const mensalView = {
                     </button>
                 </div>
                 <p class="text-sm text-slate-700 leading-relaxed font-medium">
-                    ${habilidade.descricao}
+                    ${window.escapeHTML(habilidade.descricao)}
                 </p>
             </div>
         `;

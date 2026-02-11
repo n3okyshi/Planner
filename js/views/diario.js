@@ -332,6 +332,7 @@ export const diarioView = {
         const btn = document.getElementById(`btn-mic-${targetId}`);
         const originalColor = btn ? btn.className : '';
 
+        
         if (btn) {
             btn.className = 'text-red-500 animate-pulse';
         }

@@ -252,10 +252,7 @@ export const model = {
 
     // --- Aliases de Compatibilidade (Legacy Support) ---
     /** @deprecated Use saveQuestao */
-    addQuestao(obj) { this.saveQuestao(obj); },
-    
-    /** @deprecated Use saveQuestao */
-    updateQuestao(id, dados) { this.saveQuestao({ ...dados, id }); }
+    addQuestao(obj) { this.saveQuestao(obj); }
 };
 
 // Exposição Global

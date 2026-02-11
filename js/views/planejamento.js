@@ -187,10 +187,10 @@ export const planejamentoView = {
                  style="border-left-color: ${cor} !important;" 
                  title="${descSafe}">
                 <div class="flex justify-between items-start mb-2 gap-2">
-                    <span class="text-[9px] font-black text-white px-1.5 py-0.5 rounded uppercase tracking-wider shadow-sm" 
-                          style="background-color: ${cor}">
-                        ${habilidade.codigo}
-                    </span>
+                                                <span class="text-[9px] font-black text-white px-1.5 py-0.5 rounded uppercase tracking-wider shadow-sm" 
+                                                    style="background-color: ${cor}">
+                                                ${codigoSafe}
+                                        </span>
                     <button onclick="controller.removeHabilidade('${turmaId}', ${periodoIdx}, '${codigoSafe}')" 
                             class="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1"
                             title="Remover">

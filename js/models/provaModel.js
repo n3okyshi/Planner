@@ -120,7 +120,10 @@ export const provaMethods = {
                     5000
                 );
             } else {
-                alert("Esta questão está compartilhada na comunidade. Você deve removê-la de lá antes de apagar do seu banco pessoal.");
+                Toast.show(
+                    "Esta questão está compartilhada na comunidade. Você deve removê-la de lá antes de apagar do seu banco pessoal.",
+                    "warning" // Define o tipo como alerta 
+                );
             }
             return; // Bloqueia exclusão
         }
@@ -234,5 +237,61 @@ export const provaMethods = {
             console.error("❌ Erro ao remover da comunidade:", error);
             window.Toast.show("Não foi possível remover agora.", "error");
         }
+    },
+
+    /**
+     * Algoritmo estatístico para selecionar questões baseado em distribuição de dificuldade.
+     * @param {Object} filtros - { materia, ano }
+     * @param {number} quantidade - Total de questões desejadas
+     * @param {Object} distribuicao - { facil: %, medio: %, dificil: % } (soma 100)
+     * @returns {string[]} Array de IDs selecionados
+     */
+    gerarSelecaoAutomatica(filtros, quantidade, distribuicao) {
+        const todasQuestoes = [
+            ...(this.state.questoes || []),
+            ...(this.state.questoesSistema || [])
+        ];
+
+        const poolCandidatas = todasQuestoes.filter(q => {
+            const matchMateria = !filtros.materia || q.materia === filtros.materia;
+            const matchAno = !filtros.ano || q.ano === filtros.ano;
+            return matchMateria && matchAno;
+        });
+
+        if (poolCandidatas.length === 0) {
+            throw new Error("Nenhuma questão encontrada com os filtros selecionados (Matéria/Ano).");
+        }
+
+        const buckets = {
+            facil: poolCandidatas.filter(q => Number(q.dificuldade) === 1 || Number(q.dificuldade) === 0),
+            medio: poolCandidatas.filter(q => Number(q.dificuldade) === 2),
+            dificil: poolCandidatas.filter(q => Number(q.dificuldade) === 3)
+        };
+
+        const alvoFacil = Math.round(quantidade * (distribuicao.facil / 100));
+        const alvoMedio = Math.round(quantidade * (distribuicao.medio / 100));
+        const alvoDificil = quantidade - alvoFacil - alvoMedio;
+
+        const selecionadas = new Set();
+
+        const pegarAleatorio = (lista, n) => {
+            const embaralhado = lista.sort(() => 0.5 - Math.random());
+            return embaralhado.slice(0, n);
+        };
+
+        const selecionadasFacil = pegarAleatorio(buckets.facil, alvoFacil);
+        const selecionadasMedio = pegarAleatorio(buckets.medio, alvoMedio);
+        const selecionadasDificil = pegarAleatorio(buckets.dificil, alvoDificil);
+
+        [...selecionadasFacil, ...selecionadasMedio, ...selecionadasDificil].forEach(q => selecionadas.add(String(q.id)));
+
+        if (selecionadas.size < quantidade) {
+            const faltam = quantidade - selecionadas.size;
+            const resto = poolCandidatas.filter(q => !selecionadas.has(String(q.id)));
+            const extras = pegarAleatorio(resto, faltam);
+            extras.forEach(q => selecionadas.add(String(q.id)));
+        }
+
+        return Array.from(selecionadas);
     }
 };

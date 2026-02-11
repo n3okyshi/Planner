@@ -328,9 +328,9 @@ export const horarioView = {
         `;
     },
 
-    getTurmaNome(id) {
+    getTurmaNome(turmaId) {
         const turmas = model.state.turmas || [];
-        const turma = turmas.find(t => String(t.id) === String(id));
+        const turma = turmas.find(t => String(t.id) === String(turmaId));
         return turma ? turma.nome : 'Turma Removida';
     },
 
@@ -351,9 +351,12 @@ export const horarioView = {
                     <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Disciplina / Componente</label>
                     <select id="editor-disciplina" class="w-full p-3 border rounded-xl bg-slate-50 outline-none focus:ring-2 focus:ring-primary">
                         <option value="">- Geral -</option>
-                        ${Object.keys(model.coresComponentes || {}).map(disc => `
-                            <option value="${disc}" ${disc === aulaAtual.disciplina ? 'selected' : ''}>${disc}</option>
-                        `).join('')}
+                        ${Object.keys(model.coresComponentes || {}).map(disc => {
+                            const discSafe = window.escapeHTML ? window.escapeHTML(disc) : disc;
+                            return `
+                            <option value="${discSafe}" ${disc === aulaAtual.disciplina ? 'selected' : ''}>${discSafe}</option>
+                        `;
+                        }).join('')}
                     </select>
                 </div>
                 <div class="pt-4 flex gap-2">
