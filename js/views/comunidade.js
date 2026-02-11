@@ -328,6 +328,12 @@ export const comunidadeView = {
             const estrelasHtml = this._renderEstrelasDificuldade(q.dificuldade);
             const autorNome = q.autor ? q.autor.split(' ')[0] : 'Anônimo';
 
+            // Explicit escaping for XSS prevention
+            const materiaEscaped = window.escapeHTML(q.materia || 'Geral');
+            const anoEscaped = window.escapeHTML(q.ano || '');
+            const autorEscaped = window.escapeHTML(autorNome);
+            const idEscaped = window.escapeHTML(JSON.stringify(q.id));
+
             return `
                 <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group flex flex-col h-full animate-pop-in">
                     <div class="flex justify-between items-start mb-4">
@@ -335,7 +341,7 @@ export const comunidadeView = {
                             <div class="flex gap-2">
                                 <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider w-fit" 
                                       style="background-color: ${corMateria}15; color: ${corMateria}">
-                                    ${window.escapeHTML(q.materia || 'Geral')}
+                                    ${materiaEscaped}
                                 </span>
                                 <span class="px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-100 text-slate-500">
                                     ${q.tipo === 'multipla_escolha' ? 'Múltipla' : 'Aberta'}
@@ -344,9 +350,9 @@ export const comunidadeView = {
                             ${estrelasHtml}
                         </div>
                         <div class="text-right">
-                            <span class="block text-[10px] text-slate-400 font-bold uppercase">${window.escapeHTML(q.ano || '')}</span>
+                            <span class="block text-[10px] text-slate-400 font-bold uppercase">${anoEscaped}</span>
                             <span class="text-[10px] text-slate-300 font-medium flex items-center justify-end gap-1">
-                                <i class="fas fa-user-circle"></i> ${window.escapeHTML(autorNome)}
+                                <i class="fas fa-user-circle"></i> ${autorEscaped}
                             </span>
                         </div>
                     </div>
@@ -356,7 +362,7 @@ export const comunidadeView = {
                     </div>
                     
                     <div class="pt-4 border-t border-slate-50 mt-auto">
-                        <button onclick="comunidadeView.importarQuestao('${q.id}')" 
+                        <button onclick="comunidadeView.importarQuestao(${idEscaped})"
                                 class="w-full py-3 rounded-xl bg-slate-50 text-indigo-600 font-bold text-xs hover:bg-indigo-600 hover:text-white transition-all flex items-center justify-center gap-2 group-hover:bg-indigo-50">
                             <i class="fas fa-file-import"></i> Importar para meu Banco
                         </button>
