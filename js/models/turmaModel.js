@@ -328,7 +328,6 @@ export const turmaMethods = {
 
         if (houveMudanca) {
             this.saveLocal();
-            this.saveCloudRoot(); // Sync pesado necessário aqui pois é manutenção estrutural
             console.log("♻️ Avaliações migradas para conter período.");
         }
     },

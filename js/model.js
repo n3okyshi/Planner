@@ -170,13 +170,6 @@ export const model = {
         }
     }, 1000),
 
-    /**
-     * Método legado mantido para compatibilidade, agora apenas chama saveLocal.
-     * @deprecated
-     */
-    saveCloudRoot() {
-        this.saveLocal(); // Redireciona para o fluxo principal
-    },
 
     /**
      * Salva o horário completo (Config + Grade).

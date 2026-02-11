@@ -73,7 +73,7 @@ export const settingsView = {
                                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><i class="far fa-user"></i></span>
                                     <input type="text" value="${nomeProfSafe}" placeholder="Como quer ser chamado?"
                                            class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-primary outline-none transition-all"
-                                           onchange="model.state.userConfig.profName = this.value; model.saveLocal(); model.saveCloudRoot();">
+                                           onchange="model.state.userConfig.profName = this.value; model.saveLocal();">
                                 </div>
                             </div>
                             <div>
@@ -82,7 +82,7 @@ export const settingsView = {
                                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"><i class="fas fa-school"></i></span>
                                     <input type="text" value="${nomeEscolaSafe}" placeholder="Ex: Escola Estadual..."
                                            class="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:border-primary outline-none transition-all"
-                                           onchange="model.state.userConfig.schoolName = this.value; model.saveLocal(); model.saveCloudRoot();">
+                                           onchange="model.state.userConfig.schoolName = this.value; model.saveLocal();">
                                 </div>
                             </div>
                         </div>
