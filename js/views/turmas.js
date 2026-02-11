@@ -17,6 +17,7 @@ export const turmasView = {
 
     /**
      * Renderiza a lista de turmas.
+     * @param {HTMLElement|string} container
      * @param {HTMLElement|string} container 
      */
     render(container) {
