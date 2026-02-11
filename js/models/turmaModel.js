@@ -55,8 +55,8 @@ export const turmaMethods = {
 
     /**
      * Adiciona um aluno a uma turma específica e ordena a lista alfabeticamente.
-     * @param {string} turmaId 
-     * @param {string} nomeAluno 
+     * @param {string} turmaId
+     * @param {string} nomeAluno
      */
     addAluno(turmaId, nomeAluno) {
         const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
@@ -83,8 +83,8 @@ export const turmaMethods = {
 
     /**
      * Remove um aluno de uma turma.
-     * @param {string} turmaId 
-     * @param {string} alunoId 
+     * @param {string} turmaId
+     * @param {string} alunoId
      */
     deleteAluno(turmaId, alunoId) {
         const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
@@ -102,10 +102,10 @@ export const turmaMethods = {
 
     /**
      * Cria uma nova avaliação vinculada a um período (Bimestre/Trimestre).
-     * @param {string} turmaId 
-     * @param {string} nome 
-     * @param {number} max 
-     * @param {number} periodo 
+     * @param {string} turmaId
+     * @param {string} nome
+     * @param {number} max
+     * @param {number} periodo
      */
     addAvaliacao(turmaId, nome, max, periodo) {
         const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
@@ -130,8 +130,8 @@ export const turmaMethods = {
 
     /**
      * Remove uma avaliação e limpa as notas vinculadas nos objetos dos alunos.
-     * @param {string} turmaId 
-     * @param {string} avId 
+     * @param {string} turmaId
+     * @param {string} avId
      */
     deleteAvaliacao(turmaId, avId) {
         const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
@@ -157,10 +157,10 @@ export const turmaMethods = {
     /**
      * Atualiza a nota de um aluno em uma avaliação específica.
      * Trata conversão de vírgula para ponto.
-     * @param {string} turmaId 
-     * @param {string} alunoId 
-     * @param {string} avId 
-     * @param {number|string} valor 
+     * @param {string} turmaId
+     * @param {string} alunoId
+     * @param {string} avId
+     * @param {number|string} valor
      */
     updateNota(turmaId, alunoId, avId, valor) {
         const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
@@ -190,9 +190,9 @@ export const turmaMethods = {
 
     /**
      * Alterna o estado de frequência (Logica de Toggle: P -> F -> J -> null).
-     * @param {string} turmaId 
-     * @param {string} alunoId 
-     * @param {string} dataIso 
+     * @param {string} turmaId
+     * @param {string} alunoId
+     * @param {string} dataIso
      * @returns {string|null} Novo estado da frequência.
      */
     toggleFrequencia(turmaId, alunoId, dataIso) {
@@ -219,10 +219,10 @@ export const turmaMethods = {
     /**
      * Define frequência manualmente (Compatibilidade).
      * Redireciona para registrarFrequencia para manter o código DRY.
-     * @param {string} turmaId 
-     * @param {string} alunoId 
-     * @param {string} dataIso 
-     * @param {string} status 
+     * @param {string} turmaId
+     * @param {string} alunoId
+     * @param {string} dataIso
+     * @param {string} status
      */
     setFrequencia(turmaId, alunoId, dataIso, status) {
         this.registrarFrequencia(turmaId, alunoId, dataIso, status);
@@ -231,9 +231,9 @@ export const turmaMethods = {
     /**
      * FUNÇÃO UNIFICADA DE FREQUÊNCIA.
      * Salva localmente e sincroniza de forma granular com a nuvem.
-     * @param {string} turmaId 
-     * @param {string} alunoId 
-     * @param {string} dataIso 
+     * @param {string} turmaId
+     * @param {string} alunoId
+     * @param {string} dataIso
      * @param {string|null} status - 'P', 'F', 'J' ou null.
      */
     async registrarFrequencia(turmaId, alunoId, dataIso, status) {
@@ -274,8 +274,8 @@ export const turmaMethods = {
 
     /**
      * Calcula o resumo de notas de um aluno (Períodos e Média Anual).
-     * @param {string} turmaId 
-     * @param {string} alunoId 
+     * @param {string} turmaId
+     * @param {string} alunoId
      * @returns {Object|null} Objeto contendo médias por período e anual.
      */
     getResumoAcademico(turmaId, alunoId) {
@@ -328,68 +328,15 @@ export const turmaMethods = {
 
         if (houveMudanca) {
             this.saveLocal();
-            this.saveCloudRoot(); // Sync pesado necessário aqui pois é manutenção estrutural
             console.log("♻️ Avaliações migradas para conter período.");
         }
     },
-    /**
-         * Atualiza a posição (assento) de um aluno na sala.
-         * @param {string} turmaId 
-         * @param {string} alunoId 
-         * @param {number} novaPosicao 
-         */
-    /**
-     * Atualiza a posição (assento) de um aluno na sala.
-     * @param {string} turmaId 
-     * @param {string} alunoId 
-     * @param {number} novaPosicao 
-     */
-    movimentarAluno(turmaId, alunoId, novaPosicao) {
-        const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
-        if (!turma) return;
 
-        const alunoOcupante = turma.alunos.find(a => a.posicao === novaPosicao);
-        if (alunoOcupante) {
-            alunoOcupante.posicao = null;
-            if (this.currentUser && window.firebaseService) {
-                window.firebaseService.saveAluno(this.currentUser.uid, turmaId, alunoOcupante);
-            }
-        }
-
-        const aluno = turma.alunos.find(a => String(a.id) === String(alunoId));
-        if (aluno) {
-            aluno.posicao = novaPosicao;
-            this.saveLocal();
-
-            if (this.currentUser && window.firebaseService) {
-                window.firebaseService.saveAluno(this.currentUser.uid, turmaId, aluno);
-            }
-        }
-    },
-
-    /**
-     * Remove um aluno de uma posição específica.
-     * @param {string} turmaId 
-     * @param {number} posicao 
-     */
-    desocuparPosicao(turmaId, posicao) {
-        const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
-        if (!turma) return;
-
-        const aluno = turma.alunos.find(a => a.posicao === posicao);
-        if (aluno) {
-            aluno.posicao = null;
-            this.saveLocal();
-            if (this.currentUser && window.firebaseService) {
-                window.firebaseService.saveAluno(this.currentUser.uid, turmaId, aluno);
-            }
-        }
-    },
     /**
      * Atualiza dados cadastrais de um aluno (ex: correção de nome).
-     * @param {string} turmaId 
-     * @param {string} alunoId 
-     * @param {Object} novosDados 
+     * @param {string} turmaId
+     * @param {string} alunoId
+     * @param {Object} novosDados
      */
     updateAluno(turmaId, alunoId, novosDados) {
         const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
@@ -414,6 +361,13 @@ export const turmaMethods = {
             }
         }
     },
+
+    /**
+     * Atualiza a posição (assento) de um aluno na sala.
+     * @param {string} turmaId
+     * @param {string} alunoId
+     * @param {number} novaPosicao
+     */
     movimentarAluno(turmaId, alunoId, novaPosicao) {
         const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
         if (!turma) return;
@@ -439,6 +393,11 @@ export const turmaMethods = {
         }
     },
 
+    /**
+     * Remove um aluno de uma posição específica.
+     * @param {string} turmaId
+     * @param {number} posicao
+     */
     desocuparPosicao(turmaId, posicao) {
         const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
         if (!turma) return;

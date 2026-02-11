@@ -96,10 +96,6 @@ export const provaMethods = {
         }
 
         this.saveLocal();
-
-        if (this.currentUser) {
-            this.saveCloudRoot().catch(err => console.warn("⚠️ Sync background falhou (dados locais ok):", err));
-        }
     },
 
     /**
@@ -122,7 +118,7 @@ export const provaMethods = {
             } else {
                 Toast.show(
                     "Esta questão está compartilhada na comunidade. Você deve removê-la de lá antes de apagar do seu banco pessoal.",
-                    "warning" // Define o tipo como alerta 
+                    "warning" // Define o tipo como alerta
                 );
             }
             return; // Bloqueia exclusão
@@ -133,11 +129,6 @@ export const provaMethods = {
             this.state.questoes = this.state.questoes.filter(q => String(q.id) !== String(id));
 
             this.saveLocal();
-
-            // Sincroniza se estiver online e já sincronizado
-            if (this.currentUser && this.state.isCloudSynced) {
-                await this.saveCloudRoot();
-            }
 
             console.log(`🗑️ Questão ${id} removida.`);
         }
@@ -192,7 +183,6 @@ export const provaMethods = {
 
             questao.compartilhada = true;
             this.saveLocal();
-            this.saveCloudRoot();
 
             if (window.Toast) window.Toast.show("Compartilhado com sucesso!", "success");
 
@@ -225,7 +215,6 @@ export const provaMethods = {
             if (questao) {
                 delete questao.compartilhada;
                 this.saveLocal();
-                this.saveCloudRoot();
 
                 window.Toast.show("Retirada da comunidade.", "info");
 

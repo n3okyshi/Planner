@@ -237,7 +237,6 @@ export const controller = {
     updatePeriodType(type) {
         model.state.userConfig.periodType = type;
         model.saveLocal();
-        model.saveCloudRoot();
         // Recarrega a view atual se for relevante, senão vai para config
         this.navigate(this.currentView === 'periodo' ? 'periodo' : 'config');
     },
@@ -245,7 +244,6 @@ export const controller = {
     updateTheme(color) {
         model.state.userConfig.themeColor = color;
         model.saveLocal();
-        model.saveCloudRoot();
         uiController.aplicarTema();
         this.navigate('config');
     },
@@ -255,7 +253,6 @@ export const controller = {
         if (model.state.periodosDatas && model.state.periodosDatas[tipo]) {
             model.state.periodosDatas[tipo][index][campo] = valor;
             model.saveLocal();
-            model.saveCloudRoot();
             Toast.show("Calendário escolar atualizado!", "success");
         }
     },
@@ -281,11 +278,11 @@ export const controller = {
     },
 
     // Métodos delegados para o calendário (abrir modal do dia)
-    openDayOptions(data) { 
+    openDayOptions(data) {
         if (calendarioView && calendarioView.openDayOptions) {
-            calendarioView.openDayOptions(data); 
+            calendarioView.openDayOptions(data);
         } else {
-            const tiposHtml = Object.entries(model.tiposEventos).map(([key, valor]) => 
+            const tiposHtml = Object.entries(model.tiposEventos).map(([key, valor]) =>
                 `<option value="${window.escapeHTML(key)}">${window.escapeHTML(valor.label)}</option>`
             ).join('');
 
