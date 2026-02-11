@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert';
-import { generateUUID } from './utils.js';
+import { generateUUID, normalizeText } from './utils.js';
 
 test('generateUUID', async (t) => {
     await t.test('should return a string', () => {
@@ -26,5 +26,35 @@ test('generateUUID', async (t) => {
         const uuid = generateUUID();
         // Updated to allow hyphens for standard UUIDs
         assert.match(uuid, /^[a-z0-9-]+$/i);
+    });
+});
+
+test('normalizeText', async (t) => {
+    await t.test('should return empty string for null/undefined/empty input', () => {
+        assert.strictEqual(normalizeText(null), "");
+        assert.strictEqual(normalizeText(undefined), "");
+        assert.strictEqual(normalizeText(""), "");
+    });
+
+    await t.test('should convert to lowercase', () => {
+        assert.strictEqual(normalizeText("TEST"), "test");
+        assert.strictEqual(normalizeText("TeSt"), "test");
+    });
+
+    await t.test('should remove accents', () => {
+        assert.strictEqual(normalizeText("Ação"), "acao");
+        assert.strictEqual(normalizeText("Épico"), "epico");
+        assert.strictEqual(normalizeText("Ônibus"), "onibus");
+        assert.strictEqual(normalizeText("Às vezes"), "as vezes");
+        assert.strictEqual(normalizeText("Coração"), "coracao");
+    });
+
+    await t.test('should handle mixed content', () => {
+        assert.strictEqual(normalizeText("123 Teste!"), "123 teste!");
+    });
+
+    await t.test('should handle leading/trailing spaces', () => {
+        // The current implementation does not trim, so it should preserve spaces
+        assert.strictEqual(normalizeText("  test  "), "  test  ");
     });
 });
