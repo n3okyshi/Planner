@@ -41,7 +41,14 @@ Este é um projeto estático (SPA - Single Page Application) que pode ser hosped
     ```bash
     cd planner-pro-docente
     ```
-3.  Inicie um servidor local. Exemplo com Python:
+3.  **Configuração do Firebase:**
+    *   Renomeie o arquivo de exemplo:
+        ```bash
+        mv js/config.example.js js/config.js
+        ```
+    *   Edite `js/config.js` e adicione suas credenciais do Firebase.
+
+4.  Inicie um servidor local. Exemplo com Python:
     ```bash
     python3 -m http.server 8000
     ```
