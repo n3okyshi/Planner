@@ -58,7 +58,7 @@ export const aiService = {
      */
     async gerarQuestao({ materia, habilidade, dificuldade, tipo }) {
         const diffLabels = ["Aleatória", "Fácil", "Média", "Difícil"];
-        
+
         // Prompt otimizado para gerar JSON puro
         const prompt = `
             Atue como um professor especialista. Crie uma questão inédita para a disciplina de ${materia}.
@@ -85,12 +85,12 @@ export const aiService = {
         // Loop de Tentativas (Fallback Strategy)
         for (let i = 0; i < this.MODELOS.length; i++) {
             const modelInfo = this.MODELOS[i];
-            
+
             try {
                 const url = `https://generativelanguage.googleapis.com/${modelInfo.v}/models/${modelInfo.id}:generateContent?key=${this.API_KEY}`;
-                
+
                 console.log(`🤖 Tentativa IA ${i + 1}/${this.MODELOS.length}: Usando ${modelInfo.id}...`);
-                
+
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -112,10 +112,10 @@ export const aiService = {
                     const msg = data.error?.message || `Erro HTTP ${response.status}`;
                     console.warn(`⚠️ Modelo ${modelInfo.id} falhou: ${msg}`);
                     ultimoErro = msg;
-                    
+
                     // Se for erro de limite (429), espera um pouco antes de tentar o próximo
                     if (response.status === 429) await this._esperar(1000);
-                    
+
                     throw new Error(msg); // Força ir para o catch e tentar o próximo loop
                 }
 
@@ -125,7 +125,7 @@ export const aiService = {
                 }
 
                 const textResponse = data.candidates[0].content.parts[0].text;
-                
+
                 // Limpeza do JSON (caso a IA insista em markdown)
                 const cleanJson = textResponse
                     .replace(/```json/gi, "")
@@ -133,7 +133,7 @@ export const aiService = {
                     .trim();
 
                 const finalResult = JSON.parse(cleanJson);
-                
+
                 console.log(`✅ Sucesso na geração com: ${modelInfo.id}`);
                 return finalResult;
 
@@ -144,6 +144,75 @@ export const aiService = {
                     throw new Error(`Não foi possível gerar a questão no momento. Tente novamente. Detalhe: ${ultimoErro || error.message}`);
                 }
                 // Se não foi a última, o loop continua e tenta o próximo modelo
+            }
+        }
+    },
+    /**
+     * Gera um material pedagógico (plano, dinâmica, cruzadinha) com base nos dados do formulário.
+     * @async
+     * @param {string} idFerramenta - Qual ferramenta está sendo usada.
+     * @param {Object} dados - O objeto com os dados preenchidos no formulário.
+     * @returns {Promise<Object>} JSON com o material gerado.
+     */
+    async gerarMaterial(idFerramenta, dados) {
+        // Converte os dados do formulário em texto legível para o prompt
+        const parametros = Object.entries(dados)
+            .map(([chave, valor]) => `- ${chave.toUpperCase()}: ${valor}`)
+            .join('\n');
+
+        const prompt = `
+            Atue como um professor especialista e coordenador pedagógico.
+            Crie um material do tipo: ${idFerramenta.toUpperCase()}.
+            
+            Baseie-se rigorosamente nestes parâmetros fornecidos:
+            ${parametros}
+            
+            REGRAS OBRIGATÓRIAS:
+            1. Responda APENAS um objeto JSON puro. Sem formatação markdown, sem blocos \`\`\`json.
+            2. O JSON DEVE ter a seguinte estrutura exata:
+            {
+                "titulo": "Um título criativo e direto para o material",
+                "disciplina": "A disciplina informada",
+                "serie": "A série informada",
+                "tipo": "${idFerramenta}",
+                "conteudo_html": "O conteúdo completo do material formatado em tags HTML nativas (h3, p, ul, li, strong, etc) pronto para ser exibido em tela. Seja super detalhado no plano ou na dinâmica."
+            }
+        `;
+
+        let ultimoErro = "";
+
+        // Estratégia de Fallback (Igual ao gerarQuestao)
+        for (let i = 0; i < this.MODELOS.length; i++) {
+            const modelInfo = this.MODELOS[i];
+            try {
+                const url = `https://generativelanguage.googleapis.com/${modelInfo.v}/models/${modelInfo.id}:generateContent?key=${this.API_KEY}`;
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { temperature: 0.7, topK: 40, topP: 0.95, maxOutputTokens: 2048 }
+                    })
+                });
+
+                const data = await response.json();
+                if (!response.ok || data.error) {
+                    const msg = data.error?.message || `Erro HTTP ${response.status}`;
+                    ultimoErro = msg;
+                    if (response.status === 429) await this._esperar(1000);
+                    throw new Error(msg);
+                }
+
+                if (!data.candidates?.[0]?.content?.parts?.[0]?.text) throw new Error("Resposta vazia.");
+
+                const cleanJson = data.candidates[0].content.parts[0].text.replace(/```json/gi, "").replace(/```/g, "").trim();
+                return JSON.parse(cleanJson);
+
+            } catch (error) {
+                if (i === this.MODELOS.length - 1) {
+                    throw new Error(`Não foi possível gerar. Tente novamente. Detalhe: ${ultimoErro || error.message}`);
+                }
             }
         }
     }

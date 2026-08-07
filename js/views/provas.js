@@ -101,7 +101,12 @@ export const provasView = {
 
         const minhasQuestoes = model.state.questoes || [];
         const questoesSistema = model.state.questoesSistema || [];
-        const listaParaFiltrar = this.abaAtiva === 'minhas' ? minhasQuestoes : questoesSistema;
+        const questoesEnem = model.state.questoesEnem || []
+        let listaParaFiltrar;
+        if (this.abaAtiva === 'minhas') listaParaFiltrar = minhasQuestoes;
+        else if (this.abaAtiva === 'sistema') listaParaFiltrar = questoesSistema;
+        else listaParaFiltrar = questoesEnem; // NOVA CONDIÇÃO
+
         const questoesFiltradas = this.filtrarQuestoes(listaParaFiltrar);
 
         // Limpeza de IDs órfãos na seleção
@@ -142,12 +147,17 @@ export const provasView = {
                 <div class="lg:col-span-2 space-y-6">
                     <div class="flex flex-wrap gap-2 p-1 bg-slate-100 rounded-2xl w-fit border border-slate-200">
                         <button onclick="provasView.mudarAba('minhas')" 
-                            class="px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${this.abaAtiva === 'minhas' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}">
+                                class="px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${this.abaAtiva === 'minhas' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}">
                             Minhas Questões (${minhasQuestoes.length})
                         </button>
                         <button onclick="provasView.mudarAba('sistema')" 
-                            class="px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${this.abaAtiva === 'sistema' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}">
+                                class="px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${this.abaAtiva === 'sistema' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}">
                             Banco do Sistema (${questoesSistema.length})
+                        </button>
+                        <!-- NOVA ABA ADICIONADA -->
+                        <button onclick="provasView.mudarAba('enem')" 
+                                class="px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${this.abaAtiva === 'enem' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}">
+                            Banco ENEM (${questoesEnem.length})
                         </button>
                     </div>
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
@@ -188,8 +198,8 @@ export const provasView = {
                     </div>
                     <div class="space-y-4" id="lista-questoes">
                         ${questoesFiltradas.length > 0
-                            ? questoesFiltradas.map(q => provasView.cardQuestao(q)).join('')
-                            : this.estadoVazio()}
+                ? questoesFiltradas.map(q => provasView.cardQuestao(q)).join('')
+                : this.estadoVazio()}
                     </div>
                 </div>
                 <div class="lg:col-span-1 sticky top-24">
@@ -224,9 +234,9 @@ export const provasView = {
             </div>
         </div>
         `;
-        
+
         container.innerHTML = html;
-        
+
         const listaQuestoesEl = document.getElementById('lista-questoes');
         if (listaQuestoesEl && listaQuestoesEl.innerHTML.includes('$')) {
             this.renderizarLatex(listaQuestoesEl);
@@ -237,10 +247,10 @@ export const provasView = {
             if (q.suporte && q.suporte.tem_imagem) {
                 const containerImg = document.getElementById(`img-container-${q.id}`);
                 if (!containerImg) return;
-                
+
                 const url = q.suporte.url_imagem;
                 const existe = await this.verificarImagem(url);
-                
+
                 if (existe) {
                     containerImg.classList.remove('hidden');
                     containerImg.innerHTML = '';
@@ -248,7 +258,7 @@ export const provasView = {
                     img.src = url;
                     img.className = "max-h-48 rounded shadow-sm object-contain";
                     containerImg.appendChild(img);
-                    
+
                     if (q.suporte.legenda) {
                         const p = document.createElement('p');
                         p.className = "text-[9px] text-slate-400 mt-2 italic text-center";
@@ -270,7 +280,7 @@ export const provasView = {
         let tagsHtml = `<span class="px-2 py-1 bg-slate-100 text-[10px] font-bold text-slate-600 rounded uppercase tracking-wider">${window.escapeHTML(q.materia || 'Geral')}</span>`;
         if (q.ano) tagsHtml += `<span class="px-2 py-1 bg-indigo-50 text-[10px] font-bold text-indigo-600 rounded uppercase border border-indigo-100">${window.escapeHTML(q.ano)}</span>`;
         if (q.bncc && q.bncc.codigo) tagsHtml += `<span class="px-2 py-1 bg-yellow-50 text-[10px] font-bold text-yellow-700 rounded uppercase border border-yellow-100" title="${window.escapeHTML(q.bncc.descricao)}">${window.escapeHTML(q.bncc.codigo)}</span>`;
-        
+
         const tipoLabel = (q.tipo === 'multipla') ? 'Múltipla Escolha' : 'Dissertativa';
         const tipoCor = (q.tipo === 'multipla') ? 'text-purple-600 bg-purple-50 border-purple-100' : 'text-emerald-600 bg-emerald-50 border-emerald-100';
         tagsHtml += `<span class="px-2 py-1 ${tipoCor} text-[10px] font-bold rounded uppercase border">${tipoLabel}</span>`;
@@ -307,7 +317,7 @@ export const provasView = {
         }
 
         const dataJson = JSON.stringify(q).replace(/'/g, "&#39;").replace(/"/g, '&quot;');
-        
+
         const btnComunidade = isCompartilhada ?
             `
             <button onclick="model.removerDaComunidade('${q.id}')" 
@@ -398,7 +408,7 @@ export const provasView = {
             dados = { ...this.tempDados, ...dados };
             this.tempDados = null;
         }
-        
+
         const habilidadeHtml = dados.bncc
             ? `<div class="bg-yellow-50 border border-yellow-100 p-3 rounded-lg flex items-center justify-between">
                  <div><span class="font-bold text-yellow-700 text-xs">${dados.bncc.codigo}</span><p class="text-xs text-yellow-600 line-clamp-1">${dados.bncc.descricao}</p></div>
@@ -503,7 +513,7 @@ export const provasView = {
                 </div>`;
 
         controller.openModal(dados.id ? 'Editar Questão' : 'Nova Questão', html);
-        
+
         setTimeout(() => {
             if (dados.tipo === 'multipla') provasView.gerarInputsAlternativas(dados.alternativas, dados.correta);
             else provasView.mudarTipoQuestao();
@@ -571,13 +581,13 @@ export const provasView = {
         const areaAlt = document.getElementById('area-alternativas');
         const areaGab = document.getElementById('area-gabarito');
         if (tipo === 'multipla') {
-            containerQtd?.classList.remove('hidden'); 
-            areaAlt?.classList.remove('hidden'); 
+            containerQtd?.classList.remove('hidden');
+            areaAlt?.classList.remove('hidden');
             areaGab?.classList.add('hidden');
             if (!document.getElementById('inputs-alternativas').innerHTML) this.gerarInputsAlternativas();
         } else {
-            containerQtd?.classList.add('hidden'); 
-            areaAlt?.classList.add('hidden'); 
+            containerQtd?.classList.add('hidden');
+            areaAlt?.classList.add('hidden');
             areaGab?.classList.remove('hidden');
         }
     },
@@ -643,10 +653,10 @@ export const provasView = {
     salvarQuestao() {
         const dados = this.getDataModal();
         if (!dados.enunciado) return Toast.show("O enunciado é obrigatório.", "error");
-        
+
         // Model injetado (provaMethods) cuidará da persistência e sync
         model.saveQuestao(dados);
-        
+
         controller.closeModal();
         this.render('view-container');
     },
@@ -706,12 +716,12 @@ export const provasView = {
         ];
         const selecionadas = bancoTotal.filter(q => this.selecionadas.has(String(q.id)));
         if (selecionadas.length === 0) { Toast.show("Erro ao recuperar questões selecionadas.", "error"); return; }
-        
+
         let nomeProf = model.state.userConfig.profName || '__________________________';
         if ((!model.state.userConfig.profName || model.state.userConfig.profName.trim() === "") && model.currentUser) {
             nomeProf = model.currentUser.displayName;
         }
-        
+
         const isProf = tipo === 'professor';
         const questoesHtml = selecionadas.map((q, i) => {
             const letras = ['a', 'b', 'c', 'd', 'e'];
@@ -757,7 +767,7 @@ export const provasView = {
                 </div>
             `;
         }).join('');
-        
+
         const divTemporaria = document.createElement('div');
         divTemporaria.innerHTML = questoesHtml;
         if (window.renderMathInElement) {
@@ -768,10 +778,10 @@ export const provasView = {
                 ]
             });
         }
-        
+
         const htmlProcessado = divTemporaria.innerHTML;
         const tituloDoc = isProf ? 'GABARITO - Avaliação' : 'Avaliação de Aprendizagem';
-        
+
         const estiloImpressao = `
             <style>
                 @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
@@ -808,7 +818,7 @@ export const provasView = {
             <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
         `;
-        
+
         const conteudoFinal = `
             <html>
             <head>
@@ -832,7 +842,7 @@ export const provasView = {
             </body>
             </html>
         `;
-        
+
         const win = window.open('', '_blank');
         win.document.write(conteudoFinal);
         win.document.close();

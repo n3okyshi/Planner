@@ -4,7 +4,7 @@ const ASSETS_TO_CACHE = [
     './index.html',
     './css/final.css', // Atualizado de style.css para final.css
     './manifest.json',
-    
+
     // LÓGICA CORE
     './js/controller.js',
     './js/model.js',
@@ -69,14 +69,17 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-    // Ignora requisições para o Firebase (precisam ser em tempo real)
-    if (event.request.url.includes('firebase') || event.request.url.includes('googleapis')) {
+    const url = event.request.url;
+    
+    if (url.includes('firebase') || 
+        url.includes('googleapis') || 
+        url.includes('googleusercontent') ||
+        url.includes('__/auth/')) { 
         return;
     }
 
     event.respondWith(
         caches.match(event.request).then((response) => {
-            // Retorna o cache se encontrar, senão busca na rede
             return response || fetch(event.request);
         })
     );

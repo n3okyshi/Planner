@@ -129,10 +129,11 @@ export const frequenciaView = {
     iniciarChamada() {
         const turmas = model.state.turmas || [];
         const turma = turmas.find(t => String(t.id) === String(this.currentTurmaId));
-
         if (!turma || !turma.alunos || turma.alunos.length === 0) {
             return Toast.show("Não há alunos para realizar a chamada.", "warning");
         }
+
+        this.alunosChamada = [...turma.alunos].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }));
 
         this.chamadaAtiva = true;
         this.alunoIndex = 0;
@@ -142,30 +143,21 @@ export const frequenciaView = {
     },
 
     renderProximoAluno() {
-        const turmas = model.state.turmas || [];
-        const turma = turmas.find(t => String(t.id) === String(this.currentTurmaId));
         const container = document.getElementById('chamada-card-container');
-
-        if (this.alunoIndex >= turma.alunos.length) {
+        if (this.alunoIndex >= this.alunosChamada.length) {
             this.finalizarChamada();
             return;
         }
 
-        const aluno = turma.alunos[this.alunoIndex];
-
-        // ALTERAÇÃO: Removido o botão de cancelar de dentro do card
-        // O card agora usa max-h-full e aspect-ratio ajustável para caber na tela
         container.innerHTML = `
             <div id="chamada-card" class="w-full max-h-full aspect-[3/4] bg-white rounded-[2rem] shadow-2xl flex flex-col items-center justify-center p-4 md:p-8 text-center touch-none select-none transition-transform duration-300 transform cursor-grab active:cursor-grabbing relative overflow-hidden">
-                
                 <div class="flex-1 flex flex-col items-center justify-center pointer-events-none w-full">
                     <div class="w-24 h-24 md:w-32 md:h-32 rounded-full bg-slate-100 flex items-center justify-center text-3xl md:text-4xl font-black text-primary border-4 border-slate-50 mb-4 shadow-inner shrink-0">
                         ${aluno.nome.charAt(0)}
                     </div>
-                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Aluno ${this.alunoIndex + 1} de ${turma.alunos.length}</p>
+                    <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Aluno ${this.alunoIndex + 1} de ${this.alunosChamada.length}</p>
                     <h3 class="text-xl md:text-2xl font-bold text-slate-800 line-clamp-2 px-2">${window.escapeHTML(aluno.nome)}</h3>
                 </div>
-                
                 <div class="flex gap-2 md:gap-4 w-full mt-auto pt-4 pointer-events-none shrink-0">
                     <div class="flex-1 border-2 border-dashed border-red-100 rounded-2xl p-3 bg-red-50/30">
                         <i class="fas fa-arrow-left text-red-300 mb-1 text-lg"></i>
@@ -290,14 +282,14 @@ export const frequenciaView = {
     renderTabela(turma, ano, mes, diasNoMes) {
         let headerDias = '';
         const hoje = new Date();
-        
+
         for (let d = 1; d <= diasNoMes; d++) {
             const dataObj = new Date(ano, mes, d);
             const diaSemana = dataObj.getDay();
             const isFimDeSemana = diaSemana === 0 || diaSemana === 6;
             const letraSemana = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'][diaSemana];
             const isHoje = hoje.getDate() === d && hoje.getMonth() === mes && hoje.getFullYear() === ano;
-            
+
             headerDias += `
                 <div ${isHoje ? 'id="dia-hoje"' : ''} 
                      class="flex flex-col items-center justify-center min-w-[40px] h-14 border-r border-slate-100 
@@ -320,16 +312,16 @@ export const frequenciaView = {
                 const mesFmt = (mes + 1).toString().padStart(2, '0');
                 const diaFmt = d.toString().padStart(2, '0');
                 const dataIso = `${ano}-${mesFmt}-${diaFmt}`;
-                
+
                 const status = (aluno.frequencia || {})[dataIso];
                 const dataObj = new Date(ano, mes, d);
                 const isFimDeSemana = dataObj.getDay() === 0 || dataObj.getDay() === 6;
                 const isHoje = hoje.getDate() === d && hoje.getMonth() === mes && hoje.getFullYear() === ano;
-                
+
                 let cellBg = '';
                 if (isHoje) cellBg = 'bg-blue-50/40';
                 else if (isFimDeSemana) cellBg = 'bg-slate-50/30';
-                
+
                 colunas += `
                     <div onclick="frequenciaView.toggleStatus('${turma.id}', '${aluno.id}', '${dataIso}', this)"
                          class="min-w-[40px] h-12 border-r border-slate-100 flex items-center justify-center cursor-pointer hover:bg-slate-50 transition-colors ${cellBg}"

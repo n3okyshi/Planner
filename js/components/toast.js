@@ -30,12 +30,20 @@ export const Toast = {
     /**
      * Inicializa o container de toasts no DOM.
      * Cria a estrutura HTML e define os estilos base CSS-in-JS.
+     * @throws {TypeError} Se o container do DOM for nulo.
      * @returns {void}
      */
     init() {
+        // Verifica se o container do DOM for nulo
+        if (!document.documentElement) {
+            throw new TypeError('O elemento raiz do DOM for nulo.');
+        }
+
         // Evita duplicidade de containers
         const existing = document.getElementById('toast-container');
-        if (existing) existing.remove();
+        if (existing) {
+            existing.remove();
+        }
 
         this.container = document.createElement('div');
         this.container.id = 'toast-container';
@@ -46,19 +54,24 @@ export const Toast = {
             top: '24px',
             left: '50%',
             transform: 'translateX(-50%)',
-            zIndex: '2147483647', // Valor máximo de z-index seguro
+            zIndex: '2147483647', // Valor mximo de z-index seguro
             display: 'flex',
             flexDirection: 'column',
             gap: '12px',
             alignItems: 'center',
-            pointerEvents: 'none', // Permite clicar através do container (vazio)
+            pointerEvents: 'none', // Permite clicar atravs do container (vazio)
             width: '100%',
             maxWidth: '420px',
             margin: '0',
             padding: '0'
         });
 
-        document.documentElement.appendChild(this.container);
+        // Adiciona o container ao DOM
+        try {
+            document.documentElement.appendChild(this.container);
+        } catch (error) {
+            console.error(`Erro ao adicionar o container de toasts ao DOM: ${error}`);
+        }
     },
 
     /**
@@ -83,14 +96,14 @@ export const Toast = {
          */
         const configs = {
             success: { icon: 'fa-check-circle', color: '#10b981' }, // Emerald-500
-            error:   { icon: 'fa-times-circle', color: '#ef4444' }, // Red-500
-            info:    { icon: 'fa-info-circle',  color: '#1e293b' }, // Slate-800
+            error: { icon: 'fa-times-circle', color: '#ef4444' }, // Red-500
+            info: { icon: 'fa-info-circle', color: '#1e293b' }, // Slate-800
             warning: { icon: 'fa-exclamation-triangle', color: '#f59e0b' } // Amber-500
         };
 
         // Fallback para 'info' se o tipo passado for inválido
         const config = configs[type] || configs.info;
-        
+
         // Criação do Elemento Toast
         const toast = document.createElement('div');
 
@@ -165,31 +178,49 @@ export const Toast = {
         // Configuração do Timer de Auto-Remoção
         // Se tiver ação, damos mais tempo (6s) ou o dobro da duração padrão
         const finalDuration = action ? Math.max(duration, 6000) : duration;
-        
+
         let timer = setTimeout(() => this.dismiss(toast), finalDuration);
 
         // Pausa o timer quando o mouse está em cima para facilitar a leitura
-        toast.onmouseenter = () => clearTimeout(timer);
+        if (toast) {
+            /**
+             * Pausa o timer de auto-remoção do toast quando o mouse entra no elemento.
+             * Isso previne que o toast seja removido automaticamente quando o usuário
+             * deseja ler o conteúdo do toast.
+             * @memberof Toast
+             */
+            toast.onmouseenter = () => {
+                try {
+                    clearTimeout(timer);
+                } catch (err) {
+                    console.error('Erro ao pausar timer do toast:', err);
+                }
+            };
+        }
         toast.onmouseleave = () => {
-             timer = setTimeout(() => this.dismiss(toast), finalDuration / 2);
+            timer = setTimeout(() => this.dismiss(toast), finalDuration / 2);
         };
     },
 
     /**
      * Remove um toast específico com animação de saída.
-     * @param {HTMLElement} toast - O elemento DOM do toast a ser removido.
+     * @param {HTMLElement|null} toast - O elemento DOM do toast a ser removido.
      */
     dismiss(toast) {
-        if (!toast) return;
-        
-        // Animação de saída
-        toast.style.opacity = '0';
-        toast.style.transform = 'translateY(-10px) scale(0.95)';
-        
-        // Remove do DOM após a animação CSS terminar
-        setTimeout(() => {
-            if (toast.parentNode) toast.remove();
-        }, 400);
+        try {
+            if (!toast) return;
+
+            // Animação de saída
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(-10px) scale(0.95)';
+
+            // Remove do DOM após a animação CSS terminar
+            setTimeout(() => {
+                if (toast && toast.parentNode) toast.remove();
+            }, 400);
+        } catch (err) {
+            console.error('Erro ao remover o toast:', err);
+        }
     }
 };
 

@@ -90,56 +90,195 @@ export const turmaController = {
 
     // --- GESTÃO DE ALUNOS ---
 
-    openAddAluno(turmaId) {
+    // --- GESTÃO DE ALUNOS ---
+
+    openAddAluno(turmaId, alunoId = null) {
+        // Busca os dados se for uma Edição
+        const turma = model.state.turmas.find(t => String(t.id) === String(turmaId));
+        const aluno = alunoId ? turma.alunos.find(a => String(a.id) === String(alunoId)) : null;
+
+        const isEdit = !!aluno;
+        
+        // Fallbacks de compatibilidade para alunos antigos
+        const nome = aluno ? aluno.nome : '';
+        const chamada = (aluno && aluno.chamada) ? aluno.chamada : '';
+        const matricula = (aluno && aluno.matricula) ? aluno.matricula : '';
+        const status = (aluno && aluno.status) ? aluno.status : 'cursando';
+
         const html = `
             <div class="p-6 space-y-4">
                 <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Nome do Estudante</label>
-                    <input type="text" id="al-nome" class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary" placeholder="Nome completo...">
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Nome do Estudante *</label>
+                    <input type="text" id="al-nome" class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary" placeholder="Nome completo..." value="${window.escapeHTML(nome)}">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Nº Chamada</label>
+                        <input type="text" id="al-chamada" class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary" placeholder="Ex: 01" value="${window.escapeHTML(chamada)}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Matrícula</label>
+                        <input type="text" id="al-matricula" class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary" placeholder="Ex: 20261234" value="${window.escapeHTML(matricula)}">
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Situação / Status</label>
+                    <select id="al-status" class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary bg-white font-medium text-slate-700">
+                        <option value="cursando" ${status === 'cursando' ? 'selected' : ''}>Cursando Ativamente</option>
+                        <option value="transferido" ${status === 'transferido' ? 'selected' : ''}>Transferido para outra escola</option>
+                        <option value="realocado" ${status === 'realocado' ? 'selected' : ''}>Realocado de Turma</option>
+                    </select>
                 </div>
                 <div class="flex justify-end gap-3 pt-4">
-                    <button onclick="controller.closeModal()" class="px-6 py-2 text-slate-500 font-bold">Cancelar</button>
-                    <button onclick="controller.saveAluno('${turmaId}')" class="btn-primary px-8 py-2 rounded-xl font-bold">Adicionar</button>
+                    <button onclick="controller.closeModal()" class="px-6 py-2 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition">Cancelar</button>
+                    <button onclick="controller.saveAluno('${turmaId}', ${isEdit ? `'${aluno.id}'` : 'null'})" class="btn-primary px-8 py-2 rounded-xl font-bold shadow-lg shadow-primary/20">
+                        ${isEdit ? 'Salvar Alterações' : 'Adicionar Estudante'}
+                    </button>
                 </div>
             </div>
         `;
-        controller.openModal('Novo Aluno', html);
+        controller.openModal(isEdit ? 'Editar Estudante' : 'Novo Estudante', html);
     },
 
-    saveAluno(turmaId) {
-        const nome = document.getElementById('al-nome').value;
-        if (!nome) return Toast.show("O nome é obrigatório.", "error");
+    saveAluno(turmaId, alunoId = null) {
+        const nome = document.getElementById('al-nome').value.trim();
+        const chamada = document.getElementById('al-chamada').value.trim();
+        const matricula = document.getElementById('al-matricula').value.trim();
+        const status = document.getElementById('al-status').value;
 
-        model.addAluno(turmaId, nome);
+        if (!nome) return Toast.show("O nome do aluno é obrigatório.", "error");
+
+        const turma = model.state.turmas.find(t => String(t.id) === String(turmaId));
+
+        if (alunoId) {
+            // LÓGICA DE EDIÇÃO
+            const aluno = turma.alunos.find(a => String(a.id) === String(alunoId));
+            if (aluno) {
+                aluno.nome = nome;
+                aluno.chamada = chamada;
+                aluno.matricula = matricula;
+                aluno.status = status;
+                
+                model.saveLocal(); // Persiste no LocalStorage
+                // Sincroniza o aluno modificado com o Firebase Granular se aplicável
+                if(model.persist && window.firebaseService) {
+                    model.persist(() => firebaseService.saveAluno(model.currentUser.uid, turmaId, aluno));
+                }
+                Toast.show("Dados do estudante atualizados!", "success");
+            }
+        } else {
+            // LÓGICA DE CRIAÇÃO
+            const novoAluno = {
+                id: 'aluno_' + Date.now().toString(36),
+                nome: nome,
+                chamada: chamada,
+                matricula: matricula,
+                status: status,
+                notas: {},
+                frequencia: {}
+            };
+            turma.alunos.push(novoAluno);
+            model.saveLocal();
+            
+            if(model.persist && window.firebaseService) {
+                model.persist(() => firebaseService.saveAluno(model.currentUser.uid, turmaId, novoAluno));
+            }
+            Toast.show("Estudante adicionado!", "success");
+        }
+
         controller.closeModal();
-        turmasView.renderDetalhesTurma('view-container', turmaId);
-        Toast.show("Estudante adicionado!", "success");
+        // Atualiza a tabela dinamicamente
+        controller.views['turmas'].renderDetalhesTurma('view-container', turmaId);
     },
 
     openAddAlunoLote(turmaId) {
         const html = `
             <div class="p-6 space-y-4">
-                <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Cole a lista de nomes (um por linha)</label>
-                <textarea id="al-lista" rows="10" class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary text-sm font-mono" placeholder="João Silva\nMaria Oliveira..."></textarea>
-                <div class="flex justify-end gap-3">
-                    <button onclick="controller.closeModal()" class="px-6 py-2 text-slate-500 font-bold">Cancelar</button>
-                    <button onclick="controller.saveAlunoLote('${turmaId}')" class="btn-primary px-8 py-2 rounded-xl font-bold">Importar Lista</button>
+                <div class="bg-blue-50 p-4 rounded-xl border border-blue-100 text-blue-800 text-xs mb-4">
+                    <p class="font-bold mb-1"><i class="fas fa-magic"></i> Importação Inteligente</p>
+                    <p>Cole a lista (um nome por linha). O sistema limpará marcações como "1." ou "01 -" e <strong>gerará automaticamente o Número da Chamada</strong>.</p>
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Lista de Estudantes</label>
+                    <textarea id="al-lista" rows="10" class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary text-sm font-mono" placeholder="João da Silva\nMaria Oliveira\nPedro Santos..."></textarea>
+                </div>
+                
+                <div class="flex items-center gap-3 p-3 bg-slate-50 rounded-xl border border-slate-100">
+                    <div class="relative flex items-center justify-center w-5 h-5 rounded border border-slate-300 bg-white">
+                        <input type="checkbox" id="al-alfabetica" class="peer sr-only" checked>
+                        <i class="fas fa-check text-xs text-white opacity-0 peer-checked:opacity-100 absolute"></i>
+                        <div class="absolute inset-0 rounded bg-primary opacity-0 peer-checked:opacity-100 transition-opacity"></div>
+                    </div>
+                    <label for="al-alfabetica" class="text-sm font-bold text-slate-600 cursor-pointer select-none">
+                        Ordenar em ordem alfabética antes de importar
+                    </label>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-4 border-t border-slate-100 mt-2">
+                    <button onclick="controller.closeModal()" class="px-6 py-2 text-slate-500 font-bold hover:bg-slate-50 rounded-xl transition">Cancelar</button>
+                    <button onclick="controller.saveAlunoLote('${turmaId}')" class="btn-primary px-8 py-2 rounded-xl font-bold shadow-lg shadow-primary/20">Importar Lista</button>
                 </div>
             </div>
         `;
-        controller.openModal('Importar Alunos', html);
+        controller.openModal('Importar Estudantes em Lote', html);
     },
 
     saveAlunoLote(turmaId) {
         const texto = document.getElementById('al-lista').value;
-        const nomes = texto.split('\n').filter(n => n.trim() !== "");
+        const inputOrdenar = document.getElementById('al-alfabetica');
+        const ordenar = inputOrdenar ? inputOrdenar.checked : false;
         
-        if (nomes.length === 0) return Toast.show("Lista vazia.", "error");
+        // 1. Limpa, remove strings vazias e usa Regex para arrancar prefixos numéricos ("01.", "1 -", etc)
+        let nomes = texto.split('\n')
+            .map(n => n.trim())
+            .map(n => n.replace(/^(\d+[\.\-\)\]]\s*)/, '')) // Limpa formatação suja
+            .filter(n => n !== "");
+                 
+        if (nomes.length === 0) return Toast.show("A lista informada está vazia.", "warning");
 
-        nomes.forEach(nome => model.addAluno(turmaId, nome.trim()));
+        // 2. Ordem Alfabética (se selecionado)
+        if (ordenar) {
+            nomes.sort((a, b) => a.localeCompare(b));
+        }
+
+        const turma = model.state.turmas.find(t => String(t.id) === String(turmaId));
+        if (!turma) return;
+
+        // 3. Descobre o último número de chamada para dar sequência
+        let ultimoNumeroChamada = 0;
+        turma.alunos.forEach(a => {
+            const num = parseInt(a.chamada);
+            if (!isNaN(num) && num > ultimoNumeroChamada) {
+                ultimoNumeroChamada = num;
+            }
+        });
+
+        // 4. Cria os alunos com os dados atualizados
+        nomes.forEach((nome, index) => {
+            const numChamada = String(ultimoNumeroChamada + index + 1).padStart(2, '0'); // Ex: "01", "09", "12"
+            
+            const novoAluno = {
+                id: 'aluno_' + Date.now().toString(36) + '_' + index, // "_index" previne bugs de loop super-rápido no milissegundo
+                nome: nome,
+                chamada: numChamada,
+                matricula: '',
+                status: 'cursando',
+                notas: {},
+                frequencia: {}
+            };
+            turma.alunos.push(novoAluno);
+        });
+
+        // 5. Salva na nuvem (Como é em lote, enviamos a turma inteira de uma vez para poupar a cota do Firebase)
+        model.saveLocal();
+        if (model.persist && window.firebaseService) {
+            model.persist(() => firebaseService.saveTurma(model.currentUser.uid, turma));
+        }
+
         controller.closeModal();
-        turmasView.renderDetalhesTurma('view-container', turmaId);
-        Toast.show(`${nomes.length} alunos importados com sucesso!`, "success");
+        controller.views['turmas'].renderDetalhesTurma('view-container', turmaId);
+        Toast.show(`${nomes.length} estudantes importados com sucesso!`, "success");
     },
 
     deleteAluno(turmaId, alunoId) {

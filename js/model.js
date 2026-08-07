@@ -119,7 +119,7 @@ export const model = {
         firebaseService.subscribeToUserChanges(this.currentUser.uid, (newData) => {
             if (newData) {
                 console.log("🔄 Atualização remota recebida.");
-                
+
                 // Atualiza apenas campos raiz para evitar sobrescrever trabalho em andamento nas turmas
                 if (newData.userConfig) this.state.userConfig = { ...this.state.userConfig, ...newData.userConfig };
                 if (newData.eventos) this.state.eventos = { ...this.state.eventos, ...newData.eventos };
@@ -178,7 +178,7 @@ export const model = {
     async saveHorarioCompleto(novoHorario) {
         this.state.horario = novoHorario;
         this.saveLocal(); // Salva local e agenda root update
-        
+
         // Horário é pesado, garantimos envio específico se online
         if (this.currentUser) {
             try {
@@ -212,7 +212,7 @@ export const model = {
         const dataStr = JSON.stringify(this.state, null, 2);
         const blob = new Blob([dataStr], { type: "application/json" });
         const url = URL.createObjectURL(blob);
-        
+
         const a = document.createElement('a');
         a.href = url;
         a.download = `backup_planner_${new Date().toISOString().split('T')[0]}.json`;
@@ -220,6 +220,26 @@ export const model = {
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
+    },
+
+    /**
+     * Salva um novo material gerado por IA na Biblioteca do usuário.
+     * @param {Object} material - O material gerado.
+     */
+    async saveMaterial(material) {
+        if (!this.state.materiaisGerados) this.state.materiaisGerados = [];
+        
+        const novoMaterial = {
+            id: 'mat_' + Date.now().toString(36),
+            createdAt: new Date().toISOString(),
+            ...material
+        };
+
+        this.state.materiaisGerados.push(novoMaterial);
+        
+        // Salva localmente e dispara o debounce para a nuvem
+        this.saveLocal();
+        return novoMaterial;
     },
 
     /**

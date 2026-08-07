@@ -52,10 +52,36 @@ export const firebaseService = {
     /**
      * Inicia o fluxo de login com Google (Popup).
      */
+    /**
+     * Inicia o fluxo de login com Google.
+     * Implementa fallback para redirecionamento caso o popup seja bloqueado.
+     */
     async loginGoogle() {
         if (!this.auth) return;
         const provider = new firebase.auth.GoogleAuthProvider();
-        await this.auth.signInWithPopup(provider);
+        
+        try {
+            await this.auth.signInWithPopup(provider);
+        } catch (error) {
+            console.warn("Falha no signInWithPopup. Detalhe:", error.code);
+            
+            // Se o usuário fechou, o navegador bloqueou, ou se é ambiente mobile PWA
+            if (error.code === 'auth/popup-closed-by-user' || 
+                error.code === 'auth/popup-blocked' || 
+                error.code === 'auth/cancelled-popup-request') {
+                
+                console.log("Iniciando fallback para redirecionamento...");
+                // Dispara o redirecionamento na mesma janela
+                await this.auth.signInWithRedirect(provider);
+            } else {
+                console.error("Erro fatal no login:", error);
+                if (window.Toast && window.Toast.show) {
+                    window.Toast.show("Erro ao conectar: " + error.message, "error");
+                } else {
+                    alert("Erro ao conectar: " + error.message);
+                }
+            }
+        }
     },
 
     /**
@@ -102,6 +128,8 @@ export const firebaseService = {
                 fullState.planosDiarios = data.planosDiarios || {};
                 fullState.lastUpdate = data.lastUpdate || new Date(0).toISOString();
                 fullState.horario = data.horario || { config: {}, grade: {} };
+                fullState.materiaisGerados = data.materiaisGerados || [];
+                fullState.quizzes = data.quizzes || [];
             }
 
             // Carregamento de Sub-coleções (Turmas -> Alunos/Avaliações)
@@ -283,6 +311,8 @@ export const firebaseService = {
                 eventos: oldState.eventos || {},
                 questoes: oldState.questoes || [],
                 planosDiarios: oldState.planosDiarios || {},
+                materiaisGerados: oldState.materiaisGerados || [],
+                quizzes: oldState.quizzes || [],
                 migratedAt: new Date().toISOString()
             });
 

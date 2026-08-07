@@ -155,7 +155,9 @@ export const initialState = {
     planosDiarios: {},
     horario: {
         config: { matutino: [], vespertino: [], noturno: [] },
-        grade: { matutino: {}, vespertino: {}, noturno: {} }
+        grade: { matutino: {}, vespertino: {}, noturno: {} },
+    materiaisGerados: [],
+    quizzes: []
     },
     // Datas pré-configuradas para o ano letivo de 2026
     periodosDatas: {

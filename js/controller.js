@@ -32,6 +32,15 @@ import { estatisticasProvasView } from './views/estatisticas-provas.js';
 import { comunidadeView } from './views/comunidade.js';
 import { notasAnuaisView } from './views/notasAnuais.js';
 
+import { criarMaterialView } from './views/criarMaterial.js';
+import { bibliotecaView } from './views/biblioteca.js';
+import { quizGestorView } from './views/quizGestor.js';
+import { quizPlayerView } from './views/quizPlayer.js';
+
+import { conteudoGeradoView } from './views/conteudoGerado.js';
+import { correcaoAutomaticaView } from './views/correcaoAutomatica.js';
+import { simuladoresView } from './views/simuladores.js';
+
 /**
  * Helper Global de Segurança contra XSS.
  * Transforma caracteres especiais em entidades HTML.
@@ -82,7 +91,14 @@ export const controller = {
             'config': settingsView,
             'stats-provas': estatisticasProvasView,
             'comunidade': comunidadeView,
-            'notas-anuais': notasAnuaisView
+            'notas-anuais': notasAnuaisView,
+            'criar-material': criarMaterialView,
+            'biblioteca': bibliotecaView,
+            'quiz-gestor': quizGestorView,
+            'quiz-player': quizPlayerView,
+            'conteudo-gerado': conteudoGeradoView,
+            'correcao': correcaoAutomaticaView,
+            'simuladores': simuladoresView
         };
 
         // Exposição global das views para acesso via HTML (onclick)
@@ -99,6 +115,13 @@ export const controller = {
         window.comunidadeView = comunidadeView;
         window.notasAnuaisView = notasAnuaisView;
         window.settingsView = settingsView;
+        window.criarMaterialView = criarMaterialView;
+        window.bibliotecaView = bibliotecaView;
+        window.quizGestorView = quizGestorView;
+        window.quizPlayerView = quizPlayerView;
+        window.conteudoGeradoView = conteudoGeradoView;
+        window.correcaoAutomaticaView = correcaoAutomaticaView;
+        window.simuladoresView = simuladoresView;
 
         // Mantém também a lógica dinâmica para segurança
         Object.keys(this.views).forEach(key => { window[key + 'View'] = this.views[key]; });
@@ -158,13 +181,16 @@ export const controller = {
     // DELEGAÇÃO: TURMAS, ALUNOS E AVALIAÇÕES
     // =========================================================================
 
+    // =========================================================================
+    // DELEGAÇÃO: TURMAS, ALUNOS E AVALIAÇÕES
+    // =========================================================================
     openAddTurma() { turmaController.openAddTurma(); },
     saveTurma() { turmaController.saveTurma(); },
     deleteTurma(id) { turmaController.deleteTurma(id); },
     updateSerieOptions(n) { turmaController.updateSerieOptions(n); },
-
-    openAddAluno(id) { turmaController.openAddAluno(id); },
-    saveAluno(id) { turmaController.saveAluno(id); },
+    
+    openAddAluno(t, a) { turmaController.openAddAluno(t, a); },
+    saveAluno(t, a) { turmaController.saveAluno(t, a); },
     deleteAluno(t, a) { turmaController.deleteAluno(t, a); },
     openAddAlunoLote(id) { turmaController.openAddAlunoLote(id); },
     saveAlunoLote(id) { turmaController.saveAlunoLote(id); },
