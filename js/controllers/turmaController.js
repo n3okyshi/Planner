@@ -158,9 +158,8 @@ export const turmaController = {
             avaliacoes: []
         };
 
-        // INTEGRAÇÃO DOS NOVOS CAMPOS NA CRIAÇÃO DO WIZARD
         d.alunosRascunho.forEach((nomeAluno, index) => {
-            const numChamada = String(index + 1).padStart(2, '0'); // Auto numeração: 01, 02...
+            const numChamada = String(index + 1).padStart(2, '0'); 
             novaTurma.alunos.push({
                 id: 'aluno_' + Date.now().toString(36) + '_' + index,
                 nome: nomeAluno,
@@ -533,6 +532,7 @@ export const turmaController = {
                 chamada: chamada,
                 matricula: matricula,
                 status: status,
+                xp: 0,
                 notas: {},
                 frequencia: {}
             };
@@ -642,6 +642,25 @@ export const turmaController = {
         }
     },
 
+    adicionarXP(turmaId, alunoId, quantidade) {
+        const turma = model.state.turmas.find(t => t.id === turmaId);
+        const aluno = turma.alunos.find(a => a.id === alunoId);
+        
+        if (aluno) {
+            // O Proxy do model.state detecta essa soma e dispara o Auto-Save
+            aluno.xp = (aluno.xp || 0) + quantidade;
+            
+            // Atualização visual cirúrgica no Mapa de Sala
+            const xpElement = document.getElementById(`xp-${alunoId}`);
+            if (xpElement) {
+                xpElement.innerText = `${aluno.xp} XP`;
+                xpElement.classList.add('text-emerald-500', 'scale-110');
+                setTimeout(() => xpElement.classList.remove('text-emerald-500', 'scale-110'), 300);
+            }
+            Toast.show(`+${quantidade} XP concedido a ${aluno.nome.split(' ')[0]}!`, "success");
+        }
+    },
+
     // ------------------------------------------------------------------------
     // GESTÃO DE AVALIAÇÕES E NOTAS
     // ------------------------------------------------------------------------
@@ -711,7 +730,57 @@ export const turmaController = {
 
     updateNota(turmaId, alunoId, avId, valor) {
         const notaLimpa = valor === "" ? "" : Number(valor);
+        
+        // 1. Atualiza o banco (o Proxy fará o AutoSave no futuro)
         model.updateNota(turmaId, alunoId, avId, notaLimpa);
+        
+        // 2. ATUALIZAÇÃO GRANULAR DA TELA (Sem recarregar o HTML)
+        const turma = model.state.turmas.find(t => t.id === turmaId);
+        if (!turma) return;
+        const aluno = turma.alunos.find(a => a.id === alunoId);
+        if (!aluno) return;
+        
+        // A) Atualiza a "Soma Período" do Aluno na tabela
+        const avaliacoesFiltradas = (turma.avaliacoes || []).filter(av => Number(av.periodo || 1) === window.turmasView.periodoAtivo);
+        const somaPeriodo = avaliacoesFiltradas.reduce((acc, av) => acc + (Number(aluno.notas?.[av.id]) || 0), 0);
+        
+        const somaElement = document.getElementById(`soma-${alunoId}`);
+        if (somaElement) {
+            somaElement.innerText = somaPeriodo.toFixed(1);
+            
+            // Feedback Visual de Micro-interação (Blink Verde rápido)
+            somaElement.classList.add('bg-emerald-100', 'text-emerald-700', 'scale-110');
+            setTimeout(() => {
+                somaElement.classList.remove('bg-emerald-100', 'text-emerald-700', 'scale-110');
+            }, 300);
+        }
+
+        // B) Atualiza os Gráficos e Média (Performance extrema)
+        if (window.turmasView) {
+            // Atualiza Gráfico do Período
+            const statsPeriodo = window.turmasView._calcularEstatisticas(turma, avaliacoesFiltradas);
+            const gradientPeriodo = window.turmasView._gerarGradientDonut(statsPeriodo);
+            
+            const rosca = document.getElementById('grafico-rosca');
+            const mediaTexto = document.getElementById('media-rosca');
+            const legenda = document.getElementById('legenda-rosca');
+            
+            if (rosca) rosca.style = gradientPeriodo;
+            if (mediaTexto) mediaTexto.innerText = statsPeriodo.mediaGeral;
+            if (legenda) legenda.innerHTML = window.turmasView._renderLegenda(statsPeriodo);
+
+            // Atualiza Gráfico Geral
+            const statsGeral = window.turmasView._calcularEstatisticas(turma, turma.avaliacoes || []);
+            const gradientGeral = window.turmasView._gerarGradientDonut(statsGeral);
+
+            const roscaGeral = document.getElementById('grafico-rosca-geral');
+            const mediaTextoGeral = document.getElementById('media-rosca-geral');
+            const legendaGeral = document.getElementById('legenda-rosca-geral');
+
+            if (roscaGeral) roscaGeral.style = gradientGeral;
+            if (mediaTextoGeral) mediaTextoGeral.innerText = statsGeral.mediaGeral;
+            if (legendaGeral) legendaGeral.innerHTML = window.turmasView._renderLegenda(statsGeral);
+        }
     }
 };
 

@@ -92,6 +92,7 @@ export const settingsView = {
 
                                 <!-- Toggles CSS Puro -->
                                 <div class="space-y-4 pt-4 border-t border-slate-100">
+                                    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Exibição de Campos</label>
                                     ${this.gerarToggle('config-show-data', 'Exibir data no cabeçalho', showData)}
                                     ${this.gerarToggle('config-show-disciplina', 'Exibir disciplina', showDisciplina)}
                                     ${this.gerarToggle('config-show-serie', 'Exibir série/turma', showSerie)}
@@ -300,15 +301,16 @@ export const settingsView = {
     },
 
     /**
-     * Helper para renderizar os Toggles estilizados (Switch do iOS/Android) usando CSS e Tailwind
+     * Helper para renderizar os Toggles estilizados (Switch do iOS/Android) usando CSS e Tailwind.
+     * Atualizado com o padrão Soft UI e tipografia legível.
      */
     gerarToggle(id, label, isChecked) {
         return `
-            <label class="flex items-center justify-between cursor-pointer group p-2 hover:bg-slate-50 rounded-xl transition-colors">
+            <label class="flex items-center justify-between cursor-pointer group p-3 bg-white border border-slate-100 hover:border-indigo-200 rounded-xl transition-all shadow-sm">
                 <span class="text-sm font-bold text-slate-700 select-none">${label}</span>
-                <div class="relative">
+                <div class="relative inline-flex items-center">
                     <input type="checkbox" id="${id}" class="sr-only peer" ${isChecked ? 'checked' : ''} onchange="settingsView.atualizarPreview()">
-                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600 shadow-inner"></div>
+                    <div class="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
                 </div>
             </label>
         `;

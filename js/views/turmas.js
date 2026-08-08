@@ -180,13 +180,16 @@ export const turmasView = {
                         </h3>
                         <div class="flex flex-col sm:flex-row items-center gap-6">
                             <div class="relative shrink-0">
-                                <div class="chart-donut shadow-inner w-32 h-32 md:w-40 md:h-40" style="${gradientPeriodo}"></div>
+                                <!-- ID grafico-rosca adicionado -->
+                                <div id="grafico-rosca" class="chart-donut shadow-inner w-32 h-32 md:w-40 md:h-40" style="${gradientPeriodo}"></div>
                                 <div class="chart-center-text">
-                                    <span class="text-2xl md:text-3xl font-black text-slate-800">${statsPeriodo.mediaGeral}</span>
+                                    <!-- ID media-rosca adicionado -->
+                                    <span id="media-rosca" class="text-2xl md:text-3xl font-black text-slate-800">${statsPeriodo.mediaGeral}</span>
                                 </div>
                             </div>
                             <div class="flex-1 w-full">
-                                <div class="grid grid-cols-2 gap-y-3 gap-x-4">
+                                <!-- ID legenda-rosca adicionado -->
+                                <div id="legenda-rosca" class="grid grid-cols-2 gap-y-3 gap-x-4">
                                     ${this._renderLegenda(statsPeriodo)}
                                 </div>
                                 ${statsPeriodo.distribuicao.vermelho > 0 || statsPeriodo.distribuicao.laranja > 0 ? `
@@ -211,13 +214,16 @@ export const turmasView = {
                         </h3>
                         <div class="flex flex-col sm:flex-row items-center gap-6">
                             <div class="relative shrink-0">
-                                <div class="chart-donut shadow-inner w-32 h-32 md:w-40 md:h-40" style="${gradientGeral}"></div>
+                                <!-- ID grafico-rosca-geral adicionado -->
+                                <div id="grafico-rosca-geral" class="chart-donut shadow-inner w-32 h-32 md:w-40 md:h-40" style="${gradientGeral}"></div>
                                 <div class="chart-center-text">
-                                    <span class="text-2xl md:text-3xl font-black text-slate-800">${statsGeral.mediaGeral}</span>
+                                    <!-- ID media-rosca-geral adicionado -->
+                                    <span id="media-rosca-geral" class="text-2xl md:text-3xl font-black text-slate-800">${statsGeral.mediaGeral}</span>
                                 </div>
                             </div>
                             <div class="flex-1 w-full">
-                                <div class="grid grid-cols-2 gap-y-3 gap-x-4">
+                                <!-- ID legenda-rosca-geral adicionado -->
+                                <div id="legenda-rosca-geral" class="grid grid-cols-2 gap-y-3 gap-x-4">
                                     ${this._renderLegenda(statsGeral)}
                                 </div>
                             </div>
@@ -322,7 +328,8 @@ export const turmasView = {
                                                 }).join('')}
                                                 
                                                 <td class="p-2 text-center border-l border-slate-100 bg-slate-50/30">
-                                                    <div class="w-12 mx-auto py-1 rounded-lg font-black text-sm ${status === 'cursando' ? 'text-primary' : 'text-slate-400'}">
+                                                    <!-- ID soma-ALUNO_ID adicionado aqui -->
+                                                    <div id="soma-${aluno.id}" class="w-12 mx-auto py-1 rounded-lg font-black text-sm ${status === 'cursando' ? 'text-primary' : 'text-slate-400'} transition-all duration-300">
                                                         ${somaPeriodo.toFixed(1)}
                                                     </div>
                                                 </td>

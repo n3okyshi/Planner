@@ -145,27 +145,36 @@ export const planejamentoController = {
         }
 
         const optionsHtml = outrasTurmas.map(t => {
-            const isMesmaSerie = t.serie === turmaAtual.serie;
-            const destaque = isMesmaSerie ? 'font-bold text-blue-600' : '';
-            const nomeEsc = window.escapeHTML ? window.escapeHTML(t.nome) : t.nome;
-            return `<option value="${window.escapeHTML(t.id)}" class="${destaque}">${nomeEsc} ${isMesmaSerie ? '(Mesma Série)' : ''}</option>`;
-        }).join('');
+    const isMesmaSerie = t.serie === turmaAtual.serie;
+    const destaque = isMesmaSerie ? 'font-bold text-indigo-700 bg-indigo-50' : 'text-slate-600';
+    const nomeEsc = window.escapeHTML ? window.escapeHTML(t.nome) : t.nome;
+    return `<li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors ${destaque}" data-value="${window.escapeHTML(t.id)}">${nomeEsc} ${isMesmaSerie ? '(Mesma Série)' : ''}</li>`;
+}).join('');
 
-        window.controller.openModal('Replicar Planejamento', `
-            <div class="p-6 space-y-4">
-                <div class="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-4">
-                    <p class="text-sm text-blue-800"><i class="fas fa-info-circle mr-1"></i> Copiando de <strong>${window.escapeHTML ? window.escapeHTML(turmaAtual.nome) : turmaAtual.nome}</strong>.</p>
-                </div>
-                <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Para a Turma</label>
-                    <select id="select-turma-destino" class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary bg-white">${optionsHtml}</select>
-                </div>
-                <div class="bg-red-50 border border-red-100 p-3 rounded-xl text-xs text-red-600 mt-2">
-                    <i class="fas fa-exclamation-triangle"></i> Substituirá todo o planejamento da turma destino.
-                </div>
-                <button onclick="planejamentoController.confirmarCopiaPlanejamento('${window.escapeHTML(turmaIdAtual)}')" class="btn-primary w-full py-3 rounded-xl font-bold shadow-lg mt-2">Confirmar Cópia</button>
+window.controller.openModal('Replicar Planejamento', `
+    <div class="p-6 space-y-4">
+        <div class="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-4">
+            <p class="text-sm text-blue-800"><i class="fas fa-info-circle mr-1"></i> Copiando de <strong class="font-black">${window.escapeHTML ? window.escapeHTML(turmaAtual.nome) : turmaAtual.nome}</strong>.</p>
+        </div>
+        <div>
+            <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Para a Turma</label>
+            <div class="custom-dropdown relative w-full">
+                <input type="hidden" id="select-turma-destino" value="${outrasTurmas[0]?.id || ''}">
+                <button type="button" class="dropdown-button w-full flex items-center justify-between p-3.5 bg-slate-50 hover:bg-white border border-slate-200 hover:border-indigo-300 rounded-xl shadow-sm text-sm font-bold text-slate-700 transition-all focus:outline-none">
+                    <span class="dropdown-label truncate">${outrasTurmas[0] ? (window.escapeHTML ? window.escapeHTML(outrasTurmas[0].nome) : outrasTurmas[0].nome) : 'Selecione...'}</span>
+                    <i class="fas fa-chevron-down text-slate-400 text-xs ml-2"></i>
+                </button>
+                <ul class="dropdown-menu hidden absolute z-50 w-full mt-1 bg-white border border-slate-100 rounded-xl shadow-xl max-h-48 overflow-y-auto custom-scrollbar p-1.5 animate-slide-up origin-top text-left font-normal">
+                    ${optionsHtml}
+                </ul>
             </div>
-        `);
+        </div>
+        <div class="bg-red-50 border border-red-100 p-3 rounded-xl text-xs text-red-600 mt-2 font-medium">
+            <i class="fas fa-exclamation-triangle mr-1"></i> Substituirá todo o planejamento da turma destino.
+        </div>
+        <button onclick="planejamentoController.confirmarCopiaPlanejamento('${window.escapeHTML(turmaIdAtual)}')" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3.5 rounded-xl font-bold shadow-md hover:shadow-lg transition-all active:scale-[0.98] mt-2">Confirmar Cópia</button>
+    </div>
+`);
     },
 
     /**

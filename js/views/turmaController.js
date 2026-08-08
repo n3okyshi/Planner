@@ -5,7 +5,7 @@ import { turmasView } from '../views/turmas.js';
 import { Toast } from '../components/toast.js';
 
 export const turmaController = {
-    
+
     // --- GESTÃO DE TURMAS ---
 
     openAddTurma() {
@@ -98,7 +98,7 @@ export const turmaController = {
         const aluno = alunoId ? turma.alunos.find(a => String(a.id) === String(alunoId)) : null;
 
         const isEdit = !!aluno;
-        
+
         // Fallbacks de compatibilidade para alunos antigos
         const nome = aluno ? aluno.nome : '';
         const chamada = (aluno && aluno.chamada) ? aluno.chamada : '';
@@ -158,10 +158,10 @@ export const turmaController = {
                 aluno.chamada = chamada;
                 aluno.matricula = matricula;
                 aluno.status = status;
-                
+
                 model.saveLocal(); // Persiste no LocalStorage
                 // Sincroniza o aluno modificado com o Firebase Granular se aplicável
-                if(model.persist && window.firebaseService) {
+                if (model.persist && window.firebaseService) {
                     model.persist(() => firebaseService.saveAluno(model.currentUser.uid, turmaId, aluno));
                 }
                 Toast.show("Dados do estudante atualizados!", "success");
@@ -179,8 +179,8 @@ export const turmaController = {
             };
             turma.alunos.push(novoAluno);
             model.saveLocal();
-            
-            if(model.persist && window.firebaseService) {
+
+            if (model.persist && window.firebaseService) {
                 model.persist(() => firebaseService.saveAluno(model.currentUser.uid, turmaId, novoAluno));
             }
             Toast.show("Estudante adicionado!", "success");
@@ -228,13 +228,13 @@ export const turmaController = {
         const texto = document.getElementById('al-lista').value;
         const inputOrdenar = document.getElementById('al-alfabetica');
         const ordenar = inputOrdenar ? inputOrdenar.checked : false;
-        
+
         // 1. Limpa, remove strings vazias e usa Regex para arrancar prefixos numéricos ("01.", "1 -", etc)
         let nomes = texto.split('\n')
             .map(n => n.trim())
             .map(n => n.replace(/^(\d+[\.\-\)\]]\s*)/, '')) // Limpa formatação suja
             .filter(n => n !== "");
-                 
+
         if (nomes.length === 0) return Toast.show("A lista informada está vazia.", "warning");
 
         // 2. Ordem Alfabética (se selecionado)
@@ -257,7 +257,7 @@ export const turmaController = {
         // 4. Cria os alunos com os dados atualizados
         nomes.forEach((nome, index) => {
             const numChamada = String(ultimoNumeroChamada + index + 1).padStart(2, '0'); // Ex: "01", "09", "12"
-            
+
             const novoAluno = {
                 id: 'aluno_' + Date.now().toString(36) + '_' + index, // "_index" previne bugs de loop super-rápido no milissegundo
                 nome: nome,
@@ -282,7 +282,7 @@ export const turmaController = {
     },
 
     deleteAluno(turmaId, alunoId) {
-        if(confirm("Deseja remover este estudante? As notas e frequência serão perdidas.")) {
+        if (confirm("Deseja remover este estudante? As notas e frequência serão perdidas.")) {
             model.deleteAluno(turmaId, alunoId);
             turmasView.renderDetalhesTurma('view-container', turmaId);
             Toast.show("Estudante removido.", "info");
@@ -308,13 +308,23 @@ export const turmaController = {
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Período Letivo</label>
-                        <select id="av-periodo" class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary bg-white font-bold text-primary">
-                            ${Array.from({length: numPeriodos}, (_, i) => `
-                                <option value="${i+1}" ${turmasView.periodoAtivo === (i+1) ? 'selected' : ''}>
-                                    ${i+1}º ${tipoConfig.charAt(0).toUpperCase() + tipoConfig.slice(1,3)}
-                                </option>
-                            `).join('')}
-                        </select>
+                        <div>
+    <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Período Letivo</label>
+    <div class="custom-dropdown relative w-full">
+        <input type="hidden" id="av-periodo" value="${turmasView.periodoAtivo}">
+        <button type="button" class="dropdown-button w-full flex items-center justify-between p-3.5 bg-slate-50 border border-slate-200 hover:border-indigo-300 rounded-xl shadow-sm text-sm font-bold text-indigo-600 transition-all focus:outline-none">
+            <span class="dropdown-label truncate">${turmasView.periodoAtivo}º ${tipoConfig.charAt(0).toUpperCase() + tipoConfig.slice(1, 3)}</span>
+            <i class="fas fa-chevron-down text-slate-400 text-xs ml-2"></i>
+        </button>
+        <ul class="dropdown-menu hidden absolute z-50 w-full mt-1 bg-white border border-slate-100 rounded-xl shadow-xl max-h-48 overflow-y-auto custom-scrollbar p-1.5 animate-slide-up origin-top text-left font-normal">
+            ${Array.from({ length: numPeriodos }, (_, i) => `
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors ${turmasView.periodoAtivo === (i + 1) ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600'}" data-value="${i + 1}">
+                    ${i + 1}º ${tipoConfig.charAt(0).toUpperCase() + tipoConfig.slice(1, 3)}
+                </li>
+            `).join('')}
+        </ul>
+    </div>
+</div>
                     </div>
                 </div>
                 <div class="bg-blue-50 p-3 rounded-xl border border-blue-100">
@@ -340,16 +350,16 @@ export const turmaController = {
 
         model.addAvaliacao(turmaId, nome, max, periodo);
         controller.closeModal();
-        
+
         // Atualiza a view para o período em que a nota foi criada para dar feedback visual
         turmasView.periodoAtivo = Number(periodo);
         turmasView.renderDetalhesTurma('view-container', turmaId);
-        
+
         Toast.show("Avaliação cadastrada com sucesso!", "success");
     },
 
     deleteAvaliacao(turmaId, avId) {
-        if(confirm("Excluir esta avaliação? Todas as notas vinculadas serão apagadas.")) {
+        if (confirm("Excluir esta avaliação? Todas as notas vinculadas serão apagadas.")) {
             model.deleteAvaliacao(turmaId, avId);
             turmasView.renderDetalhesTurma('view-container', turmaId);
             Toast.show("Avaliação removida.", "info");
@@ -360,7 +370,7 @@ export const turmaController = {
         // Sanitização rápida: se vazio, mantém vazio, se não, converte para número
         const notaLimpa = valor === "" ? "" : Number(valor);
         model.updateNota(turmaId, alunoId, avId, notaLimpa);
-        
+
         // Não renderizamos a tela toda para não perder o foco do input,
         // apenas atualizamos a soma/média visualmente via DOM se necessário.
         // O próximo render natural já trará os dados certos.

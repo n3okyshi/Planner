@@ -92,6 +92,10 @@ export const salaView = {
      * Renderiza a grade de assentos para a turma selecionada.
      * @param {string|number} turmaId 
      */
+    /**
+     * Renderiza a grade de assentos para a turma selecionada.
+     * @param {string|number} turmaId 
+     */
     carregarMapa(turmaId) {
         if (!turmaId) return;
         this.currentTurmaId = turmaId;
@@ -114,16 +118,34 @@ export const salaView = {
                 bgClass = 'bg-slate-50 border-2 border-dashed border-slate-300 hover:border-primary hover:bg-white';
             }
 
-            const content = aluno
-                ? `
-                    <div class="flex flex-col items-center justify-center h-full w-full p-1 text-center pointer-events-none"> 
-                        <span class="font-bold text-slate-700 text-[10px] md:text-xs leading-tight line-clamp-2 w-full break-words select-none">
-                            ${window.escapeHTML(aluno.nome).split(' ')[0]} ${aluno.nome.split(' ')[1] ? aluno.nome.split(' ')[1].charAt(0) + '.' : ''}
+            // O conteúdo padrão é apenas o número da cadeira (vazia)
+            let content = `<span class="text-[10px] font-bold text-slate-300 pointer-events-none">${i}</span>`;
+
+            // SE o aluno existir na cadeira, processamos os dados de XP e nome
+            if (aluno) {
+                const xp = aluno.xp || 0; // Fallback seguro
+                const level = Math.floor(xp / 100) + 1; // A cada 100 XP, sobe de Nível
+
+                content = `
+                    <div class="flex flex-col items-center justify-center h-full w-full p-1 text-center pointer-events-none">
+                         <span class="font-bold text-slate-700 text-[10px] md:text-xs leading-tight line-clamp-1 w-full break-words select-none">
+                            ${window.escapeHTML(aluno.nome).split(' ')[0]}
                         </span>
-                        ${isSelecionado ? '<i class="fas fa-arrows-alt text-primary text-xs mt-1 animate-pulse"></i>' : ''}
+                        
+                        <!-- Etiqueta de Nível e XP -->
+                        <div class="flex items-center gap-1 mt-1 bg-amber-50 px-1.5 rounded border border-amber-200 pointer-events-auto" title="Nível ${level}">
+                            <i class="fas fa-star text-amber-500 text-[8px]"></i>
+                            <span id="xp-${aluno.id}" class="text-[9px] font-black text-amber-700 transition-all">${xp} XP</span>
+                        </div>
+                        
+                        <!-- Mini botões de Ação Rápida (Surgem no Hover) -->
+                        <div class="absolute -top-3 -right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-20 pointer-events-auto">
+                            <button onclick="event.stopPropagation(); turmaController.adicionarXP('${turmaId}', '${aluno.id}', 10)" class="w-6 h-6 bg-emerald-500 text-white rounded-full text-[10px] shadow-lg hover:scale-110 transition-transform"><i class="fas fa-plus"></i></button>
+                            <button onclick="event.stopPropagation(); turmaController.adicionarXP('${turmaId}', '${aluno.id}', -5)" class="w-6 h-6 bg-red-500 text-white rounded-full text-[10px] shadow-lg hover:scale-110 transition-transform"><i class="fas fa-minus"></i></button>
+                        </div>
                     </div>
-                  `
-                : `<span class="text-[10px] font-bold text-slate-300 pointer-events-none">${i}</span>`;
+                `;
+            }
 
             const dragAttributes = aluno
                 ? `draggable="true" ondragstart="salaView.handleDragStart(event, '${aluno.id}', ${i})"`
@@ -137,7 +159,7 @@ export const salaView = {
                      ondragleave="salaView.handleDragLeave(event)"
                      ondrop="salaView.handleDrop(event, ${i})"
                      ${dragAttributes}
-                     class="aspect-square rounded-lg flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 ${bgClass} relative group print:border print:border-black print:shadow-none overflow-hidden"
+                     class="aspect-square rounded-lg flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 ${bgClass} relative group print:border print:border-black print:shadow-none overflow-visible"
                      aria-label="Assento ${i} ${aluno ? 'ocupado por ' + window.escapeHTML(aluno.nome) : 'vazio'}">
                     ${content}
                 </div>

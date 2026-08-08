@@ -55,14 +55,23 @@ export const planejamentoView = {
                         <div class="relative flex-1 md:w-64">
                             <i class="fas fa-users absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
                             
-                            <select id="plan-selecao-turma" name="plan-selecao-turma" aria-label="Selecionar Turma" 
-                                    onchange="planejamentoView.mudarTurma(this.value)" 
-                                    class="w-full bg-slate-50 border border-slate-200 text-slate-700 font-bold rounded-xl pl-10 pr-4 py-2 outline-none focus:border-primary cursor-pointer hover:bg-slate-100 transition-colors">
-                                ${turmas.length > 0
-                                    ? turmas.map(t => `<option value="${t.id}" ${String(t.id) === String(this.currentTurmaId) ? 'selected' : ''}>${window.escapeHTML(t.nome)}</option>`).join('')
-                                    : `<option value="">Nenhuma turma cadastrada</option>`
-                                }
-                            </select>
+                            <div class="custom-dropdown relative flex-1 md:w-64">
+    <i class="fas fa-users absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10 pointer-events-none"></i>
+    
+    <input type="hidden" id="select-turma-global" onchange="planejamentoView.mudarTurma(this.value)" value="${this.currentTurmaId || ''}">
+    
+    <button type="button" class="dropdown-button w-full flex items-center justify-between pl-10 pr-4 py-2.5 bg-white border border-slate-200 hover:border-indigo-300 rounded-xl shadow-sm text-sm font-bold text-slate-700 transition-all focus:outline-none focus:ring-4 focus:ring-indigo-50">
+        <span class="dropdown-label truncate">${turmas.find(t => String(t.id) === String(this.currentTurmaId))?.nome || 'Selecionar Turma...'}</span>
+        <i class="fas fa-chevron-down text-slate-400 text-xs ml-2"></i>
+    </button>
+
+    <ul class="dropdown-menu hidden absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-xl shadow-slate-200/50 max-h-64 overflow-y-auto custom-scrollbar p-1.5 animate-slide-up origin-top text-left font-normal">
+        ${turmas.length > 0 
+            ? turmas.map(t => `<li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors ${String(t.id) === String(this.currentTurmaId) ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600'}" data-value="${t.id}">${window.escapeHTML(t.nome)}</li>`).join('')
+            : '<li class="p-2.5 text-slate-400 text-sm text-center">Nenhuma turma</li>'
+        }
+    </ul>
+</div>
                         </div>
                     </div>
                 </div>

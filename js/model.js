@@ -10,6 +10,7 @@ import { turmaMethods } from './models/turmaModel.js';
 import { provaMethods } from './models/provaModel.js';
 import { planejamentoMethods } from './models/planejamentoModel.js';
 import { debounce } from './utils.js';
+import { createReactiveState } from './reactive.js';
 
 /**
  * @typedef {import('./models/state.js').AppState} AppState
@@ -23,34 +24,43 @@ import { debounce } from './utils.js';
 export const model = {
     /** @type {string} Chave utilizada para persistência no LocalStorage */
     STORAGE_KEY: 'planner_pro_docente_2026',
-
-    /** @type {Object|null} Objeto de usuário do Firebase Auth */
     currentUser: null,
-
-    /** @type {Object} Configurações estáticas de cores */
     coresComponentes,
-
-    /** @type {Object} Configurações estáticas de tipos de eventos */
     tiposEventos,
-
-    /** @type {AppState} Estado global reativo da aplicação */
     state: initialState,
 
     /**
      * Inicializa o modelo carregando dados salvos localmente.
      */
     init() {
+        let loadedData = { ...this.state };
         const savedData = localStorage.getItem(this.STORAGE_KEY);
+
         if (savedData) {
             try {
-                const parsed = JSON.parse(savedData);
-                // Merge seguro com o estado inicial para garantir que novos campos existam
-                this.state = { ...this.state, ...parsed };
-                console.log("📦 Cache local carregado.");
+                loadedData = { ...loadedData, ...JSON.parse(savedData) };
+                console.log("✅ Cache local carregado.");
             } catch (e) {
-                console.error("❌ Erro ao restaurar cache local:", e);
+                console.error("Erro ao restaurar cache local:", e);
             }
         }
+
+        // 2. O CORAÇÃO DA REATIVIDADE: Envelopa o estado com o Proxy
+        this.state = createReactiveState(loadedData, (caminho, novoValor, valorAntigo) => {
+            // Este bloco roda SOZINHO sempre que QUALQUER variável do state for alterada
+
+            // 1. Auto-Save instantâneo no navegador (Garante resiliência offline)
+            try {
+                localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.state));
+            } catch (e) {
+                console.warn("Erro no AutoSave local (Quota/Espaço)", e);
+            }
+
+            // 2. Sincronização inteligente com a Nuvem (Com debounce para não estourar a cota)
+            if (this._debouncedCloudSave) {
+                this._debouncedCloudSave();
+            }
+        });
     },
 
     /**
@@ -228,7 +238,7 @@ export const model = {
      */
     async saveMaterial(material) {
         if (!this.state.materiaisGerados) this.state.materiaisGerados = [];
-        
+
         const novoMaterial = {
             id: 'mat_' + Date.now().toString(36),
             createdAt: new Date().toISOString(),
@@ -236,7 +246,7 @@ export const model = {
         };
 
         this.state.materiaisGerados.push(novoMaterial);
-        
+
         // Salva localmente e dispara o debounce para a nuvem
         this.saveLocal();
         return novoMaterial;

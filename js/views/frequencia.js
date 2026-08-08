@@ -20,6 +20,7 @@ export const frequenciaView = {
     chamadaAtiva: false,
     alunoIndex: 0,
     startX: 0,
+    alunosChamada: [], // Guarda a lista em tempo de execução
 
     /**
      * Renderiza a interface de frequência.
@@ -65,14 +66,27 @@ export const frequenciaView = {
                             <i class="fas fa-hand-pointer"></i> Iniciar Chamada (${diaSelecionadoStr})
                         </button>
 
-                        <div class="relative">
-                            <i class="fas fa-users absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                            <select onchange="frequenciaView.mudarTurma(this.value)" 
-                                    class="bg-slate-50 border border-slate-200 text-slate-700 font-bold rounded-xl pl-10 pr-8 py-2 outline-none focus:border-primary cursor-pointer min-w-[200px]">
-                                ${turmas.map(t => `<option value="${t.id}" ${String(t.id) === String(this.currentTurmaId) ? 'selected' : ''}>${window.escapeHTML(t.nome)}</option>`).join('')}
-                                ${turmas.length === 0 ? '<option>Nenhuma turma</option>' : ''}
-                            </select>
-                        </div>
+                        <!-- DROPDOWN CUSTOMIZADO: Seleção de Turma -->
+                            <div id="dropdown-turma" class="relative min-w-[200px]">
+                                <!-- Ícone decorativo sobreposto ao botão -->
+                                <i class="fas fa-users absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10 pointer-events-none"></i>
+                                
+                                <input type="hidden" id="freq-turma" value="${this.currentTurmaId || ''}">
+                                
+                                <button class="dropdown-button w-full flex items-center justify-between pl-10 pr-4 py-2.5 bg-slate-50 hover:bg-white border border-slate-200 hover:border-indigo-300 rounded-xl shadow-sm text-sm font-bold text-slate-700 transition-all focus:outline-none focus:ring-4 focus:ring-indigo-50">
+                                    <span class="dropdown-label truncate">${turmaSelecionada ? window.escapeHTML(turmaSelecionada.nome) : 'Nenhuma turma'}</span>
+                                    <i class="fas fa-chevron-down text-slate-400 text-xs ml-2 transition-transform duration-200"></i>
+                                </button>
+
+                                <ul class="dropdown-menu hidden absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-xl shadow-slate-200/50 max-h-64 overflow-y-auto custom-scrollbar p-1.5 animate-slide-up origin-top text-left font-normal">
+                                    ${turmas.map(t => `
+                                        <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors ${String(t.id) === String(this.currentTurmaId) ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600'}" data-value="${t.id}">
+                                            ${window.escapeHTML(t.nome)}
+                                        </li>
+                                    `).join('')}
+                                    ${turmas.length === 0 ? '<li class="p-2.5 text-slate-400 text-sm text-center">Nenhuma turma</li>' : ''}
+                                </ul>
+                            </div>
                         
                         <div class="flex items-center bg-slate-50 rounded-xl border border-slate-200 p-1">
                             <button onclick="frequenciaView.mudarMes(-1)" class="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-primary hover:bg-white rounded-lg transition-all">
@@ -93,12 +107,19 @@ export const frequenciaView = {
 
             <div id="chamada-rapida-overlay" class="fixed inset-0 bg-slate-900/95 z-[9999] hidden flex flex-col items-center justify-center backdrop-blur-sm p-4 transition-opacity duration-300">
                 <div class="w-full max-w-md flex flex-col items-center justify-center h-full max-h-[90vh]">
+                    <div class="w-full flex justify-between items-center mb-6 text-white px-4">
+                        <span class="text-sm font-bold uppercase tracking-widest opacity-70">Chamada Rápida</span>
+                        <button onclick="frequenciaView.finalizarChamada()" class="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center hover:bg-white/20 transition">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
                     
-                    <div id="chamada-card-container" class="w-full flex-1 relative flex items-center justify-center min-h-0">
-                        </div>
+                    <div id="chamada-card-container" class="w-full flex-1 relative flex flex-col items-center justify-center min-h-0">
+                        <!-- O Card e os botões serão injetados dinamicamente aqui -->
+                    </div>
 
                     <button onclick="frequenciaView.finalizarChamada()" class="mt-6 text-white/50 hover:text-white text-xs font-bold uppercase tracking-widest transition-colors py-4 px-8 border border-white/10 rounded-full hover:bg-white/10 shrink-0">
-                        <i class="fas fa-times mr-1"></i> Cancelar Chamada
+                        Finalizar Chamada
                     </button>
                 </div>
             </div>
@@ -106,6 +127,15 @@ export const frequenciaView = {
 
         container.innerHTML = html;
         this.autoScrollParaHoje(ano, mes);
+
+        setTimeout(() => {
+            if (window.uiController && window.uiController.setupCustomDropdown) {
+                window.uiController.setupCustomDropdown('dropdown-turma', (valorSelecionado) => {
+                    // Quando clicar na turma, aciona sua função original
+                    frequenciaView.mudarTurma(valorSelecionado);
+                });
+            }
+        }, 50);
     },
 
     autoScrollParaHoje(ano, mes) {
@@ -129,11 +159,19 @@ export const frequenciaView = {
     iniciarChamada() {
         const turmas = model.state.turmas || [];
         const turma = turmas.find(t => String(t.id) === String(this.currentTurmaId));
+
         if (!turma || !turma.alunos || turma.alunos.length === 0) {
             return Toast.show("Não há alunos para realizar a chamada.", "warning");
         }
 
-        this.alunosChamada = [...turma.alunos].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' }));
+        // ORDENAÇÃO: Ordem de criação pelo ID (Cronológica) + Exclui 'Transferidos'
+        this.alunosChamada = [...turma.alunos]
+            .filter(a => a.status !== 'transferido')
+            .sort((a, b) => String(a.id).localeCompare(String(b.id)));
+
+        if (this.alunosChamada.length === 0) {
+            return Toast.show("Não há alunos ativos para a chamada nesta turma.", "warning");
+        }
 
         this.chamadaAtiva = true;
         this.alunoIndex = 0;
@@ -144,19 +182,28 @@ export const frequenciaView = {
 
     renderProximoAluno() {
         const container = document.getElementById('chamada-card-container');
-        if (this.alunoIndex >= this.alunosChamada.length) {
+        if (!container) return;
+
+        // RESOLUÇÃO DO ERRO: Declarando e capturando o aluno correto com base no index atual
+        const aluno = this.alunosChamada[this.alunoIndex];
+
+        // Se acabaram os alunos, fecha
+        if (!aluno || this.alunoIndex >= this.alunosChamada.length) {
             this.finalizarChamada();
             return;
         }
 
+        const numChamadaText = aluno.chamada ? `Nº ${aluno.chamada}` : '';
+
         container.innerHTML = `
-            <div id="chamada-card" class="w-full max-h-full aspect-[3/4] bg-white rounded-[2rem] shadow-2xl flex flex-col items-center justify-center p-4 md:p-8 text-center touch-none select-none transition-transform duration-300 transform cursor-grab active:cursor-grabbing relative overflow-hidden">
+            <div id="chamada-card" class="w-full aspect-[3/4] bg-white rounded-[2rem] shadow-2xl flex flex-col items-center justify-center p-4 md:p-8 text-center touch-none select-none transition-transform duration-300 transform cursor-grab active:cursor-grabbing relative overflow-hidden">
                 <div class="flex-1 flex flex-col items-center justify-center pointer-events-none w-full">
                     <div class="w-24 h-24 md:w-32 md:h-32 rounded-full bg-slate-100 flex items-center justify-center text-3xl md:text-4xl font-black text-primary border-4 border-slate-50 mb-4 shadow-inner shrink-0">
-                        ${aluno.nome.charAt(0)}
+                        ${window.escapeHTML(aluno.nome).charAt(0)}
                     </div>
                     <p class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Aluno ${this.alunoIndex + 1} de ${this.alunosChamada.length}</p>
                     <h3 class="text-xl md:text-2xl font-bold text-slate-800 line-clamp-2 px-2">${window.escapeHTML(aluno.nome)}</h3>
+                    ${numChamadaText ? `<span class="mt-2 text-xs font-bold text-slate-500 bg-slate-100 px-3 py-1 rounded-lg">${numChamadaText}</span>` : ''}
                 </div>
                 <div class="flex gap-2 md:gap-4 w-full mt-auto pt-4 pointer-events-none shrink-0">
                     <div class="flex-1 border-2 border-dashed border-red-100 rounded-2xl p-3 bg-red-50/30">
@@ -168,6 +215,16 @@ export const frequenciaView = {
                         <p class="text-[9px] font-bold text-emerald-400 uppercase">Presença</p>
                     </div>
                 </div>
+            </div>
+
+            <!-- Botões de ação manual injetados diretamente com o ID do Aluno atual -->
+            <div class="w-full flex justify-center gap-8 mt-8">
+                <button onclick="frequenciaView.registrarFrequenciaSwipe('${aluno.id}', 'F')" class="w-20 h-20 rounded-full bg-red-500 text-white shadow-[0_10px_20px_rgba(239,68,68,0.3)] hover:scale-110 active:scale-95 transition-all text-2xl flex items-center justify-center">
+                    <i class="fas fa-times"></i>
+                </button>
+                <button onclick="frequenciaView.registrarFrequenciaSwipe('${aluno.id}', 'P')" class="w-20 h-20 rounded-full bg-emerald-500 text-white shadow-[0_10px_20px_rgba(16,185,129,0.3)] hover:scale-110 active:scale-95 transition-all text-2xl flex items-center justify-center">
+                    <i class="fas fa-check"></i>
+                </button>
             </div>
         `;
 
@@ -243,23 +300,23 @@ export const frequenciaView = {
         const card = document.getElementById('chamada-card');
         const overlay = document.getElementById('chamada-rapida-overlay');
 
-        if (!card) return;
-
         const ano = this.currentDate.getFullYear();
         const mesFmt = (this.currentDate.getMonth() + 1).toString().padStart(2, '0');
         const diaFmt = this.currentDate.getDate().toString().padStart(2, '0');
         const dataIso = `${ano}-${mesFmt}-${diaFmt}`;
 
+        // Registra a frequência no model (que acionará o Proxy/AutoSave oculto)
         if (model.registrarFrequencia) {
             model.registrarFrequencia(this.currentTurmaId, alunoId, dataIso, status);
-        } else {
-            // Compatibilidade
+        } else if (model.setFrequencia) {
             model.setFrequencia(this.currentTurmaId, alunoId, dataIso, status);
         }
 
-        card.style.transition = 'all 0.4s ease-in';
-        card.style.transform = `translateX(${status === 'P' ? '1000' : '-1000'}px) rotate(${status === 'P' ? '45' : '-45'}deg)`;
-        card.style.opacity = '0';
+        if (card) {
+            card.style.transition = 'all 0.4s ease-in';
+            card.style.transform = `translateX(${status === 'P' ? '1000' : '-1000'}px) rotate(${status === 'P' ? '45' : '-45'}deg)`;
+            card.style.opacity = '0';
+        }
 
         setTimeout(() => {
             this.alunoIndex++;
@@ -273,11 +330,11 @@ export const frequenciaView = {
         const overlay = document.getElementById('chamada-rapida-overlay');
         if (overlay) overlay.classList.add('hidden');
 
-        model.saveLocal();
-
-        this.render('view-container');
-        Toast.show("Chamada finalizada e salva!", "success");
+        Toast.show("Chamada concluída e salva!", "success");
+        this.render('view-container'); // Renderiza a tabela por baixo atualizada
     },
+
+    // --- Lógica da Tabela (O mês inteiro) ---
 
     renderTabela(turma, ano, mes, diasNoMes) {
         let headerDias = '';
@@ -301,10 +358,10 @@ export const frequenciaView = {
             `;
         }
 
-        // --- MELHORIA APLICADA: Ordenação Alfabética ---
-        const alunosOrdenados = [...turma.alunos].sort((a, b) => {
-            return a.nome.localeCompare(b.nome, 'pt-BR', { sensitivity: 'base' });
-        });
+        // ORDENAÇÃO NA TABELA: Pelo ID e filtra transferidos
+        const alunosOrdenados = [...turma.alunos]
+            .filter(a => a.status !== 'transferido')
+            .sort((a, b) => String(a.id).localeCompare(String(b.id)));
 
         const linhasAlunos = alunosOrdenados.map(aluno => {
             let colunas = '';
@@ -343,11 +400,11 @@ export const frequenciaView = {
             `;
         }).join('');
 
-        if (turma.alunos.length === 0) {
+        if (alunosOrdenados.length === 0) {
             return `
                 <div class="flex-1 flex flex-col items-center justify-center text-slate-400 bg-white rounded-2xl border border-slate-200 py-10">
                     <i class="fas fa-user-slash text-4xl mb-3"></i>
-                    <p>Nenhum aluno nesta turma.</p>
+                    <p>Nenhum aluno ativo nesta turma.</p>
                 </div>`;
         }
 
@@ -389,9 +446,23 @@ export const frequenciaView = {
     },
 
     toggleStatus(turmaId, alunoId, dataIso, element) {
-        const novoStatus = model.toggleFrequencia(turmaId, alunoId, dataIso);
-
-        element.innerHTML = this.getIconeStatus(novoStatus);
+        if (model.toggleFrequencia) {
+            const novoStatus = model.toggleFrequencia(turmaId, alunoId, dataIso);
+            element.innerHTML = this.getIconeStatus(novoStatus);
+        } else {
+            // Caso o método toggleFrequencia não exista, faz o ciclo basico P -> F -> J -> Vazio
+            const turma = model.state.turmas.find(t => t.id === turmaId);
+            const aluno = turma.alunos.find(a => a.id === alunoId);
+            if (!aluno.frequencia) aluno.frequencia = {};
+            const atual = aluno.frequencia[dataIso];
+            let novo = '';
+            if (!atual) novo = 'P';
+            else if (atual === 'P') novo = 'F';
+            else if (atual === 'F') novo = 'J';
+            else novo = '';
+            aluno.frequencia[dataIso] = novo;
+            element.innerHTML = this.getIconeStatus(novo);
+        }
 
         element.classList.add('scale-125');
         setTimeout(() => element.classList.remove('scale-125'), 150);
@@ -420,3 +491,7 @@ export const frequenciaView = {
         `;
     }
 };
+
+if (typeof window !== 'undefined') {
+    window.frequenciaView = frequenciaView;
+}

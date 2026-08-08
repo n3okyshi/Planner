@@ -17,6 +17,7 @@ export const provasView = {
     selecionadas: new Set(),
     termoBusca: '',
     tempDados: null,
+    termoBusca: '',
     abaAtiva: 'minhas',
     filtros: {
         materia: '',
@@ -24,11 +25,50 @@ export const provasView = {
         tipo: '',
         bncc: ''
     },
+
+    itensPorPagina: 25,
+    paginaAtual: 1,
+
     disciplinas: [
         "Língua Portuguesa", "Matemática", "Ciências", "História", "Geografia",
         "Arte", "Educação Física", "Língua Inglesa", "Física", "Química",
         "Biologia", "Filosofia", "Sociologia"
     ],
+
+    /**
+     * Reverte o escapeHTML apenas para tags de formatação seguras (tabelas, quebras de linha e negrito).
+     * Aplica classes Tailwind automaticamente nas tabelas para um visual premium.
+     */
+    formatarHTMLQuestao(texto) {
+        if (!texto) return '';
+
+        // Primeiro, escapa tudo por segurança
+        let safeText = window.escapeHTML(texto);
+
+        // Desfaz o escape apenas para as tags estruturais e injeta o estilo Tailwind
+        safeText = safeText
+            // Quebras de linha e texto básico
+            .replace(/&lt;br\/?&gt;/gi, '<br>')
+            .replace(/&lt;b&gt;/gi, '<b class="font-bold text-slate-800">').replace(/&lt;\/b&gt;/gi, '</b>')
+            .replace(/&lt;strong&gt;/gi, '<strong class="font-bold text-slate-800">').replace(/&lt;\/strong&gt;/gi, '</strong>')
+            .replace(/&lt;i&gt;/gi, '<i>').replace(/&lt;\/i&gt;/gi, '</i>')
+            
+            // Tratamento Premium para Tabelas
+            .replace(/&lt;table.*?&gt;/gi, '<div class="overflow-x-auto my-4 rounded-xl border border-slate-200 shadow-sm"><table class="w-full text-sm text-left border-collapse">')
+            .replace(/&lt;\/table&gt;/gi, '</table></div>')
+            .replace(/&lt;thead.*?&gt;/gi, '<thead class="bg-slate-50 text-slate-500 text-[10px] uppercase tracking-wider">')
+            .replace(/&lt;\/thead&gt;/gi, '</thead>')
+            .replace(/&lt;tbody.*?&gt;/gi, '<tbody>')
+            .replace(/&lt;\/tbody&gt;/gi, '</tbody>')
+            .replace(/&lt;tr.*?&gt;/gi, '<tr class="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">')
+            .replace(/&lt;\/tr&gt;/gi, '</tr>')
+            .replace(/&lt;th.*?&gt;/gi, '<th class="p-3 font-bold">')
+            .replace(/&lt;\/th&gt;/gi, '</th>')
+            .replace(/&lt;td.*?&gt;/gi, '<td class="p-3 text-slate-600">')
+            .replace(/&lt;\/td&gt;/gi, '</td>');
+
+        return safeText;
+    },
 
     /**
      * Helper para renderizar estrelas de dificuldade.
@@ -59,11 +99,12 @@ export const provasView = {
         this.abaAtiva = novaAba;
         this.filtros = { materia: '', ano: '', tipo: '', bncc: '' };
         this.termoBusca = '';
+        this.paginaAtual = 1; 
         this.render('view-container');
     },
-
     atualizarFiltro(campo, valor) {
         this.filtros[campo] = valor;
+        this.paginaAtual = 1; 
         this.render('view-container');
     },
 
@@ -101,13 +142,30 @@ export const provasView = {
 
         const minhasQuestoes = model.state.questoes || [];
         const questoesSistema = model.state.questoesSistema || [];
-        const questoesEnem = model.state.questoesEnem || []
+        const questoesEnem = model.state.questoesEnem || [];
         let listaParaFiltrar;
         if (this.abaAtiva === 'minhas') listaParaFiltrar = minhasQuestoes;
         else if (this.abaAtiva === 'sistema') listaParaFiltrar = questoesSistema;
-        else listaParaFiltrar = questoesEnem; // NOVA CONDIÇÃO
+        else listaParaFiltrar = questoesEnem;
 
         const questoesFiltradas = this.filtrarQuestoes(listaParaFiltrar);
+
+        // ==========================================
+        // LÓGICA DE PAGINAÇÃO
+        // ==========================================
+        const totalItens = questoesFiltradas.length;
+        let totalPaginas = this.itensPorPagina === 'all' ? 1 : Math.ceil(totalItens / this.itensPorPagina);
+        if (totalPaginas === 0) totalPaginas = 1;
+        
+        if (this.paginaAtual > totalPaginas) this.paginaAtual = totalPaginas;
+
+        let questoesPaginadas = questoesFiltradas;
+        if (this.itensPorPagina !== 'all') {
+            const inicio = (this.paginaAtual - 1) * this.itensPorPagina;
+            const fim = inicio + this.itensPorPagina;
+            questoesPaginadas = questoesFiltradas.slice(inicio, fim);
+        }
+        // ==========================================
 
         // Limpeza de IDs órfãos na seleção
         const todosIdsExistentes = new Set([...minhasQuestoes, ...questoesSistema].map(q => String(q.id)));
@@ -154,12 +212,12 @@ export const provasView = {
                                 class="px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${this.abaAtiva === 'sistema' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}">
                             Banco do Sistema (${questoesSistema.length})
                         </button>
-                        <!-- NOVA ABA ADICIONADA -->
                         <button onclick="provasView.mudarAba('enem')" 
                                 class="px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${this.abaAtiva === 'enem' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}">
                             Banco ENEM (${questoesEnem.length})
                         </button>
                     </div>
+
                     <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
                         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div>
@@ -196,12 +254,56 @@ export const provasView = {
                                    oninput="provasView.atualizarBusca(this.value)" value="${this.termoBusca}">
                         </div>
                     </div>
-                    <div class="space-y-4" id="lista-questoes">
-                        ${questoesFiltradas.length > 0
-                ? questoesFiltradas.map(q => provasView.cardQuestao(q)).join('')
-                : this.estadoVazio()}
+
+                    <!-- BARRA SUPERIOR DE PAGINAÇÃO -->
+                    <div class="flex justify-between items-center mb-4 mt-6">
+                        <span class="text-xs font-bold text-slate-400">Mostrando <strong class="text-slate-600">${questoesPaginadas.length}</strong> de <strong class="text-slate-600">${totalItens}</strong> questões</span>
+                        
+                        <div class="flex items-center bg-white rounded-xl border border-slate-200 px-3 py-1 shadow-sm">
+                            <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest mr-2">Itens p/ pág:</label>
+                            <div class="custom-dropdown relative w-24">
+                                <input type="hidden" onchange="provasView.mudarQtdPagina(this.value)" value="${this.itensPorPagina}">
+                                <button type="button" class="dropdown-button w-full flex items-center justify-between bg-transparent border-none text-sm font-bold text-slate-700 transition-all focus:outline-none">
+                                    <span class="dropdown-label truncate">${this.itensPorPagina === 'all' ? 'Todas' : this.itensPorPagina}</span>
+                                    <i class="fas fa-chevron-down text-slate-400 text-[10px] ml-1"></i>
+                                </button>
+                                <ul class="dropdown-menu hidden absolute z-50 w-24 right-0 mt-2 bg-white border border-slate-100 rounded-xl shadow-xl p-1.5 animate-slide-up origin-top-right text-left font-normal">
+                                    <li class="dropdown-item p-2 hover:bg-slate-50 rounded-md text-sm cursor-pointer transition-colors" data-value="25">25</li>
+                                    <li class="dropdown-item p-2 hover:bg-slate-50 rounded-md text-sm cursor-pointer transition-colors" data-value="50">50</li>
+                                    <li class="dropdown-item p-2 hover:bg-slate-50 rounded-md text-sm cursor-pointer transition-colors" data-value="100">100</li>
+                                    <li class="dropdown-item p-2 hover:bg-slate-50 rounded-md text-sm cursor-pointer transition-colors" data-value="200">200</li>
+                                    <li class="dropdown-item p-2 hover:bg-slate-50 rounded-md text-sm cursor-pointer transition-colors" data-value="all">Todas</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
+
+                    <!-- LISTA DE QUESTÕES (usando questoesPaginadas) -->
+                    <div class="space-y-4" id="lista-questoes">
+                        ${questoesPaginadas.length > 0
+                            ? questoesPaginadas.map(q => provasView.cardQuestao(q)).join('')
+                            : this.estadoVazio()}
+                    </div>
+                    
+                    <!-- CONTROLES INFERIORES DE PAGINAÇÃO -->
+                    <div id="pagination-controls" class="${totalPaginas <= 1 ? 'hidden' : 'flex'} mt-8 justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+                        <button onclick="provasView.paginaAnterior()" ${this.paginaAtual === 1 ? 'disabled' : ''}
+                                class="px-4 py-2 rounded-lg border border-slate-200 text-slate-500 font-bold text-sm hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2">
+                            <i class="fas fa-chevron-left"></i> Anterior
+                        </button>
+                        
+                        <span class="text-xs font-bold text-slate-400 uppercase tracking-widest">
+                            Página <span class="text-indigo-600 text-sm mx-1">${this.paginaAtual}</span> de ${totalPaginas}
+                        </span>
+                        
+                        <button onclick="provasView.proximaPagina()" ${this.paginaAtual === totalPaginas ? 'disabled' : ''}
+                                class="px-4 py-2 rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 font-bold text-sm hover:bg-indigo-100 disabled:opacity-50 disabled:cursor-not-allowed transition flex items-center gap-2">
+                            Próxima <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+
                 </div>
+
                 <div class="lg:col-span-1 sticky top-24">
                     <div class="bg-white p-6 rounded-2xl shadow-lg border border-slate-100 ring-1 ring-slate-200/50">
                         <div class="flex items-center gap-3 mb-4 border-b border-slate-50 pb-4">
@@ -237,13 +339,14 @@ export const provasView = {
 
         container.innerHTML = html;
 
+        // Renderização LaTeX nas questões montadas
         const listaQuestoesEl = document.getElementById('lista-questoes');
         if (listaQuestoesEl && listaQuestoesEl.innerHTML.includes('$')) {
             this.renderizarLatex(listaQuestoesEl);
         }
 
-        // Carregamento Lazy de imagens
-        questoesFiltradas.forEach(async (q) => {
+        // Carregamento Lazy de imagens (Agota ATUALIZADO para usar questoesPaginadas!)
+        questoesPaginadas.forEach(async (q) => {
             if (q.suporte && q.suporte.tem_imagem) {
                 const containerImg = document.getElementById(`img-container-${q.id}`);
                 if (!containerImg) return;
@@ -294,7 +397,7 @@ export const provasView = {
                 ${q.alternativas.map((alt, i) => `
                     <div class="text-xs flex gap-2 ${q.correta == i ? 'text-emerald-600 font-bold' : 'text-slate-500'}">
                         <span class="uppercase font-bold">${letras[i]})</span> 
-                        <span>${window.escapeHTML(alt)}</span>
+                        <span>${this.formatarHTMLQuestao(alt)}</span>
                         ${q.correta == i ? '<i class="fas fa-check-circle text-[10px] mt-0.5"></i>' : ''}
                     </div>
                 `).join('')}
@@ -306,12 +409,12 @@ export const provasView = {
                 <p class="text-[9px] font-black text-emerald-700 uppercase mb-1 flex items-center gap-1">
                     <i class="fas fa-lightbulb"></i> Gabarito / Resposta Esperada
                 </p>
-                <p class="text-xs text-emerald-800 leading-relaxed">${window.escapeHTML(textoGabarito)}</p>
+                <p class="text-xs text-emerald-800 leading-relaxed">${this.formatarHTMLQuestao(textoGabarito)}</p>
                 ${q.gabarito_comentado ? `
                 <p class="text-[9px] font-black text-emerald-700 uppercase mt-2 mb-1 flex items-center gap-1">
                     <i class="fas fa-comment-dots"></i> Comentário Pedagógico
                 </p>
-                <p class="text-xs text-emerald-800 leading-relaxed italic">${window.escapeHTML(q.gabarito_comentado)}</p>
+                <p class="text-xs text-emerald-800 leading-relaxed italic">${this.formatarHTMLQuestao(q.gabarito_comentado)}</p>
                 ` : ''}
             </div>`;
         }
@@ -365,7 +468,7 @@ export const provasView = {
                 </div>
             </div>
             <div class="text-slate-700 text-sm leading-relaxed font-medium font-serif">
-                ${window.escapeHTML(q.enunciado).replace(/\n/g, '<br>')}
+                ${this.formatarHTMLQuestao(q.enunciado).replace(/\n/g, '<br>')}
                 <div id="img-container-${q.id}" class="mt-4 hidden flex flex-col items-center"></div>
             </div>
             ${conteudoGabarito}
@@ -377,6 +480,7 @@ export const provasView = {
 
     atualizarBusca(valor) {
         this.termoBusca = valor;
+        this.paginaAtual = 1;
         const lista = this.abaAtiva === 'minhas' ? (model.state.questoes || []) : (model.state.questoesSistema || []);
         const filtradas = this.filtrarQuestoes(lista);
         const container = document.getElementById('lista-questoes');
@@ -385,6 +489,24 @@ export const provasView = {
             this.renderizarLatex(container);
         }
         document.getElementById('input-busca-provas')?.focus();
+    },
+
+    mudarQtdPagina(valor) {
+        this.itensPorPagina = valor === 'all' ? 'all' : Number(valor);
+        this.paginaAtual = 1;
+        this.render('view-container');
+    },
+    paginaAnterior() {
+        if (this.paginaAtual > 1) {
+            this.paginaAtual--;
+            this.render('view-container');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    },
+    proximaPagina() {
+        this.paginaAtual++;
+        this.render('view-container');
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     },
 
     renderizarLatex(elemento) {
@@ -736,7 +858,7 @@ export const provasView = {
                     const iconCheck = (isProf && q.correta == idx) ? ' ✓' : '';
                     return `
                                 <div class="alternativa" style="${styleCorrect} padding: 4px 8px;">
-                                    <strong>${letras[idx]})</strong> ${window.escapeHTML(alt)} ${iconCheck}
+                                    <strong>${letras[idx]})</strong> ${this.formatarHTMLQuestao(alt)} ${iconCheck}
                                 </div>
                             `;
                 }).join('')}
@@ -752,7 +874,7 @@ export const provasView = {
                         ${isProf && q.gabarito ? `
                             <div style="margin-top: 15px; padding: 10px; background-color: #f0fdf4; border: 1px dashed #16a34a; border-radius: 6px; font-size: 12px; color: #15803d;">
                                 <strong>Gabarito Esperado:</strong><br>
-                                ${window.escapeHTML(q.gabarito).replace(/\n/g, '<br>')}
+                                ${this.formatarHTMLQuestao(q.gabarito).replace(/\n/g, '<br>')}
                             </div>
                         ` : ''}
                     </div>
@@ -762,7 +884,7 @@ export const provasView = {
                 <div class="questao">
                     ${q.bncc ? `<div class="questao-info no-print">Habilidade: ${window.escapeHTML(q.bncc.codigo)}</div>` : ''}
                     <span class="questao-numero">${i + 1})</span>
-                    <span class="questao-texto">${window.escapeHTML(q.enunciado).replace(/\n/g, '<br>')}</span>
+                    <span class="questao-texto">${this.formatarHTMLQuestao(q.enunciado).replace(/\n/g, '<br>')}</span>
                     ${conteudoResposta}
                 </div>
             `;

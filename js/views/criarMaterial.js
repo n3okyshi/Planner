@@ -30,6 +30,17 @@ export const criarMaterialView = {
             ]
         },
         {
+            titulo: "Prática de Laboratório",
+            itens: [
+                { id: 'linha-1', tipo: 'row', colunas: [{ id: 'disciplina', tipo: 'select-disciplina' }, { id: 'serie', tipo: 'select-serie' }] },
+                { id: 'tema', tipo: 'text', label: 'Fenômeno a ser investigado', placeholder: 'Ex: Leis de Newton, Células, Eletricidade...' },
+                { id: 'materiais', tipo: 'text', label: 'Materiais Disponíveis', placeholder: 'Ex: Simulador PhET, Garrafas PET, Água, Sal...' },
+                { id: 'abordagem', tipo: 'pills', label: 'Abordagem Investigativa', opcoes: ['Guiada (Passo a Passo)', 'Aberta (Alunos criam o método)'], default: 'Guiada (Passo a Passo)' },
+                { id: 'adaptacao', tipo: 'inclusao' }
+            ]
+
+        },
+        {
             titulo: 'AVALIAR',
             itens: [
                 { id: 'avaliacao-prova', label: 'Avaliação / Prova', icone: 'fas fa-clipboard-list', cor: 'text-orange-500' },
@@ -57,6 +68,17 @@ export const criarMaterialView = {
 
     // 2. FÁBRICA DE FORMULÁRIOS
     formConfig: {
+        'pratica-laboratorio': {
+            titulo: 'Prática de Laboratório',
+            descricao: 'Roteiros guiados pelo Método Científico com simulações interativas',
+            campos: [
+                { id: 'linha-1', tipo: 'row', colunas: [{ id: 'disciplina', tipo: 'select-disciplina' }, { id: 'serie', tipo: 'select-serie' }] },
+                { id: 'tema', tipo: 'text', label: 'Fenômeno a ser investigado', placeholder: 'Ex: Leis de Newton, Células, Eletricidade...' },
+                { id: 'materiais', tipo: 'text', label: 'Materiais Disponíveis', placeholder: 'Ex: Simulador PhET, Garrafas PET, Água, Sal...' },
+                { id: 'abordagem', tipo: 'pills', label: 'Abordagem Investigativa', opcoes: ['Guiada (Passo a Passo)', 'Aberta (Alunos criam o método)'], default: 'Guiada (Passo a Passo)' },
+                { id: 'adaptacao', tipo: 'inclusao' }
+            ]
+        },
         'planejamento': {
             titulo: 'Planejamento',
             descricao: 'Crie planos de aula, semanais, mensais, bimestrais e mais',
@@ -76,10 +98,12 @@ export const criarMaterialView = {
             campos: [
                 { id: 'linha-1', tipo: 'row', colunas: [{ id: 'disciplina', tipo: 'select-disciplina' }, { id: 'serie', tipo: 'select-serie' }] },
                 { id: 'tema', tipo: 'text', label: 'Tema', placeholder: 'Ex: Astronomia, Corpo Humano...' },
-                { id: 'estilo', tipo: 'pills-icon', label: 'ESTILO DA DINÂMICA', opcoes: [
-                    { label: 'Quiz Batalha', icon: 'fas fa-bolt' }, { label: 'Jigsaw', icon: 'fas fa-puzzle-piece' },
-                    { label: 'Simulação', icon: 'fas fa-masks-theater' }, { label: 'Gincana', icon: 'fas fa-flag-checkered' }
-                ], default: 'Quiz Batalha' },
+                {
+                    id: 'estilo', tipo: 'pills-icon', label: 'ESTILO DA DINÂMICA', opcoes: [
+                        { label: 'Quiz Batalha', icon: 'fas fa-bolt' }, { label: 'Jigsaw', icon: 'fas fa-puzzle-piece' },
+                        { label: 'Simulação', icon: 'fas fa-masks-theater' }, { label: 'Gincana', icon: 'fas fa-flag-checkered' }
+                    ], default: 'Quiz Batalha'
+                },
                 { id: 'tempo', tipo: 'pills', label: 'TEMPO DISPONÍVEL', opcoes: ['15 min', '30 min', 'Aula completa'], default: '30 min' },
                 { id: 'tamanho', tipo: 'pills', label: 'TAMANHO DA TURMA', opcoes: ['Pequena', 'Média', 'Grande'], default: 'Média' },
                 { id: 'adaptacao', tipo: 'inclusao' }
@@ -113,15 +137,17 @@ export const criarMaterialView = {
             titulo: 'Atividade Imprimível',
             descricao: 'Caça-palavras, cruzadinha, bingo, sudoku — em PDF para imprimir',
             campos: [
-                { id: 'tipo-atividade', tipo: 'grid-cards', label: 'Atividade Imprimível *', default: 'caca-palavras', opcoes: [
+                {
+                    id: 'tipo-atividade', tipo: 'grid-cards', label: 'Atividade Imprimível *', default: 'caca-palavras', opcoes: [
                         { id: 'caca-palavras', titulo: 'Caça-Palavras', desc: 'Encontre palavras', icone: 'fas fa-search', cor: 'text-indigo-500', bg: 'bg-indigo-50' },
                         { id: 'cruzadinha', titulo: 'Cruzadinha', desc: 'Palavras com dicas', icone: 'fas fa-hashtag', cor: 'text-teal-500', bg: 'bg-teal-50' },
                         { id: 'lacunas', titulo: 'Complete as Lacunas', desc: 'Preencher palavras', icone: 'far fa-file-alt', cor: 'text-emerald-500', bg: 'bg-emerald-50' },
                         { id: 'bingo', titulo: 'Bingo Pedagógico', desc: 'Cartelas de termos', icone: 'fas fa-th', cor: 'text-orange-500', bg: 'bg-orange-50' }
-                ]},
+                    ]
+                },
                 { id: 'linha-1', tipo: 'row', colunas: [{ id: 'serie', tipo: 'select-serie' }, { id: 'disciplina', tipo: 'select-disciplina' }] },
                 { id: 'modo-geracao', tipo: 'toggle-ia', label: 'Como deseja preencher o conteúdo?', default: 'ia' },
-                
+
                 // RENDERS CONDICIONAIS - Baseados no valor de 'modo-geracao'
                 { id: 'tema', tipo: 'text', label: 'Tema', placeholder: 'Ex: Viroses, Sistema Solar...', condicao: { campo: 'modo-geracao', valor: 'ia' } },
                 { id: 'palavras-dinamicas', tipo: 'dynamic-words', label: 'Palavras', desc: 'Mínimo 4 palavras.', condicao: { campo: 'modo-geracao', valor: 'ia' } },
@@ -244,9 +270,9 @@ export const criarMaterialView = {
                 <h4 class="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 pl-2">${categoria.titulo}</h4>
                 <div class="space-y-1">
                     ${categoria.itens.map(item => {
-                        const isAtivo = this.ferramentaAtiva === item.id;
-                        const btnClass = isAtivo ? 'bg-indigo-50 border-indigo-100 text-indigo-700 font-bold' : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700 font-medium';
-                        return `
+            const isAtivo = this.ferramentaAtiva === item.id;
+            const btnClass = isAtivo ? 'bg-indigo-50 border-indigo-100 text-indigo-700 font-bold' : 'border-transparent text-slate-500 hover:bg-slate-50 hover:text-slate-700 font-medium';
+            return `
                         <button onclick="criarMaterialView.selecionarFerramenta('${item.id}', this)" class="btn-sidebar w-full flex items-center justify-between p-2.5 rounded-xl border transition-all text-sm ${btnClass}">
                             <div class="flex items-center gap-3">
                                 <div class="w-6 flex justify-center ${isAtivo ? 'text-indigo-600' : item.cor}"><i class="${item.icone}"></i></div>
@@ -254,7 +280,7 @@ export const criarMaterialView = {
                             </div>
                             ${item.badge ? `<span class="bg-amber-100 text-amber-700 text-[8px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider">${item.badge}</span>` : ''}
                         </button>`;
-                    }).join('')}
+        }).join('')}
                 </div>
             </div>
         `).join('');
@@ -272,15 +298,15 @@ export const criarMaterialView = {
 
     selecionarFerramenta(idFerramenta, btnElement) {
         this.ferramentaAtiva = idFerramenta;
-        
+
         // Estiliza o menu lateral ativo
         document.querySelectorAll('.btn-sidebar').forEach(b => {
             b.classList.remove('bg-indigo-50', 'border-indigo-100', 'text-indigo-700', 'font-bold');
             b.classList.add('border-transparent', 'text-slate-500', 'font-medium');
-            
+
             // Restaura cor original do ícone (simples heurística)
             const iconDiv = b.querySelector('.w-6');
-            if(iconDiv.classList.contains('text-indigo-600')) {
+            if (iconDiv.classList.contains('text-indigo-600')) {
                 iconDiv.classList.remove('text-indigo-600');
             }
         });
@@ -294,7 +320,7 @@ export const criarMaterialView = {
         // Atualiza a área de formulário
         const formArea = document.getElementById('form-area');
         formArea.classList.remove('animate-slide-in');
-        void formArea.offsetWidth; 
+        void formArea.offsetWidth;
         formArea.classList.add('animate-slide-in');
         formArea.innerHTML = this.renderizarFormularioDaFerramenta();
     },
@@ -321,6 +347,166 @@ export const criarMaterialView = {
         `;
     },
 
+    /**
+     * Renderiza o resultado da IA simulando uma folha A4 em tela.
+     */
+    renderizarResultadoA4(material) {
+        const formArea = document.getElementById('form-area');
+        if (!formArea) return;
+
+        // Limpa a tela atual e exibe o preview
+        formArea.innerHTML = `
+            <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-4">
+                <button onclick="criarMaterialView.selecionarFerramenta('${material.tipo}', document.querySelector('.bg-indigo-50'))" class="text-slate-400 hover:text-indigo-600 font-bold flex items-center gap-2 text-sm transition-colors">
+                    <i class="fas fa-arrow-left"></i> Voltar e criar outro
+                </button>
+                <div class="flex gap-3">
+                    <button onclick="criarMaterialView.salvarNaBiblioteca()" class="bg-white border border-slate-200 text-slate-700 px-4 py-2 rounded-xl font-bold hover:bg-slate-50 transition shadow-sm text-sm flex items-center gap-2">
+                        <i class="far fa-save"></i> Salvar na Biblioteca
+                    </button>
+                    <!-- O Botão Mágico de Imprimir -->
+                    <button id="btn-imprimir-material" class="bg-indigo-600 text-white px-5 py-2 rounded-xl font-bold shadow-md shadow-indigo-200 hover:bg-indigo-700 transition flex items-center gap-2">
+                        <i class="fas fa-print"></i> Gerar PDF
+                    </button>
+                </div>
+            </div>
+
+            <!-- Visualizador A4 (Tailwind trick) -->
+            <div class="bg-slate-100 p-4 sm:p-8 rounded-2xl overflow-y-auto custom-scrollbar flex-1 flex justify-center">
+                <div id="folha-a4-preview" class="bg-white shadow-xl rounded-sm w-full max-w-[21cm] min-h-[29.7cm] p-8 sm:p-12 text-slate-800">
+                    
+                    <!-- Cabeçalho Fictício da Folha -->
+                    <div class="border-b-2 border-slate-800 pb-4 mb-6 flex justify-between items-end">
+                        <div>
+                            <h2 class="text-2xl font-black uppercase tracking-tight">${window.escapeHTML(material.titulo)}</h2>
+                            <p class="text-sm font-bold text-slate-500 mt-1">${window.escapeHTML(material.disciplina)} • ${window.escapeHTML(material.serie)}</p>
+                        </div>
+                    </div>
+
+                    <!-- Conteúdo renderizado pela IA -->
+                    <div class="prose prose-slate max-w-none text-justify leading-relaxed">
+                        ${material.conteudo_html}
+                    </div>
+
+                </div>
+            </div>
+        `;
+
+        // Atrela o evento de impressão (Passo 3)
+        document.getElementById('btn-imprimir-material').addEventListener('click', () => {
+            this.imprimirMaterialA4(material);
+        });
+    },
+
+    /**
+     * Abre uma nova janela e aciona o motor de PDF/Impressora do navegador.
+     */
+    imprimirMaterialA4(material) {
+        // Busca os dados do professor do Model
+        const config = model.state.userConfig || {};
+        const nomeProf = config.profName ? config.profName : 'Professor(a)';
+        const nomeEscola = config.escolaName ? config.escolaName : 'Nome da Escola';
+
+        // Pega a data de hoje formatada
+        const dataHoje = new Date().toLocaleDateString('pt-BR');
+
+        // Cria a estrutura HTML que a impressora vai ler
+        const conteudo = `
+            <!DOCTYPE html>
+            <html lang="pt-BR">
+            <head>
+                <meta charset="UTF-8">
+                <title>${window.escapeHTML(material.titulo)} - PDF</title>
+                <style>
+                    /* Reset básico e tipografia de impressão */
+                    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+                    
+                    body { 
+                        font-family: 'Inter', sans-serif; 
+                        color: #000; 
+                        background: #fff; 
+                        line-height: 1.6;
+                        margin: 0;
+                        padding: 0;
+                    }
+
+                    /* Configuração estrita para folha A4 */
+                    @page {
+                        size: A4;
+                        margin: 20mm;
+                    }
+
+                    /* Cabeçalho da Escola */
+                    .header { 
+                        border-bottom: 3px solid #000; 
+                        padding-bottom: 15px; 
+                        margin-bottom: 25px; 
+                    }
+                    .header h1 { 
+                        font-size: 20px; 
+                        font-weight: 900; 
+                        text-transform: uppercase; 
+                        margin: 0 0 5px 0; 
+                    }
+                    .header .meta-info {
+                        display: flex;
+                        justify-content: space-between;
+                        font-size: 12px;
+                        font-weight: 700;
+                    }
+
+                    /* Estilização do Conteúdo da IA */
+                    .content h3 { font-size: 18px; margin-top: 20px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+                    .content p { font-size: 14px; text-align: justify; margin-bottom: 10px; }
+                    .content ul, .content ol { font-size: 14px; margin-bottom: 10px; padding-left: 20px; }
+                    .content li { margin-bottom: 5px; }
+                    .content strong { color: #000; }
+
+                    /* Garante que tabelas ou blocos não quebrem na metade entre duas páginas */
+                    .content h3, .content ul, .content table {
+                        page-break-inside: avoid;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>${window.escapeHTML(nomeEscola)}</h1>
+                    <div class="meta-info">
+                        <span>PROFESSOR(A): ${window.escapeHTML(nomeProf)}</span>
+                        <span>DISCIPLINA: ${window.escapeHTML(material.disciplina)}</span>
+                    </div>
+                    <div class="meta-info" style="margin-top: 4px;">
+                        <span>SÉRIE/ANO: ${window.escapeHTML(material.serie)}</span>
+                        <span>DATA: ${dataHoje}</span>
+                    </div>
+                </div>
+
+                <div class="content">
+                    <h2 style="text-align: center; text-transform: uppercase; margin-bottom: 30px;">
+                        ${window.escapeHTML(material.titulo)}
+                    </h2>
+                    ${material.conteudo_html}
+                </div>
+
+                <script>
+                    // Dispara a impressão automaticamente assim que a página carregar
+                    window.onload = () => {
+                        window.print();
+                        // Opcional: fechar a aba após imprimir
+                        // setTimeout(() => window.close(), 500); 
+                    };
+                </script>
+            </body>
+            </html>
+        `;
+
+        // Abre uma janela fantasma (escondida do usuário mobile/desktop)
+        const printWindow = window.open('', '_blank');
+        printWindow.document.open();
+        printWindow.document.write(conteudo);
+        printWindow.document.close();
+    },
+
     // 4. RENDERIZADOR NATIVO DE COMPONENTES E CONDICIONAIS
     gerarHtmlInput(campo) {
         if (campo.tipo === 'row') return `<div class="grid grid-cols-1 md:grid-cols-${campo.colunas.length} gap-4">${campo.colunas.map(col => this.gerarHtmlInput(col)).join('')}</div>`;
@@ -332,27 +518,42 @@ export const criarMaterialView = {
 
         switch (campo.tipo) {
             case 'select-disciplina': htmlComponente = `
-                <div class="w-full">
-                    <label class="block text-xs font-bold text-slate-800 mb-2">Disciplina</label>
-                    <select data-field="Disciplina" class="form-input w-full p-3.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm font-medium text-slate-700 shadow-sm">
-                        <option value="Ciências">Ciências</option>
-                        <option value="Biologia">Biologia</option>
-                        <option value="Física">Física</option>
-                        <option value="Matemática">Matemática</option>
-                        <option value="Educação Infantil">Educação Infantil</option>
-                    </select>
-                </div>`; break;
-            case 'select-serie': htmlComponente = `
-                <div class="w-full">
-                    <label class="block text-xs font-bold text-slate-800 mb-2">Série / Ano</label>
-                    <select data-field="Série" class="form-input w-full p-3.5 bg-white border border-slate-200 rounded-xl outline-none focus:border-indigo-500 text-sm font-medium text-slate-700 shadow-sm">
-                        <option value="Educação Infantil">Educação Infantil (Maternal/Pré)</option>
-                        <option value="6º Ano EF">6º Ano — EF II</option>
-                        <option value="7º Ano EF">7º Ano — EF II</option>
-                        <option value="8º Ano EF">8º Ano — EF II</option>
-                        <option value="9º Ano EF">9º Ano — EF II</option>
-                    </select>
-                </div>`; break;
+    <div class="w-full">
+        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Disciplina</label>
+        <div class="custom-dropdown relative w-full">
+            <input type="hidden" data-field="Disciplina" value="Ciências">
+            <button type="button" class="dropdown-button w-full flex items-center justify-between p-3.5 bg-slate-50 hover:bg-white border border-slate-200 hover:border-indigo-300 rounded-xl shadow-sm text-sm font-medium text-slate-700 transition-all focus:outline-none focus:ring-4 focus:ring-indigo-50">
+                <span class="dropdown-label truncate">Ciências</span>
+                <i class="fas fa-chevron-down text-slate-400 text-xs ml-2"></i>
+            </button>
+            <ul class="dropdown-menu hidden absolute z-50 w-full mt-1 bg-white border border-slate-100 rounded-xl shadow-xl max-h-48 overflow-y-auto custom-scrollbar p-1.5 animate-slide-up origin-top text-left font-normal">
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Ciências">Ciências</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Biologia">Biologia</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Física">Física</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Matemática">Matemática</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Educação Infantil">Educação Infantil</li>
+            </ul>
+        </div>
+    </div>`; break;
+
+case 'select-serie': htmlComponente = `
+    <div class="w-full">
+        <label class="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Série / Ano</label>
+        <div class="custom-dropdown relative w-full">
+            <input type="hidden" data-field="Série" value="6º Ano EF">
+            <button type="button" class="dropdown-button w-full flex items-center justify-between p-3.5 bg-slate-50 hover:bg-white border border-slate-200 hover:border-indigo-300 rounded-xl shadow-sm text-sm font-medium text-slate-700 transition-all focus:outline-none focus:ring-4 focus:ring-indigo-50">
+                <span class="dropdown-label truncate">6º Ano — EF II</span>
+                <i class="fas fa-chevron-down text-slate-400 text-xs ml-2"></i>
+            </button>
+            <ul class="dropdown-menu hidden absolute z-50 w-full mt-1 bg-white border border-slate-100 rounded-xl shadow-xl max-h-48 overflow-y-auto custom-scrollbar p-1.5 animate-slide-up origin-top text-left font-normal">
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Educação Infantil">Educação Infantil (Maternal/Pré)</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="6º Ano EF">6º Ano — EF II</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="7º Ano EF">7º Ano — EF II</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="8º Ano EF">8º Ano — EF II</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="9º Ano EF">9º Ano — EF II</li>
+            </ul>
+        </div>
+    </div>`; break;
             case 'text': htmlComponente = `
                 <div class="w-full">
                     <label class="block text-[10px] font-black text-slate-800 uppercase tracking-widest mb-2">${campo.label}</label>
@@ -375,11 +576,11 @@ export const criarMaterialView = {
                         <input type="hidden" data-field="${campo.label}" id="hidden-${campo.id}" value="${campo.default}">
                         <div class="flex flex-wrap gap-2" id="group-${campo.id}">
                             ${campo.opcoes.map(opt => {
-                                const val = typeof opt === 'string' ? opt : opt.label;
-                                const isSelected = val === campo.default;
-                                const style = isSelected ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-slate-600 border-slate-200';
-                                return `<button type="button" onclick="criarMaterialView.selectPill('${campo.id}', '${val}', this)" class="px-4 py-2.5 rounded-xl border text-sm font-bold transition-all ${style}">${typeof opt !== 'string' ? `<i class="${opt.icon} mr-1"></i>` : ''} ${val}</button>`;
-                            }).join('')}
+                const val = typeof opt === 'string' ? opt : opt.label;
+                const isSelected = val === campo.default;
+                const style = isSelected ? 'bg-indigo-600 text-white border-indigo-600 shadow-md' : 'bg-white text-slate-600 border-slate-200';
+                return `<button type="button" onclick="criarMaterialView.selectPill('${campo.id}', '${val}', this)" class="px-4 py-2.5 rounded-xl border text-sm font-bold transition-all ${style}">${typeof opt !== 'string' ? `<i class="${opt.icon} mr-1"></i>` : ''} ${val}</button>`;
+            }).join('')}
                         </div>
                     </div>`; break;
             case 'grid-cards': htmlComponente = `
@@ -388,15 +589,15 @@ export const criarMaterialView = {
                         <input type="hidden" data-field="${campo.label}" id="hidden-${campo.id}" value="${campo.default}">
                         <div class="grid grid-cols-2 lg:grid-cols-3 gap-4" id="group-${campo.id}">
                             ${campo.opcoes.map(opt => {
-                                const isSelected = opt.id === campo.default;
-                                const border = isSelected ? 'border-indigo-600 ring-1 ring-indigo-600' : 'border-slate-200';
-                                return `
+                const isSelected = opt.id === campo.default;
+                const border = isSelected ? 'border-indigo-600 ring-1 ring-indigo-600' : 'border-slate-200';
+                return `
                                 <button type="button" onclick="criarMaterialView.selectCard('${campo.id}', '${opt.id}', '${opt.titulo}', this)" class="card-btn relative p-4 rounded-2xl border transition-all text-left flex flex-col items-center justify-center gap-3 shadow-sm hover:shadow-md h-36 bg-white ${border}">
                                     <div class="check-icon absolute top-2 right-2 w-5 h-5 bg-indigo-600 rounded-full flex items-center justify-center text-white text-[10px] ${isSelected ? '' : 'hidden'}"><i class="fas fa-check"></i></div>
                                     <div class="w-12 h-12 rounded-2xl ${opt.bg} ${opt.cor} flex items-center justify-center text-2xl mb-1 shadow-sm"><i class="${opt.icone}"></i></div>
                                     <div class="text-center"><h4 class="font-bold text-slate-800 text-sm leading-tight">${opt.titulo}</h4></div>
                                 </button>`;
-                            }).join('')}
+            }).join('')}
                         </div>
                     </div>`; break;
             case 'toggle-ia': htmlComponente = `
@@ -454,7 +655,7 @@ export const criarMaterialView = {
     },
 
     selectCard(campoId, idValor, titulo, btnElement) {
-        document.getElementById(`hidden-${campoId}`).value = titulo; 
+        document.getElementById(`hidden-${campoId}`).value = titulo;
         const container = document.getElementById(`group-${campoId}`);
         container.querySelectorAll('.card-btn').forEach(c => {
             c.classList.remove('border-indigo-600', 'ring-1', 'ring-indigo-600');
@@ -468,11 +669,11 @@ export const criarMaterialView = {
         const container = document.getElementById('dynamic-words-list');
         const addBtn = container.lastElementChild;
         const count = container.querySelectorAll('input').length + 1;
-        
+
         const wrap = document.createElement('div');
         wrap.className = "relative animate-slide-in";
         wrap.innerHTML = `<input type="text" placeholder="Palavra ${count}" class="word-val w-full p-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-indigo-500 shadow-sm pr-8"><i class="fas fa-times absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-500 cursor-pointer" onclick="this.parentElement.remove()"></i>`;
-        
+
         container.insertBefore(wrap, addBtn);
     },
 
@@ -550,7 +751,7 @@ export const criarMaterialView = {
             const salvo = await model.saveMaterial(materialPronto);
 
             Toast.show("Material gerado com sucesso!", "success");
-            
+
             if (window.conteudoGeradoView) {
                 window.conteudoGeradoView.setMaterial(salvo.id);
             }

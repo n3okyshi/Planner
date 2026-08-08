@@ -16,7 +16,7 @@ import { Toast } from '../components/toast.js';
 export const comunidadeView = {
     questoes: [],
     filtroMateria: '',
-    
+
     // --- Estado da Paginação ---
     itensPorPagina: 20,     // Padrão: 20 itens
     paginaAtual: 1,         // Página atual
@@ -24,7 +24,7 @@ export const comunidadeView = {
     primeiroDoc: null,      // Cursor auxiliar
     paginasCache: new Map(),// Cache de páginas visitadas para navegação rápida
     totalCarregado: 0,
-    
+
     /**
      * Helper para renderizar estrelas de dificuldade (Visualização).
      * @private
@@ -40,9 +40,9 @@ export const comunidadeView = {
             }
             estrelas += `<i class="fas fa-star ${cor} text-[10px]"></i>`;
         }
-        
+
         const labels = ["Não definida", "Fácil", "Média", "Difícil"];
-        
+
         return `
             <div class="flex items-center gap-1 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100" title="Dificuldade original: ${labels[n] || labels[0]}">
                 ${estrelas}
@@ -68,27 +68,50 @@ export const comunidadeView = {
                     <input type="text" id="search-comunidade" placeholder="Buscar por tema..." 
                            class="md:col-span-5 p-4 rounded-xl border border-slate-200 outline-none focus:border-primary shadow-sm bg-white focus:ring-4 focus:ring-primary/5 transition-all">
                     
-                    <select id="filter-materia" onchange="comunidadeView.setFiltro(this.value)"
-                            class="md:col-span-3 p-4 rounded-xl border border-slate-200 outline-none cursor-pointer shadow-sm bg-white focus:border-primary">
-                        <option value="">Todas as matérias</option>
-                        ${Object.keys(model.coresComponentes || {}).map(m => `
-                            <option value="${m}" ${this.filtroMateria === m ? 'selected' : ''}>${m}</option>
-                        `).join('')}
-                    </select>
+                    <!-- DROPDOWN CUSTOMIZADO: Filtro Matéria -->
+                        <div id="dropdown-materia" class="relative md:col-span-3">
+                            <!-- O input invisível que o sistema vai ler -->
+                            <input type="hidden" id="filter-materia" value="${this.filtroMateria || ''}">
+                            
+                            <!-- O Botão Falso Select -->
+                            <button class="dropdown-button w-full flex items-center justify-between p-4 bg-white border border-slate-200 hover:border-indigo-300 rounded-xl shadow-sm text-sm font-medium text-slate-700 transition-all focus:outline-none focus:ring-4 focus:ring-indigo-50">
+                                <span class="dropdown-label truncate">${this.filtroMateria || 'Todas as matérias'}</span>
+                                <i class="fas fa-chevron-down text-slate-400 text-xs ml-2 transition-transform duration-200"></i>
+                            </button>
+
+                            <!-- A Lista Flutuante (Menu) -->
+                            <ul class="dropdown-menu hidden absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-xl shadow-slate-200/50 max-h-64 overflow-y-auto custom-scrollbar p-1.5 animate-slide-up origin-top text-left">
+                                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors ${this.filtroMateria === '' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600'}" data-value="">
+                                    Todas as matérias
+                                </li>
+                                ${Object.keys(model.coresComponentes || {}).map(m => `
+                                    <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors ${this.filtroMateria === m ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600'}" data-value="${m}">
+                                        ${m}
+                                    </li>
+                                `).join('')}
+                            </ul>
+                        </div>
                     
                     <button onclick="comunidadeView.novaBusca()" 
                             class="md:col-span-2 bg-indigo-600 text-white rounded-xl font-bold hover:bg-indigo-700 transition shadow-md flex items-center justify-center gap-2 active:scale-95 py-3 md:py-0">
                         <i class="fas fa-search"></i> Buscar
                     </button>
 
-                    <div class="md:col-span-2 flex items-center justify-end md:justify-center bg-white rounded-xl border border-slate-200 px-3 shadow-sm">
-                        <label class="text-[10px] text-slate-400 font-bold uppercase mr-2">Itens:</label>
-                        <select onchange="comunidadeView.mudarQtdPagina(this.value)" class="bg-transparent text-sm font-bold text-slate-700 outline-none cursor-pointer py-2">
-                            <option value="20" ${this.itensPorPagina == 20 ? 'selected' : ''}>20</option>
-                            <option value="50" ${this.itensPorPagina == 50 ? 'selected' : ''}>50</option>
-                            <option value="100" ${this.itensPorPagina == 100 ? 'selected' : ''}>100</option>
-                        </select>
-                    </div>
+                    <div class="md:col-span-2 flex items-center justify-end md:justify-center bg-white rounded-xl border border-slate-200 px-3 shadow-sm py-2">
+    <label class="text-[10px] text-slate-400 font-black uppercase tracking-widest mr-3">Itens:</label>
+    <div class="custom-dropdown relative w-20">
+        <input type="hidden" onchange="comunidadeView.mudarQtdPagina(this.value)" value="${this.itensPorPagina}">
+        <button type="button" class="dropdown-button w-full flex items-center justify-between bg-transparent border-none text-sm font-bold text-slate-700 transition-all focus:outline-none">
+            <span class="dropdown-label truncate">${this.itensPorPagina}</span>
+            <i class="fas fa-chevron-down text-slate-400 text-[10px] ml-1"></i>
+        </button>
+        <ul class="dropdown-menu hidden absolute z-50 w-24 right-0 mt-2 bg-white border border-slate-100 rounded-xl shadow-xl p-1.5 animate-slide-up origin-top-right text-left font-normal">
+            <li class="dropdown-item p-2 hover:bg-slate-50 rounded-md text-sm cursor-pointer transition-colors" data-value="20">20</li>
+            <li class="dropdown-item p-2 hover:bg-slate-50 rounded-md text-sm cursor-pointer transition-colors" data-value="50">50</li>
+            <li class="dropdown-item p-2 hover:bg-slate-50 rounded-md text-sm cursor-pointer transition-colors" data-value="100">100</li>
+        </ul>
+    </div>
+</div>
                 </div>
                 
                 <div id="comunidade-results" class="grid grid-cols-1 md:grid-cols-2 gap-6 min-h-[300px]">
@@ -111,9 +134,19 @@ export const comunidadeView = {
                 </div>
             </div>
         `;
-        
+
         container.innerHTML = html;
-        
+
+        // ATIVAÇÃO DO DROPDOWN CUSTOMIZADO
+        setTimeout(() => {
+            if (window.uiController && window.uiController.setupCustomDropdown) {
+                window.uiController.setupCustomDropdown('dropdown-materia', (valorSelecionado) => {
+                    // Chama a sua função original quando o professor clicar num item
+                    comunidadeView.setFiltro(valorSelecionado);
+                });
+            }
+        }, 50);
+
         // Dispara a busca inicial automaticamente para mostrar as últimas 20
         if (this.questoes.length === 0) {
             this.novaBusca();
@@ -149,12 +182,12 @@ export const comunidadeView = {
 
         try {
             let ref = firebaseService.db.collection('comunidade_questoes');
-            
+
             // Aplica filtros básicos
             if (filtro) {
                 ref = ref.where('materia', '==', filtro);
             }
-            
+
             // Ordenação padrão por data (mais recentes primeiro)
             ref = ref.orderBy('data_partilha', 'desc');
 
@@ -168,7 +201,7 @@ export const comunidadeView = {
             // Define o limite (Limitamos a +1 para saber se existe uma próxima página)
             const limiteQuery = Number(this.itensPorPagina);
             const snapshot = await ref.limit(limiteQuery).get();
-            
+
             // Processa resultados
             let resultados = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
@@ -177,7 +210,7 @@ export const comunidadeView = {
             // Para uma solução perfeita precisaria de Algolia, mas para Vanilla JS isto serve.
             if (termoBusca) {
                 const termo = termoBusca.toLowerCase();
-                resultados = resultados.filter(q => 
+                resultados = resultados.filter(q =>
                     (q.enunciado && q.enunciado.toLowerCase().includes(termo)) ||
                     (q.materia && q.materia.toLowerCase().includes(termo))
                 );
@@ -192,7 +225,7 @@ export const comunidadeView = {
             }
 
             this.questoes = resultados;
-            
+
             // Salva no cache
             this.paginasCache.set(this.paginaAtual, {
                 questoes: [...this.questoes],
@@ -201,18 +234,18 @@ export const comunidadeView = {
             });
 
             this.renderLista();
-            
+
             if (paginationControls) {
                 paginationControls.classList.remove('hidden');
                 this.atualizarBotoesPaginacao();
             }
-            
+
         } catch (error) {
             console.error("Erro na busca da comunidade:", error);
             if (error.code === 'failed-precondition') {
-                 window.Toast.show("A criar índices... Tente novamente em instantes.", "warning");
+                window.Toast.show("A criar índices... Tente novamente em instantes.", "warning");
             } else {
-                 window.Toast.show("Erro ao buscar dados.", "error");
+                window.Toast.show("Erro ao buscar dados.", "error");
             }
             if (grid) grid.innerHTML = '<div class="col-span-full text-center text-red-400">Erro de conexão ou índice inexistente.</div>';
         }
@@ -230,7 +263,7 @@ export const comunidadeView = {
         this.ultimoDoc = dados.ultimoDoc;
         this.totalCarregado = dados.totalCarregado;
         this.paginaAtual = numPagina;
-        
+
         this.renderLista();
         this.atualizarBotoesPaginacao();
         return true;
@@ -248,7 +281,7 @@ export const comunidadeView = {
         }
 
         if (!this.ultimoDoc) return;
-        
+
         this.paginaAtual++;
         await this.buscar('proxima');
         this.atualizarUIContadores();
@@ -299,10 +332,10 @@ export const comunidadeView = {
             btnNext.classList.toggle('opacity-50', fimDaLinha);
         }
     },
-    
+
     atualizarUIContadores() {
         const pageNum = document.getElementById('page-num');
-        if(pageNum) pageNum.innerText = this.paginaAtual;
+        if (pageNum) pageNum.innerText = this.paginaAtual;
     },
 
     mudarQtdPagina(valor) {
@@ -384,7 +417,7 @@ export const comunidadeView = {
 
     async importarQuestao(idCloud) {
         const questao = this.questoes.find(q => q.id === idCloud);
-        
+
         if (questao) {
             const novaQuestao = {
                 enunciado: questao.enunciado,

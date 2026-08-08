@@ -65,6 +65,7 @@ export const controller = {
 
         this.bindViews();
         uiController.aplicarTema();
+        uiController.iniciarObservadorDropdowns();
         this.setupGlobalListeners();
 
         // Inicia monitoramento de autenticação e carrega dados iniciais
@@ -188,7 +189,7 @@ export const controller = {
     saveTurma() { turmaController.saveTurma(); },
     deleteTurma(id) { turmaController.deleteTurma(id); },
     updateSerieOptions(n) { turmaController.updateSerieOptions(n); },
-    
+
     openAddAluno(t, a) { turmaController.openAddAluno(t, a); },
     saveAluno(t, a) { turmaController.saveAluno(t, a); },
     deleteAluno(t, a) { turmaController.deleteAluno(t, a); },
@@ -299,26 +300,35 @@ export const controller = {
     },
 
     // Métodos delegados para o calendário (abrir modal do dia)
-    openDayOptions(data) { 
+    openDayOptions(data) {
         if (calendarioView && calendarioView.openDayOptions) {
-            calendarioView.openDayOptions(data); 
+            calendarioView.openDayOptions(data);
         } else {
-            const tiposHtml = Object.entries(model.tiposEventos).map(([key, valor]) => 
-                `<option value="${window.escapeHTML(key)}">${window.escapeHTML(valor.label)}</option>`
+            const tiposHtml = Object.entries(model.tiposEventos).map(([key, valor]) =>
+                `<li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="${window.escapeHTML(key)}">${window.escapeHTML(valor.label)}</li>`
             ).join('');
 
             const html = `
-                <div class="p-6">
-                    <h3 class="text-lg font-bold mb-4">Evento em ${data}</h3>
-                    <label class="block text-xs uppercase text-gray-500 font-bold mb-1">Tipo de Evento</label>
-                    <select id="evt-tipo" class="w-full border p-2 rounded mb-4 focus:border-primary outline-none bg-white">
-                        ${tiposHtml}
-                    </select>
-                    <label class="block text-xs uppercase text-gray-500 font-bold mb-1">Descrição</label>
-                    <input type="text" id="evt-desc" class="w-full border p-2 rounded mb-4 outline-none focus:border-primary" placeholder="Ex: Dia da Consciência Negra">
-                    <button onclick="controller.saveDayEvent('${data}')" class="w-full bg-primary text-white py-2 rounded-xl font-bold shadow-md">Salvar Evento</button>
-                </div>
-            `;
+    <div class="p-6">
+        <h3 class="text-lg font-bold mb-4">Evento em ${data}</h3>
+        
+        <label class="block text-xs uppercase text-slate-400 font-bold mb-2">Tipo de Evento</label>
+        <div class="custom-dropdown relative w-full mb-4">
+            <input type="hidden" id="evt-tipo" value="feriado">
+            <button type="button" class="dropdown-button w-full flex items-center justify-between p-3.5 bg-slate-50 hover:bg-white border border-slate-200 hover:border-indigo-300 rounded-xl shadow-sm text-sm font-bold text-slate-700 transition-all focus:outline-none">
+                <span class="dropdown-label truncate">Selecione o tipo...</span>
+                <i class="fas fa-chevron-down text-slate-400 text-xs ml-2"></i>
+            </button>
+            <ul class="dropdown-menu hidden absolute z-50 w-full mt-1 bg-white border border-slate-100 rounded-xl shadow-xl max-h-48 overflow-y-auto custom-scrollbar p-1.5 animate-slide-up origin-top text-left font-normal">
+                ${tiposHtml}
+            </ul>
+        </div>
+
+        <label class="block text-xs uppercase text-slate-400 font-bold mb-2">Descrição</label>
+        <input type="text" id="evt-desc" class="w-full border border-slate-200 p-3.5 rounded-xl mb-6 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 shadow-sm text-sm font-medium text-slate-700" placeholder="Ex: Dia da Consciência Negra">
+        <button onclick="controller.saveDayEvent('${data}')" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3.5 rounded-xl font-bold shadow-md hover:shadow-lg transition-all active:scale-[0.98]">Salvar Evento</button>
+    </div>
+`;
             this.openModal('Editar Calendário', html);
         }
     },

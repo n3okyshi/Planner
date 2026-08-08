@@ -48,6 +48,9 @@ export const uiController = {
         modal.classList.remove('hidden');
         modal.style.zIndex = '50'; // Garante que fique acima de tudo
         document.body.style.overflow = 'hidden'; // Trava o scroll do fundo
+
+        setTimeout(() => uiController.initAllDropdowns(), 50);
+
     },
 
     /**
@@ -250,7 +253,173 @@ export const uiController = {
             // Opcional: Calcular cor de hover/fundo baseado na primária se necessário
             // document.documentElement.style.setProperty('--primary-hover', adjustColor(model.state.userConfig.themeColor, -20));
         }
+    },
+
+    /**
+     * Inicializa e controla dropdowns customizados.
+     * @param {string} dropdownId - ID do container principal do dropdown.
+     * @param {Function} [onChangeCallback] - Função disparada quando o valor muda.
+     */
+    setupCustomDropdown(dropdownId, onChangeCallback) {
+        const container = document.getElementById(dropdownId);
+        if (!container) return;
+
+        const button = container.querySelector('.dropdown-button');
+        const menu = container.querySelector('.dropdown-menu');
+        const inputHidden = container.querySelector('input[type="hidden"]');
+        const labelElement = container.querySelector('.dropdown-label');
+
+        if (!button || !menu || !inputHidden || !labelElement) return;
+
+        // Alternar abertura do menu
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Fecha outros dropdowns abertos na tela para evitar sobreposição
+            document.querySelectorAll('.dropdown-menu').forEach(m => {
+                if (m !== menu) m.classList.add('hidden');
+            });
+            
+            menu.classList.toggle('hidden');
+            
+            // Efeito visual no botão quando aberto
+            if (!menu.classList.contains('hidden')) {
+                button.classList.add('border-indigo-400', 'ring-2', 'ring-indigo-50');
+            } else {
+                button.classList.remove('border-indigo-400', 'ring-2', 'ring-indigo-50');
+            }
+        });
+
+        // Seleção de um item da lista
+        const items = menu.querySelectorAll('.dropdown-item');
+        items.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const value = item.dataset.value;
+                const text = item.innerText.trim();
+
+                // Atualiza o visual do botão
+                labelElement.innerText = text;
+                // Atualiza o valor real no input invisível
+                inputHidden.value = value;
+                
+                // Fecha o menu e remove o destaque do botão
+                menu.classList.add('hidden');
+                button.classList.remove('border-indigo-400', 'ring-2', 'ring-indigo-50');
+
+                // Marca o item selecionado visualmente na lista
+                items.forEach(i => i.classList.remove('bg-indigo-50', 'text-indigo-700', 'font-bold'));
+                item.classList.add('bg-indigo-50', 'text-indigo-700', 'font-bold');
+
+                // Dispara a função do seu controller original (ex: realizar busca)
+                if (onChangeCallback) onChangeCallback(value);
+            });
+        });
+
+        // Fechar ao clicar fora do componente
+        document.addEventListener('click', (e) => {
+            if (!container.contains(e.target)) {
+                menu.classList.add('hidden');
+                button.classList.remove('border-indigo-400', 'ring-2', 'ring-indigo-50');
+            }
+        });
+    },
+
+    /**
+     * Inicia um radar nativo (MutationObserver) para detectar quando o HTML 
+     * da página é redesenhado e aplicar os eventos nos novos Dropdowns.
+     */
+    iniciarObservadorDropdowns() {
+        if (this._observerAtivo) return; // Evita criar múltiplos radares
+
+        const observer = new MutationObserver((mutations) => {
+            let temNovoElemento = false;
+            // Verifica se algum elemento novo foi injetado na tela
+            for (let mutation of mutations) {
+                if (mutation.addedNodes.length > 0) {
+                    temNovoElemento = true;
+                    break;
+                }
+            }
+            
+            // Se a tela foi redesenhada, passa reativando os dropdowns mortos
+            if (temNovoElemento) {
+                this.initAllDropdowns();
+            }
+        });
+
+        // Fica observando o corpo inteiro da aplicação em tempo real
+        observer.observe(document.body, { childList: true, subtree: true });
+        this._observerAtivo = true;
+    },
+
+    /**
+     * Inicializa todos os Dropdowns Customizados da tela automaticamente.
+     */
+
+    initAllDropdowns() {
+        // Busca apenas os que ainda não foram inicializados
+        document.querySelectorAll('.custom-dropdown:not(.dropdown-initialized)').forEach(container => {
+            container.classList.add('dropdown-initialized');
+            
+            const button = container.querySelector('.dropdown-button');
+            const menu = container.querySelector('.dropdown-menu');
+            const inputHidden = container.querySelector('input[type="hidden"]');
+            const labelElement = container.querySelector('.dropdown-label');
+
+            if (!button || !menu || !inputHidden || !labelElement) return;
+
+            // Abrir / Fechar
+            button.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                if (button.disabled || button.classList.contains('opacity-60')) return;
+
+                // Fecha os outros
+                document.querySelectorAll('.dropdown-menu').forEach(m => {
+                    if (m !== menu) m.classList.add('hidden');
+                });
+                
+                menu.classList.toggle('hidden');
+                button.classList.toggle('border-indigo-400');
+                button.classList.toggle('ring-2');
+                button.classList.toggle('ring-indigo-50');
+            });
+
+            // Delegação de Eventos: Clique em um item da lista
+            menu.addEventListener('click', (e) => {
+                const item = e.target.closest('.dropdown-item');
+                if (!item) return;
+
+                e.stopPropagation();
+                const value = item.dataset.value;
+                const text = item.innerText.trim();
+
+                labelElement.innerText = text;
+                inputHidden.value = value;
+                
+                menu.classList.add('hidden');
+                button.classList.remove('border-indigo-400', 'ring-2', 'ring-indigo-50');
+
+                // Destaque visual
+                menu.querySelectorAll('.dropdown-item').forEach(i => i.classList.remove('bg-indigo-50', 'text-indigo-700', 'font-bold'));
+                item.classList.add('bg-indigo-50', 'text-indigo-700', 'font-bold');
+
+                // O PULO DO GATO: Dispara o onchange original que já existia no seu HTML!
+                inputHidden.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+
+            // Fechar clicando fora
+            document.addEventListener('click', (e) => {
+                if (!container.contains(e.target)) {
+                    menu.classList.add('hidden');
+                    button.classList.remove('border-indigo-400', 'ring-2', 'ring-indigo-50');
+                }
+            });
+        });
     }
+
 };
 
 // Exposição global para chamadas HTML (onclick="uiController.closeModal()")

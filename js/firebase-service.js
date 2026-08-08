@@ -9,6 +9,7 @@ import { firebaseConfig } from './config.js';
 export const firebaseService = {
     auth: null,
     db: null,
+    functions: null,
 
     /**
      * Inicializa a conexão com o Firebase usando a configuração segura.
@@ -25,6 +26,7 @@ export const firebaseService = {
 
         this.auth = firebase.auth();
         this.db = firebase.firestore();
+        this.functions = firebase.functions();
 
         // Habilita persistência offline (Cache)
         this.db.enablePersistence({ synchronizeTabs: true })
