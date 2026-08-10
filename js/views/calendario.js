@@ -1,109 +1,77 @@
-/**
- * @file calendario.js
- * @description View responsável pela renderização do Calendário Acadêmico anual.
- * @module views/calendarioView
- */
 
 import { model } from '../model.js';
 import { controller } from '../controller.js';
-
-/**
- * Utilitário para escapar HTML e prevenir XSS (se não existir globalmente).
- * @param {string} str 
- * @returns {string}
- */
 function safeHTML(str) {
     if (typeof window.escapeHTML === 'function') return window.escapeHTML(str);
     if (!str) return '';
-    return String(str).replace(/[&<>"']/g, function(m) {
+    return String(str).replace(/[&<>"']/g, function (m) {
         return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
     });
 }
-
-/**
- * View do Calendário.
- * @namespace calendarioView
- */
 export const calendarioView = {
-    // Estado local para controlar a visualização da legenda
     exibirLegenda: false,
-
     mesesNomes: [
         "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
         "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
     ],
-
-    /**
-     * Alterna a visibilidade da caixa de legenda.
-     */
     toggleLegenda() {
         this.exibirLegenda = !this.exibirLegenda;
-        // Re-renderiza para atualizar a interface
         this.render('view-container');
     },
-
-    /**
-     * Renderiza o calendário completo no container.
-     * @param {HTMLElement|string} container 
-     */
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
-        
+
         const config = (model.state && model.state.userConfig) || {};
         let nomeProf = 'Professor(a)';
-        
+
         if (config.profName && config.profName.trim() !== '') {
             nomeProf = config.profName.split(' ')[0];
         } else if (model.currentUser && model.currentUser.displayName) {
             nomeProf = model.currentUser.displayName.split(' ')[0];
         }
-        
-        const html = `
-            <div class="fade-in pb-20 print:pb-0">
-                
-                <div class="hidden print:block text-center mb-6 border-b border-slate-200 pb-4">
-                    <h1 class="text-2xl font-bold text-slate-800">Calendário Acadêmico 2026</h1>
-                    <p class="text-sm text-slate-500">${safeHTML(nomeProf)}</p>
-                </div>
 
-                <div class="flex flex-wrap justify-between items-end mb-6 gap-6 no-print">
+        const html = `
+            <div class="fade-in" style="padding-bottom: 5rem;">
+                
+                <div class="print-only" style="display: none; text-align: center; margin-bottom: 1.5rem; border-bottom: 1px solid var(--color-slate-200); padding-bottom: 1rem;">
+                    <h1 style="font-size: 1.5rem; font-weight: 700; color: var(--color-slate-800);">Calendário Acadêmico 2026</h1>
+                    <p style="font-size: 0.875rem; color: var(--color-slate-500);">${safeHTML(nomeProf)}</p>
+                </div>
+                <div class="no-print" style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; margin-bottom: 1.5rem; gap: 1.5rem;">
                     <div>
-                        <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Olá, ${safeHTML(nomeProf)}!</h2>
-                        <p class="text-slate-500 mt-1">Calendário Acadêmico 2026</p>
+                        <h2 style="font-size: 1.875rem; font-weight: 700; color: var(--color-slate-800); letter-spacing: -0.025em;">Olá, ${safeHTML(nomeProf)}!</h2>
+                        <p style="color: var(--color-slate-500); margin-top: 0.25rem;">Calendário Acadêmico 2026</p>
                     </div>
                     
                     <div>
                         <button onclick="calendarioView.toggleLegenda()" 
-                                class="text-xs font-bold ${this.exibirLegenda ? 'text-white bg-primary shadow-lg shadow-primary/30' : 'text-primary bg-primary/5 hover:bg-primary/10 border border-primary/30'} px-4 py-2 rounded-xl transition-all flex items-center gap-2">
+                                style="font-size: 0.75rem; font-weight: 700; padding: 0.5rem 1rem; border-radius: var(--radius-xl); transition: all var(--transition-fast); display: flex; align-items: center; gap: 0.5rem; cursor: pointer; border: none; ${this.exibirLegenda ? 'color: var(--color-white); background-color: var(--color-primary); box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);' : 'color: var(--color-primary); background-color: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.3);'}" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter='none'">
                             <i class="fas ${this.exibirLegenda ? 'fa-eye-slash' : 'fa-eye'}"></i> 
                             ${this.exibirLegenda ? 'Ocultar Legenda' : 'Ver Legenda'}
                         </button>
                     </div>
                 </div>
-
                 ${this.exibirLegenda ? `
-                    <div class="mb-8 bg-slate-50 p-6 rounded-2xl border border-slate-200 shadow-inner animate-slideIn no-print">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-xs font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2">
+                    <div class="no-print animate-slide-up" style="margin-bottom: 2rem; background-color: var(--color-slate-50); padding: 1.5rem; border-radius: var(--radius-2xl); border: 1px solid var(--color-slate-200); box-shadow: inset 0 2px 4px 0 rgba(0, 0, 0, 0.06);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <h3 style="font-size: 0.75rem; font-weight: 700; color: var(--color-slate-500); text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.5rem;">
                                 <i class="fas fa-tags"></i> Tipos de Eventos
                             </h3>
-                            <button onclick="calendarioView.toggleLegenda()" class="text-slate-400 hover:text-slate-600">
+                            <button onclick="calendarioView.toggleLegenda()" style="color: var(--color-slate-400); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='var(--color-slate-600)'" onmouseout="this.style.color='var(--color-slate-400)'">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
-                        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-3">
+                        <div style="display: grid; gap: 0.75rem; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));">
                             ${this.gerarLegendaItens()}
                         </div>
                     </div>
                 ` : ''}
-
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 print:grid-cols-3 gap-6 calendar-grid print:gap-4">
+                <div class="calendar-grid-months">
                     ${this.mesesNomes.map((nome, index) => this.gerarTemplateMes(index + 1, nome)).join('')}
                 </div>
-
-                <div class="hidden print:grid grid-cols-4 gap-2 mt-8 pt-4 border-t border-slate-200 break-inside-avoid">
-                    <div class="col-span-full mb-2 font-bold text-sm text-slate-800">Legenda:</div>
+                <div class="print-only" style="display: none; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--color-slate-200); page-break-inside: avoid;">
+                    <div style="grid-column: 1 / -1; margin-bottom: 0.5rem; font-weight: 700; font-size: 0.875rem; color: var(--color-slate-800);">Legenda:</div>
                     ${this.gerarLegendaItens(true)} 
                 </div>
             </div>
@@ -111,101 +79,85 @@ export const calendarioView = {
         container.innerHTML = html;
         this.atualizarDataHeader();
     },
-
-    /**
-     * Gera os itens HTML da legenda baseados no Model.
-     * @param {boolean} isPrint - Se true, gera estilo otimizado para impressão.
-     * @returns {string} HTML string.
-     */
     gerarLegendaItens(isPrint = false) {
         if (!model.tiposEventos) return '';
-        
+
         return Object.entries(model.tiposEventos)
-            .filter(([key]) => !key.includes('Antigo')) // Exemplo de filtro de legado
+            .filter(([key]) => !key.includes('Antigo'))
             .map(([key, estilo]) => `
-                <div class="flex items-center gap-2 p-2 ${isPrint ? '' : 'bg-white border border-slate-100 shadow-sm'} rounded-lg">
-                    <div class="w-4 h-4 rounded-md shadow-sm shrink-0 ${estilo.bg} border ${estilo.border} print:border-2"></div>
-                    <span class="${isPrint ? 'text-[9px]' : 'text-[10px]'} font-bold text-slate-600 uppercase tracking-wide truncate" title="${window.escapeHTML(estilo.label)}">${window.escapeHTML(estilo.label)}</span>
+                <div style="display: flex; align-items: center; gap: 0.5rem; padding: 0.5rem; border-radius: var(--radius-lg); ${isPrint ? '' : 'background-color: var(--color-white); border: 1px solid var(--color-slate-100); box-shadow: var(--shadow-sm);'}">
+                    <div style="width: 1.125rem; height: 1.125rem; border-radius: var(--radius-md); background-color: ${estilo.bg || '#ffffff'}; border: 1px solid ${estilo.border || '#cbd5e1'}; box-shadow: var(--shadow-sm); flex-shrink: 0;"></div>
+                    <span style="${isPrint ? 'font-size: 0.5625rem;' : 'font-size: 0.6875rem;'} font-weight: 700; color: ${estilo.color || 'var(--color-slate-700)'}; text-transform: uppercase; letter-spacing: 0.025em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${window.escapeHTML(estilo.label)}">${window.escapeHTML(estilo.label)}</span>
                 </div>
             `).join('');
     },
-
-    /**
-     * Gera o HTML de um mês específico.
-     * @param {number} mes - Número do mês (1-12).
-     * @param {string} nome - Nome do mês.
-     * @returns {string} HTML string.
-     */
     gerarTemplateMes(mes, nome) {
         const ano = 2026;
         const primeiroDiaSemana = new Date(ano, mes - 1, 1).getDay();
         const totalDias = new Date(ano, mes, 0).getDate();
         let diasHtml = '';
-        
-        // Espaços vazios antes do dia 1
-        for (let i = 0; i < primeiroDiaSemana; i++) {
-            diasHtml += `<div class="h-8 calendar-day-empty"></div>`;
-        }
 
-        // Dias do mês
+        for (let i = 0; i < primeiroDiaSemana; i++) {
+            diasHtml += `<div style="height: 2rem;"></div>`;
+        }
         for (let dia = 1; dia <= totalDias; dia++) {
             const dataIso = `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
             const evento = model.state.eventos ? model.state.eventos[dataIso] : null;
-            
-            let classesBase = "h-8 flex items-center justify-center relative cursor-pointer rounded-lg transition-all text-xs font-medium calendar-day ";
-            let estiloCor = "hover:bg-slate-100 text-slate-600";
-            let tooltipText = 'Clique para adicionar evento';
 
+            let classesBase = "calendar-day ";
+            let styleBase = "height: 2rem; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; border-radius: var(--radius-lg); transition: all var(--transition-fast); font-size: 0.75rem; font-weight: 600;";
+            let tooltipText = 'Clique para adicionar evento';
+            let hoverBg = 'var(--color-slate-100)';
             if (evento) {
-                // Recupera configuração do Model
                 const configEvento = model.tiposEventos[evento.tipo];
-                    if (configEvento) {
-                    estiloCor = `${configEvento.bg} ${configEvento.text} font-bold ring-1 ring-inset ${configEvento.border}`;
-                    tooltipText = `${window.escapeHTML(configEvento.label)}: ${safeHTML(evento.descricao)}`;
+                if (configEvento) {
+                    styleBase += `background-color: ${configEvento.bg} !important; color: ${configEvento.color} !important; border: 1px solid ${configEvento.border} !important; font-weight: 700;`;
+                    tooltipText = `${window.escapeHTML(configEvento.label)}: ${safeHTML(evento.descricao || '')}`;
+                    hoverBg = configEvento.bg;
                 } else {
-                    estiloCor = "bg-gray-100 text-gray-500 font-bold border border-gray-200";
-                    tooltipText = `Evento: ${safeHTML(evento.descricao)}`;
+                    styleBase += "background-color: #f3f4f6; color: #6b7280; font-weight: 700; border: 1px solid #e5e7eb;";
+                    tooltipText = `Evento: ${safeHTML(evento.descricao || '')}`;
                 }
+            } else {
+                classesBase += "day-empty ";
+                styleBase += "color: var(--color-slate-700); background-color: transparent; border: 1px solid transparent;";
             }
-            
-            // Destacar dia atual
+
             const hoje = new Date();
             const isHoje = hoje.getDate() === dia && (hoje.getMonth() + 1) === mes && hoje.getFullYear() === ano;
             if (isHoje) {
-                classesBase += "ring-2 ring-primary ring-offset-1 z-10 font-bold ";
-                // Se hoje não tiver evento, destaca em azul
-                if (!evento) estiloCor = "bg-primary text-white hover:bg-primary/90";
+                styleBase += "box-shadow: 0 0 0 2px var(--color-primary); font-weight: 700;";
+                if (!evento) {
+                    styleBase += "background-color: var(--color-primary) !important; color: var(--color-white) !important;";
+                    hoverBg = 'var(--color-primary-hover)';
+                }
             }
-
             diasHtml += `
-                <div class="${classesBase} ${estiloCor} group"
+                <div class="${classesBase}" style="${styleBase}"
                      title="${tooltipText}"
+                     onmouseover="if(this.classList.contains('day-empty') && !${isHoje}) this.style.backgroundColor='${hoverBg}'"
+                     onmouseout="if(this.classList.contains('day-empty') && !${isHoje}) this.style.backgroundColor='transparent'"
                      onclick="controller.openDayOptions('${dataIso}')">
                     <span>${dia}</span>
-                    ${(evento && evento.descricao) ? `<span class="absolute -bottom-0.5 w-1 h-1 rounded-full bg-current opacity-50 no-print"></span>` : ''}
+                    ${(evento && evento.descricao) ? `<span class="no-print" style="position: absolute; bottom: 0.125rem; width: 0.25rem; height: 0.25rem; border-radius: 50%; background-color: currentColor; opacity: 0.7;"></span>` : ''}
                 </div>
             `;
         }
-
         return `
-            <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 hover:shadow-md transition-shadow h-full flex flex-col break-inside-avoid print:border print:shadow-none print:p-2">
-                <h3 class="font-bold text-slate-800 mb-2 text-center border-b border-slate-50 pb-2 uppercase tracking-widest text-xs flex justify-between items-center px-2">
+            <div class="print-border-shadow-none" style="background-color: var(--color-white); padding: 1rem; border-radius: var(--radius-2xl); box-shadow: var(--shadow-sm); border: 1px solid var(--color-slate-200); transition: box-shadow var(--transition-fast); height: 100%; display: flex; flex-direction: column; page-break-inside: avoid;" onmouseover="this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.boxShadow='var(--shadow-sm)'">
+                <h3 style="font-weight: 700; color: var(--color-slate-800); margin-bottom: 0.5rem; text-align: center; border-bottom: 1px solid var(--color-slate-100); padding-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.75rem; display: flex; justify-content: space-between; align-items: center; padding-left: 0.5rem; padding-right: 0.5rem;">
                     <span>${window.escapeHTML(nome)}</span>
                 </h3>
-                <div class="grid grid-cols-7 gap-1 text-[9px] font-black text-slate-400 text-center mb-1 uppercase">
-                    <div class="text-red-300">D</div>
+                <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.25rem; font-size: 0.5625rem; font-weight: 900; color: var(--color-slate-400); text-align: center; margin-bottom: 0.25rem; text-transform: uppercase;">
+                    <div style="color: #ef4444;">D</div>
                     <div>S</div><div>T</div><div>Q</div><div>Q</div><div>S</div><div>S</div>
                 </div>
-                <div class="grid grid-cols-7 gap-1 flex-1 content-start calendar-grid">
+                <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.25rem; flex: 1; align-content: start;" class="calendar-grid">
                     ${diasHtml}
                 </div>
             </div>
         `;
     },
-
-    /**
-     * Atualiza o cabeçalho de data global (se existir na página).
-     */
     atualizarDataHeader() {
         const el = document.getElementById('current-date');
         if (el) {

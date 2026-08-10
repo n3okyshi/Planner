@@ -1,32 +1,17 @@
-/**
- * @file diario.js
- * @description View responsável pela interface do Diário de Classe (Planejamento Diário).
- * @module views/diarioView
- */
-
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 
-/**
- * View do Diário de Classe.
- * @namespace diarioView
- */
 export const diarioView = {
     currentDate: new Date().toISOString().split('T')[0],
     viewDate: new Date(),
     currentTurmaId: null,
 
-    /**
-     * Renderiza o layout principal do diário.
-     * @param {HTMLElement|string} container 
-     */
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
 
         const turmas = (model.state && model.state.turmas) ? model.state.turmas : [];
-        
-        // Validação da Turma Ativa
+
         if (this.currentTurmaId && !turmas.find(t => String(t.id) === String(this.currentTurmaId))) {
             this.currentTurmaId = null;
         }
@@ -35,396 +20,284 @@ export const diarioView = {
         }
 
         const html = `
-            <div class="fade-in pb-24">
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-wrap gap-4 items-center justify-between sticky top-0 z-20">
-                    <div class="flex items-center gap-4 flex-1">
-                        <div class="bg-indigo-100 text-indigo-600 w-10 h-10 rounded-lg flex items-center justify-center">
+            <div class="animate-enter" style="display: flex; flex-direction: column; gap: var(--spacing-6); padding-bottom: var(--spacing-8);">
+                
+                <!-- TOP HEADER & TOOLBAR -->
+                <div class="card" style="padding: var(--spacing-4) var(--spacing-6); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-4);">
+                    <div style="display: flex; align-items: center; gap: var(--spacing-4);">
+                        <div style="background-color: var(--color-primary-light); color: var(--color-primary); width: 2.75rem; height: 2.75rem; border-radius: var(--radius-xl); display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
                             <i class="fas fa-book-reader"></i>
                         </div>
                         <div>
-                            <h2 class="text-xl font-bold text-slate-800">Diário de Classe</h2>
-                            <p class="text-xs text-slate-500">Selecione uma data para planejar.</p>
+                            <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--color-slate-800); letter-spacing: -0.025em;">Diário de Classe</h2>
+                            <p style="font-size: 0.875rem; color: var(--color-slate-500);">Registro diário de aulas, metodologia e habilidades desenvolvidas.</p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <span class="text-xs font-bold text-slate-400 uppercase hidden md:inline">Turma:</span>
-                        <div class="custom-dropdown relative flex-1 md:w-64">
-    <i class="fas fa-users absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10 pointer-events-none"></i>
-    
-    <input type="hidden" id="select-turma-global" onchange="controller.mudarTurmaDiario(this.value)" value="${this.currentTurmaId || ''}">
-    
-    <button type="button" class="dropdown-button w-full flex items-center justify-between pl-10 pr-4 py-2.5 bg-white border border-slate-200 hover:border-indigo-300 rounded-xl shadow-sm text-sm font-bold text-slate-700 transition-all focus:outline-none focus:ring-4 focus:ring-indigo-50">
-        <span class="dropdown-label truncate">${turmas.find(t => String(t.id) === String(this.currentTurmaId))?.nome || 'Selecionar Turma...'}</span>
-        <i class="fas fa-chevron-down text-slate-400 text-xs ml-2"></i>
-    </button>
 
-    <ul class="dropdown-menu hidden absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-xl shadow-slate-200/50 max-h-64 overflow-y-auto custom-scrollbar p-1.5 animate-slide-up origin-top text-left font-normal">
-        ${turmas.length > 0 
-            ? turmas.map(t => `<li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors ${String(t.id) === String(this.currentTurmaId) ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600'}" data-value="${t.id}">${window.escapeHTML(t.nome)}</li>`).join('')
-            : '<li class="p-2.5 text-slate-400 text-sm text-center">Nenhuma turma</li>'
-        }
-    </ul>
-</div>
-                        <div id="status-salvamento" class="text-[10px] font-bold text-slate-400 min-w-[60px] text-right transition-all"></div>
+                    <div style="display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap;">
+                        <div class="custom-dropdown" style="min-width: 240px;">
+                            <input type="hidden" id="select-turma-global" onchange="controller.mudarTurmaDiario(this.value)" value="${this.currentTurmaId || ''}">
+                            <button type="button" class="dropdown-button">
+                                <i class="fas fa-users" style="color: var(--color-slate-400); margin-right: var(--spacing-2);"></i>
+                                <span class="dropdown-label">${turmas.find(t => String(t.id) === String(this.currentTurmaId))?.nome || 'Selecionar Turma...'}</span>
+                                <i class="fas fa-chevron-down" style="color: var(--color-slate-400); font-size: 0.75rem; margin-left: auto;"></i>
+                            </button>
+                            <ul class="dropdown-menu hidden custom-scrollbar">
+                                ${turmas.length > 0
+                ? turmas.map(t => `<li class="dropdown-item ${String(t.id) === String(this.currentTurmaId) ? 'dropdown-item--selected' : ''}" data-value="${t.id}">${window.escapeHTML(t.nome)}</li>`).join('')
+                : '<li class="p-3 text-slate-400 text-sm text-center">Nenhuma turma cadastrada</li>'
+            }
+                            </ul>
+                        </div>
+                        <div id="status-salvamento" style="font-size: 0.75rem; font-weight: 700; color: var(--color-slate-400); min-width: 80px; text-align: right;"></div>
                     </div>
                 </div>
+
+                <!-- MAIN SIDE-BY-SIDE GRID (CALENDAR + LESSON PLAN EDITOR) -->
                 ${turmas.length === 0 ? this.estadoVazio() : `
-                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                        <div class="lg:col-span-4 space-y-6">
+                    <div style="display: grid; grid-template-columns: minmax(320px, 360px) 1fr; gap: var(--spacing-4); align-items: start;">
+                        
+                        <!-- LEFT COLUMN: MINI CALENDAR & TIPS (360px) -->
+                        <div style="display: flex; flex-direction: column; gap: var(--spacing-4); width: 100%;">
                             ${this.gerarMiniCalendario()}
-                            <div id="dica-diario" class="bg-blue-50 p-4 rounded-xl border border-blue-100 text-blue-800 text-xs leading-relaxed flex gap-2 items-start relative group">
-                                <i class="fas fa-info-circle mt-0.5"></i> 
-                                <div>
-                                    <p class="font-bold mb-1">Como usar:</p>
-                                    1. Clique em uma data no calendário.<br>
-                                    2. Preencha ou edite o plano ao lado.<br>
-                                    3. O salvamento é automático.
+                            
+                            <div class="card" style="padding: var(--spacing-4); background-color: #eff6ff; border: 1px solid #dbeafe; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.8125rem; color: #1e40af; line-height: 1.5;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem; font-weight: 800;">
+                                    <i class="fas fa-info-circle"></i> Como funciona:
                                 </div>
-                                <button onclick="document.getElementById('dica-diario').remove()" class="absolute top-2 right-2 text-blue-300 hover:text-blue-600 transition-colors" title="Fechar dica">
-                                    <i class="fas fa-times"></i>
-                                </button>
+                                <ol style="padding-left: 1.25rem; margin: 0; display: flex; flex-direction: column; gap: 0.25rem;">
+                                    <li>Selecione a data no calendário acima.</li>
+                                    <li>Preencha os campos da aula ao lado.</li>
+                                    <li>O salvamento ocorre automaticamente.</li>
+                                </ol>
                             </div>
                         </div>
-                        <div class="lg:col-span-8">
+
+                        <!-- RIGHT COLUMN: LESSON PLAN EDITOR -->
+                        <div style="width: 100%; min-width: 0;">
                             ${this.renderEditor()}
                         </div>
                     </div>
                 `}
             </div>
         `;
-        
+
         container.innerHTML = html;
-        
+
         if (turmas.length > 0) {
             this.preencherCampos();
-            // Inicializa o autosave (se o controller estiver pronto)
             if (window.planejamentoController?.initDiarioAutosave) {
                 window.planejamentoController.initDiarioAutosave();
             }
         }
     },
 
-    /**
-     * Gera o HTML do mini calendário lateral.
-     */
     gerarMiniCalendario() {
         const ano = this.viewDate.getFullYear();
         const mes = this.viewDate.getMonth();
         const nomesMeses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
         const primeiroDiaSemana = new Date(ano, mes, 1).getDay();
         const totalDias = new Date(ano, mes + 1, 0).getDate();
-        
+
         let diasHtml = '';
-        
-        // Espaços vazios
+
         for (let i = 0; i < primeiroDiaSemana; i++) {
-            diasHtml += `<div class="h-10"></div>`;
+            diasHtml += `<div style="height: 2.5rem;"></div>`;
         }
 
-        // Dias preenchidos
         for (let dia = 1; dia <= totalDias; dia++) {
             const dataIso = `${ano}-${String(mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
             const isSelected = dataIso === this.currentDate;
             const temPlano = model.getPlanoDiario(dataIso, this.currentTurmaId);
-            
+
             const indicadorHtml = temPlano
-                ? `<span class="absolute bottom-1 w-1.5 h-1.5 rounded-full bg-emerald-500 shadow-sm"></span>`
+                ? `<span style="position: absolute; bottom: 4px; width: 5px; height: 5px; border-radius: 50%; background-color: #10b981;"></span>`
                 : '';
-            
-            const btnClass = isSelected
-                ? 'bg-slate-800 text-white shadow-lg transform scale-110 z-10 border-slate-800'
-                : 'bg-white text-slate-600 hover:bg-slate-50 border border-slate-100 hover:border-slate-300';
-            
+
+            const bgStyle = isSelected
+                ? 'background-color: var(--color-slate-800); color: white; box-shadow: var(--shadow-sm);'
+                : 'background-color: var(--color-white); color: var(--color-slate-700); border: 1px solid var(--color-slate-100);';
+
             diasHtml += `
-                <button onclick="controller.mudarDataDiario('${dataIso}')" 
-                        class="h-10 w-full rounded-lg flex flex-col items-center justify-center relative transition-all text-xs font-bold ${btnClass}">
-                    <span>${dia}</span>
+                <button type="button" onclick="controller.mudarDataDiario('${dataIso}')" 
+                        class="interactive-element"
+                        style="height: 2.5rem; width: 100%; border-radius: var(--radius-lg); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; font-size: 0.8125rem; font-weight: 700; cursor: pointer; ${bgStyle}"
+                        onmouseover="if(!${isSelected}) this.style.backgroundColor='var(--color-slate-50)'"
+                        onmouseout="if(!${isSelected}) this.style.backgroundColor='var(--color-white)'">
+                    ${dia}
                     ${indicadorHtml}
                 </button>
             `;
         }
 
         return `
-            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200">
-                <div class="flex justify-between items-center mb-4">
-                    <button onclick="controller.mudarMesDiario(-1)" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 hover:text-primary transition">
-                        <i class="fas fa-chevron-left"></i>
+            <div class="card" style="padding: var(--spacing-4); display: flex; flex-direction: column; gap: var(--spacing-3);">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: var(--spacing-3); border-bottom: 1px solid var(--color-slate-100);">
+                    <button type="button" onclick="controller.mudarMesDiario(-1)" class="btn-icon" style="width: 2rem; height: 2rem;" title="Mês Anterior">
+                        <i class="fas fa-chevron-left" style="font-size: 0.75rem;"></i>
                     </button>
                     
-                    <div class="flex items-center gap-2">
-                        <span class="font-bold text-slate-700 capitalize text-sm">${nomesMeses[mes]} ${ano}</span>
-                        <button onclick="controller.mudarDataDiario(new Date().toISOString().split('T')[0])" 
-                                class="text-[10px] font-bold bg-blue-50 text-primary px-2 py-0.5 rounded border border-blue-100 hover:bg-blue-100 transition"
+                    <div style="display: flex; align-items: center; gap: var(--spacing-2);">
+                        <span style="font-size: 0.9375rem; font-weight: 800; color: var(--color-slate-800);">${nomesMeses[mes]} ${ano}</span>
+                        <button type="button" onclick="controller.mudarDataDiario(new Date().toISOString().split('T')[0])" 
+                                class="badge" style="background-color: var(--color-primary-light); color: var(--color-primary); font-weight: 800; cursor: pointer; border: none;"
                                 title="Voltar para Hoje">
                             Hoje
                         </button>
                     </div>
-                    <button onclick="controller.mudarMesDiario(1)" class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-slate-100 text-slate-400 hover:text-primary transition">
-                        <i class="fas fa-chevron-right"></i>
+
+                    <button type="button" onclick="controller.mudarMesDiario(1)" class="btn-icon" style="width: 2rem; height: 2rem;" title="Próximo Mês">
+                        <i class="fas fa-chevron-right" style="font-size: 0.75rem;"></i>
                     </button>
                 </div>
-                <div class="grid grid-cols-7 gap-1 text-center mb-2">
-                    <div class="text-[10px] font-black text-red-400 uppercase">D</div>
-                    <div class="text-[10px] font-black text-slate-300 uppercase">S</div>
-                    <div class="text-[10px] font-black text-slate-300 uppercase">T</div>
-                    <div class="text-[10px] font-black text-slate-300 uppercase">Q</div>
-                    <div class="text-[10px] font-black text-slate-300 uppercase">Q</div>
-                    <div class="text-[10px] font-black text-slate-300 uppercase">S</div>
-                    <div class="text-[10px] font-black text-slate-300 uppercase">S</div>
+
+                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.25rem; text-align: center;">
+                    <div style="font-size: 0.6875rem; font-weight: 900; color: #ef4444; padding: 0.25rem 0;">D</div>
+                    <div style="font-size: 0.6875rem; font-weight: 900; color: var(--color-slate-400); padding: 0.25rem 0;">S</div>
+                    <div style="font-size: 0.6875rem; font-weight: 900; color: var(--color-slate-400); padding: 0.25rem 0;">T</div>
+                    <div style="font-size: 0.6875rem; font-weight: 900; color: var(--color-slate-400); padding: 0.25rem 0;">Q</div>
+                    <div style="font-size: 0.6875rem; font-weight: 900; color: var(--color-slate-400); padding: 0.25rem 0;">Q</div>
+                    <div style="font-size: 0.6875rem; font-weight: 900; color: var(--color-slate-400); padding: 0.25rem 0;">S</div>
+                    <div style="font-size: 0.6875rem; font-weight: 900; color: var(--color-slate-400); padding: 0.25rem 0;">S</div>
                 </div>
-                <div class="grid grid-cols-7 gap-1">
+
+                <div style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.25rem;">
                     ${diasHtml}
                 </div>
             </div>
         `;
     },
 
-    /**
-     * Renderiza o formulário de edição do plano de aula.
-     */
     renderEditor() {
         const [ano, mes, dia] = this.currentDate.split('-');
         const dataFormatada = `${dia}/${mes}/${ano}`;
         const sugestoes = model.getSugestoesDoMes(this.currentTurmaId, this.currentDate);
-        
+
         return `
-            <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden relative h-full">
-                <div class="bg-slate-50 border-b border-slate-200 p-4 flex flex-wrap justify-between items-center sticky top-0 z-10 gap-3">
-                    <div class="flex items-center gap-2">
-                        <div class="bg-white border border-slate-200 px-3 py-1.5 rounded-lg text-sm font-bold text-slate-700 shadow-sm flex items-center">
-                            <i class="far fa-calendar mr-2 text-primary"></i> ${dataFormatada}
-                        </div>
+            <div class="card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column;">
+                
+                <!-- EDITOR HEADER -->
+                <div style="padding: var(--spacing-4) var(--spacing-6); background-color: var(--color-slate-50); border-bottom: 1px solid var(--color-slate-200); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-3);">
+                    <div style="display: flex; align-items: center; gap: var(--spacing-2);">
+                        <span class="badge" style="background-color: var(--color-white); color: var(--color-slate-700); font-weight: 800; padding: 0.375rem 0.75rem; border: 1px solid var(--color-slate-200); box-shadow: var(--shadow-sm); font-size: 0.875rem;">
+                            <i class="far fa-calendar" style="color: var(--color-primary); margin-right: 0.375rem;"></i> ${dataFormatada}
+                        </span>
                         <input type="hidden" id="diario-data" value="${this.currentDate}">
                     </div>
-                    
-                    <div class="flex gap-2">
-                        <button onclick="diarioView.imprimirPlano()" class="px-3 py-2 text-slate-500 hover:text-slate-800 font-bold text-xs uppercase tracking-wider transition flex items-center gap-1">
-                            <i class="fas fa-print"></i> <span class="hidden sm:inline">Imprimir</span>
+
+                    <div style="display: flex; align-items: center; gap: var(--spacing-2);">
+                        <button type="button" onclick="diarioView.imprimirPlano()" class="btn-secondary" style="padding: 0.5rem 0.875rem; font-size: 0.8125rem;">
+                            <i class="fas fa-print"></i> <span>Imprimir</span>
                         </button>
-                        <button onclick="controller.salvarDiario()" class="bg-primary hover:bg-opacity-90 text-white px-6 py-2 rounded-lg font-bold text-sm shadow-md transition transform active:scale-95 flex items-center gap-2">
-                            <i class="fas fa-save"></i> Salvar
+                        <button type="button" onclick="controller.salvarDiario()" class="btn-primary" style="padding: 0.5rem 1.25rem; font-size: 0.8125rem;">
+                            <i class="fas fa-save"></i> <span>Salvar</span>
                         </button>
                     </div>
                 </div>
-                <div class="p-6 md:p-8 space-y-6">
+
+                <!-- FORM FIELDS -->
+                <div style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-5);">
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Tema da Aula</label>
-                        <input type="text" id="plan-tema" placeholder="O que será ensinado hoje?" 
-                               class="autosave-input w-full text-xl md:text-2xl font-bold text-slate-800 border-b-2 border-slate-100 pb-2 outline-none focus:border-primary transition-colors placeholder:text-slate-300">
+                        <label class="form-label">Tema da Aula</label>
+                        <input type="text" id="plan-tema" placeholder="Qual o tema principal desta aula?" 
+                               class="autosave-input form-input" style="font-size: 1.125rem; font-weight: 700; color: var(--color-slate-800);">
                     </div>
+
                     <div>
-                        <div class="flex justify-between items-end mb-2">
-                            <label class="block text-xs font-bold text-slate-400 uppercase">Habilidades BNCC</label>
-                            
-                            <button onclick="controller.openSeletorBnccDiario('${this.currentTurmaId}')" 
-                                    class="text-[10px] font-bold text-primary hover:bg-slate-50 px-2 py-1 rounded transition border border-primary/20 flex items-center gap-1">
-                                <i class="fas fa-search"></i> Buscar na Base Completa
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-2);">
+                            <label class="form-label" style="margin-bottom: 0;">Habilidades BNCC</label>
+                            <button type="button" onclick="controller.openSeletorBnccDiario('${this.currentTurmaId}')" 
+                                    class="btn-primary interactive-element" style="padding: 0.375rem 0.75rem; font-size: 0.75rem; border-radius: var(--radius-lg);">
+                                <i class="fas fa-search"></i> <span>Consultar BNCC</span>
                             </button>
                         </div>
-                        <textarea id="plan-bncc" rows="3" class="autosave-input w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:border-primary focus:bg-white transition-all resize-none custom-scrollbar" placeholder="Códigos e descrições das habilidades..."></textarea>
+                        <textarea id="plan-bncc" rows="2" class="autosave-input form-input custom-scrollbar" style="resize: vertical;" placeholder="Códigos e descrições das habilidades trabalhadas..."></textarea>
                     </div>
+
                     ${sugestoes.length > 0 ? `
-                        <div class="bg-yellow-50 border border-yellow-100 rounded-xl p-4">
-                            <h4 class="text-xs font-bold text-yellow-700 flex items-center gap-2 mb-2">
+                        <div style="padding: var(--spacing-4); background-color: #fefce8; border: 1px solid #fef08a; border-radius: var(--radius-xl); display: flex; flex-direction: column; gap: var(--spacing-2);">
+                            <h4 style="font-size: 0.8125rem; font-weight: 800; color: #854d0e; display: flex; align-items: center; gap: 0.5rem;">
                                 <i class="fas fa-lightbulb"></i> Sugestões do Planejamento Mensal
                             </h4>
-                            <div class="flex flex-wrap gap-2">
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
                                 ${sugestoes.map(h => `
-                                    <button onclick="diarioView.copiarHabilidade('${h.codigo}', '${h.descricao.replace(/'/g, "")}')"
-                                            class="bg-white border border-yellow-200 text-yellow-800 text-[10px] px-2 py-1 rounded hover:bg-yellow-100 transition shadow-sm text-left max-w-full truncate"
-                                            title="${window.escapeHTML(h.descricao)}">
-                                        <strong>${h.codigo}</strong> <i class="fas fa-plus ml-1 opacity-50"></i>
+                                    <button type="button" onclick="diarioView.adicionarHabilidadeTexto('${window.escapeHTML(h.codigo)} - ${window.escapeHTML(h.descricao)}')"
+                                            class="pill-item" style="font-size: 0.75rem; background-color: white; border: 1px solid #fde047; color: #854d0e;">
+                                        <i class="fas fa-plus-circle" style="margin-right: 0.25rem;"></i> ${window.escapeHTML(h.codigo)}
                                     </button>
                                 `).join('')}
                             </div>
                         </div>
                     ` : ''}
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--spacing-4);">
                         <div>
-                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Objetivos de Aprendizagem</label>
-                            <textarea id="plan-objetivos" rows="5" class="autosave-input w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:border-primary focus:bg-white transition-all resize-none custom-scrollbar" placeholder="O que o aluno deve ser capaz de fazer..."></textarea>
+                            <label class="form-label">Objetivos de Aprendizagem</label>
+                            <textarea id="plan-objetivos" rows="3" class="autosave-input form-input custom-scrollbar" style="resize: vertical;" placeholder="O que os estudantes deverão assimilar..."></textarea>
                         </div>
                         <div>
-                            <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Recursos Didáticos</label>
-                            <textarea id="plan-recursos" rows="5" class="autosave-input w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:border-primary focus:bg-white transition-all resize-none custom-scrollbar" placeholder="Materiais necessários..."></textarea>
+                            <label class="form-label">Metodologia e Dinâmica</label>
+                            <textarea id="plan-metodologia" rows="3" class="autosave-input form-input custom-scrollbar" style="resize: vertical;" placeholder="Estratégias de ensino, atividades em grupo..."></textarea>
                         </div>
                     </div>
-                    <div>
-                        <div class="flex justify-between items-end mb-2">
-                            <label class="block text-xs font-bold text-slate-400 uppercase">Metodologia</label>
-                            <button id="btn-mic-plan-metodologia" onclick="diarioView.startDictation('plan-metodologia')" class="text-slate-400 hover:text-primary transition" title="Ditar texto">
-                                <i class="fas fa-microphone"></i>
-                            </button>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--spacing-4);">
+                        <div>
+                            <label class="form-label">Recursos Didáticos</label>
+                            <textarea id="plan-recursos" rows="2" class="autosave-input form-input custom-scrollbar" style="resize: vertical;" placeholder="Livro, projetor, materiais de laboratório..."></textarea>
                         </div>
-                        <textarea id="plan-metodologia" rows="8" class="autosave-input w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:border-primary focus:bg-white transition-all resize-none custom-scrollbar" placeholder="Passo a passo da aula..."></textarea>
-                    </div>
-                    <div>
-                        <div class="flex justify-between items-end mb-2">
-                            <label class="block text-xs font-bold text-slate-400 uppercase">Avaliação / Tarefa</label>
-                            <button id="btn-mic-plan-avaliacao" onclick="diarioView.startDictation('plan-avaliacao')" class="text-slate-400 hover:text-primary transition" title="Ditar texto">
-                                <i class="fas fa-microphone"></i>
-                            </button>
+                        <div>
+                            <label class="form-label">Avaliação Contínua</label>
+                            <textarea id="plan-avaliacao" rows="2" class="autosave-input form-input custom-scrollbar" style="resize: vertical;" placeholder="Instrumentos de verificação e critérios..."></textarea>
                         </div>
-                        <textarea id="plan-avaliacao" rows="3" class="autosave-input w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-700 outline-none focus:border-primary focus:bg-white transition-all resize-none custom-scrollbar" placeholder="Como será avaliado? Tarefa de casa?"></textarea>
                     </div>
                 </div>
             </div>
         `;
     },
 
-    /**
-     * Preenche os campos do formulário com os dados salvos.
-     */
     preencherCampos() {
-        const plano = model.getPlanoDiario(this.currentDate, this.currentTurmaId);
-        const campos = ['plan-tema', 'plan-bncc', 'plan-objetivos', 'plan-recursos', 'plan-metodologia', 'plan-avaliacao'];
-        const valores = {
-            'plan-tema': plano ? plano.tema : '',
-            'plan-bncc': plano ? plano.bncc : '',
-            'plan-objetivos': plano ? plano.objetivos : '',
-            'plan-recursos': plano ? plano.recursos : '',
-            'plan-metodologia': plano ? plano.metodologia : '',
-            'plan-avaliacao': plano ? plano.avaliacao : ''
-        };
-        campos.forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.value = valores[id] || '';
-        });
+        const plano = model.getPlanoDiario(this.currentDate, this.currentTurmaId) || {};
+        const tema = document.getElementById('plan-tema');
+        const bncc = document.getElementById('plan-bncc');
+        const objetivos = document.getElementById('plan-objetivos');
+        const recursos = document.getElementById('plan-recursos');
+        const metodologia = document.getElementById('plan-metodologia');
+        const avaliacao = document.getElementById('plan-avaliacao');
+
+        if (tema) tema.value = plano.tema || '';
+        if (bncc) bncc.value = plano.bncc || '';
+        if (objetivos) objetivos.value = plano.objetivos || '';
+        if (recursos) recursos.value = plano.recursos || '';
+        if (metodologia) metodologia.value = plano.metodologia || '';
+        if (avaliacao) avaliacao.value = plano.avaliacao || '';
     },
 
-    /**
-     * Adiciona uma habilidade sugerida ao campo de BNCC.
-     * @param {string} codigo 
-     * @param {string} descricao 
-     */
-    copiarHabilidade(codigo, descricao) {
-        const campoObj = document.getElementById('plan-bncc');
-        const textoAtual = campoObj.value;
-        const novoTexto = `[${codigo}] ${descricao}`;
-        
-        campoObj.value = textoAtual ? textoAtual + "\n\n" + novoTexto : novoTexto;
-        
-        // Feedback visual
-        campoObj.classList.add('ring-2', 'ring-yellow-400', 'bg-yellow-50');
-        setTimeout(() => campoObj.classList.remove('ring-2', 'ring-yellow-400', 'bg-yellow-50'), 500);
-        
-        // Dispara evento para o autosave detectar mudança
-        campoObj.dispatchEvent(new Event('input'));
+    adicionarHabilidadeTexto(texto) {
+        const bnccEl = document.getElementById('plan-bncc');
+        if (bnccEl) {
+            const atual = bnccEl.value.trim();
+            bnccEl.value = atual ? `${atual}\n${texto}` : texto;
+            bnccEl.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+    },
+
+    imprimirPlano() {
+        window.print();
     },
 
     estadoVazio() {
         return `
-            <div class="text-center py-20">
-                <i class="fas fa-school text-4xl text-slate-300 mb-4"></i>
-                <h3 class="text-xl font-bold text-slate-600">Nenhuma turma encontrada</h3>
-                <p class="text-slate-400">Cadastre suas turmas para começar a planejar.</p>
-                <button onclick="controller.navigate('turmas')" class="text-primary font-bold mt-2 hover:underline">Ir para Turmas</button>
+            <div class="card" style="padding: 4rem 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border: 2px dashed var(--color-slate-200); max-width: 600px; margin: 2rem auto;">
+                <div style="width: 4rem; height: 4rem; border-radius: var(--radius-full); background-color: var(--color-slate-100); display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; color: var(--color-slate-400); font-size: 1.5rem;">
+                    <i class="fas fa-edit"></i>
+                </div>
+                <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); margin-bottom: 0.5rem;">Nenhuma turma selecionada</h3>
+                <p style="color: var(--color-slate-500); font-size: 0.875rem; margin-bottom: 1.5rem;">Cadastre suas turmas para iniciar o diário de classe.</p>
+                <button onclick="controller.navigate('turmas')" class="btn-primary">
+                    <i class="fas fa-plus"></i> <span>Cadastrar Turmas</span>
+                </button>
             </div>
         `;
-    },
-
-    /**
-     * Inicia o ditado por voz para um campo específico.
-     * @param {string} targetId ID do elemento alvo (textarea).
-     */
-    startDictation(targetId) {
-        if (!('webkitSpeechRecognition' in window)) {
-            alert("Seu navegador não suporta ditado por voz. Tente usar o Google Chrome.");
-            return;
-        }
-
-        const recognition = new webkitSpeechRecognition();
-        recognition.lang = 'pt-BR';
-        recognition.interimResults = false;
-        recognition.maxAlternatives = 1;
-
-        const el = document.getElementById(targetId);
-        const btn = document.getElementById(`btn-mic-${targetId}`);
-        const originalColor = btn ? btn.className : '';
-
-        
-        if (btn) {
-            btn.className = 'text-red-500 animate-pulse';
-        }
-
-        recognition.start();
-
-        recognition.onresult = (event) => {
-            const transcript = event.results[0][0].transcript;
-            if (el) {
-                const currentText = el.value;
-                el.value = currentText ? currentText + " " + transcript : transcript;
-                el.dispatchEvent(new Event('input')); // Dispara autosave
-            }
-        };
-
-        recognition.onerror = (event) => {
-            console.error("Erro no reconhecimento de voz:", event.error);
-            if (event.error === 'not-allowed') {
-                alert("Permissão de microfone negada.");
-            }
-        };
-
-        recognition.onend = () => {
-            if (btn) {
-                btn.className = "text-slate-400 hover:text-primary transition";
-            }
-        };
-    },
-
-    /**
-     * Abre uma nova janela para impressão do plano de aula.
-     */
-    imprimirPlano() {
-        const tema = document.getElementById('plan-tema').value || 'Sem título';
-        const bncc = document.getElementById('plan-bncc').value;
-        const objetivos = document.getElementById('plan-objetivos').value;
-        const metodologia = document.getElementById('plan-metodologia').value;
-        const recursos = document.getElementById('plan-recursos').value;
-        const avaliacao = document.getElementById('plan-avaliacao').value;
-        const [ano, mes, dia] = this.currentDate.split('-');
-        const dataFormatada = `${dia}/${mes}/${ano}`;
-        
-        const turma = model.state.turmas.find(t => String(t.id) === String(this.currentTurmaId));
-        const nomeTurma = turma ? turma.nome : 'Turma';
-        
-        let nomeProf = model.state.userConfig.profName || 'Docente';
-        if ((!model.state.userConfig.profName || model.state.userConfig.profName.trim() === "") && model.currentUser) {
-            nomeProf = model.currentUser.displayName;
-        }
-
-        const conteudo = `
-            <html>
-            <head>
-                <title>Plano de Aula - ${window.escapeHTML(tema)}</title>
-                <style>
-                    body { font-family: 'Segoe UI', sans-serif; padding: 40px; color: #333; max-width: 800px; margin: 0 auto; }
-                    .header { border-bottom: 2px solid #333; padding-bottom: 20px; margin-bottom: 30px; }
-                    h1 { font-size: 24px; margin: 0; color: #000; }
-                    .meta { color: #666; font-size: 14px; margin-top: 5px; }
-                    .section { margin-bottom: 25px; }
-                    .label { font-weight: bold; text-transform: uppercase; font-size: 12px; color: #666; border-bottom: 1px solid #eee; display: block; margin-bottom: 8px; padding-bottom: 2px; }
-                    .content { font-size: 15px; line-height: 1.6; white-space: pre-wrap; }
-                </style>
-            </head>
-            <body>
-                <div class="header">
-                    <h1>${window.escapeHTML(tema)}</h1>
-                    <div class="meta">Data: ${dataFormatada} | Turma: ${window.escapeHTML(nomeTurma)}</div>
-                    <div class="meta">Professor(a): ${window.escapeHTML(nomeProf)}</div>
-                </div>
-                <div class="section"><span class="label">Habilidades BNCC</span><div class="content">${window.escapeHTML(bncc) || '-'}</div></div>
-                <div class="section"><span class="label">Objetivos</span><div class="content">${window.escapeHTML(objetivos) || '-'}</div></div>
-                <div class="section"><span class="label">Metodologia</span><div class="content">${window.escapeHTML(metodologia) || '-'}</div></div>
-                <div class="section"><span class="label">Recursos</span><div class="content">${window.escapeHTML(recursos) || '-'}</div></div>
-                <div class="section"><span class="label">Avaliação</span><div class="content">${window.escapeHTML(avaliacao) || '-'}</div></div>
-                <script>window.print();</script>
-            </body>
-            </html>
-        `;
-        
-        const win = window.open('', '_blank');
-        win.document.write(conteudo);
-        win.document.close();
     }
 };

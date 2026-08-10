@@ -1,195 +1,140 @@
-/**
- * @file model.js
- * @description Core Model da aplicação. Centraliza o estado, persistência (Local/Cloud) e orquestra sub-módulos.
- * @module model
- */
 
 import { firebaseService } from './firebase-service.js';
+import { storageService } from './services/storageService.js';
 import { initialState, coresComponentes, tiposEventos } from './models/state.js';
 import { turmaMethods } from './models/turmaModel.js';
 import { provaMethods } from './models/provaModel.js';
 import { planejamentoMethods } from './models/planejamentoModel.js';
 import { debounce } from './utils.js';
 import { createReactiveState } from './reactive.js';
-
-/**
- * @typedef {import('./models/state.js').AppState} AppState
- */
-
-/**
- * Modelo Central da Aplicação.
- * Combina estado reativo, persistência e lógica de negócios modularizada.
- * @namespace model
- */
 export const model = {
-    /** @type {string} Chave utilizada para persistência no LocalStorage */
     STORAGE_KEY: 'planner_pro_docente_2026',
     currentUser: null,
     coresComponentes,
     tiposEventos,
     state: initialState,
-
-    /**
-     * Inicializa o modelo carregando dados salvos localmente.
-     */
     init() {
         let loadedData = { ...this.state };
-        const savedData = localStorage.getItem(this.STORAGE_KEY);
-
+        const savedData = storageService.load();
         if (savedData) {
             try {
-                loadedData = { ...loadedData, ...JSON.parse(savedData) };
+                loadedData = { ...loadedData, ...savedData };
                 console.log("✅ Cache local carregado.");
             } catch (e) {
                 console.error("Erro ao restaurar cache local:", e);
             }
         }
-
-        // 2. O CORAÇÃO DA REATIVIDADE: Envelopa o estado com o Proxy
         this.state = createReactiveState(loadedData, (caminho, novoValor, valorAntigo) => {
-            // Este bloco roda SOZINHO sempre que QUALQUER variável do state for alterada
-
-            // 1. Auto-Save instantâneo no navegador (Garante resiliência offline)
             try {
-                localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.state));
+                storageService.save(this.state);
             } catch (e) {
                 console.warn("Erro no AutoSave local (Quota/Espaço)", e);
             }
-
-            // 2. Sincronização inteligente com a Nuvem (Com debounce para não estourar a cota)
             if (this._debouncedCloudSave) {
                 this._debouncedCloudSave();
             }
         });
     },
-
-    /**
-     * Sincroniza o estado local com o Firestore após o login.
-     * Implementa estratégia de "Merge Inteligente" baseada em timestamp.
-     */
-    async loadUserData() {
-        if (!firebaseService.auth.currentUser) return;
-        this.currentUser = firebaseService.auth.currentUser;
-
+    async loadUserData(user = null) {
+        const userAuth = user || (firebaseService?.auth?.currentUser) || this.currentUser;
+        if (!userAuth) return;
+        this.currentUser = userAuth;
         this.updateStatusCloud('<i class="fas fa-download"></i> Verificando dados...', 'text-blue-600');
-
         try {
             const cloudData = await firebaseService.loadFullData(this.currentUser.uid);
-
             if (cloudData) {
-                // Estratégia de Merge para Questões (Item a Item)
                 const cloudQuestoes = cloudData.questoes || [];
                 const localQuestoes = this.state.questoes || [];
                 const mapaUnificado = new Map();
-
                 const processarQuestao = (q) => {
                     const id = String(q.id);
                     const existente = mapaUnificado.get(id);
-
                     if (!existente) {
                         mapaUnificado.set(id, q);
                     } else {
-                        // Conflito: Vence o mais recente
                         const dataNova = new Date(q.updatedAt || q.createdAt || 0).getTime();
                         const dataExistente = new Date(existente.updatedAt || existente.createdAt || 0).getTime();
-
                         if (dataNova > dataExistente) {
                             mapaUnificado.set(id, q);
                         }
                     }
                 };
-
                 cloudQuestoes.forEach(processarQuestao);
                 localQuestoes.forEach(processarQuestao);
-
                 const listaFinalQuestoes = Array.from(mapaUnificado.values());
 
-                // Merge do Estado Global (Prioridade para Cloud em configurações gerais)
-                this.state = { ...this.state, ...cloudData };
+                if (cloudData.userConfig) {
+                    this.state.userConfig = { ...this.state.userConfig, ...cloudData.userConfig };
+                }
+                if (cloudData.turmas) this.state.turmas = cloudData.turmas;
+                if (cloudData.eventos) this.state.eventos = cloudData.eventos;
+                if (cloudData.planosDiarios) this.state.planosDiarios = cloudData.planosDiarios;
+                if (cloudData.horario) this.state.horario = cloudData.horario;
+                if (cloudData.materiaisGerados) this.state.materiaisGerados = cloudData.materiaisGerados;
+                if (cloudData.quizzes) this.state.quizzes = cloudData.quizzes;
+                if (cloudData.lastUpdate) this.state.lastUpdate = cloudData.lastUpdate;
+
                 this.state.questoes = listaFinalQuestoes;
 
-                // Salva o resultado do merge
-                this.saveLocal(); // Dispara saveLocal + CloudSync automático
+                // Fallback automático do nome do professor da conta Google se estiver vazio
+                if ((!this.state.userConfig.profName || this.state.userConfig.profName.trim() === '') && this.currentUser.displayName) {
+                    this.state.userConfig.profName = this.currentUser.displayName;
+                }
 
+                this.saveLocal();
                 this.state.isCloudSynced = true;
                 this.updateStatusCloud('<i class="fas fa-check"></i> Sincronizado', 'text-emerald-600');
-
             } else {
-                // Primeiro acesso ou nuvem vazia: Envia dados locais
+                if ((!this.state.userConfig.profName || this.state.userConfig.profName.trim() === '') && this.currentUser.displayName) {
+                    this.state.userConfig.profName = this.currentUser.displayName;
+                }
                 this.state.isCloudSynced = true;
-                this.saveLocal(); // Força envio inicial
+                this.saveLocal();
+                this.updateStatusCloud('<i class="fas fa-check"></i> Conectado', 'text-emerald-600');
             }
         } catch (e) {
             console.error("❌ Erro no sync cloud:", e);
             this.updateStatusCloud('Modo Offline', 'text-slate-500');
-            this.state.isCloudSynced = true; // Permite continuar trabalhando offline
+            this.state.isCloudSynced = true;
         }
-
-        // Listener em Tempo Real
         firebaseService.subscribeToUserChanges(this.currentUser.uid, (newData) => {
             if (newData) {
                 console.log("🔄 Atualização remota recebida.");
-
-                // Atualiza apenas campos raiz para evitar sobrescrever trabalho em andamento nas turmas
                 if (newData.userConfig) this.state.userConfig = { ...this.state.userConfig, ...newData.userConfig };
                 if (newData.eventos) this.state.eventos = { ...this.state.eventos, ...newData.eventos };
-
-                // Apenas salva no localStorage, sem disparar o cloudSave de volta (loop infinito)
+                if (newData.turmas) this.state.turmas = newData.turmas;
+                if (newData.planosDiarios) this.state.planosDiarios = newData.planosDiarios;
+                if (newData.horario) this.state.horario = newData.horario;
+                if (newData.materiaisGerados) this.state.materiaisGerados = newData.materiaisGerados;
+                if (newData.quizzes) this.state.quizzes = newData.quizzes;
                 try {
-                    localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.state));
+                    storageService.save(this.state);
                 } catch (e) { console.error(e); }
             }
         });
     },
-
-    /**
-     * PERSISTÊNCIA CENTRALIZADA
-     * 1. Salva no LocalStorage Imediatamente (Segurança contra fechar aba).
-     * 2. Agenda salvamento na Nuvem após 1s (Debounce para performance).
-     */
     saveLocal() {
-        // 1. Salvamento Local Síncrono (Imediato)
         try {
-            localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.state));
+            storageService.save(this.state);
         } catch (e) {
             console.error("Quota Exceeded ou erro de disco", e);
         }
-
-        // 2. Disparo para Nuvem (Assíncrono e Debounced)
         this._debouncedCloudSave();
     },
-
-    /**
-     * Função interna com Debounce (1000ms) para não sobrecarregar o Firebase.
-     * Só executa se o usuário parar de chamar saveLocal por 1 segundo.
-     */
     _debouncedCloudSave: debounce(async function () {
         if (!this.state.isCloudSynced || !this.currentUser) return;
-
-        // Feedback Visual: Editando
         this.updateStatusCloud('<i class="fas fa-pen"></i> Sincronizando...', 'text-yellow-600');
-
         try {
-            // Salva dados raiz (Config, Eventos, Questões)
             await firebaseService.saveRoot(this.currentUser.uid, this.state);
-            // Feedback Visual: Sucesso
             this.updateStatusCloud('<i class="fas fa-check"></i> Salvo na Nuvem', 'text-emerald-600');
         } catch (err) {
             console.warn("Erro no AutoSave Cloud:", err);
             this.updateStatusCloud('Offline (Salvo Local)', 'text-slate-500');
         }
     }, 1000),
-
-
-    /**
-     * Salva o horário completo (Config + Grade).
-     * @param {Object} novoHorario 
-     */
     async saveHorarioCompleto(novoHorario) {
         this.state.horario = novoHorario;
-        this.saveLocal(); // Salva local e agenda root update
-
-        // Horário é pesado, garantimos envio específico se online
+        this.saveLocal();
         if (this.currentUser) {
             try {
                 await firebaseService.saveHorarioOnly(this.currentUser.uid, novoHorario);
@@ -201,12 +146,6 @@ export const model = {
         }
         return true;
     },
-
-    /**
-     * Atualiza o indicador visual de status da nuvem na UI.
-     * @param {string} html 
-     * @param {string} colorClass 
-     */
     updateStatusCloud(html, colorClass) {
         const el = document.getElementById('cloud-status');
         if (el) {
@@ -214,51 +153,36 @@ export const model = {
             el.className = `flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-slate-100 text-xs font-bold transition-all shadow-sm ${colorClass}`;
         }
     },
-
-    /**
-     * Exporta os dados atuais para um arquivo JSON (Backup).
-     */
     exportData() {
-        const dataStr = JSON.stringify(this.state, null, 2);
-        const blob = new Blob([dataStr], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `backup_planner_${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
+        storageService.exportBackup(this.state);
     },
-
-    /**
-     * Salva um novo material gerado por IA na Biblioteca do usuário.
-     * @param {Object} material - O material gerado.
-     */
     async saveMaterial(material) {
         if (!this.state.materiaisGerados) this.state.materiaisGerados = [];
-
         const novoMaterial = {
             id: 'mat_' + Date.now().toString(36),
             createdAt: new Date().toISOString(),
             ...material
         };
-
         this.state.materiaisGerados.push(novoMaterial);
-
-        // Salva localmente e dispara o debounce para a nuvem
         this.saveLocal();
         return novoMaterial;
     },
-
-    /**
-     * Executa operação de persistência granular (ex: salvar turma específica).
-     * @param {Function} cloudOperation - Função do firebaseService.
-     */
+    async updateMaterial(id, dadosAtualizados) {
+        if (!this.state.materiaisGerados) this.state.materiaisGerados = [];
+        const index = this.state.materiaisGerados.findIndex(m => m.id === id);
+        if (index !== -1) {
+            this.state.materiaisGerados[index] = {
+                ...this.state.materiaisGerados[index],
+                ...dadosAtualizados,
+                updatedAt: new Date().toISOString()
+            };
+            this.saveLocal();
+            return this.state.materiaisGerados[index];
+        }
+        return null;
+    },
     async persist(cloudOperation) {
-        this.saveLocal(); // Garante consistência local
-
+        this.saveLocal();
         if (this.currentUser && cloudOperation) {
             try {
                 await cloudOperation(this.currentUser.uid);
@@ -267,15 +191,10 @@ export const model = {
             }
         }
     },
-
-    // --- Importação de Métodos Modulares (Mixins) ---
     ...turmaMethods,
     ...provaMethods,
     ...planejamentoMethods,
-
 };
-
-// Exposição Global
 if (typeof window !== 'undefined') {
     window.model = model;
 }

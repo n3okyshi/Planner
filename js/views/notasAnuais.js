@@ -1,64 +1,59 @@
-/**
- * @file notasAnuais.js
- * @description View responsável pelo relatório consolidado de notas anuais (Boletim da Turma).
- * @module views/notasAnuaisView
- */
-
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 
-/**
- * View de Notas Anuais.
- * @namespace notasAnuaisView
- */
 export const notasAnuaisView = {
     turmaIdSelecionada: null,
 
-    /**
-     * Renderiza o relatório de notas anuais.
-     * @param {HTMLElement|string} container
-     */
     async render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
 
         const turmas = model.state.turmas || [];
-        const tipo = model.state.userConfig.periodType || 'bimestre';
-
-        // Formata o label para exibição (ex: Bimestre, Trimestre)
+        const tipo = model.state.userConfig?.periodType || 'bimestre';
         const labelPeriodo = tipo.charAt(0).toUpperCase() + tipo.slice(1);
 
-        const html = `
-            <div class="fade-in pb-20">
-                <div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 no-print">
-                    <div>
-                        <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Notas Anuais</h2>
-                        <p class="text-slate-500">Visão consolidada por <strong>${labelPeriodo}</strong> e média final.</p>
-                    </div>
-                    <div class="flex gap-3 w-full md:w-auto">
-                        <div class="custom-dropdown relative flex-1 md:w-64">
-    <i class="fas fa-users absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10 pointer-events-none"></i>
-    
-    <input type="hidden" id="select-turma-global" onchange="notasAnuaisView.selecionarTurma(this.value)" value="${this.currentTurmaId || ''}">
-    
-    <button type="button" class="dropdown-button w-full flex items-center justify-between pl-10 pr-4 py-2.5 bg-white border border-slate-200 hover:border-indigo-300 rounded-xl shadow-sm text-sm font-bold text-slate-700 transition-all focus:outline-none focus:ring-4 focus:ring-indigo-50">
-        <span class="dropdown-label truncate">${turmas.find(t => String(t.id) === String(this.currentTurmaId))?.nome || 'Selecionar Turma...'}</span>
-        <i class="fas fa-chevron-down text-slate-400 text-xs ml-2"></i>
-    </button>
-
-    <ul class="dropdown-menu hidden absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-xl shadow-slate-200/50 max-h-64 overflow-y-auto custom-scrollbar p-1.5 animate-slide-up origin-top text-left font-normal">
-        ${turmas.length > 0 
-            ? turmas.map(t => `<li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors ${String(t.id) === String(this.currentTurmaId) ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600'}" data-value="${t.id}">${window.escapeHTML(t.nome)}</li>`).join('')
-            : '<li class="p-2.5 text-slate-400 text-sm text-center">Nenhuma turma</li>'
+        if (this.turmaIdSelecionada && !turmas.find(t => String(t.id) === String(this.turmaIdSelecionada))) {
+            this.turmaIdSelecionada = null;
         }
-    </ul>
-</div>
-                        <button onclick="window.print()" class="p-3 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition-all shadow-sm text-slate-600" title="Imprimir Relatório">
-                            <i class="fas fa-print"></i>
+        if (!this.turmaIdSelecionada && turmas.length > 0) {
+            this.turmaIdSelecionada = turmas[0].id;
+        }
+
+        const html = `
+            <div class="animate-enter" style="display: flex; flex-direction: column; gap: var(--spacing-6); padding-bottom: var(--spacing-8);">
+                
+                <!-- TOP HEADER & TOOLBAR -->
+                <div class="card" style="padding: var(--spacing-4) var(--spacing-6); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-4);">
+                    <div>
+                        <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--color-slate-800); letter-spacing: -0.025em; display: flex; align-items: center; gap: var(--spacing-2);">
+                            <i class="fas fa-award" style="color: var(--color-primary);"></i> Notas Anuais & Médias
+                        </h2>
+                        <p style="font-size: 0.875rem; color: var(--color-slate-500);">Visão consolidada do ano letivo por <strong>${labelPeriodo}</strong> com cálculo de aprovação.</p>
+                    </div>
+
+                    <div style="display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap;">
+                        <button type="button" onclick="window.print()" class="btn-secondary interactive-element" title="Imprimir Relatório Anual">
+                            <i class="fas fa-print"></i> <span>Imprimir</span>
                         </button>
+
+                        <div class="custom-dropdown" style="min-width: 240px;">
+                            <input type="hidden" id="select-turma-global" onchange="notasAnuaisView.selecionarTurma(this.value)" value="${this.turmaIdSelecionada || ''}">
+                            <button type="button" class="dropdown-button">
+                                <i class="fas fa-users" style="color: var(--color-slate-400); margin-right: var(--spacing-2);"></i>
+                                <span class="dropdown-label">${turmas.find(t => String(t.id) === String(this.turmaIdSelecionada))?.nome || 'Selecionar Turma...'}</span>
+                                <i class="fas fa-chevron-down" style="color: var(--color-slate-400); font-size: 0.75rem; margin-left: auto;"></i>
+                            </button>
+                            <ul class="dropdown-menu hidden custom-scrollbar">
+                                ${turmas.length > 0
+                ? turmas.map(t => `<li class="dropdown-item ${String(t.id) === String(this.turmaIdSelecionada) ? 'dropdown-item--selected' : ''}" data-value="${t.id}">${window.escapeHTML(t.nome)}</li>`).join('')
+                : '<li class="p-3 text-slate-400 text-sm text-center">Nenhuma turma cadastrada</li>'
+            }
+                            </ul>
+                        </div>
                     </div>
                 </div>
 
+                <!-- TABLE CONTENT -->
                 <div id="tabela-notas-container">
                     ${this.turmaIdSelecionada ? this.renderTabela() : this.renderEstadoVazio()}
                 </div>
@@ -77,63 +72,63 @@ export const notasAnuaisView = {
         const turma = model.state.turmas.find(t => String(t.id) === String(this.turmaIdSelecionada));
         if (!turma) return this.renderEstadoVazio();
 
-        const tipo = model.state.userConfig.periodType || 'bimestre';
+        const tipo = model.state.userConfig?.periodType || 'bimestre';
         const numPeriodos = tipo === 'bimestre' ? 4 : tipo === 'trimestre' ? 3 : 2;
 
         return `
-            <div class="bg-white rounded-[2rem] border border-slate-100 shadow-xl overflow-hidden animate-slide-up print:shadow-none print:border-0">
-                <div class="overflow-x-auto">
-
-                    <div class="hidden print:block text-center mb-6 pt-4 border-b pb-4">
-                        <h1 class="text-xl font-bold">${window.escapeHTML(turma.nome)} - Relatório de Notas</h1>
-                    </div>
-
-                    <table class="w-full text-left border-collapse">
+            <div class="card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column;">
+                <div class="custom-scrollbar" style="overflow-x: auto;">
+                    <table style="width: 100%; text-align: left; border-collapse: collapse;">
                         <thead>
-                            <tr class="bg-slate-50/50 border-b border-slate-100">
-                                <th class="p-6 text-xs font-black text-slate-400 uppercase tracking-widest">Estudante</th>
-                                ${Array.from({length: numPeriodos}, (_, i) => `
-                                    <th class="p-6 text-center text-xs font-black text-slate-400 uppercase tracking-widest">${i+1}º Per.</th>
+                            <tr style="background-color: var(--color-slate-50); border-bottom: 1px solid var(--color-slate-200);">
+                                <th style="padding: var(--spacing-4) var(--spacing-6); font-size: 0.75rem; font-weight: 800; color: var(--color-slate-500); text-transform: uppercase; letter-spacing: 0.05em; min-width: 220px;">Estudante</th>
+                                ${Array.from({ length: numPeriodos }, (_, i) => `
+                                    <th style="padding: var(--spacing-4); text-align: center; font-size: 0.75rem; font-weight: 800; color: var(--color-slate-500); text-transform: uppercase; letter-spacing: 0.05em; min-width: 90px;">${i + 1}º Per.</th>
                                 `).join('')}
-                                <th class="p-6 text-center text-xs font-black text-primary uppercase tracking-widest bg-blue-50/30">Média Final</th>
+                                <th style="padding: var(--spacing-4) var(--spacing-6); text-align: center; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-primary); background-color: var(--color-primary-light); min-width: 110px;">Média Final</th>
+                                <th style="padding: var(--spacing-4) var(--spacing-6); text-align: center; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--color-slate-500); min-width: 120px;">Situação</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-slate-50">
+                        <tbody>
                             ${turma.alunos.length > 0 ? turma.alunos.map(aluno => {
-                                // Chama o método de cálculo centralizado no Model
-                                const resumo = model.getResumoAcademico(turma.id, aluno.id, turma, aluno);
-                                if (!resumo) return '';
+            const resumo = model.getResumoAcademico ? model.getResumoAcademico(turma.id, aluno.id, turma, aluno) : null;
+            const mediaAnual = resumo?.mediaAnual || 0;
+            const isAprovado = mediaAnual >= 6;
 
-                                return `
-                                    <tr class="hover:bg-slate-50/50 transition-colors group print:break-inside-avoid">
-                                        <td class="p-6">
-                                            <div class="font-bold text-slate-700">${window.escapeHTML(aluno.nome)}</div>
-                                            <div class="text-[10px] text-slate-400 uppercase tracking-tighter font-semibold">Matrícula: ${aluno.id.slice(-6)}</div>
+            return `
+                                    <tr style="border-bottom: 1px solid var(--color-slate-100); transition: background-color var(--transition-fast);"
+                                        onmouseover="this.style.backgroundColor='var(--color-slate-50)'"
+                                        onmouseout="this.style.backgroundColor='transparent'">
+                                        <td style="padding: var(--spacing-4) var(--spacing-6);">
+                                            <div style="font-weight: 700; color: var(--color-slate-800); font-size: 0.875rem;">${window.escapeHTML(aluno.nome)}</div>
+                                            <div style="font-size: 0.6875rem; color: var(--color-slate-400); font-weight: 600; text-transform: uppercase;">Matrícula: ${aluno.matricula || aluno.id.slice(-6)}</div>
                                         </td>
-                                        ${Array.from({length: numPeriodos}, (_, i) => {
-                                            const nota = resumo.periodos[i+1] || 0;
-                                            const corNota = nota < 6 ? 'text-red-500 bg-red-50' : 'text-slate-600 bg-slate-100';
-
-                                            return `
-                                                <td class="p-6 text-center">
-                                                    <span class="inline-block px-3 py-1 rounded-lg font-mono font-bold ${corNota} print:bg-transparent print:text-black">
+                                        ${Array.from({ length: numPeriodos }, (_, i) => {
+                const nota = resumo?.periodos ? (resumo.periodos[i + 1] || 0) : 0;
+                const corNota = nota < 6 ? 'color: #ef4444; background-color: #fef2f2; border: 1px solid #fee2e2;' : 'color: var(--color-slate-700); background-color: var(--color-slate-100);';
+                return `
+                                                <td style="padding: var(--spacing-4); text-align: center;">
+                                                    <span style="display: inline-block; padding: 0.25rem 0.625rem; border-radius: var(--radius-lg); font-family: monospace; font-weight: 800; font-size: 0.875rem; ${corNota}">
                                                         ${nota.toFixed(1)}
                                                     </span>
                                                 </td>
                                             `;
-                                        }).join('')}
-                                        <td class="p-6 text-center bg-blue-50/10">
-                                            <span class="text-lg font-black ${resumo.mediaAnual < 6 ? 'text-red-600' : 'text-primary'}">
-                                                ${resumo.mediaAnual.toFixed(1)}
+            }).join('')}
+                                        <td style="padding: var(--spacing-4) var(--spacing-6); text-align: center; background-color: rgba(238, 242, 255, 0.4);">
+                                            <span style="font-size: 1.125rem; font-weight: 900; color: ${isAprovado ? 'var(--color-primary)' : '#dc2626'};">
+                                                ${mediaAnual.toFixed(1)}
+                                            </span>
+                                        </td>
+                                        <td style="padding: var(--spacing-4) var(--spacing-6); text-align: center;">
+                                            <span class="badge" style="background-color: ${isAprovado ? '#d1fae5' : '#fee2e2'}; color: ${isAprovado ? '#059669' : '#dc2626'}; font-weight: 800;">
+                                                ${isAprovado ? 'Aprovado' : 'Recuperação'}
                                             </span>
                                         </td>
                                     </tr>
                                 `;
-                            }).join('') : `
+        }).join('') : `
                                 <tr>
-                                    <td colspan="${numPeriodos + 2}" class="p-20 text-center text-slate-400 italic">
-                                        Nenhum aluno cadastrado nesta turma.
-                                    </td>
+                                    <td colspan="100%" style="padding: 3rem; text-align: center; color: var(--color-slate-400);">Nenhum aluno cadastrado nesta turma.</td>
                                 </tr>
                             `}
                         </tbody>
@@ -145,18 +140,16 @@ export const notasAnuaisView = {
 
     renderEstadoVazio() {
         return `
-            <div class="flex flex-col items-center justify-center py-32 bg-slate-50 rounded-[3rem] border-2 border-dashed border-slate-200 animate-pulse no-print">
-                <div class="w-20 h-20 bg-white rounded-3xl flex items-center justify-center shadow-sm mb-6 text-slate-300">
-                    <i class="fas fa-graduation-cap text-4xl"></i>
+            <div class="card" style="padding: 4rem 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border: 2px dashed var(--color-slate-200); max-width: 600px; margin: 2rem auto;">
+                <div style="width: 4rem; height: 4rem; border-radius: var(--radius-full); background-color: var(--color-slate-100); display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; color: var(--color-slate-400); font-size: 1.5rem;">
+                    <i class="fas fa-award"></i>
                 </div>
-                <h3 class="text-xl font-bold text-slate-800">Selecione uma turma</h3>
-                <p class="text-slate-500 max-w-xs text-center mt-2 font-medium">Escolha uma turma no menu acima para consolidar os resultados anuais.</p>
+                <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); margin-bottom: 0.5rem;">Nenhuma turma selecionada</h3>
+                <p style="color: var(--color-slate-500); font-size: 0.875rem; margin-bottom: 1.5rem;">Cadastre ou selecione uma turma para ver o consolidado anual de notas.</p>
+                <button onclick="controller.navigate('turmas')" class="btn-primary">
+                    <i class="fas fa-plus"></i> <span>Cadastrar Turmas</span>
+                </button>
             </div>
         `;
     }
 };
-
-// VINCULAÇÃO GLOBAL PARA EVENTOS ONCLICK
-if (typeof window !== 'undefined') {
-    window.notasAnuaisView = notasAnuaisView;
-}

@@ -1,209 +1,199 @@
-/**
- * @file mensal.js
- * @description View responsável pelo Planejamento Mensal, permitindo distribuir as habilidades do período em meses específicos.
- * @module views/mensalView
- */
-
 import { model } from '../model.js';
 import { controller } from '../controller.js';
+import { Toast } from '../components/toast.js';
 
-/**
- * View do Planejamento Mensal.
- * @namespace mensalView
- */
 export const mensalView = {
     currentMes: null,
     currentTurmaId: null,
     meses: ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"],
 
-    /**
-     * Renderiza a interface de planejamento mensal.
-     * @param {HTMLElement|string} container - Elemento pai ou ID do container.
-     * @param {string|null} [turmaId=null] - ID da turma opcional para troca rápida.
-     */
     render(container, turmaId = null) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
-
         if (turmaId) this.currentTurmaId = turmaId;
-        
+
         const turmas = model.state.turmas || [];
-        
-        // Validação da Turma Ativa
+
         if (this.currentTurmaId && !turmas.find(t => String(t.id) === String(this.currentTurmaId))) {
             this.currentTurmaId = null;
         }
         if (!this.currentTurmaId && turmas.length > 0) {
             this.currentTurmaId = turmas[0].id;
         }
-        
-        // Define mês atual se não houver seleção
+
         if (!this.currentMes) {
             const mesIndex = new Date().getMonth();
             this.currentMes = this.meses[mesIndex];
         }
 
         if (turmas.length === 0) {
-            container.innerHTML = `<div class="p-10 text-center text-slate-400">Nenhuma turma cadastrada. <button onclick="controller.navigate('turmas')" class="text-primary font-bold hover:underline">Cadastrar agora</button></div>`;
+            container.innerHTML = `
+                <div class="card" style="padding: 4rem 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border: 2px dashed var(--color-slate-200); max-width: 600px; margin: 2rem auto;">
+                    <div style="width: 4rem; height: 4rem; border-radius: var(--radius-full); background-color: var(--color-slate-100); display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; color: var(--color-slate-400); font-size: 1.5rem;">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); margin-bottom: 0.5rem;">Nenhuma turma cadastrada</h3>
+                    <p style="color: var(--color-slate-500); font-size: 0.875rem; margin-bottom: 1.5rem;">Cadastre uma turma para organizar o planejamento mensal.</p>
+                    <button onclick="controller.navigate('turmas')" class="btn-primary">
+                        <i class="fas fa-plus"></i> <span>Cadastrar Turmas</span>
+                    </button>
+                </div>
+            `;
             return;
         }
 
         const turmaAtual = turmas.find(t => String(t.id) === String(this.currentTurmaId));
         const periodoSugestao = this.identificarPeriodo(this.currentMes);
-        
-        // Habilidades do Período (para sugestão)
+
         const habilidadesDoPeriodo = turmaAtual.planejamento && turmaAtual.planejamento[periodoSugestao]
             ? [...turmaAtual.planejamento[periodoSugestao]]
             : [];
-
-        // Habilidades já no Mês
         const habilidadesDoMes = turmaAtual.planejamentoMensal && turmaAtual.planejamentoMensal[this.currentMes]
             ? [...turmaAtual.planejamentoMensal[this.currentMes]]
             : [];
-            
-        // Ordenação alfanumérica
+
         habilidadesDoMes.sort((a, b) => {
             const codA = String(a.codigo || "");
             const codB = String(b.codigo || "");
             return codA.localeCompare(codB, undefined, { numeric: true });
         });
 
-        // Filtragem para não sugerir o que já está adicionado
         const codigosNoMes = new Set(habilidadesDoMes.map(h => h.codigo));
         const sugestoesFiltradas = habilidadesDoPeriodo.filter(h => !codigosNoMes.has(h.codigo));
 
         const html = `
-            <div class="fade-in pb-24">
-                <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-col md:flex-row gap-4 items-center justify-between sticky top-0 z-20">
+            <div class="animate-enter" style="display: flex; flex-direction: column; gap: var(--spacing-6); padding-bottom: var(--spacing-8);">
+                
+                <!-- TOP HEADER & CONTROLS TOOLBAR -->
+                <div class="card" style="padding: var(--spacing-4) var(--spacing-6); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-4);">
                     <div>
-                        <h2 class="text-2xl font-bold text-slate-800 tracking-tight">Planejamento Mensal</h2>
-                        <p class="text-xs text-slate-500">Distribua as habilidades do período (${periodoSugestao}º ${model.state.userConfig.periodType || 'Bimestre'}) nos meses.</p>
+                        <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--color-slate-800); letter-spacing: -0.025em; display: flex; align-items: center; gap: var(--spacing-2);">
+                            <i class="far fa-calendar-alt" style="color: var(--color-primary);"></i> Planejamento Mensal
+                        </h2>
+                        <p style="font-size: 0.875rem; color: var(--color-slate-500);">Habilidades programadas para <strong>${this.currentMes}</strong> (${periodoSugestao}º ${model.state.userConfig.periodType || 'Bimestre'}).</p>
                     </div>
-                    <div class="flex flex-col md:flex-row gap-3 w-full md:w-auto items-center">
-                        <button onclick="controller.abrirModalCopiarPlanejamento('${turmaAtual.id}')" 
-                                class="w-full md:w-auto bg-white border border-slate-200 text-slate-600 hover:text-primary hover:border-primary px-4 py-2 rounded-xl text-sm font-bold transition-all shadow-sm flex items-center justify-center gap-2 whitespace-nowrap"
-                                title="Copiar planejamento para outra turma">
+
+                    <div style="display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap;">
+                        <button type="button" onclick="controller.abrirModalCopiarPlanejamento('${turmaAtual.id}')" class="btn-secondary interactive-element" title="Copiar planejamento para outra turma">
                             <i class="fas fa-copy"></i> <span>Replicar</span>
                         </button>
-                        <div class="relative w-full md:w-64">
-                            <i class="fas fa-users absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"></i>
-                            <div class="custom-dropdown relative flex-1 md:w-64">
-    <i class="fas fa-users absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 z-10 pointer-events-none"></i>
-    
-    <input type="hidden" id="select-turma-global" onchange="mensalView.mudarTurma(this.value)" value="${this.currentTurmaId || ''}">
-    
-    <button type="button" class="dropdown-button w-full flex items-center justify-between pl-10 pr-4 py-2.5 bg-white border border-slate-200 hover:border-indigo-300 rounded-xl shadow-sm text-sm font-bold text-slate-700 transition-all focus:outline-none focus:ring-4 focus:ring-indigo-50">
-        <span class="dropdown-label truncate">${turmas.find(t => String(t.id) === String(this.currentTurmaId))?.nome || 'Selecionar Turma...'}</span>
-        <i class="fas fa-chevron-down text-slate-400 text-xs ml-2"></i>
-    </button>
 
-    <ul class="dropdown-menu hidden absolute z-50 w-full mt-2 bg-white border border-slate-100 rounded-xl shadow-xl shadow-slate-200/50 max-h-64 overflow-y-auto custom-scrollbar p-1.5 animate-slide-up origin-top text-left font-normal">
-        ${turmas.length > 0 
-            ? turmas.map(t => `<li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors ${String(t.id) === String(this.currentTurmaId) ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600'}" data-value="${t.id}">${window.escapeHTML(t.nome)}</li>`).join('')
-            : '<li class="p-2.5 text-slate-400 text-sm text-center">Nenhuma turma</li>'
-        }
-    </ul>
-</div>
+                        <div class="custom-dropdown" style="min-width: 240px;">
+                            <input type="hidden" id="select-turma-global" onchange="mensalView.mudarTurma(this.value)" value="${this.currentTurmaId || ''}">
+                            <button type="button" class="dropdown-button">
+                                <i class="fas fa-users" style="color: var(--color-slate-400); margin-right: var(--spacing-2);"></i>
+                                <span class="dropdown-label">${turmas.find(t => String(t.id) === String(this.currentTurmaId))?.nome || 'Selecionar Turma...'}</span>
+                                <i class="fas fa-chevron-down" style="color: var(--color-slate-400); font-size: 0.75rem; margin-left: auto;"></i>
+                            </button>
+                            <ul class="dropdown-menu hidden custom-scrollbar">
+                                ${turmas.map(t => `<li class="dropdown-item ${String(t.id) === String(this.currentTurmaId) ? 'dropdown-item--selected' : ''}" data-value="${t.id}">${window.escapeHTML(t.nome)}</li>`).join('')}
+                            </ul>
                         </div>
                     </div>
                 </div>
 
-                <div class="flex overflow-x-auto custom-scrollbar gap-2 mb-6 pb-2 px-1">
-                    ${this.meses.map(mes => `
-                        <button onclick="mensalView.mudarMes('${mes}')" 
-                                class="px-5 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all flex-shrink-0
-                                ${this.currentMes === mes
-                                ? 'bg-primary text-white shadow-lg shadow-primary/30 ring-2 ring-offset-1 ring-primary/20'
-                                : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-100 hover:border-slate-300'}">
-                            ${window.escapeHTML(mes)}
-                        </button>
-                    `).join('')}
+                <!-- MONTHS HORIZONTAL PILL SELECTOR -->
+                <div class="card" style="padding: var(--spacing-3); overflow-x: auto;" class="custom-scrollbar">
+                    <div style="display: flex; align-items: center; gap: var(--spacing-2); min-width: max-content;">
+                        ${this.meses.map(mes => `
+                            <button type="button" onclick="mensalView.mudarMes('${mes}')" 
+                                    class="pill-item interactive-element ${this.currentMes === mes ? 'pill-item--active' : ''}" style="white-space: nowrap;">
+                                ${window.escapeHTML(mes)}
+                            </button>
+                        `).join('')}
+                    </div>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-                    <div class="lg:col-span-2 space-y-4">
-                        <div class="flex justify-between items-center mb-2 px-1">
-                            <h3 class="font-bold text-slate-700 flex items-center gap-2">
-                                <i class="far fa-calendar-check text-primary"></i> 
+                <!-- SIDE-BY-SIDE MAIN CONTENT GRID -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: var(--spacing-6); align-items: start;">
+                    
+                    <!-- LEFT COLUMN: HABILIDADES DO MÊS (2 fr) -->
+                    <div style="display: flex; flex-direction: column; gap: var(--spacing-4); flex: 2; min-width: 320px;">
+                        
+                        <div class="card" style="padding: var(--spacing-4) var(--spacing-6); display: flex; justify-content: space-between; align-items: center; background-color: var(--color-white);">
+                            <h3 style="font-size: 1.125rem; font-weight: 800; color: var(--color-slate-800); display: flex; align-items: center; gap: var(--spacing-2);">
+                                <i class="far fa-calendar-check" style="color: var(--color-primary);"></i> 
                                 Planejado para ${this.currentMes}
-                                <span class="bg-indigo-50 text-indigo-600 text-[10px] px-2 py-0.5 rounded-full border border-indigo-100">${habilidadesDoMes.length}</span>
+                                <span class="badge" style="background-color: var(--color-primary-light); color: var(--color-primary); font-weight: 800;">${habilidadesDoMes.length}</span>
                             </h3>
-                            <button onclick="controller.openSeletorBnccMensal('${turmaAtual.id}', '${this.currentMes}', '${turmaAtual.nivel}', '${turmaAtual.serie}')" 
-                                    class="text-xs font-bold text-primary bg-blue-50 hover:bg-blue-100 border border-blue-100 px-3 py-1.5 rounded-lg transition flex items-center gap-1">
-                                <i class="fas fa-search"></i> Buscar na BNCC
+
+                            <button type="button" onclick="controller.openSeletorBnccMensal('${turmaAtual.id}', '${this.currentMes}', '${turmaAtual.nivel}', '${turmaAtual.serie}')" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.8125rem;">
+                                <i class="fas fa-search"></i> <span>Buscar na BNCC</span>
                             </button>
                         </div>
 
                         ${habilidadesDoMes.length > 0 ? `
-                            <div class="space-y-3 animate-slideIn">
+                            <div style="display: flex; flex-direction: column; gap: var(--spacing-3);">
                                 ${habilidadesDoMes.map(h => this.gerarCardHabilidade(h, turmaAtual.id, this.currentMes)).join('')}
                             </div>
                         ` : `
-                            <div class="bg-slate-50 border-2 border-dashed border-slate-200 rounded-2xl p-10 text-center hover:border-slate-300 transition-colors">
-                                <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300 shadow-sm">
-                                    <i class="fas fa-wind text-2xl"></i>
+                            <div class="card" style="padding: 3rem 1.5rem; text-align: center; border: 2px dashed var(--color-slate-200); background-color: var(--color-slate-50); display: flex; flex-direction: column; align-items: center;">
+                                <div style="width: 3.5rem; height: 3.5rem; border-radius: var(--radius-full); background-color: var(--color-white); display: flex; align-items: center; justify-content: center; margin-bottom: 1rem; color: var(--color-slate-300); font-size: 1.25rem; box-shadow: var(--shadow-sm);">
+                                    <i class="fas fa-wind"></i>
                                 </div>
-                                <h4 class="text-slate-600 font-bold mb-1">Mês Livre</h4>
-                                <p class="text-slate-400 text-sm">Adicione habilidades usando a barra lateral ou busque na BNCC.</p>
+                                <h4 style="font-size: 1rem; font-weight: 800; color: var(--color-slate-700); margin-bottom: 0.25rem;">Mês Livre</h4>
+                                <p style="color: var(--color-slate-500); font-size: 0.875rem; max-width: 320px;">Adicione habilidades clicando nas sugestões ao lado ou buscando na BNCC.</p>
                             </div>
                         `}
                     </div>
 
-                    <div class="lg:col-span-1 space-y-6">
-                        <div class="bg-amber-50 rounded-2xl p-6 border border-amber-100 sticky top-24 shadow-sm">
-                            <div class="flex items-center gap-3 mb-4 pb-4 border-b border-amber-100">
-                                <div class="w-10 h-10 rounded-lg bg-amber-100 text-amber-600 flex items-center justify-center text-lg shadow-sm">
+                    <!-- RIGHT COLUMN: SUGESTÕES DO PERÍODO (1 fr) -->
+                    <div style="flex: 1; min-width: 300px; position: sticky; top: 5.5rem;">
+                        <div class="card" style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4); border: 1px solid #fef3c7; background-color: #fffbeb;">
+                            
+                            <div style="display: flex; align-items: center; gap: var(--spacing-3); padding-bottom: var(--spacing-3); border-bottom: 1px solid #fde68a;">
+                                <div style="width: 2.5rem; height: 2.5rem; border-radius: var(--radius-lg); background-color: #fef3c7; color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 1rem; box-shadow: var(--shadow-sm);">
                                     <i class="fas fa-lightbulb"></i>
                                 </div>
                                 <div>
-                                    <h3 class="font-bold text-slate-800 text-sm">Sugestões do Período</h3>
-                                    <p class="text-[10px] text-amber-700 font-bold uppercase tracking-wide">Importar do Planejamento</p>
+                                    <h3 style="font-size: 0.9375rem; font-weight: 800; color: var(--color-slate-800);">Sugestões do Período</h3>
+                                    <p style="font-size: 0.6875rem; color: #b45309; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Importar do Planejamento Anual</p>
                                 </div>
                             </div>
+
                             ${sugestoesFiltradas.length > 0 ? `
-                                <div class="space-y-2 max-h-[60vh] overflow-y-auto custom-scrollbar pr-1">
+                                <div class="custom-scrollbar" style="display: flex; flex-direction: column; gap: var(--spacing-2); max-height: 55vh; overflow-y: auto; padding-right: 0.25rem;">
                                     ${sugestoesFiltradas.map(h => `
-                                        <div class="bg-white p-3 rounded-xl border border-amber-100 shadow-sm hover:shadow-md transition-all cursor-pointer group relative overflow-hidden"
-                                             onclick="mensalView.adicionarSugestao('${h.codigo}')">
-                                            <div class="absolute inset-0 bg-amber-100/50 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                            <div class="relative z-10">
-                                                <div class="flex justify-between items-start gap-2">
-                                                        <span class="text-[10px] font-bold text-amber-700 bg-amber-100/50 px-1.5 py-0.5 rounded">${window.escapeHTML(h.codigo)}</span>
-                                                    <i class="fas fa-plus-circle text-amber-300 group-hover:text-amber-500 transition-colors"></i>
-                                                </div>
-                                                    <p class="text-xs text-slate-600 mt-2 line-clamp-3 leading-snug">${window.escapeHTML(h.descricao)}</p>
+                                        <div class="card interactive-element" style="padding: var(--spacing-3); background-color: var(--color-white); border: 1px solid #fde68a; cursor: pointer; display: flex; flex-direction: column; gap: 0.375rem;"
+                                             onclick="mensalView.adicionarSugestao('${h.codigo}')"
+                                             title="Clique para adicionar a ${this.currentMes}">
+                                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                <span style="font-size: 0.6875rem; font-weight: 800; color: #b45309; background-color: #fef3c7; padding: 0.125rem 0.375rem; border-radius: var(--radius-sm);">
+                                                    ${window.escapeHTML(h.codigo)}
+                                                </span>
+                                                <i class="fas fa-plus-circle" style="color: #f59e0b; font-size: 1rem;"></i>
                                             </div>
+                                            <p style="font-size: 0.75rem; color: var(--color-slate-600); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                                ${window.escapeHTML(h.descricao)}
+                                            </p>
                                         </div>
                                     `).join('')}
                                 </div>
-                                <p class="text-[10px] text-center text-slate-400 mt-3 font-medium">
-                                    <i class="fas fa-mouse-pointer mr-1"></i> Clique para adicionar
+                                <p style="font-size: 0.6875rem; text-align: center; color: var(--color-slate-400); font-weight: 600;">
+                                    <i class="fas fa-mouse-pointer" style="margin-right: 0.25rem;"></i> Clique na habilidade para adicioná-la
                                 </p>
                             ` : `
-                                <div class="text-center py-8">
-                                    <p class="text-xs text-slate-500 mb-2">
+                                <div style="text-align: center; padding: 2rem 1rem;">
+                                    <p style="font-size: 0.8125rem; color: var(--color-slate-500); margin-bottom: 0.75rem;">
                                         ${habilidadesDoPeriodo.length > 0
-                                            ? "Todas as habilidades deste período já estão neste mês!"
-                                            : "Nenhuma habilidade cadastrada no planejamento do período."}
+                ? "Todas as habilidades do período já foram programadas!"
+                : "Nenhuma habilidade cadastrada no planejamento do período."}
                                     </p>
-                                    <button onclick="controller.navigate('planejamento')" class="text-xs font-bold text-amber-600 hover:text-amber-700 underline">Gerenciar Período</button>
+                                    <button onclick="controller.navigate('planejamento')" class="btn-secondary" style="padding: 0.375rem 0.875rem; font-size: 0.75rem;">
+                                        Gerenciar Período
+                                    </button>
                                 </div>
                             `}
                         </div>
                     </div>
+
                 </div>
             </div>
         `;
+
         container.innerHTML = html;
     },
 
-    /**
-     * Gera o card HTML para uma habilidade já planejada no mês.
-     * @param {Object} habilidade - Dados da habilidade.
-     * @param {string} turmaId - ID da turma de referência.
-     * @param {string} mes - Nome do mês.
-     * @returns {string} HTML Template.
-     */
     gerarCardHabilidade(habilidade, turmaId, mes) {
         if (!habilidade) return '';
         const cor = habilidade.cor || (model.coresComponentes && model.coresComponentes[habilidade.componente]) || "#64748b";
@@ -211,25 +201,27 @@ export const mensalView = {
         const eixo = habilidade.objeto || habilidade.eixo || habilidade.componente || "Habilidade";
 
         return `
-            <div class="bg-white p-4 rounded-xl border-l-[4px] shadow-sm relative group hover:shadow-md hover:-translate-y-0.5 transition-all border-y border-r border-slate-100" 
-                 style="border-left-color: ${cor} !important;">
-                <div class="flex justify-between items-start gap-3 mb-2">
+            <div class="card" style="padding: var(--spacing-4); border-left: 4px solid ${cor}; display: flex; flex-direction: column; gap: var(--spacing-2); transition: all var(--transition-fast);">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--spacing-3);">
                     <div>
-                                                <span class="inline-block px-2 py-0.5 rounded text-[10px] font-black text-white uppercase tracking-wider mb-1"
-                                                            style="background-color: ${cor}">
-                                                        ${window.escapeHTML(habilidade.codigo)}
-                                                </span>
-                        <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wide">
+                        <span style="display: inline-block; padding: 0.125rem 0.375rem; border-radius: var(--radius-sm); font-size: 0.625rem; font-weight: 900; color: white; text-transform: uppercase; letter-spacing: 0.05em; background-color: ${cor}; margin-bottom: 0.25rem;">
+                            ${window.escapeHTML(habilidade.codigo)}
+                        </span>
+                        <p style="font-size: 0.6875rem; font-weight: 800; color: var(--color-slate-400); text-transform: uppercase; letter-spacing: 0.05em;">
                             ${window.escapeHTML(eixo)}
                         </p>
                     </div>
+
                     <button onclick="controller.removeHabilidadeMensal('${turmaId}', '${mes}', '${codigoSafe}')" 
-                            class="w-8 h-8 flex items-center justify-center rounded-lg text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all"
+                            class="btn-icon" style="color: var(--color-slate-300); padding: 0.375rem;"
+                            onmouseover="this.style.color='#ef4444'; this.style.backgroundColor='#fee2e2';"
+                            onmouseout="this.style.color='var(--color-slate-300)'; this.style.backgroundColor='transparent';"
                             title="Remover do mês">
-                        <i class="fas fa-trash-alt"></i>
+                        <i class="fas fa-trash-alt" style="font-size: 0.875rem;"></i>
                     </button>
                 </div>
-                <p class="text-sm text-slate-700 leading-relaxed font-medium">
+
+                <p style="font-size: 0.875rem; color: var(--color-slate-700); line-height: 1.5; font-weight: 500;">
                     ${window.escapeHTML(habilidade.descricao)}
                 </p>
             </div>
@@ -246,19 +238,11 @@ export const mensalView = {
         this.render('view-container');
     },
 
-    /**
-     * Identifica a qual período letivo o mês pertence.
-     * @param {string} mesNome - Nome do mês.
-     * @returns {string} Número do período (ex: "1").
-     */
     identificarPeriodo(mesNome) {
         try {
             const mesIndex = this.meses.indexOf(mesNome);
             const ano = new Date().getFullYear();
-            // Data estimada para cálculo (dia 15 do mês selecionado)
             const dataTeste = `${ano}-${String(mesIndex + 1).padStart(2, '0')}-15`;
-            
-            // Usa o método do Model para precisão
             const periodo = model.getPeriodoPorData(dataTeste);
             return periodo || "1";
         } catch (e) {
@@ -267,27 +251,16 @@ export const mensalView = {
         }
     },
 
-    /**
-     * Adiciona uma habilidade da lista de sugestões ao mês selecionado.
-     * @param {string} codigoHabilidade - Código identificador (ex: EF06MA01).
-     */
     adicionarSugestao(codigoHabilidade) {
         const turma = model.state.turmas.find(t => String(t.id) === String(this.currentTurmaId));
         if (!turma) return;
-        
+
         const periodo = this.identificarPeriodo(this.currentMes);
         const habilidade = turma.planejamento?.[periodo]?.find(h => h.codigo === codigoHabilidade);
-        
+
         if (habilidade) {
             model.addHabilidadeMensal(turma.id, this.currentMes, habilidade);
-            
-            // Feedback visual rápido
-            const toast = document.createElement('div');
-            toast.className = 'fixed bottom-4 right-4 bg-emerald-600 text-white px-4 py-2 rounded-lg shadow-xl z-50 text-sm font-bold animate-slideIn';
-            toast.innerHTML = '<i class="fas fa-check mr-2"></i> Adicionado!';
-            document.body.appendChild(toast);
-            setTimeout(() => toast.remove(), 2000);
-
+            Toast.show(`Habilidade ${codigoHabilidade} adicionada a ${this.currentMes}!`, 'success');
             this.render('view-container');
         }
     }

@@ -1,26 +1,50 @@
-const CACHE_NAME = 'planner-pro-docente-v1.4'; // Versão atualizada
+const CACHE_NAME = 'planner-pro-docente-v2.2';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
-    './css/final.css', // Atualizado de style.css para final.css
+    './css/variables.css',
+    './css/base.css',
+    './css/layout.css',
+    './css/components.css',
     './manifest.json',
 
-    // LÓGICA CORE
+    './js/app.js',
+    './js/router.js',
     './js/controller.js',
     './js/model.js',
     './js/firebase-service.js',
+    './js/ai-service.js',
+    './js/config.js',
+    './js/utils.js',
+    './js/reactive.js',
 
-    // COMPONENTES
     './js/components/toast.js',
 
-    // SUB-CONTROLLERS (NOVA ESTRUTURA)
+    './js/models/planejamentoModel.js',
+    './js/models/provaModel.js',
+    './js/models/state.js',
+    './js/models/turmaModel.js',
+
+    './js/services/viewRegistry.js',
+    './js/services/storageService.js',
+    './js/services/turmaService.js',
+    './js/services/provaService.js',
+    './js/services/planejamentoService.js',
+
     './js/controllers/authController.js',
     './js/controllers/uiController.js',
     './js/controllers/turmaController.js',
     './js/controllers/planejamentoController.js',
 
-    // VIEWS (TODAS AS ATUAIS)
     './js/views/dashboard.js',
+    './js/views/notasAnuais.js',
+    './js/views/criarMaterial.js',
+    './js/views/biblioteca.js',
+    './js/views/quizGestor.js',
+    './js/views/quizPlayer.js',
+    './js/views/conteudoGerado.js',
+    './js/views/correcaoAutomatica.js',
+    './js/views/simuladores.js',
     './js/views/horario.js',
     './js/views/calendario.js',
     './js/views/mensal.js',
@@ -29,20 +53,20 @@ const ASSETS_TO_CACHE = [
     './js/views/turmas.js',
     './js/views/sala.js',
     './js/views/bncc.js',
+    './js/views/bimestralizacao.js',
     './js/views/provas.js',
-    './js/views/estatisticas-provas.js',
+    './js/views/comunidade.js',
+    './js/views/estatisticasProva.js',
     './js/views/frequencia.js',
     './js/views/settings.js',
 
-    // BIBLIOTECAS EXTERNAS (CDN) - Garante funcionamento offline das fórmulas e ícones
-    'https://cdn.tailwindcss.com',
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
     'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css',
     'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js',
     'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js',
 
-    // DADOS DO BANCO DE QUESTÕES (SISTEMA)
-    './assets/data/manifest.json'
+    './assets/data/manifest.json',
+    './assets/BimestralizacaoFormosa/bimestralizacao_formosa.json'
 ];
 
 self.addEventListener('install', (event) => {
@@ -58,7 +82,6 @@ self.addEventListener('activate', (event) => {
     event.waitUntil(
         caches.keys().then((keyList) => {
             return Promise.all(keyList.map((key) => {
-                // Remove caches antigos para liberar espaço e evitar conflitos
                 if (key !== CACHE_NAME) {
                     console.log('[Service Worker] Removendo cache antigo:', key);
                     return caches.delete(key);
@@ -70,11 +93,11 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
     const url = event.request.url;
-    
-    if (url.includes('firebase') || 
-        url.includes('googleapis') || 
+
+    if (url.includes('firebase') ||
+        url.includes('googleapis') ||
         url.includes('googleusercontent') ||
-        url.includes('__/auth/')) { 
+        url.includes('__/auth/')) {
         return;
     }
 

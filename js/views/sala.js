@@ -1,32 +1,17 @@
-/**
- * @file sala.js
- * @description View responsável pelo Mapa de Sala (Mapeamento de assentos dos alunos).
- * @module views/salaView
- */
-
 import { model } from '../model.js';
 import { controller } from '../controller.js';
-import { firebaseService } from '../firebase-service.js';
+import { Toast } from '../components/toast.js';
 
-/**
- * View do Mapa de Sala.
- * @namespace salaView
- */
 export const salaView = {
     alunoSelecionadoParaMover: null,
     currentTurmaId: null,
 
-    /**
-     * Renderiza o layout principal do mapa de sala.
-     * @param {HTMLElement|string} container 
-     */
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
 
         const turmas = (model.state && model.state.turmas) ? model.state.turmas : [];
-        
-        // Validação da Turma Ativa
+
         if (this.currentTurmaId && !turmas.find(t => String(t.id) === String(this.currentTurmaId))) {
             this.currentTurmaId = null;
         }
@@ -35,71 +20,86 @@ export const salaView = {
         }
 
         const html = `
-            <div class="fade-in pb-20">
-                <div class="flex flex-wrap justify-between items-center mb-8 gap-4 no-print">
+            <div class="animate-enter" style="display: flex; flex-direction: column; gap: var(--spacing-6); padding-bottom: var(--spacing-8);">
+                
+                <!-- TOP HEADER & TOOLBAR -->
+                <div class="card" style="padding: var(--spacing-4) var(--spacing-6); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-4);">
                     <div>
-                        <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Mapa de Sala</h2>
-                        <p class="text-slate-500">Arraste ou clique para organizar a sala.</p>
+                        <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--color-slate-800); letter-spacing: -0.025em; display: flex; align-items: center; gap: var(--spacing-2);">
+                            <i class="fas fa-chair" style="color: var(--color-primary);"></i> Mapa de Sala Interativo
+                        </h2>
+                        <p style="font-size: 0.875rem; color: var(--color-slate-500);">Organize a disposição das carteiras e gerencie a pontuação de participação (XP).</p>
                     </div>
-                </div>
-                <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8 no-print">
-                    <select id="map-select-turma" onchange="salaView.carregarMapa(this.value)" 
-                            class="md:col-span-3 border border-slate-200 p-4 rounded-xl bg-white focus:border-primary outline-none font-medium transition-all shadow-sm cursor-pointer">
-                        ${turmas.length > 0
-                            ? turmas.map(t => `<option value="${t.id}" ${String(t.id) === String(this.currentTurmaId) ? 'selected' : ''}>${window.escapeHTML(t.nome)}</option>`).join('')
-                            : '<option value="">Nenhuma turma cadastrada</option>'
-                        }
-                    </select>
-                    <button onclick="window.print()" class="bg-slate-800 text-white rounded-xl font-bold hover:bg-black transition flex items-center justify-center gap-2 shadow-md">
-                        <i class="fas fa-print"></i> Imprimir
-                    </button>
-                </div>
-                <div id="mapa-container" class="bg-slate-100 p-8 md:p-12 rounded-[2rem] relative min-h-[600px] border-4 border-slate-200 shadow-inner print:border-none print:bg-white print:p-0">
-                    <div class="w-full max-w-xl mx-auto h-16 bg-white rounded-xl shadow-sm mb-12 flex items-center justify-center font-black text-slate-300 border-b-4 border-slate-200 tracking-[0.5em] uppercase print:border print:border-black">
-                        Quadro / Professor
-                    </div>
-                    <div class="grid grid-cols-6 gap-3 md:gap-6 max-w-4xl mx-auto" id="room-grid">
-                        <div class="col-span-full py-20 text-center text-slate-400 italic flex flex-col items-center gap-2">
-                            <i class="fas fa-chair text-4xl opacity-50"></i>
-                            <p>Carregando mapa...</p>
+
+                    <div style="display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap;">
+                        <button type="button" onclick="salaView.embaralhar()" class="btn-secondary interactive-element" title="Sortear assentos aleatoriamente">
+                            <i class="fas fa-random"></i> <span>Embaralhar</span>
+                        </button>
+                        <button type="button" onclick="window.print()" class="btn-secondary interactive-element" title="Imprimir Mapa">
+                            <i class="fas fa-print"></i> <span>Imprimir</span>
+                        </button>
+
+                        <div class="custom-dropdown" style="min-width: 240px;">
+                            <input type="hidden" id="map-select-turma" onchange="salaView.carregarMapa(this.value)" value="${this.currentTurmaId || ''}">
+                            <button type="button" class="dropdown-button">
+                                <i class="fas fa-users" style="color: var(--color-slate-400); margin-right: var(--spacing-2);"></i>
+                                <span class="dropdown-label">${turmas.find(t => String(t.id) === String(this.currentTurmaId))?.nome || 'Selecionar Turma...'}</span>
+                                <i class="fas fa-chevron-down" style="color: var(--color-slate-400); font-size: 0.75rem; margin-left: auto;"></i>
+                            </button>
+                            <ul class="dropdown-menu hidden custom-scrollbar">
+                                ${turmas.length > 0
+                ? turmas.map(t => `<li class="dropdown-item ${String(t.id) === String(this.currentTurmaId) ? 'dropdown-item--selected' : ''}" data-value="${t.id}">${window.escapeHTML(t.nome)}</li>`).join('')
+                : '<li class="p-3 text-slate-400 text-sm text-center">Nenhuma turma</li>'
+            }
+                            </ul>
                         </div>
                     </div>
                 </div>
-                <div class="mt-8 text-center text-xs text-slate-400 no-print">
-                    Dica: Arraste ou clique em um aluno e depois no destino para mover.
+
+                <!-- CLASSROOM MAP CONTAINER -->
+                <div class="card" style="padding: var(--spacing-6); background-color: var(--color-slate-100); border: 1px solid var(--color-slate-200); display: flex; flex-direction: column; align-items: center; min-height: 600px;">
+                    
+                    <!-- QUADRO / MESA DO PROFESSOR -->
+                    <div style="width: 100%; max-width: 580px; height: 3rem; background-color: var(--color-white); border-radius: var(--radius-xl); box-shadow: var(--shadow-sm); margin-bottom: 2rem; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800; color: var(--color-slate-500); text-transform: uppercase; letter-spacing: 0.1em; border: 1px solid var(--color-slate-200);">
+                        <i class="fas fa-chalkboard" style="margin-right: 0.5rem; color: var(--color-primary);"></i> Quadro / Mesa do Professor
+                    </div>
+
+                    <!-- 6x6 DESKS GRID -->
+                    <div id="room-grid" style="display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 0.75rem; width: 100%; max-width: 900px;">
+                        <div style="grid-column: 1 / -1; padding: 4rem 0; text-align: center; color: var(--color-slate-400);">
+                            <i class="fas fa-chair" style="font-size: 2.5rem; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+                            <p>Carregando mapa da sala...</p>
+                        </div>
+                    </div>
+
+                    <div style="margin-top: 1.5rem; text-align: center; font-size: 0.75rem; color: var(--color-slate-500); font-weight: 600;">
+                        <i class="fas fa-info-circle" style="color: var(--color-primary); margin-right: 0.25rem;"></i> Clique em um aluno e depois no assento de destino para trocar ou mover de lugar.
+                    </div>
                 </div>
             </div>
         `;
-        
+
         container.innerHTML = html;
-        
+
         if (this.currentTurmaId) {
             this.carregarMapa(this.currentTurmaId);
         } else {
             const grid = document.getElementById('room-grid');
             if (grid) {
                 grid.innerHTML = `
-                    <div class="col-span-full py-20 text-center text-slate-400 italic flex flex-col items-center gap-2">
-                        <i class="fas fa-chair text-4xl opacity-50"></i>
-                        <p>Cadastre uma turma para visualizar o mapa.</p>
+                    <div style="grid-column: 1 / -1; padding: 4rem 0; text-align: center; color: var(--color-slate-400);">
+                        <i class="fas fa-chair" style="font-size: 2.5rem; margin-bottom: 0.5rem; opacity: 0.5;"></i>
+                        <p>Cadastre ou selecione uma turma para organizar o mapa.</p>
                     </div>
                 `;
             }
         }
     },
 
-    /**
-     * Renderiza a grade de assentos para a turma selecionada.
-     * @param {string|number} turmaId 
-     */
-    /**
-     * Renderiza a grade de assentos para a turma selecionada.
-     * @param {string|number} turmaId 
-     */
     carregarMapa(turmaId) {
         if (!turmaId) return;
         this.currentTurmaId = turmaId;
-        
+
         const grid = document.getElementById('room-grid');
         const turma = model.state.turmas.find(t => String(t.id) === String(turmaId));
         if (!turma || !grid) return;
@@ -108,191 +108,108 @@ export const salaView = {
         for (let i = 1; i <= 36; i++) {
             const aluno = turma.alunos.find(a => a.posicao === i);
             const isSelecionado = this.alunoSelecionadoParaMover === i;
-            
-            let bgClass = '';
+
+            let borderStyle = 'border: 2px dashed var(--color-slate-300); background-color: var(--color-slate-50);';
             if (isSelecionado) {
-                bgClass = 'bg-blue-50 border-primary shadow-lg ring-4 ring-primary/30 z-10 scale-105 border-2';
+                borderStyle = 'border: 2px solid var(--color-primary); background-color: var(--color-primary-light); box-shadow: var(--shadow-md); transform: scale(1.05);';
             } else if (aluno) {
-                bgClass = 'bg-white border-l-4 border-primary shadow-md draggable-card cursor-grab active:cursor-grabbing';
-            } else {
-                bgClass = 'bg-slate-50 border-2 border-dashed border-slate-300 hover:border-primary hover:bg-white';
+                borderStyle = 'border-left: 4px solid var(--color-primary); border-top: 1px solid var(--color-slate-200); border-right: 1px solid var(--color-slate-200); border-bottom: 1px solid var(--color-slate-200); background-color: var(--color-white); box-shadow: var(--shadow-sm);';
             }
 
-            // O conteúdo padrão é apenas o número da cadeira (vazia)
-            let content = `<span class="text-[10px] font-bold text-slate-300 pointer-events-none">${i}</span>`;
+            let content = `<span style="font-size: 0.6875rem; font-weight: 800; color: var(--color-slate-400);">${i}</span>`;
 
-            // SE o aluno existir na cadeira, processamos os dados de XP e nome
             if (aluno) {
-                const xp = aluno.xp || 0; // Fallback seguro
-                const level = Math.floor(xp / 100) + 1; // A cada 100 XP, sobe de Nível
-
+                const xp = aluno.xp || 0;
+                const level = Math.floor(xp / 100) + 1;
                 content = `
-                    <div class="flex flex-col items-center justify-center h-full w-full p-1 text-center pointer-events-none">
-                         <span class="font-bold text-slate-700 text-[10px] md:text-xs leading-tight line-clamp-1 w-full break-words select-none">
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; width: 100%; padding: 0.25rem; text-align: center; pointer-events: none;">
+                        <span style="font-weight: 800; color: var(--color-slate-800); font-size: 0.75rem; line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;">
                             ${window.escapeHTML(aluno.nome).split(' ')[0]}
                         </span>
-                        
-                        <!-- Etiqueta de Nível e XP -->
-                        <div class="flex items-center gap-1 mt-1 bg-amber-50 px-1.5 rounded border border-amber-200 pointer-events-auto" title="Nível ${level}">
-                            <i class="fas fa-star text-amber-500 text-[8px]"></i>
-                            <span id="xp-${aluno.id}" class="text-[9px] font-black text-amber-700 transition-all">${xp} XP</span>
-                        </div>
-                        
-                        <!-- Mini botões de Ação Rápida (Surgem no Hover) -->
-                        <div class="absolute -top-3 -right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-20 pointer-events-auto">
-                            <button onclick="event.stopPropagation(); turmaController.adicionarXP('${turmaId}', '${aluno.id}', 10)" class="w-6 h-6 bg-emerald-500 text-white rounded-full text-[10px] shadow-lg hover:scale-110 transition-transform"><i class="fas fa-plus"></i></button>
-                            <button onclick="event.stopPropagation(); turmaController.adicionarXP('${turmaId}', '${aluno.id}', -5)" class="w-6 h-6 bg-red-500 text-white rounded-full text-[10px] shadow-lg hover:scale-110 transition-transform"><i class="fas fa-minus"></i></button>
+                        <div style="display: flex; align-items: center; gap: 0.25rem; margin-top: 0.25rem;">
+                            <span style="font-size: 0.5625rem; font-weight: 900; background-color: #fef3c7; color: #d97706; padding: 0.05rem 0.25rem; border-radius: var(--radius-sm); border: 1px solid #fde68a;">Lvl ${level}</span>
+                            <span style="font-size: 0.5625rem; font-weight: 700; color: var(--color-slate-400);">${xp} XP</span>
                         </div>
                     </div>
                 `;
             }
 
-            const dragAttributes = aluno
-                ? `draggable="true" ondragstart="salaView.handleDragStart(event, '${aluno.id}', ${i})"`
-                : '';
-
             assentosHtml += `
-                <div id="seat-${i}"
-                     data-posicao="${i}"
-                     onclick="salaView.handleClick('${turmaId}', ${i})"
-                     ondragover="salaView.handleDragOver(event)"
-                     ondragleave="salaView.handleDragLeave(event)"
-                     ondrop="salaView.handleDrop(event, ${i})"
-                     ${dragAttributes}
-                     class="aspect-square rounded-lg flex items-center justify-center cursor-pointer transition-all hover:scale-105 active:scale-95 ${bgClass} relative group print:border print:border-black print:shadow-none overflow-visible"
-                     aria-label="Assento ${i} ${aluno ? 'ocupado por ' + window.escapeHTML(aluno.nome) : 'vazio'}">
+                <div class="interactive-element"
+                     style="height: 5.5rem; border-radius: var(--radius-xl); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; padding: 0.25rem; cursor: pointer; transition: all var(--transition-fast); ${borderStyle}"
+                     onclick="salaView.clicarAssento(${i})"
+                     title="${aluno ? window.escapeHTML(aluno.nome) : 'Carteira ' + i + ' (Vazia)'}">
                     ${content}
+                    ${aluno ? `
+                        <div style="position: absolute; top: 2px; right: 2px; display: flex; gap: 2px;">
+                            <button onclick="event.stopPropagation(); salaView.ajustarXP('${turma.id}', '${aluno.id}', 10)" 
+                                    style="width: 1.125rem; height: 1.125rem; border-radius: 50%; background-color: #d1fae5; color: #059669; border: none; font-size: 0.5rem; font-weight: 900; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="+10 XP">
+                                +
+                            </button>
+                        </div>
+                    ` : ''}
                 </div>
             `;
         }
+
         grid.innerHTML = assentosHtml;
     },
 
-    handleDragStart(e, alunoId, posicaoAtual) {
-        e.dataTransfer.setData('text/plain', JSON.stringify({
-            alunoId: alunoId,
-            posicaoOrigem: posicaoAtual,
-            turmaId: this.currentTurmaId
-        }));
-        e.dataTransfer.effectAllowed = 'move';
-        e.target.classList.add('opacity-50', 'scale-95'); // Feedback visual de drag
-        this.alunoSelecionadoParaMover = null;
-    },
+    clicarAssento(posicao) {
+        const turma = model.state.turmas.find(t => String(t.id) === String(this.currentTurmaId));
+        if (!turma) return;
 
-    handleDragOver(e) {
-        e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
-        const seat = e.target.closest('[id^="seat-"]');
-        if (seat) {
-            seat.classList.add('bg-blue-100', 'border-blue-300'); // Feedback de drop target
-        }
-    },
-
-    handleDragLeave(e) {
-        const seat = e.target.closest('[id^="seat-"]');
-        if (seat) {
-            seat.classList.remove('bg-blue-100', 'border-blue-300');
-        }
-    },
-
-    handleDrop(e, posicaoDestino) {
-        e.preventDefault();
-        const seat = e.target.closest('[id^="seat-"]');
-        if (seat) seat.classList.remove('bg-blue-100', 'border-blue-300');
-        
-        try {
-            const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-            
-            // Validações de segurança
-            if (String(data.turmaId) !== String(this.currentTurmaId)) return;
-            if (data.posicaoOrigem === posicaoDestino) return;
-
-            model.movimentarAluno(this.currentTurmaId, data.alunoId, posicaoDestino);
-            this.carregarMapa(this.currentTurmaId);
-        } catch (err) {
-            console.error("Erro no drop:", err);
-        }
-    },
-
-    handleClick(turmaId, posicao) {
-        const turma = model.state.turmas.find(t => String(t.id) === String(turmaId));
-        
-        // Se já tem um aluno selecionado para mover
-        if (this.alunoSelecionadoParaMover !== null) {
-            if (this.alunoSelecionadoParaMover === posicao) {
-                // Clicou no mesmo lugar -> cancela seleção e abre modal
-                this.alunoSelecionadoParaMover = null;
-                this.carregarMapa(turmaId);
-                this.abrirModalSelecao(turmaId, posicao);
-            } else {
-                // Clicou em outro lugar -> move
-                const alunoMover = turma.alunos.find(a => a.posicao === this.alunoSelecionadoParaMover);
-                if (alunoMover) {
-                    model.movimentarAluno(turmaId, alunoMover.id, posicao);
-                }
-                this.alunoSelecionadoParaMover = null;
-                this.carregarMapa(turmaId);
+        if (this.alunoSelecionadoParaMover === null) {
+            const aluno = turma.alunos.find(a => a.posicao === posicao);
+            if (aluno) {
+                this.alunoSelecionadoParaMover = posicao;
+                this.carregarMapa(this.currentTurmaId);
             }
-            return;
-        }
-
-        const aluno = turma.alunos.find(a => a.posicao === posicao);
-        if (aluno) {
-            // Seleciona para mover
-            this.alunoSelecionadoParaMover = posicao;
-            this.carregarMapa(turmaId);
         } else {
-            // Lugar vazio -> abre modal para adicionar
-            this.abrirModalSelecao(turmaId, posicao);
+            const origem = this.alunoSelecionadoParaMover;
+            const destino = posicao;
+
+            if (origem !== destino) {
+                const alunoOrigem = turma.alunos.find(a => a.posicao === origem);
+                const alunoDestino = turma.alunos.find(a => a.posicao === destino);
+
+                if (alunoOrigem) alunoOrigem.posicao = destino;
+                if (alunoDestino) alunoDestino.posicao = origem;
+
+                if (model.saveTurmas) model.saveTurmas();
+                Toast.show("Carteiras reorganizadas!", "success");
+            }
+
+            this.alunoSelecionadoParaMover = null;
+            this.carregarMapa(this.currentTurmaId);
         }
     },
 
-    abrirModalSelecao(turmaId, posicao) {
+    ajustarXP(turmaId, alunoId, delta) {
         const turma = model.state.turmas.find(t => String(t.id) === String(turmaId));
-        const alunosSemLugar = turma.alunos.filter(a => !a.posicao);
-        const alunoAtual = turma.alunos.find(a => a.posicao === posicao);
+        if (!turma) return;
+        const aluno = turma.alunos.find(a => String(a.id) === String(alunoId));
+        if (!aluno) return;
 
-        controller.openModal(`Assento ${posicao}`, `
-            <div class="p-4">
-                <p class="text-sm text-slate-500 mb-4">Selecione um aluno para sentar aqui:</p>
-                
-                <div class="max-h-[300px] overflow-y-auto custom-scrollbar space-y-2 mb-4 pr-1">
-                    ${alunosSemLugar.length > 0
-                        ? alunosSemLugar
-                            .sort((a, b) => a.nome.localeCompare(b.nome))
-                            .map(aluno => `
-                                <button onclick="salaView.salvarPosicaoManual('${turmaId}', '${aluno.id}', ${posicao})" 
-                                        class="flex items-center gap-3 p-4 bg-slate-50 rounded-2xl border-2 border-transparent hover:border-primary hover:bg-blue-50 transition-all group w-full text-left">
-                                    <div class="w-8 h-8 rounded-full bg-white flex items-center justify-center text-primary shadow-sm">
-                                        <i class="fas fa-user-plus text-xs"></i>
-                                    </div>
-                                    <span class="font-bold text-slate-700 text-sm">${window.escapeHTML(aluno.nome)}</span>
-                                </button>
-                            `).join('')
-                        : '<div class="text-center text-slate-400 text-xs py-4">Não há alunos sem lugar definido.</div>'
-                    }
-                </div>
-
-                ${alunoAtual ? `
-                    <div class="pt-4 border-t border-slate-100">
-                        <p class="text-xs font-bold text-slate-800 mb-2">Aluno atual: ${window.escapeHTML(alunoAtual.nome)}</p>
-                        <button onclick="salaView.salvarPosicaoManual('${turmaId}', null, ${posicao})" 
-                                class="w-full py-2.5 text-red-500 text-sm font-bold hover:bg-red-50 rounded-lg transition flex items-center justify-center gap-2">
-                            <i class="fas fa-user-slash"></i> Desocupar Assento
-                        </button>
-                    </div>
-                ` : ''}
-            </div>
-        `);
+        aluno.xp = Math.max(0, (aluno.xp || 0) + delta);
+        if (model.saveTurmas) model.saveTurmas();
+        Toast.show(`${aluno.nome.split(' ')[0]}: ${delta > 0 ? '+' : ''}${delta} XP!`, "success");
+        this.carregarMapa(this.currentTurmaId);
     },
 
-    salvarPosicaoManual(turmaId, alunoId, posicao) {
-        if (alunoId === null || alunoId === "null") {
-            model.desocuparPosicao(turmaId, posicao);
-        } else {
-            model.movimentarAluno(turmaId, alunoId, posicao);
+    embaralhar() {
+        const turma = model.state.turmas.find(t => String(t.id) === String(this.currentTurmaId));
+        if (!turma || !turma.alunos || turma.alunos.length === 0) {
+            return Toast.show("Nenhum aluno nesta turma para embaralhar.", "warning");
         }
-        controller.closeModal();
-        this.carregarMapa(turmaId);
+
+        const posicoes = Array.from({ length: 36 }, (_, i) => i + 1).sort(() => Math.random() - 0.5);
+        turma.alunos.forEach((aluno, index) => {
+            aluno.posicao = posicoes[index];
+        });
+
+        if (model.saveTurmas) model.saveTurmas();
+        Toast.show("Assentos sorteados com sucesso!", "success");
+        this.carregarMapa(this.currentTurmaId);
     }
 };

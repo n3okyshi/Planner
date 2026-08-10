@@ -13,44 +13,60 @@ export const quizGestorView = {
         const quizzes = model.state.quizzes || [];
 
         const html = `
-            <div class="fade-in pb-24">
-                <div class="flex justify-between items-center mb-8">
+            <div class="animate-enter" style="display: flex; flex-direction: column; gap: var(--spacing-6); padding-bottom: var(--spacing-8);">
+                
+                <!-- TOP HEADER & CONTROLS TOOLBAR -->
+                <div class="card" style="padding: var(--spacing-4) var(--spacing-6); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-4);">
                     <div>
-                        <h2 class="text-3xl font-bold text-slate-800">Quiz ao Vivo</h2>
-                        <p class="text-slate-500">Engaje seus alunos com competições em tempo real.</p>
+                        <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--color-slate-800); letter-spacing: -0.025em; display: flex; align-items: center; gap: var(--spacing-2);">
+                            <i class="fas fa-gamepad" style="color: var(--color-primary);"></i> Quiz Interativo em Sala
+                        </h2>
+                        <p style="font-size: 0.875rem; color: var(--color-slate-500);">Engaje seus estudantes com competições interativas e gamificadas em tempo real.</p>
                     </div>
-                    <div class="flex gap-3">
-                        <button onclick="quizGestorView.abrirGeradorIA()" class="bg-indigo-600 text-white px-5 py-2.5 rounded-xl font-bold shadow-lg shadow-indigo-200 hover:scale-105 transition-transform flex items-center gap-2">
-                            <i class="fas fa-robot"></i> Gerar com IA
+
+                    <div style="display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap;">
+                        <button type="button" onclick="quizGestorView.abrirGeradorIA()" class="btn-secondary interactive-element">
+                            <i class="fas fa-robot"></i> <span>Gerar com IA</span>
                         </button>
-                        <button onclick="quizGestorView.criarNovoQuiz()" class="btn-primary px-5 py-2.5 rounded-xl font-bold shadow-lg hover:scale-105 transition-transform flex items-center gap-2">
-                            <i class="fas fa-plus"></i> Novo Quiz
+                        <button type="button" onclick="quizGestorView.criarNovoQuiz()" class="btn-primary interactive-element">
+                            <i class="fas fa-plus"></i> <span>Novo Quiz</span>
                         </button>
                     </div>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- QUIZZES GRID -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--spacing-6);">
                     ${quizzes.length > 0 ? quizzes.map(q => this.cardQuiz(q)).join('') : this.estadoVazio()}
                 </div>
             </div>
         `;
+
         container.innerHTML = html;
     },
 
     cardQuiz(quiz) {
         return `
-            <div class="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all group animate-slide-up">
-                <div class="flex justify-between items-start mb-4">
-                    <span class="px-3 py-1 bg-blue-50 text-primary text-[10px] font-bold uppercase rounded-full">${quiz.disciplina || 'Geral'}</span>
-                    <button onclick="quizGestorView.editarQuiz('${quiz.id}')" class="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-primary hover:bg-blue-50 transition-colors">
-                        <i class="fas fa-pencil-alt"></i>
-                    </button>
+            <div class="card interactive-element" style="padding: var(--spacing-6); display: flex; flex-direction: column; justify-content: space-between; gap: var(--spacing-4); transition: all var(--transition-fast);">
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--spacing-3);">
+                        <span class="badge" style="background-color: var(--color-primary-light); color: var(--color-primary); font-weight: 800; text-transform: uppercase;">
+                            ${window.escapeHTML(quiz.disciplina || 'Geral')}
+                        </span>
+                        <button type="button" onclick="quizGestorView.editarQuiz('${quiz.id}')" class="btn-icon" title="Editar Quiz">
+                            <i class="fas fa-pencil-alt" style="font-size: 0.875rem;"></i>
+                        </button>
+                    </div>
+
+                    <h3 style="font-size: 1.125rem; font-weight: 800; color: var(--color-slate-800); margin-bottom: 0.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        ${window.escapeHTML(quiz.titulo)}
+                    </h3>
+                    <p style="font-size: 0.8125rem; color: var(--color-slate-500); font-weight: 600;">
+                        ${quiz.perguntas?.length || 0} questões cadastradas
+                    </p>
                 </div>
-                <h3 class="text-lg font-bold text-slate-800 mb-2 truncate">${window.escapeHTML(quiz.titulo)}</h3>
-                <p class="text-xs text-slate-500 font-medium mb-6">${quiz.perguntas?.length || 0} questões</p>
-                
-                <button onclick="controller.navigate('quiz-player'); setTimeout(() => window.quizPlayerView.start('${quiz.id}'), 100);" class="w-full py-3 bg-slate-800 text-white rounded-xl font-bold hover:bg-slate-900 transition-colors flex items-center justify-center gap-2">
-                    <i class="fas fa-play"></i> Iniciar Apresentação
+
+                <button type="button" onclick="controller.navigate('quiz-player'); setTimeout(() => window.quizPlayerView?.start('${quiz.id}'), 100);" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem; background-color: var(--color-slate-800);">
+                    <i class="fas fa-play"></i> <span>Apresentar em Sala</span>
                 </button>
             </div>
         `;
@@ -58,53 +74,66 @@ export const quizGestorView = {
 
     estadoVazio() {
         return `
-            <div class="col-span-full py-20 text-center bg-slate-50 border-2 border-dashed border-slate-200 rounded-[2rem]">
-                <i class="fas fa-gamepad text-4xl text-slate-300 mb-4"></i>
-                <h3 class="text-xl font-bold text-slate-600">Nenhum Quiz criado</h3>
-                <p class="text-slate-400 text-sm mt-2">Crie manualmente ou use a IA para gerar perguntas.</p>
+            <div class="card" style="grid-column: 1 / -1; padding: 4rem 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border: 2px dashed var(--color-slate-200);">
+                <div style="width: 4rem; height: 4rem; border-radius: var(--radius-full); background-color: var(--color-slate-100); color: var(--color-slate-400); display: flex; align-items: center; justify-content: center; font-size: 1.75rem; margin-bottom: 1rem;">
+                    <i class="fas fa-gamepad"></i>
+                </div>
+                <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); margin-bottom: 0.5rem;">Nenhum Quiz criado ainda</h3>
+                <p style="color: var(--color-slate-500); font-size: 0.875rem; max-width: 380px; margin-bottom: 1.5rem;">Crie quizzes manualmente ou utilize a IA para gerar perguntas dinâmicas e engajadoras.</p>
+                <div style="display: flex; gap: 0.75rem;">
+                    <button type="button" onclick="quizGestorView.abrirGeradorIA()" class="btn-secondary">
+                        <i class="fas fa-robot"></i> <span>Gerar com IA</span>
+                    </button>
+                    <button type="button" onclick="quizGestorView.criarNovoQuiz()" class="btn-primary">
+                        <i class="fas fa-plus"></i> <span>Criar Manualmente</span>
+                    </button>
+                </div>
             </div>
         `;
     },
 
-    // --- EDITOR WYSIWYG E LÓGICA DE IA ---
     abrirGeradorIA() {
         const html = `
-            <div class="p-6 space-y-4">
-                <div class="grid grid-cols-2 gap-4">
+            <div style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4);">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-4);">
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Disciplina</label>
-                        <input type="text" id="ai-disciplina" class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary" placeholder="Ex: Matemática">
+                        <label class="form-label">Disciplina</label>
+                        <input type="text" id="ai-disciplina" class="form-input" placeholder="Ex: Matemática, História...">
                     </div>
                     <div>
-                        <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Série</label>
-                        <input type="text" id="ai-serie" class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary" placeholder="Ex: 8º Ano">
+                        <label class="form-label">Série / Ano</label>
+                        <input type="text" id="ai-serie" class="form-input" placeholder="Ex: 8º Ano, Ensino Médio...">
                     </div>
                 </div>
+
                 <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Assunto / Tema</label>
-                    <input type="text" id="ai-assunto" class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary" placeholder="Ex: Equações de 1º Grau">
+                    <label class="form-label">Assunto / Tema do Quiz</label>
+                    <input type="text" id="ai-assunto" class="form-input" placeholder="Ex: Equações de 1º Grau, Revolução Francesa...">
                 </div>
+
                 <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Quantidade de Perguntas</label>
-                    <select id="ai-qtd" class="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-primary">
+                    <label class="form-label">Quantidade de Perguntas</label>
+                    <select id="ai-qtd" class="form-select">
                         <option value="3">3 Perguntas</option>
-                        <option value="5">5 Perguntas</option>
+                        <option value="5" selected>5 Perguntas</option>
                         <option value="10">10 Perguntas</option>
                     </select>
                 </div>
-                
-                <div id="ai-loading" class="hidden flex-col items-center justify-center p-4">
-                    <i class="fas fa-circle-notch fa-spin text-3xl text-indigo-600 mb-2"></i>
-                    <p class="text-sm font-bold text-indigo-600 animate-pulse">A IA está formulando o Quiz...</p>
+
+                <div id="ai-loading" style="display: none; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; text-align: center;">
+                    <i class="fas fa-circle-notch fa-spin" style="font-size: 2rem; color: var(--color-primary); margin-bottom: 0.75rem;"></i>
+                    <p style="font-size: 0.875rem; font-weight: 800; color: var(--color-primary);">A IA está elaborando as perguntas do Quiz...</p>
                 </div>
 
-                <div class="flex gap-2 pt-4">
-                    <button onclick="controller.closeModal()" class="flex-1 py-3 text-slate-500 font-bold bg-slate-100 hover:bg-slate-200 rounded-xl transition">Cancelar</button>
-                    <button onclick="quizGestorView.gerarComIA()" class="flex-1 py-3 bg-indigo-600 text-white font-bold rounded-xl shadow-lg hover:bg-indigo-700 transition">Gerar Quiz</button>
+                <div style="display: flex; gap: var(--spacing-3); margin-top: var(--spacing-2); padding-top: var(--spacing-4); border-top: 1px solid var(--color-slate-100);">
+                    <button type="button" onclick="controller.closeModal()" class="btn-secondary" style="flex: 1; justify-content: center; padding: 0.75rem;">Cancelar</button>
+                    <button type="button" onclick="quizGestorView.gerarComIA()" class="btn-primary" style="flex: 1; justify-content: center; padding: 0.75rem;">
+                        <i class="fas fa-magic"></i> <span>Gerar Quiz</span>
+                    </button>
                 </div>
             </div>
         `;
-        controller.openModal('Gerar Quiz com IA', html);
+        controller.openModal('Gerar Quiz com Inteligência Artificial', html);
     },
 
     async gerarComIA() {
@@ -113,43 +142,40 @@ export const quizGestorView = {
         const assunto = document.getElementById('ai-assunto').value;
         const qtd = parseInt(document.getElementById('ai-qtd').value);
 
-        if(!disciplina || !assunto) return Toast.show("Preencha a disciplina e o assunto.", "warning");
+        if (!disciplina || !assunto) return Toast.show("Preencha a disciplina e o assunto.", "warning");
 
-        document.getElementById('ai-loading').classList.remove('hidden');
-        
+        const loadingEl = document.getElementById('ai-loading');
+        if (loadingEl) loadingEl.style.display = 'flex';
+
         try {
-            // Reaproveitando o método gerarMaterial do ai-service
-            const promptDados = { 
-                disciplina, 
-                serie, 
-                assunto, 
-                quantidade: qtd, 
+            const promptDados = {
+                disciplina,
+                serie,
+                assunto,
+                quantidade: qtd,
                 formato: "Retorne ESTRITAMENTE um array de objetos JSON contendo: enunciado (aceita KaTeX), alternativas (array de 4 strings), correta (índice 0-3), tempo (30), pontos (1000)."
             };
-            
+
             const resultado = await aiService.gerarMaterial('quiz_multipla_escolha', promptDados);
-            
-            // Cria e salva o Quiz
+
             const novoQuiz = {
                 id: 'quiz_' + Date.now(),
                 titulo: `${assunto} - ${serie}`,
                 disciplina,
-                perguntas: resultado.perguntas || resultado // Dependendo de como a IA estruturar
+                perguntas: resultado.perguntas || resultado
             };
 
-            if(!model.state.quizzes) model.state.quizzes = [];
+            if (!model.state.quizzes) model.state.quizzes = [];
             model.state.quizzes.push(novoQuiz);
-            model.saveLocal(); // Persiste dados offline/cloud
-
+            model.saveLocal();
             controller.closeModal();
             Toast.show("Quiz gerado com sucesso!", "success");
             this.render('view-container');
-
         } catch (error) {
             console.error(error);
             Toast.show("Erro ao gerar Quiz via IA.", "error");
         } finally {
-            document.getElementById('ai-loading')?.classList.add('hidden');
+            if (loadingEl) loadingEl.style.display = 'none';
         }
     },
 
@@ -160,7 +186,7 @@ export const quizGestorView = {
             disciplina: 'Geral',
             perguntas: []
         };
-        if(!model.state.quizzes) model.state.quizzes = [];
+        if (!model.state.quizzes) model.state.quizzes = [];
         model.state.quizzes.push(novoQuiz);
         model.saveLocal();
         this.render('view-container');
@@ -169,50 +195,67 @@ export const quizGestorView = {
 
     editarQuiz(id) {
         this.currentQuiz = model.state.quizzes.find(q => q.id === id);
-        if(!this.currentQuiz.perguntas) this.currentQuiz.perguntas = [];
+        if (!this.currentQuiz) return;
+        if (!this.currentQuiz.perguntas) this.currentQuiz.perguntas = [];
         this.renderEditor();
     },
 
     renderEditor() {
         const container = document.getElementById('view-container');
-        
+        if (!container) return;
+
         let htmlPerguntas = this.currentQuiz.perguntas.map((p, i) => `
-            <div class="p-4 border border-slate-200 rounded-xl mb-3 bg-slate-50 hover:border-primary cursor-pointer transition flex justify-between items-center group" onclick="quizGestorView.editarPergunta(${i})">
-                <span class="font-bold text-slate-700 text-sm truncate max-w-[80%]">${i+1}. ${window.escapeHTML(p.enunciado || 'Nova Pergunta')}</span>
-                <button onclick="event.stopPropagation(); quizGestorView.excluirPergunta(${i})" class="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition"><i class="fas fa-trash"></i></button>
+            <div class="card interactive-element" style="padding: var(--spacing-3); margin-bottom: 0.5rem; background-color: var(--color-slate-50); cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="quizGestorView.editarPergunta(${i})">
+                <span style="font-weight: 700; color: var(--color-slate-700); font-size: 0.8125rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 80%;">
+                    ${i + 1}. ${window.escapeHTML(p.enunciado || 'Nova Pergunta')}
+                </span>
+                <button onclick="event.stopPropagation(); quizGestorView.excluirPergunta(${i})" class="btn-icon" style="color: var(--color-slate-400);" title="Excluir pergunta">
+                    <i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>
+                </button>
             </div>
         `).join('');
 
         const html = `
-            <div class="fade-in pb-24">
-                <button onclick="quizGestorView.render('view-container')" class="mb-4 text-xs font-bold text-primary flex items-center gap-2 hover:underline">
-                    <i class="fas fa-arrow-left"></i> Voltar aos Quizzes
-                </button>
+            <div class="animate-enter" style="display: flex; flex-direction: column; gap: var(--spacing-6); padding-bottom: var(--spacing-8);">
                 
-                <div class="flex justify-between items-center mb-6 border-b border-slate-200 pb-4">
-                    <input type="text" id="quiz-titulo-edit" value="${window.escapeHTML(this.currentQuiz.titulo)}" class="text-3xl font-bold text-slate-800 bg-transparent outline-none border-b-2 border-transparent focus:border-primary w-2/3" onchange="quizGestorView.salvarTitulo(this.value)">
-                    <button onclick="quizGestorView.adicionarPerguntaVazia()" class="btn-primary px-5 py-2.5 rounded-xl font-bold shadow-lg flex items-center gap-2">
-                        <i class="fas fa-plus"></i> Adicionar Pergunta
+                <!-- TOP TOOLBAR -->
+                <div class="card" style="padding: var(--spacing-4) var(--spacing-6); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-4);">
+                    <div style="display: flex; align-items: center; gap: var(--spacing-4); flex: 1;">
+                        <button onclick="quizGestorView.render('view-container')" class="btn-secondary" style="padding: 0.5rem 0.875rem;">
+                            <i class="fas fa-arrow-left"></i> <span>Voltar</span>
+                        </button>
+                        <input type="text" id="quiz-titulo-edit" value="${window.escapeHTML(this.currentQuiz.titulo)}" 
+                               class="form-input" style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); max-width: 480px;"
+                               onchange="quizGestorView.salvarTitulo(this.value)">
+                    </div>
+
+                    <button onclick="quizGestorView.adicionarPerguntaVazia()" class="btn-primary">
+                        <i class="fas fa-plus"></i> <span>Adicionar Questão</span>
                     </button>
                 </div>
 
-                <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    <!-- Lista Lateral -->
-                    <div class="lg:col-span-1 bg-white p-4 rounded-2xl shadow-sm border border-slate-100 h-fit max-h-[70vh] overflow-y-auto custom-scrollbar">
-                        <h3 class="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Questões (${this.currentQuiz.perguntas.length})</h3>
-                        ${htmlPerguntas || '<p class="text-xs text-slate-400 text-center py-4">Nenhuma pergunta ainda.</p>'}
+                <!-- SIDE-BY-SIDE EDITOR (QUESTIONS LIST + EDIT PANE) -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--spacing-6); align-items: start;">
+                    
+                    <!-- LEFT COLUMN: QUESTIONS LIST (300px) -->
+                    <div class="card" style="padding: var(--spacing-4); max-width: 360px; max-height: 70vh; overflow-y: auto;" class="custom-scrollbar">
+                        <h3 style="font-size: 0.75rem; font-weight: 800; color: var(--color-slate-400); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--spacing-3);">
+                            Questões Cadastradas (${this.currentQuiz.perguntas.length})
+                        </h3>
+                        ${htmlPerguntas || '<p style="font-size: 0.8125rem; color: var(--color-slate-400); text-align: center; padding: 2rem 0;">Nenhuma questão adicionada.</p>'}
                     </div>
 
-                    <!-- Editor Central -->
-                    <div class="lg:col-span-2 bg-white p-6 md:p-8 rounded-2xl shadow-sm border border-slate-100" id="quiz-editor-area">
-                        <div class="flex flex-col items-center justify-center h-full text-slate-300 py-20">
-                            <i class="fas fa-hand-pointer text-4xl mb-4"></i>
-                            <p class="font-medium">Selecione uma pergunta na lista para editar ou adicione uma nova.</p>
+                    <!-- RIGHT COLUMN: QUESTION EDIT FORM -->
+                    <div class="card" style="padding: var(--spacing-6); flex: 1; min-width: 320px;" id="quiz-editor-area">
+                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4rem 2rem; color: var(--color-slate-400); text-align: center;">
+                            <i class="fas fa-hand-pointer" style="font-size: 2.5rem; margin-bottom: 1rem; color: var(--color-slate-300);"></i>
+                            <p style="font-weight: 600;">Selecione uma questão ao lado para editar ou adicione uma nova.</p>
                         </div>
                     </div>
                 </div>
             </div>
         `;
+
         container.innerHTML = html;
     },
 
@@ -235,7 +278,7 @@ export const quizGestorView = {
     },
 
     excluirPergunta(index) {
-        if(confirm("Excluir esta pergunta?")) {
+        if (confirm("Excluir esta questão do quiz?")) {
             this.currentQuiz.perguntas.splice(index, 1);
             model.saveLocal();
             this.renderEditor();
@@ -245,44 +288,47 @@ export const quizGestorView = {
     editarPergunta(index) {
         const p = this.currentQuiz.perguntas[index];
         const editorArea = document.getElementById('quiz-editor-area');
-        
+        if (!editorArea) return;
+
         let alternativasHtml = p.alternativas.map((alt, i) => `
-            <div class="flex items-center gap-3">
-                <input type="radio" name="quiz-correta" value="${i}" ${p.correta === i ? 'checked' : ''} class="w-5 h-5 accent-emerald-500 cursor-pointer">
-                <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 shrink-0">${['A','B','C','D'][i]}</div>
-                <input type="text" id="quiz-alt-${i}" value="${window.escapeHTML(alt)}" class="flex-1 p-3 border border-slate-200 rounded-xl outline-none focus:border-primary text-sm font-medium" placeholder="Digite a alternativa...">
+            <div style="display: flex; align-items: center; gap: var(--spacing-3);">
+                <input type="radio" name="quiz-correta" value="${i}" ${p.correta === i ? 'checked' : ''} style="width: 1.25rem; height: 1.25rem; accent-color: #10b981; cursor: pointer;">
+                <div style="width: 2rem; height: 2rem; border-radius: 50%; background-color: var(--color-slate-100); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800; color: var(--color-slate-600); flex-shrink: 0;">
+                    ${['A', 'B', 'C', 'D'][i]}
+                </div>
+                <input type="text" id="quiz-alt-${i}" value="${window.escapeHTML(alt)}" class="form-input" style="flex: 1;" placeholder="Alternativa ${['A', 'B', 'C', 'D'][i]}...">
             </div>
         `).join('');
 
         editorArea.innerHTML = `
-            <h3 class="text-sm font-bold text-slate-700 mb-4 flex justify-between items-center">
-                <span>Editando Pergunta ${index + 1}</span>
-                <div class="flex items-center gap-2 text-xs">
-                    <i class="far fa-clock text-slate-400"></i>
-                    <select id="quiz-tempo" class="border-slate-200 border rounded-lg p-1 outline-none text-slate-600">
-                        <option value="15" ${p.tempo == 15 ? 'selected' : ''}>15s</option>
-                        <option value="30" ${p.tempo == 30 ? 'selected' : ''}>30s</option>
-                        <option value="60" ${p.tempo == 60 ? 'selected' : ''}>1 min</option>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-4); padding-bottom: var(--spacing-3); border-bottom: 1px solid var(--color-slate-100);">
+                <h3 style="font-size: 1rem; font-weight: 800; color: var(--color-slate-800);">Editando Questão ${index + 1}</h3>
+                <div style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8125rem;">
+                    <i class="far fa-clock" style="color: var(--color-slate-400);"></i>
+                    <select id="quiz-tempo" class="form-select" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">
+                        <option value="15" ${p.tempo == 15 ? 'selected' : ''}>15 segundos</option>
+                        <option value="30" ${p.tempo == 30 ? 'selected' : ''}>30 segundos</option>
+                        <option value="60" ${p.tempo == 60 ? 'selected' : ''}>1 minuto</option>
                     </select>
                 </div>
-            </h3>
-            
-            <div class="space-y-6">
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: var(--spacing-5);">
                 <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Enunciado (Use $$ para KaTeX)</label>
-                    <textarea id="quiz-enunciado" rows="4" class="w-full border-2 border-slate-100 p-4 rounded-xl outline-none focus:border-primary font-medium text-slate-700 resize-none text-lg">${window.escapeHTML(p.enunciado)}</textarea>
+                    <label class="form-label">Enunciado da Questão (Suporta KaTeX com $$)</label>
+                    <textarea id="quiz-enunciado" rows="3" class="form-input custom-scrollbar" style="resize: vertical; font-size: 1rem;">${window.escapeHTML(p.enunciado)}</textarea>
                 </div>
-                
+
                 <div>
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Alternativas (Selecione a correta)</label>
-                    <div class="space-y-3">
+                    <label class="form-label">Alternativas (Marque o botão circular na alternativa correta)</label>
+                    <div style="display: flex; flex-direction: column; gap: var(--spacing-3);">
                         ${alternativasHtml}
                     </div>
                 </div>
 
-                <div class="pt-6 border-t border-slate-100 flex justify-end">
-                    <button onclick="quizGestorView.salvarEdicaoPergunta(${index})" class="bg-emerald-500 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-emerald-200 hover:bg-emerald-600 transition flex items-center gap-2">
-                        <i class="fas fa-save"></i> Salvar Pergunta
+                <div style="display: flex; justify-content: flex-end; padding-top: var(--spacing-4); border-top: 1px solid var(--color-slate-100);">
+                    <button onclick="quizGestorView.salvarEdicaoPergunta(${index})" class="btn-primary" style="background-color: #059669; padding: 0.625rem 1.5rem;">
+                        <i class="fas fa-save"></i> <span>Salvar Questão</span>
                     </button>
                 </div>
             </div>
@@ -293,11 +339,11 @@ export const quizGestorView = {
         const enunciado = document.getElementById('quiz-enunciado').value;
         const tempo = parseInt(document.getElementById('quiz-tempo').value);
         const radioCorreta = document.querySelector('input[name="quiz-correta"]:checked');
-        
+
         if (!enunciado) return Toast.show("O enunciado não pode ser vazio.", "error");
-        
+
         const alternativas = [];
-        for(let i=0; i<4; i++) {
+        for (let i = 0; i < 4; i++) {
             alternativas.push(document.getElementById(`quiz-alt-${i}`).value);
         }
 
@@ -309,12 +355,11 @@ export const quizGestorView = {
         };
 
         model.saveLocal();
-        Toast.show("Pergunta salva!", "success");
-        this.renderEditor(); // Recarrega a lista
-    },
+        Toast.show("Questão salva!", "success");
+        this.renderEditor();
+    }
 };
 
-// No final de quizGestor.js
 if (typeof window !== 'undefined') {
     window.quizGestorView = quizGestorView;
 }

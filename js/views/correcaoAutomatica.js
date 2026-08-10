@@ -3,31 +3,39 @@ import { Toast } from '../components/toast.js';
 import { aiService } from '../ai-service.js';
 
 export const correcaoAutomaticaView = {
-    abaAtiva: 'redacao', // 'redacao' ou 'camera'
+    abaAtiva: 'redacao',
 
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
 
         const html = `
-            <div class="fade-in pb-24">
-                <div class="mb-8">
-                    <h2 class="text-3xl font-bold text-slate-800">Correção com IA</h2>
-                    <p class="text-slate-500">Corrija redações nos moldes do ENEM ou escaneie gabaritos.</p>
+            <div class="animate-enter" style="display: flex; flex-direction: column; gap: var(--spacing-6); padding-bottom: var(--spacing-8);">
+                
+                <!-- TOP HEADER & TABS TOOLBAR -->
+                <div class="card" style="padding: var(--spacing-4) var(--spacing-6); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-4);">
+                    <div>
+                        <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--color-slate-800); letter-spacing: -0.025em; display: flex; align-items: center; gap: var(--spacing-2);">
+                            <i class="fas fa-magic" style="color: var(--color-primary);"></i> Correção Automática com IA
+                        </h2>
+                        <p style="font-size: 0.875rem; color: var(--color-slate-500);">Avalie redações com os critérios das 5 competências do ENEM ou digitalize gabaritos.</p>
+                    </div>
+
+                    <div class="mode-toggle-group">
+                        <button type="button" onclick="correcaoAutomaticaView.mudarAba('redacao')" class="mode-toggle-btn interactive-element ${this.abaAtiva === 'redacao' ? 'mode-toggle-btn--active' : ''}">
+                            <i class="fas fa-pen-nib"></i> <span>Redação ENEM</span>
+                        </button>
+                        <button type="button" onclick="correcaoAutomaticaView.mudarAba('camera')" class="mode-toggle-btn interactive-element ${this.abaAtiva === 'camera' ? 'mode-toggle-btn--active' : ''}">
+                            <i class="fas fa-camera"></i> <span>Gabarito por Foto</span>
+                        </button>
+                    </div>
                 </div>
 
-                <div class="flex gap-2 p-1 bg-slate-100 rounded-2xl w-fit border border-slate-200 mb-8">
-                    <button onclick="correcaoAutomaticaView.mudarAba('redacao')" class="px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${this.abaAtiva === 'redacao' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}">
-                        <i class="fas fa-pen-nib mr-2"></i> Redação ENEM
-                    </button>
-                    <button onclick="correcaoAutomaticaView.mudarAba('camera')" class="px-6 py-2.5 rounded-xl text-sm font-bold transition-all ${this.abaAtiva === 'camera' ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-700'}">
-                        <i class="fas fa-camera mr-2"></i> Gabarito por Foto
-                    </button>
-                </div>
-
+                <!-- MAIN TAB CONTENT -->
                 ${this.abaAtiva === 'redacao' ? this.renderRedacao() : this.renderCamera()}
             </div>
         `;
+
         container.innerHTML = html;
     },
 
@@ -38,23 +46,34 @@ export const correcaoAutomaticaView = {
 
     renderRedacao() {
         return `
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-slide-up">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Tema da Redação (Opcional)</label>
-                    <input type="text" id="tema-redacao" placeholder="Ex: Caminhos para combater a intolerância..." class="w-full border-2 border-slate-100 p-3 rounded-xl mb-4 outline-none focus:border-primary">
-                    
-                    <label class="block text-xs font-bold text-slate-400 uppercase mb-2">Texto do Aluno</label>
-                    <textarea id="texto-redacao" rows="12" class="w-full border-2 border-slate-100 p-4 rounded-xl outline-none focus:border-primary custom-scrollbar resize-none font-serif text-sm" placeholder="Cole ou digite a redação aqui..."></textarea>
-                    
-                    <button onclick="correcaoAutomaticaView.corrigirRedacao()" class="w-full mt-4 bg-indigo-600 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-indigo-700 transition flex items-center justify-center gap-2">
-                        <i class="fas fa-magic"></i> Avaliar (5 Competências)
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: var(--spacing-6); align-items: start;">
+                
+                <!-- LEFT COLUMN: ESSAY INPUT FORM -->
+                <div class="card" style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4);">
+                    <div>
+                        <label class="form-label">Tema da Proposta de Redação</label>
+                        <input type="text" id="tema-redacao" placeholder="Ex: Caminhos para combater a intolerância religiosa no Brasil..." class="form-input">
+                    </div>
+
+                    <div>
+                        <label class="form-label">Texto da Redação do Estudante</label>
+                        <textarea id="texto-redacao" rows="14" class="form-input custom-scrollbar" style="resize: vertical; font-size: 0.9375rem; line-height: 1.6;" placeholder="Cole ou digite a redação completa do aluno aqui..."></textarea>
+                    </div>
+
+                    <button type="button" onclick="correcaoAutomaticaView.corrigirRedacao()" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.875rem; font-size: 1rem;">
+                        <i class="fas fa-magic"></i> <span>Avaliar 5 Competências</span>
                     </button>
                 </div>
 
-                <div id="resultado-redacao" class="bg-slate-50 p-6 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 h-full min-h-[400px]">
-                    <i class="fas fa-clipboard-check text-5xl mb-4 opacity-50"></i>
-                    <p class="font-medium text-center max-w-sm">Insira o texto e clique em Avaliar para receber as notas das 5 competências do ENEM e comentários detalhados.</p>
+                <!-- RIGHT COLUMN: CORRECTION RESULTS PANE -->
+                <div id="resultado-redacao" class="card" style="padding: var(--spacing-6); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 440px; text-align: center; border: 2px dashed var(--color-slate-200); background-color: var(--color-slate-50);">
+                    <div style="width: 4rem; height: 4rem; border-radius: var(--radius-full); background-color: var(--color-white); color: var(--color-primary); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1rem; box-shadow: var(--shadow-sm);">
+                        <i class="fas fa-clipboard-check"></i>
+                    </div>
+                    <h3 style="font-size: 1.125rem; font-weight: 800; color: var(--color-slate-700); margin-bottom: 0.25rem;">Aguardando Redação</h3>
+                    <p style="font-size: 0.875rem; color: var(--color-slate-500); max-width: 340px;">Insira o tema e o texto do aluno e clique em "Avaliar" para receber notas e comentários detalhados.</p>
                 </div>
+
             </div>
         `;
     },
@@ -64,65 +83,80 @@ export const correcaoAutomaticaView = {
         const texto = document.getElementById('texto-redacao').value;
         const resultadoContainer = document.getElementById('resultado-redacao');
 
-        if (!texto || texto.length < 50) return Toast.show("O texto é muito curto para ser avaliado.", "warning");
+        if (!texto || texto.length < 50) return Toast.show("O texto precisa ter ao menos 50 caracteres para avaliação.", "warning");
 
         resultadoContainer.innerHTML = `
-            <div class="flex flex-col items-center justify-center text-indigo-600">
-                <i class="fas fa-circle-notch fa-spin text-4xl mb-4"></i>
-                <p class="font-bold animate-pulse">Avaliando competências, sintaxe e coerência...</p>
+            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem 0; color: var(--color-primary); text-align: center;">
+                <i class="fas fa-circle-notch fa-spin" style="font-size: 2.5rem; margin-bottom: 1rem;"></i>
+                <p style="font-size: 1rem; font-weight: 800;">Avaliando competências, sintaxe e repertório sociocultural...</p>
+                <span style="font-size: 0.8125rem; color: var(--color-slate-400); margin-top: 0.5rem;">Isso pode levar alguns segundos.</span>
             </div>
         `;
 
         try {
-            // Reaproveitando a IA, enviando um JSON forçado
-            const resultado = await aiService.gerarMaterial('correcao_enem', { 
-                tema, 
+            const resultado = await aiService.gerarMaterial('correcao_enem', {
+                tema,
                 texto,
                 formato: "Retorne um JSON exato contendo { 'notaTotal': numero, 'competencias': [{ 'numero': 1 a 5, 'nota': numero, 'comentario': 'texto' }], 'feedbackGeral': 'texto' }"
             });
 
-            resultadoContainer.className = "bg-white p-6 rounded-2xl shadow-md border border-slate-200 h-full max-h-[600px] overflow-y-auto custom-scrollbar";
-            
+            resultadoContainer.className = "card animate-enter";
+            resultadoContainer.style.border = "1px solid var(--color-slate-200)";
+            resultadoContainer.style.backgroundColor = "var(--color-white)";
+            resultadoContainer.style.textAlign = "left";
+            resultadoContainer.style.display = "flex";
+            resultadoContainer.style.flexDirection = "column";
+            resultadoContainer.style.gap = "var(--spacing-4)";
+
             resultadoContainer.innerHTML = `
-                <div class="flex justify-between items-end mb-6 pb-4 border-b border-slate-100">
-                    <h3 class="font-bold text-slate-700 text-lg">Resultado da Correção</h3>
-                    <div class="text-right">
-                        <span class="text-[10px] font-black text-slate-400 uppercase tracking-widest">Nota Final</span>
-                        <div class="text-4xl font-black text-indigo-600">${resultado.notaTotal || 0}</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: var(--spacing-3); border-bottom: 1px solid var(--color-slate-100);">
+                    <div>
+                        <h3 style="font-size: 1.125rem; font-weight: 800; color: var(--color-slate-800);">Resultado da Avaliação</h3>
+                        <p style="font-size: 0.75rem; color: var(--color-slate-400); font-weight: 600;">Critérios oficiais do ENEM (0 a 1000)</p>
+                    </div>
+
+                    <div style="text-align: right;">
+                        <span style="font-size: 0.6875rem; font-weight: 800; color: var(--color-slate-400); text-transform: uppercase;">Nota Total</span>
+                        <div style="font-size: 2rem; font-weight: 900; color: var(--color-primary);">${resultado.notaTotal || 0}</div>
                     </div>
                 </div>
-                <div class="space-y-4 mb-6">
+
+                <div style="display: flex; flex-direction: column; gap: var(--spacing-3);">
                     ${(resultado.competencias || []).map(c => `
-                        <div class="bg-slate-50 p-4 rounded-xl border border-slate-100">
-                            <div class="flex justify-between font-bold mb-2">
-                                <span class="text-xs text-slate-500 uppercase tracking-wide">Competência ${c.numero}</span>
-                                <span class="text-sm text-indigo-600">${c.nota} pts</span>
+                        <div style="padding: var(--spacing-3); background-color: var(--color-slate-50); border: 1px solid var(--color-slate-100); border-radius: var(--radius-xl);">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                <span style="font-size: 0.75rem; font-weight: 800; color: var(--color-slate-600); text-transform: uppercase;">Competência ${c.numero}</span>
+                                <span class="badge" style="background-color: var(--color-primary-light); color: var(--color-primary); font-weight: 800;">${c.nota} pts</span>
                             </div>
-                            <p class="text-sm text-slate-700 leading-relaxed">${c.comentario}</p>
+                            <p style="font-size: 0.8125rem; color: var(--color-slate-700); line-height: 1.4; margin: 0;">${c.comentario}</p>
                         </div>
                     `).join('')}
                 </div>
-                <h4 class="font-bold text-slate-700 mb-2">Comentário Geral</h4>
-                <p class="text-sm text-slate-600 leading-relaxed bg-indigo-50 p-4 rounded-xl border border-indigo-100">${resultado.feedbackGeral}</p>
-            `;
-            Toast.show("Redação corrigida!", "success");
 
+                <div style="padding: var(--spacing-4); background-color: #eff6ff; border: 1px solid #dbeafe; border-radius: var(--radius-xl);">
+                    <h4 style="font-size: 0.8125rem; font-weight: 800; color: #1e40af; margin-bottom: 0.25rem;">Comentário Geral & Dicas de Melhoria</h4>
+                    <p style="font-size: 0.8125rem; color: #1e3a8a; line-height: 1.5; margin: 0;">${resultado.feedbackGeral}</p>
+                </div>
+            `;
+
+            Toast.show("Redação avaliada com sucesso!", "success");
         } catch (error) {
-            resultadoContainer.innerHTML = `<p class="text-red-500 font-bold">Erro ao avaliar redação. Tente novamente.</p>`;
-            Toast.show("Erro na API da IA.", "error");
+            console.error(error);
+            resultadoContainer.innerHTML = `<div style="padding: 2rem; text-align: center; color: #ef4444;"><p>Erro ao avaliar a redação. Tente novamente.</p></div>`;
+            Toast.show("Erro na geração da IA.", "error");
         }
     },
 
     renderCamera() {
         return `
-            <div class="bg-white p-10 rounded-2xl shadow-sm border border-slate-200 text-center animate-slide-up">
-                <div class="w-24 h-24 bg-blue-50 text-primary rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-inner">
+            <div class="card" style="max-width: 600px; margin: 2rem auto; padding: 4rem 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border: 2px dashed var(--color-slate-200);">
+                <div style="width: 4.5rem; height: 4.5rem; border-radius: var(--radius-full); background-color: var(--color-slate-100); color: var(--color-slate-400); display: flex; align-items: center; justify-content: center; font-size: 2rem; margin-bottom: 1rem;">
                     <i class="fas fa-camera-retro"></i>
                 </div>
-                <h3 class="text-2xl font-bold text-slate-800 mb-2">Leitor de Gabarito por Foto</h3>
-                <p class="text-slate-500 mb-8 max-w-lg mx-auto">Em breve: Aponte a câmera do celular para a folha de respostas e deixe o sistema corrigir 40 questões em 3 segundos via Visão Computacional (Tesseract.js).</p>
-                <button disabled class="bg-slate-200 text-slate-400 px-8 py-3 rounded-xl font-bold cursor-not-allowed">
-                    <i class="fas fa-lock mr-2"></i> Módulo em Desenvolvimento
+                <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); margin-bottom: 0.5rem;">Leitor de Gabarito por Foto</h3>
+                <p style="font-size: 0.875rem; color: var(--color-slate-500); max-width: 400px; margin-bottom: 1.5rem;">Aponte a câmera do celular para o cartão de respostas para corrigir até 50 questões automaticamente por visão computacional.</p>
+                <button type="button" disabled class="btn-secondary" style="opacity: 0.6; cursor: not-allowed;">
+                    <i class="fas fa-lock"></i> <span>Módulo em Desenvolvimento</span>
                 </button>
             </div>
         `;

@@ -1,95 +1,58 @@
-/**
- * @file uiController.js
- * @description Gerencia a interface do usuário (Modais, Sidebar, Navegação e Temas).
- * @module controllers/uiController
- */
 
 import { model } from '../model.js';
 import { Toast } from '../components/toast.js';
-
-/**
- * Controlador de Interface do Usuário.
- * @namespace uiController
- */
+import { controller } from '../controller.js';
 export const uiController = {
-
-    /**
-     * Abre um modal global com conteúdo dinâmico.
-     * @param {string} titulo - Título do modal.
-     * @param {string} conteudo - String HTML do conteúdo.
-     * @param {'small'|'medium'|'large'} [tamanho='medium'] - Largura do modal.
-     */
     openModal(titulo, conteudo, tamanho = 'medium') {
         const modal = document.getElementById('global-modal');
         if (!modal) return;
-
-        const tamanhos = {
-            'small': 'max-w-md',
-            'medium': 'max-w-2xl',
-            'large': 'max-w-6xl' // Aumentei levemente o large para melhor aproveitamento em telas wide
-        };
-
-        const classeTamanho = tamanhos[tamanho] || tamanhos['medium'];
-
-        modal.innerHTML = `
-        <div class="bg-white w-full ${classeTamanho} rounded-[2.5rem] shadow-2xl overflow-hidden animate-pop-in relative border border-slate-100 mx-4 md:mx-0 flex flex-col max-h-[90vh]">
-            <div class="p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/50 shrink-0">
-                <h3 class="text-xl font-black text-slate-800 tracking-tight">${window.escapeHTML(titulo)}</h3>
-                <button onclick="uiController.closeModal()" class="w-10 h-10 rounded-full hover:bg-white hover:shadow-sm flex items-center justify-center text-slate-400 hover:text-red-500 transition-all">
+        const headerHtml = titulo ? `
+            <div class="modal__header">
+                <h3 class="modal__title">${window.escapeHTML(titulo)}</h3>
+                <button onclick="uiController.closeModal()" class="modal__close" title="Fechar">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
-            <div class="overflow-y-auto custom-scrollbar p-0 flex-1 relative">
+        ` : `
+            <button onclick="uiController.closeModal()" class="modal__close" style="position: absolute; top: 1rem; right: 1rem; z-index: 20;" title="Fechar">
+                <i class="fas fa-times"></i>
+            </button>
+        `;
+        modal.innerHTML = `
+        <div class="modal__content modal__content--${tamanho}">
+            ${headerHtml}
+            <div class="modal__body custom-scrollbar">
                 ${conteudo}
             </div>
         </div>
         `;
-        
         modal.classList.remove('hidden');
-        modal.style.zIndex = '50'; // Garante que fique acima de tudo
-        document.body.style.overflow = 'hidden'; // Trava o scroll do fundo
-
+        document.body.style.overflow = 'hidden';
         setTimeout(() => uiController.initAllDropdowns(), 50);
-
     },
-
-    /**
-     * Fecha o modal global e restaura o scroll da página.
-     */
     closeModal() {
         const modal = document.getElementById('global-modal');
         if (modal) {
             modal.classList.add('hidden');
-            // Limpa o conteúdo para economizar memória e parar vídeos/iframes se houver
-            setTimeout(() => { modal.innerHTML = ''; }, 300); 
+            setTimeout(() => { modal.innerHTML = ''; }, 300);
         }
         document.body.style.overflow = '';
     },
-
-    /**
-     * Exibe um modal de confirmação padronizado.
-     * @param {string} titulo 
-     * @param {string} mensagem 
-     * @param {Function} callbackConfirmacao - Função executada ao confirmar.
-     */
     confirmarAcao(titulo, mensagem, callbackConfirmacao) {
         const html = `
-            <div class="p-8 text-center">
-                <div class="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center mx-auto mb-4 text-2xl shadow-sm">
+            <div class="confirm-dialog">
+                <div class="confirm-dialog__icon">
                     <i class="fas fa-exclamation-triangle"></i>
                 </div>
-                <h3 class="text-xl font-bold text-slate-800 mb-2">${titulo}</h3>
-                <p class="text-slate-500 mb-8 leading-relaxed">${mensagem}</p>
-                <div class="flex gap-3 justify-center">
-                    <button onclick="uiController.closeModal()" class="px-6 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold hover:bg-slate-50 transition">Cancelar</button>
-                    <button id="btn-confirm-action" class="px-6 py-2.5 rounded-xl bg-red-500 text-white font-bold hover:bg-red-600 transition shadow-lg shadow-red-500/30">Confirmar</button>
+                <h3 class="confirm-dialog__title">${titulo}</h3>
+                <p class="confirm-dialog__text">${mensagem}</p>
+                <div class="confirm-dialog__actions">
+                    <button onclick="uiController.closeModal()" class="btn-secondary">Cancelar</button>
+                    <button id="btn-confirm-action" class="btn-danger">Confirmar</button>
                 </div>
             </div>
         `;
-        
         this.openModal('Confirmação', html, 'small');
-        
-        // Timeout para garantir que o elemento existe no DOM antes de atrelar o evento
         setTimeout(() => {
             const btn = document.getElementById('btn-confirm-action');
             if (btn) {
@@ -97,86 +60,55 @@ export const uiController = {
                     callbackConfirmacao();
                     this.closeModal();
                 };
-                // Foco automático no botão de confirmar para acessibilidade e rapidez
                 btn.focus();
             }
         }, 50);
     },
-
-    /**
-     * Alterna a visibilidade/tamanho da barra lateral (Sidebar).
-     */
     toggleSidebar() {
         const sidebar = document.getElementById('app-sidebar');
         const main = document.getElementById('main-content');
         const icon = document.getElementById('sidebar-toggle-icon');
-        
+        const headerIcon = document.getElementById('header-sidebar-toggle-icon');
         if (!sidebar || !main) return;
 
         const isMobile = window.innerWidth < 768;
-        
         if (isMobile) {
             sidebar.classList.toggle('mobile-open');
-            // Remove 'collapsed' se estiver abrindo no mobile
-            if (sidebar.classList.contains('mobile-open')) {
-                sidebar.classList.remove('collapsed');
-            }
+            const isExp = sidebar.classList.contains('mobile-open');
+            if (icon) icon.className = isExp ? 'fas fa-chevron-left' : 'fas fa-bars';
+            if (headerIcon) headerIcon.className = isExp ? 'fas fa-chevron-left' : 'fas fa-bars';
         } else {
             sidebar.classList.toggle('collapsed');
             main.classList.toggle('expanded-content');
-        }
-
-        // Atualiza o ícone do botão de toggle
-        if (icon) {
             const isCollapsed = sidebar.classList.contains('collapsed');
-            const isMobileOpen = sidebar.classList.contains('mobile-open');
-            
-            icon.className = (isCollapsed && !isMobileOpen) ? 'fas fa-bars' : 'fas fa-chevron-left';
+            if (icon) icon.className = isCollapsed ? 'fas fa-bars' : 'fas fa-chevron-left';
+            if (headerIcon) headerIcon.className = isCollapsed ? 'fas fa-bars' : 'fas fa-chevron-left';
         }
     },
-
-    /**
-     * Atualiza o destaque visual do botão de navegação ativo.
-     * @param {string} viewName - Nome da view atual (ex: 'dashboard', 'turmas').
-     */
     updateNavHighlight(viewName) {
-        // Remove destaque de todos
         document.querySelectorAll('nav button').forEach(btn => {
-            btn.classList.remove('bg-white/10', 'text-white', 'shadow-inner');
-            btn.classList.add('text-slate-400', 'hover:bg-white/5');
+            btn.classList.remove('nav-item--active');
         });
-
-        // Mapeamento de sub-rotas para botões principais
-        const mapId = { 
-            'periodo': 'planejamento', 
-            'dia': 'diario', 
-            'mapa': 'sala', 
-            'frequencia': 'frequencia', 
+        const mapId = {
+            'periodo': 'planejamento',
+            'dia': 'diario',
+            'mapa': 'sala',
+            'frequencia': 'frequencia',
             'config': 'settings',
-            'mensal': 'mensal' 
+            'mensal': 'mensal',
+            'bimestralizacoes': 'bimestralizacao'
         };
-
-        // Tenta encontrar o botão direto ou via mapa
         let activeBtn = document.getElementById(`nav-${viewName}`);
         if (!activeBtn && mapId[viewName]) {
             activeBtn = document.getElementById(`nav-${mapId[viewName]}`);
         }
-
-        // Aplica destaque
         if (activeBtn) {
-            activeBtn.classList.add('bg-white/10', 'text-white', 'shadow-inner');
-            activeBtn.classList.remove('text-slate-400', 'hover:bg-white/5');
+            activeBtn.classList.add('nav-item--active');
         }
     },
-
-    /**
-     * Atualiza o texto do Breadcrumb (caminho de navegação).
-     * @param {string} viewName 
-     */
     updateBreadcrumb(viewName) {
         const breadcrumb = document.getElementById('breadcrumb');
         if (!breadcrumb) return;
-
         const map = {
             'dashboard': 'Visão Geral',
             'mensal': 'Planejamento / Mensal',
@@ -184,245 +116,238 @@ export const uiController = {
             'dia': 'Planejamento / Diário',
             'turmas': 'Acadêmico / Turmas',
             'bncc': 'Acadêmico / BNCC',
+            'bimestralizacao': 'Acadêmico / Bimestralizações (Formosa)',
+            'bimestralizacoes': 'Acadêmico / Bimestralizações (Formosa)',
             'mapa': 'Acadêmico / Mapa de Sala',
             'provas': 'Acadêmico / Gerador de Provas',
+            'stats-provas': 'Acadêmico / Estatísticas de Avaliações',
             'frequencia': 'Acadêmico / Frequência',
             'comunidade': 'Comunidade / Banco de Questões',
+            'biblioteca': 'Biblioteca de Materiais',
+            'criar-material': 'Criador de Materiais IA',
+            'conteudo-gerado': 'Material Pedagógico',
+            'quiz-gestor': 'Gestor de Quizzes',
+            'quiz-player': 'Apresentação de Quiz',
+            'correcao': 'Correção Automática',
+            'simuladores': 'Simulações Interativas',
+            'notas-anuais': 'Notas Anuais & Médias',
             'estatisticas': 'Analytics / Desempenho',
             'config': 'Configurações'
         };
-
         const label = map[viewName] || viewName.charAt(0).toUpperCase() + viewName.slice(1);
         breadcrumb.innerHTML = `<i class="fas fa-home text-slate-300"></i> <span class="text-slate-300 mx-2">/</span> ${window.escapeHTML(label)}`;
     },
-
-    /**
-     * Renderiza esqueletos de carregamento (Loading Skeletons) enquanto os dados não chegam.
-     * @param {HTMLElement} container 
-     * @param {string} viewName 
-     */
-    renderSkeleton(container, viewName) {
+    getCardSkeleton(count = 6) {
+        return `
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--spacing-6);" class="animate-enter">
+                ${Array.from({ length: count }).map(() => `
+                    <div class="card" style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div class="skeleton-bg skeleton-rounded-xl" style="width: 3rem; height: 3rem;"></div>
+                            <div class="skeleton-bg skeleton-rounded-md" style="width: 5rem; height: 1rem;"></div>
+                        </div>
+                        <div class="skeleton-bg skeleton-rounded-md" style="width: 75%; height: 1.5rem;"></div>
+                        <div class="skeleton-bg skeleton-rounded-md" style="width: 50%; height: 1rem;"></div>
+                        <div class="skeleton-bg skeleton-rounded-full" style="width: 100%; height: 0.375rem; margin-top: var(--spacing-3);"></div>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    },
+    getTableSkeleton(rows = 5) {
+        return `
+            <div class="card animate-enter" style="padding: var(--spacing-4); display: flex; flex-direction: column; gap: var(--spacing-4);">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: var(--spacing-4); border-bottom: 1px solid var(--color-slate-100);">
+                    <div class="skeleton-bg skeleton-rounded-md" style="width: 12rem; height: 1.5rem;"></div>
+                    <div class="skeleton-bg skeleton-rounded-lg" style="width: 6rem; height: 2rem;"></div>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: var(--spacing-3);">
+                    ${Array.from({ length: rows }).map(() => `
+                        <div style="display: flex; align-items: center; gap: var(--spacing-4); padding: var(--spacing-2) 0;">
+                            <div class="skeleton-bg skeleton-rounded-full" style="width: 2rem; height: 2rem; flex-shrink: 0;"></div>
+                            <div class="skeleton-bg skeleton-rounded-md" style="flex: 1; height: 1.25rem;"></div>
+                            <div class="skeleton-bg skeleton-rounded-md" style="width: 5rem; height: 1.25rem;"></div>
+                            <div class="skeleton-bg skeleton-rounded-md" style="width: 4rem; height: 1.25rem;"></div>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    },
+    renderSkeleton(container, viewTarget) {
         if (!container) return;
-
-        const skeletons = {
+        const specificSkeletons = {
             dashboard: `
-                <div class="animate-pulse space-y-4 fade-in">
-                    <div class="h-8 bg-slate-200 rounded w-1/3 mb-6"></div>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <div class="h-32 bg-slate-200 rounded-2xl"></div>
-                        <div class="h-32 bg-slate-200 rounded-2xl"></div>
-                        <div class="h-32 bg-slate-200 rounded-2xl"></div>
+                <div class="skeleton animate-enter">
+                    <div style="height: 2rem; width: 33%; margin-bottom: 1.5rem;" class="skeleton-bg skeleton-rounded"></div>
+                    <div style="display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+                        <div style="height: 8rem;" class="skeleton-bg skeleton-rounded-2xl"></div>
+                        <div style="height: 8rem;" class="skeleton-bg skeleton-rounded-2xl"></div>
+                        <div style="height: 8rem;" class="skeleton-bg skeleton-rounded-2xl"></div>
                     </div>
-                    <div class="h-64 bg-slate-200 rounded-2xl mt-6"></div>
+                    <div style="height: 16rem; margin-top: 1.5rem;" class="skeleton-bg skeleton-rounded-2xl"></div>
                 </div>`,
-            
             turmas: `
-                <div class="animate-pulse fade-in">
-                    <div class="flex justify-between items-center mb-6">
-                        <div class="h-8 bg-slate-200 rounded w-48"></div>
-                        <div class="h-10 bg-slate-200 rounded w-32"></div>
+                <div class="skeleton animate-enter">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 1.5rem;">
+                        <div style="height: 2rem; width: 12rem;" class="skeleton-bg skeleton-rounded"></div>
+                        <div style="height: 2.5rem; width: 8rem;" class="skeleton-bg skeleton-rounded"></div>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        <div class="h-40 bg-slate-200 rounded-2xl"></div>
-                        <div class="h-40 bg-slate-200 rounded-2xl"></div>
-                        <div class="h-40 bg-slate-200 rounded-2xl"></div>
-                    </div>
-                </div>`,
-            
-            generic: `
-                <div class="animate-pulse p-4 fade-in">
-                    <div class="h-8 bg-slate-200 rounded w-1/4 mb-8"></div>
-                    <div class="space-y-4">
-                        <div class="h-4 bg-slate-200 rounded w-3/4"></div>
-                        <div class="h-4 bg-slate-200 rounded w-full"></div>
-                        <div class="h-4 bg-slate-200 rounded w-5/6"></div>
+                    <div style="display: grid; gap: 1.5rem; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+                        <div style="height: 10rem;" class="skeleton-bg skeleton-rounded-2xl"></div>
+                        <div style="height: 10rem;" class="skeleton-bg skeleton-rounded-2xl"></div>
+                        <div style="height: 10rem;" class="skeleton-bg skeleton-rounded-2xl"></div>
                     </div>
                 </div>`
         };
 
-        container.innerHTML = skeletons[viewName] || skeletons.generic;
-    },
+        if (specificSkeletons[viewTarget]) {
+            container.innerHTML = specificSkeletons[viewTarget];
+            return;
+        }
 
-    /**
-     * Aplica a cor de tema definida pelo usuário nas variáveis CSS globais.
-     */
+        const tableViews = ['diario', 'dia', 'frequencia', 'horario', 'notas-anuais'];
+        if (tableViews.includes(viewTarget)) {
+            container.innerHTML = this.getTableSkeleton();
+            return;
+        }
+
+        container.innerHTML = this.getCardSkeleton();
+    },
+    initLazyLoading(scope = document) {
+        const lazyElements = scope.querySelectorAll('.lazy-content:not(.loaded)');
+        if (lazyElements.length === 0) return;
+        const observer = new IntersectionObserver((entries, obs) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('loaded');
+                    obs.unobserve(entry.target);
+                }
+            });
+        }, { rootMargin: '50px 0px', threshold: 0.1 });
+        lazyElements.forEach(el => observer.observe(el));
+    },
+    async animateViewExit(container) {
+        if (!container || !container.firstElementChild) return;
+        return new Promise(resolve => {
+            container.firstElementChild.classList.add('animate-exit');
+            setTimeout(resolve, 180);
+        });
+    },
     aplicarTema() {
         if (model?.state?.userConfig?.themeColor) {
             document.documentElement.style.setProperty('--primary-color', model.state.userConfig.themeColor);
-            
-            // Opcional: Calcular cor de hover/fundo baseado na primária se necessário
-            // document.documentElement.style.setProperty('--primary-hover', adjustColor(model.state.userConfig.themeColor, -20));
         }
     },
-
-    /**
-     * Inicializa e controla dropdowns customizados.
-     * @param {string} dropdownId - ID do container principal do dropdown.
-     * @param {Function} [onChangeCallback] - Função disparada quando o valor muda.
-     */
     setupCustomDropdown(dropdownId, onChangeCallback) {
         const container = document.getElementById(dropdownId);
         if (!container) return;
-
-        const button = container.querySelector('.dropdown-button');
-        const menu = container.querySelector('.dropdown-menu');
-        const inputHidden = container.querySelector('input[type="hidden"]');
-        const labelElement = container.querySelector('.dropdown-label');
-
-        if (!button || !menu || !inputHidden || !labelElement) return;
-
-        // Alternar abertura do menu
-        button.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            // Fecha outros dropdowns abertos na tela para evitar sobreposição
-            document.querySelectorAll('.dropdown-menu').forEach(m => {
-                if (m !== menu) m.classList.add('hidden');
-            });
-            
-            menu.classList.toggle('hidden');
-            
-            // Efeito visual no botão quando aberto
-            if (!menu.classList.contains('hidden')) {
-                button.classList.add('border-indigo-400', 'ring-2', 'ring-indigo-50');
-            } else {
-                button.classList.remove('border-indigo-400', 'ring-2', 'ring-indigo-50');
+        this.initAllDropdowns();
+        if (onChangeCallback) {
+            const inputHidden = container.querySelector('input[type="hidden"]');
+            if (inputHidden) {
+                inputHidden.addEventListener('change', (e) => onChangeCallback(e.target.value));
             }
-        });
-
-        // Seleção de um item da lista
-        const items = menu.querySelectorAll('.dropdown-item');
-        items.forEach(item => {
-            item.addEventListener('click', (e) => {
-                e.stopPropagation();
-                const value = item.dataset.value;
-                const text = item.innerText.trim();
-
-                // Atualiza o visual do botão
-                labelElement.innerText = text;
-                // Atualiza o valor real no input invisível
-                inputHidden.value = value;
-                
-                // Fecha o menu e remove o destaque do botão
-                menu.classList.add('hidden');
-                button.classList.remove('border-indigo-400', 'ring-2', 'ring-indigo-50');
-
-                // Marca o item selecionado visualmente na lista
-                items.forEach(i => i.classList.remove('bg-indigo-50', 'text-indigo-700', 'font-bold'));
-                item.classList.add('bg-indigo-50', 'text-indigo-700', 'font-bold');
-
-                // Dispara a função do seu controller original (ex: realizar busca)
-                if (onChangeCallback) onChangeCallback(value);
-            });
-        });
-
-        // Fechar ao clicar fora do componente
-        document.addEventListener('click', (e) => {
-            if (!container.contains(e.target)) {
-                menu.classList.add('hidden');
-                button.classList.remove('border-indigo-400', 'ring-2', 'ring-indigo-50');
-            }
-        });
+        }
     },
-
-    /**
-     * Inicia um radar nativo (MutationObserver) para detectar quando o HTML 
-     * da página é redesenhado e aplicar os eventos nos novos Dropdowns.
-     */
     iniciarObservadorDropdowns() {
-        if (this._observerAtivo) return; // Evita criar múltiplos radares
-
+        if (this._observerAtivo) return;
         const observer = new MutationObserver((mutations) => {
             let temNovoElemento = false;
-            // Verifica se algum elemento novo foi injetado na tela
             for (let mutation of mutations) {
                 if (mutation.addedNodes.length > 0) {
                     temNovoElemento = true;
                     break;
                 }
             }
-            
-            // Se a tela foi redesenhada, passa reativando os dropdowns mortos
             if (temNovoElemento) {
                 this.initAllDropdowns();
             }
         });
-
-        // Fica observando o corpo inteiro da aplicação em tempo real
         observer.observe(document.body, { childList: true, subtree: true });
         this._observerAtivo = true;
     },
-
-    /**
-     * Inicializa todos os Dropdowns Customizados da tela automaticamente.
-     */
-
-    initAllDropdowns() {
-        // Busca apenas os que ainda não foram inicializados
-        document.querySelectorAll('.custom-dropdown:not(.dropdown-initialized)').forEach(container => {
+    initAllDropdowns(scope = document) {
+        scope.querySelectorAll('.custom-dropdown').forEach(container => {
+            if (container.dataset.initialized === 'true') return;
+            container.dataset.initialized = 'true';
             container.classList.add('dropdown-initialized');
-            
+
             const button = container.querySelector('.dropdown-button');
             const menu = container.querySelector('.dropdown-menu');
             const inputHidden = container.querySelector('input[type="hidden"]');
-            const labelElement = container.querySelector('.dropdown-label');
+            let labelElement = container.querySelector('.dropdown-label');
+            if (!button || !menu) return;
+            if (!labelElement) {
+                labelElement = button.querySelector('span') || button;
+            }
 
-            if (!button || !menu || !inputHidden || !labelElement) return;
-
-            // Abrir / Fechar
             button.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
                 if (button.disabled || button.classList.contains('opacity-60')) return;
-
-                // Fecha os outros
                 document.querySelectorAll('.dropdown-menu').forEach(m => {
                     if (m !== menu) m.classList.add('hidden');
                 });
-                
+                document.querySelectorAll('.dropdown-button').forEach(b => {
+                    if (b !== button) b.classList.remove('dropdown-button--active');
+                });
                 menu.classList.toggle('hidden');
-                button.classList.toggle('border-indigo-400');
-                button.classList.toggle('ring-2');
-                button.classList.toggle('ring-indigo-50');
+                button.classList.toggle('dropdown-button--active');
             });
 
-            // Delegação de Eventos: Clique em um item da lista
             menu.addEventListener('click', (e) => {
                 const item = e.target.closest('.dropdown-item');
                 if (!item) return;
-
                 e.stopPropagation();
                 const value = item.dataset.value;
                 const text = item.innerText.trim();
 
-                labelElement.innerText = text;
-                inputHidden.value = value;
-                
+                if (labelElement) {
+                    labelElement.innerText = text;
+                }
+
+                if (inputHidden) {
+                    inputHidden.value = value !== undefined ? value : text;
+                    
+                    // 1. Executa onchange atribuído programaticamente
+                    if (typeof inputHidden.onchange === 'function') {
+                        try {
+                            inputHidden.onchange.call(inputHidden, { target: inputHidden });
+                        } catch (err) {
+                            console.error("Erro no handler onchange do dropdown:", err);
+                        }
+                    } else if (inputHidden.getAttribute('onchange')) {
+                        // 2. Executa string do atributo onchange inline com contexto correto
+                        try {
+                            const handlerFn = new Function('event', inputHidden.getAttribute('onchange'));
+                            handlerFn.call(inputHidden, { target: inputHidden });
+                        } catch (err) {
+                            console.error("Erro ao executar atributo onchange do dropdown:", err);
+                        }
+                    }
+
+                    // 3. Dispara eventos padrão DOM
+                    inputHidden.dispatchEvent(new Event('change', { bubbles: true }));
+                    inputHidden.dispatchEvent(new Event('input', { bubbles: true }));
+                }
+
                 menu.classList.add('hidden');
-                button.classList.remove('border-indigo-400', 'ring-2', 'ring-indigo-50');
-
-                // Destaque visual
-                menu.querySelectorAll('.dropdown-item').forEach(i => i.classList.remove('bg-indigo-50', 'text-indigo-700', 'font-bold'));
-                item.classList.add('bg-indigo-50', 'text-indigo-700', 'font-bold');
-
-                // O PULO DO GATO: Dispara o onchange original que já existia no seu HTML!
-                inputHidden.dispatchEvent(new Event('change', { bubbles: true }));
+                button.classList.remove('dropdown-button--active');
+                menu.querySelectorAll('.dropdown-item').forEach(i => i.classList.remove('dropdown-item--selected'));
+                item.classList.add('dropdown-item--selected');
             });
 
-            // Fechar clicando fora
             document.addEventListener('click', (e) => {
                 if (!container.contains(e.target)) {
                     menu.classList.add('hidden');
-                    button.classList.remove('border-indigo-400', 'ring-2', 'ring-indigo-50');
+                    button.classList.remove('dropdown-button--active');
                 }
             });
         });
     }
-
 };
 
-// Exposição global para chamadas HTML (onclick="uiController.closeModal()")
 if (typeof window !== 'undefined') {
     window.uiController = uiController;
 }
