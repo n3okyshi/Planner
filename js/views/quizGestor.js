@@ -28,6 +28,9 @@ export const quizGestorView = {
                     </div>
 
                     <div style="display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap;">
+                        <button type="button" onclick="window.open('aluno.html', '_blank')" class="btn-secondary interactive-element" style="background-color: #f0fdf4; border-color: #bbf7d0; color: #15803d; font-weight: 800;" title="Abrir portal do estudante">
+                            <i class="fas fa-external-link-alt"></i> <span>Portal do Aluno (aluno.html)</span>
+                        </button>
                         <button type="button" onclick="quizGestorView.abrirGeradorIA()" class="btn-secondary interactive-element" style="background-color: #f8fafc; border-color: #cbd5e1;">
                             <i class="fas fa-robot" style="color: var(--color-primary);"></i> <span>Gerar com IA / Arquivo</span>
                         </button>
@@ -74,6 +77,9 @@ export const quizGestorView = {
                             ${window.escapeHTML(quiz.disciplina || 'Geral')}
                         </span>
                         <div style="display: flex; gap: 0.25rem;">
+                            <button type="button" onclick="quizGestorView.imprimirQuiz('${quiz.id}')" class="btn-icon" title="Imprimir Lista / Prova em PDF">
+                                <i class="fas fa-print" style="font-size: 0.875rem; color: var(--color-slate-500);"></i>
+                            </button>
                             <button type="button" onclick="quizGestorView.editarQuiz('${quiz.id}')" class="btn-icon" title="Editar Quiz">
                                 <i class="fas fa-pencil-alt" style="font-size: 0.875rem;"></i>
                             </button>
@@ -94,9 +100,11 @@ export const quizGestorView = {
                     </div>
                 </div>
 
-                <button type="button" onclick="controller.navigate('quiz-player'); setTimeout(() => window.quizPlayerView?.start('${quiz.id}'), 100);" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem; background-color: var(--color-slate-800);">
-                    <i class="fas fa-play"></i> <span>Apresentar em Sala</span>
-                </button>
+                <div style="display: flex; gap: 0.5rem; flex-direction: column;">
+                    <button type="button" onclick="controller.navigate('quiz-player'); setTimeout(() => window.quizPlayerView?.start('${quiz.id}'), 100);" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem; background: linear-gradient(135deg, #4f46e5, #7c3aed);">
+                        <i class="fas fa-gamepad mr-1"></i> <span>Apresentar ao Vivo (com PIN)</span>
+                    </button>
+                </div>
             </div>
         `;
     },
@@ -642,6 +650,124 @@ export const quizGestorView = {
         await model.saveQuiz(this.currentQuiz);
         Toast.show("Questão salva!", "success");
         this.renderEditor();
+    },
+
+    imprimirQuiz(quizId) {
+        const quiz = (model.state.quizzes || []).find(q => String(q.id) === String(quizId));
+        if (!quiz || !quiz.perguntas || quiz.perguntas.length === 0) {
+            return Toast.show("Este quiz não possui perguntas para imprimir.", "warning");
+        }
+
+        const janela = window.open('', '_blank');
+        if (!janela) return Toast.show("Permita pop-ups para imprimir o quiz.", "warning");
+
+        const perguntasHtml = quiz.perguntas.map((p, i) => {
+            const tipo = p.tipo || 'multipla';
+            let opcoesHtml = '';
+
+            if (tipo === 'verdadeiro_falso') {
+                opcoesHtml = `
+                    <div style="margin-top: 8px; display: flex; gap: 24px; font-weight: bold;">
+                        <span>( &nbsp; ) VERDADEIRO</span>
+                        <span>( &nbsp; ) FALSO</span>
+                    </div>
+                `;
+            } else {
+                const alts = p.alternativas || [];
+                const letras = ['A', 'B', 'C', 'D', 'E'];
+                opcoesHtml = `
+                    <div style="margin-top: 8px; display: flex; flex-direction: column; gap: 6px;">
+                        ${alts.map((alt, idx) => `
+                            <div>( &nbsp; ) <strong>${letras[idx]})</strong> ${window.escapeHTML(alt)}</div>
+                        `).join('')}
+                    </div>
+                `;
+            }
+
+            return `
+                <div style="margin-bottom: 24px; page-break-inside: avoid;">
+                    <div style="font-weight: bold; font-size: 15px; margin-bottom: 6px;">
+                        Questão ${i + 1}:
+                    </div>
+                    <div style="font-size: 14px; line-height: 1.5; color: #1e293b;">
+                        ${window.escapeHTML(p.enunciado)}
+                    </div>
+                    ${opcoesHtml}
+                </div>
+            `;
+        }).join('');
+
+        const gabaritoHtml = quiz.perguntas.map((p, i) => {
+            const tipo = p.tipo || 'multipla';
+            let resp = '';
+            if (tipo === 'verdadeiro_falso') {
+                resp = p.is_verdadeiro !== false ? 'VERDADEIRO' : 'FALSO';
+            } else {
+                const letras = ['A', 'B', 'C', 'D', 'E'];
+                resp = `${letras[p.correta || 0]}) ${p.alternativas ? p.alternativas[p.correta || 0] : ''}`;
+            }
+            return `<tr><td style="padding: 6px 12px; border: 1px solid #cbd5e1; font-weight: bold; text-align: center;">${i + 1}</td><td style="padding: 6px 12px; border: 1px solid #cbd5e1;">${window.escapeHTML(resp)}</td></tr>`;
+        }).join('');
+
+        const docHtml = `
+            <!DOCTYPE html>
+            <html lang="pt-BR">
+            <head>
+                <meta charset="UTF-8">
+                <title>${window.escapeHTML(quiz.titulo)} - Planner Pro</title>
+                <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; padding: 30px; color: #0f172a; }
+                    .header-box { border: 2px solid #0f172a; padding: 16px; border-radius: 8px; margin-bottom: 24px; }
+                    .header-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 13px; }
+                    h1 { font-size: 20px; text-align: center; margin: 0 0 12px 0; text-transform: uppercase; }
+                    @media print {
+                        body { padding: 0; }
+                        .no-print { display: none; }
+                        .page-break { page-break-before: always; }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="no-print" style="margin-bottom: 20px; display: flex; justify-content: flex-end;">
+                    <button onclick="window.print()" style="padding: 10px 24px; background-color: #4f46e5; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px;">
+                        🖨️ Imprimir / Salvar como PDF
+                    </button>
+                </div>
+
+                <div class="header-box">
+                    <h1>${window.escapeHTML(quiz.titulo)}</h1>
+                    <div class="header-grid">
+                        <div><strong>Disciplina:</strong> ${window.escapeHTML(quiz.disciplina || 'Geral')}</div>
+                        <div><strong>Data:</strong> ____/____/________</div>
+                        <div><strong>Estudante:</strong> _________________________________________________</div>
+                        <div><strong>Turma:</strong> ____________ &nbsp;&nbsp; <strong>Nota:</strong> _________</div>
+                    </div>
+                </div>
+
+                <div class="questions-list">
+                    ${perguntasHtml}
+                </div>
+
+                <div class="page-break" style="margin-top: 40px;">
+                    <h2 style="font-size: 16px; text-transform: uppercase; border-bottom: 2px solid #0f172a; padding-bottom: 6px;">Gabarito do Professor</h2>
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px;">
+                        <thead>
+                            <tr style="background-color: #f1f5f9;">
+                                <th style="padding: 6px 12px; border: 1px solid #cbd5e1; width: 60px;">Item</th>
+                                <th style="padding: 6px 12px; border: 1px solid #cbd5e1; text-align: left;">Resposta Correta</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${gabaritoHtml}
+                        </tbody>
+                    </table>
+                </div>
+            </body>
+            </html>
+        `;
+
+        janela.document.write(docHtml);
+        janela.document.close();
     }
 };
 

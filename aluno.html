@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#0f172a">
+    <title>Quiz ao Vivo — Planner Pro</title>
+
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+
+    <!-- Firebase SDK Compat -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-dark: #3730a3;
+            --bg-dark: #0f172a;
+            --text-main: #1e293b;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background-color: #f8fafc;
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .header-top {
+            background-color: #ffffff;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 0.75rem 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .brand-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 800;
+            font-size: 0.9375rem;
+            color: #0f172a;
+        }
+
+        .main-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            max-width: 500px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 1.25rem;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 1.5rem;
+            border: 2px solid #e2e8f0;
+            padding: 2rem 1.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05);
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+            margin-bottom: 0.375rem;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border-radius: 1rem;
+            border: 2px solid #e2e8f0;
+            font-size: 1.125rem;
+            font-weight: 700;
+            color: #1e293b;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            border-color: var(--primary);
+        }
+
+        .btn-action {
+            width: 100%;
+            padding: 1rem;
+            border-radius: 1.25rem;
+            border: none;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: #ffffff;
+            font-size: 1.125rem;
+            font-weight: 900;
+            cursor: pointer;
+            box-shadow: 0 10px 20px -5px rgba(79,70,229,0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: transform 0.1s;
+        }
+
+        .btn-action:active {
+            transform: scale(0.98);
+        }
+
+        .avatar-grid {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 0.5rem;
+            background-color: #f8fafc;
+            border-radius: 1rem;
+            border: 1px solid #e2e8f0;
+        }
+
+        .avatar-btn {
+            width: 2.75rem;
+            height: 2.75rem;
+            border-radius: 0.75rem;
+            font-size: 1.35rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            border: 2px solid transparent;
+            background-color: #ffffff;
+            transition: all 0.15s;
+        }
+
+        .avatar-btn.selected {
+            border-color: var(--primary);
+            background-color: #eef2ff;
+            transform: scale(1.1);
+        }
+
+        /* Botões de Resposta */
+        .answer-grid-2 {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 1rem;
+            width: 100%;
+        }
+
+        .answer-grid-4 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.875rem;
+            width: 100%;
+        }
+
+        .ans-btn {
+            border: none;
+            border-radius: 1.25rem;
+            color: #ffffff;
+            font-weight: 900;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.375rem;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.15);
+            transition: transform 0.1s;
+            user-select: none;
+        }
+
+        .ans-btn:active {
+            transform: scale(0.96);
+        }
+
+        .ans-btn--vf {
+            padding: 2.5rem 1.5rem;
+            font-size: 1.75rem;
+        }
+
+        .ans-btn--alt {
+            min-height: 130px;
+            font-size: 2.25rem;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        .pulse-anim {
+            animation: pulse 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="header-top">
+        <div class="brand-badge">
+            <span style="font-size: 1.25rem;">🎮</span>
+            <span>Planner Pro • Quiz</span>
+        </div>
+        <div id="player-status-bar" style="display: none; align-items: center; gap: 0.75rem;">
+            <span id="player-avatar-badge" style="font-size: 1.35rem;">🎓</span>
+            <div style="text-align: right;">
+                <span id="player-name-badge" style="font-weight: 800; font-size: 0.8125rem; display: block; line-height: 1.1;">Jogador</span>
+                <span id="player-score-badge" style="font-size: 0.75rem; font-weight: 900; color: var(--primary);">0 pts</span>
+            </div>
+        </div>
+    </div>
+
+    <main class="main-container" id="app-root">
+        <!-- Renderizado dinamicamente pelo JS -->
+    </main>
+
+    <footer style="text-align: center; padding: 0.75rem; font-size: 0.75rem; color: #94a3b8; font-weight: 600;">
+        Planner Pro Docente &copy; 2026 • Ambiente do Estudante
+    </footer>
+
+    <script type="module">
+        import { firebaseConfig } from './js/config.js';
+
+        // Inicializar Firebase isolado para o aluno
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+
+        window.QuizAlunoApp = {
+            pin: '',
+            playerId: '',
+            nomeJogador: '',
+            avatar: '🎓',
+            sessaoData: null,
+            unsubscribe: null,
+            broadcastChannel: null,
+            lastAnswerQuestionIndex: -1,
+            avatares: ['🦊', '🦁', '🚀', '🐼', '⚡', '🌟', '🦄', '🎯', '🐯', '🦉', '🎓', '🐲', '🐬', '🎨', '⚽', '🎸'],
+
+            init() {
+                // Ler PIN da URL (?pin=123456 ou #pin=123456)
+                const urlParams = new URLSearchParams(window.location.search);
+                const hash = window.location.hash || '';
+                let pinUrl = urlParams.get('pin');
+                if (!pinUrl && hash.includes('pin=')) {
+                    pinUrl = new URLSearchParams(hash.substring(hash.indexOf('?'))).get('pin');
+                }
+                if (pinUrl) this.pin = pinUrl;
+
+                this.renderTelaEntrada();
+            },
+
+            renderTelaEntrada() {
+                const root = document.getElementById('app-root');
+                document.getElementById('player-status-bar').style.display = 'none';
+
+                root.innerHTML = `
+                    <div class="card">
+                        <div style="text-align: center; margin-bottom: 1.5rem;">
+                            <div style="width: 4rem; height: 4rem; border-radius: 1.25rem; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 0.75rem; box-shadow: 0 10px 20px rgba(79,70,229,0.3);">
+                                <i class="fas fa-gamepad"></i>
+                            </div>
+                            <h2 style="font-size: 1.5rem; font-weight: 900; color: #0f172a;">Entrar na Sala</h2>
+                            <p style="font-size: 0.8125rem; color: #64748b; margin-top: 0.25rem;">Digite o PIN exibido pelo professor para jogar.</p>
+                        </div>
+
+                        <form id="form-entrar" onsubmit="event.preventDefault(); QuizAlunoApp.conectar();" style="display: flex; flex-direction: column; gap: 1rem;">
+                            <div>
+                                <label class="form-label">PIN DO JOGO (6 Dígitos)</label>
+                                <input type="text" id="input-pin" class="form-input" placeholder="Ex: 482910" maxlength="6" 
+                                       style="font-size: 1.5rem; font-weight: 900; letter-spacing: 0.2em; text-align: center;" 
+                                       value="${this.pin}" required autofocus>
+                            </div>
+
+                            <div>
+                                <label class="form-label">SEU NOME OU APELIDO</label>
+                                <input type="text" id="input-nome" class="form-input" placeholder="Seu nome no ranking" maxlength="25" 
+                                       value="${this.nomeJogador}" required>
+                            </div>
+
+                            <div>
+                                <label class="form-label">ESCOLHA SEU AVATAR</label>
+                                <div class="avatar-grid">
+                                    ${this.avatares.map(av => `
+                                        <button type="button" class="avatar-btn ${this.avatar === av ? 'selected' : ''}" 
+                                                data-avatar="${av}" onclick="QuizAlunoApp.escolherAvatar('${av}')">
+                                            ${av}
+                                        </button>
+                                    `).join('')}
+                                </div>
+                            </div>
+
+                            <button type="submit" id="btn-entrar" class="btn-action" style="margin-top: 0.5rem;">
+                                <span>Entrar na Partida</span> <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </form>
+                    </div>
+                `;
+            },
+
+            escolherAvatar(av) {
+                this.avatar = av;
+                const pinEl = document.getElementById('input-pin');
+                const nomeEl = document.getElementById('input-nome');
+                if (pinEl) this.pin = pinEl.value;
+                if (nomeEl) this.nomeJogador = nomeEl.value;
+
+                document.querySelectorAll('.avatar-btn').forEach(btn => {
+                    if (btn.getAttribute('data-avatar') === av) {
+                        btn.classList.add('selected');
+                    } else {
+                        btn.classList.remove('selected');
+                    }
+                });
+            },
+
+            async conectar() {
+                const pinInput = document.getElementById('input-pin')?.value.trim();
+                const nomeInput = document.getElementById('input-nome')?.value.trim();
+
+                if (!pinInput || pinInput.length < 5) return alert("Digite um PIN de jogo válido.");
+                if (!nomeInput) return alert("Digite seu nome.");
+
+                this.pin = pinInput;
+                this.nomeJogador = nomeInput;
+                if (!this.playerId) {
+                    this.playerId = 'aluno_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6);
+                }
+
+                const btn = document.getElementById('btn-entrar');
+                if (btn) {
+                    btn.disabled = true;
+                    btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Conectando...`;
+                }
+
+                // Iniciar canal local de fallback
+                if (typeof BroadcastChannel !== 'undefined') {
+                    if (this.broadcastChannel) this.broadcastChannel.close();
+                    this.broadcastChannel = new BroadcastChannel('quiz_sync_' + this.pin);
+                    this.broadcastChannel.onmessage = (event) => {
+                        if (event.data && event.data.type === 'SESSION_UPDATE') {
+                            this.atualizarSessao(event.data.session);
+                        }
+                    };
+                    this.broadcastChannel.postMessage({
+                        type: 'PLAYER_JOIN',
+                        player: {
+                            id: this.playerId,
+                            nome: this.nomeJogador,
+                            avatar: this.avatar,
+                            score: 0,
+                            streak: 0,
+                            totalCorrect: 0
+                        }
+                    });
+                }
+
+                try {
+                    const docRef = db.collection('quiz_sessions').doc(String(this.pin));
+                    await docRef.update({
+                        [`players.${this.playerId}`]: {
+                            id: this.playerId,
+                            nome: this.nomeJogador,
+                            avatar: this.avatar,
+                            score: 0,
+                            streak: 0,
+                            lastAnswerIndex: null,
+                            lastAnswerQuestionIndex: -1,
+                            isCorrect: null,
+                            totalCorrect: 0,
+                            joinedAt: Date.now()
+                        }
+                    });
+
+                    if (this.unsubscribe) this.unsubscribe();
+                    this.unsubscribe = docRef.onSnapshot((doc) => {
+                        if (doc.exists) {
+                            this.atualizarSessao(doc.data());
+                        }
+                    }, (err) => {
+                        console.warn("Aviso Firestore snapshot:", err);
+                    });
+                } catch (e) {
+                    console.warn("Aviso Firestore entrar:", e);
+                }
+
+                this.renderEstado();
+            },
+
+            atualizarSessao(dados) {
+                if (!dados) return;
+
+                // Se o professor encerrou o quiz de verdade, fechar a aba de todos os alunos!
+                if (dados.status === 'CLOSED') {
+                    const root = document.getElementById('app-root');
+                    root.innerHTML = `
+                        <div class="card" style="text-align: center; padding: 3rem 1.5rem;">
+                            <div style="font-size: 3.5rem; margin-bottom: 1rem;">👋</div>
+                            <h2 style="font-size: 1.5rem; font-weight: 900; color: #0f172a;">Partida Encerrada</h2>
+                            <p style="color: #64748b; font-size: 0.875rem; margin-top: 0.5rem;">O professor finalizou esta sessão. Esta janela será fechada automaticamente...</p>
+                        </div>
+                    `;
+                    setTimeout(() => {
+                        window.close();
+                        setTimeout(() => { window.location.href = 'about:blank'; }, 1000);
+                    }, 2000);
+                    return;
+                }
+
+                this.sessaoData = dados;
+                this.renderEstado();
+            },
+
+            obterPlayerData() {
+                return (this.sessaoData?.players && this.sessaoData.players[this.playerId]) || null;
+            },
+
+            renderEstado() {
+                const root = document.getElementById('app-root');
+                const sessao = this.sessaoData || { status: 'LOBBY' };
+                const status = sessao.status || 'LOBBY';
+                const player = this.obterPlayerData();
+
+                // Atualiza barra superior
+                const statusBar = document.getElementById('player-status-bar');
+                if (statusBar) {
+                    statusBar.style.display = 'flex';
+                    document.getElementById('player-avatar-badge').innerText = this.avatar;
+                    document.getElementById('player-name-badge').innerText = this.nomeJogador;
+                    document.getElementById('player-score-badge').innerText = `${player ? player.score || 0 : 0} pts`;
+                }
+
+                switch (status) {
+                    case 'LOBBY':
+                        root.innerHTML = `
+                            <div class="card pulse-anim" style="text-align: center; padding: 3rem 1.5rem;">
+                                <div style="font-size: 3.5rem; margin-bottom: 1rem;">${this.avatar}</div>
+                                <h3 style="font-size: 1.5rem; font-weight: 900; color: #0f172a;">Você está dentro!</h3>
+                                <p style="font-size: 0.875rem; color: #64748b; margin: 0.5rem 0 1.5rem;">Aguardando o professor iniciar a primeira questão...</p>
+                                <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: #e0e7ff; color: #4338ca; padding: 0.5rem 1rem; border-radius: 9999px; font-weight: 800; font-size: 0.8125rem;">
+                                    <i class="fas fa-spinner fa-spin"></i> Sala PIN: ${this.pin}
+                                </div>
+                            </div>
+                        `;
+                        break;
+
+                    case 'COUNTDOWN':
+                        root.innerHTML = `
+                            <div style="text-align: center; padding: 3rem 1rem;">
+                                <span style="font-size: 1.25rem; font-weight: 900; color: var(--primary); text-transform: uppercase; letter-spacing: 0.15em;">Prepare-se!</span>
+                                <div style="font-size: 6.5rem; margin: 1rem 0;">🚀</div>
+                                <p style="font-weight: 800; color: #64748b;">A pergunta vai aparecer na tela do professor!</p>
+                            </div>
+                        `;
+                        break;
+
+                    case 'QUESTION':
+                        const currentIdx = sessao.currentQuestionIndex || 0;
+                        const pergunta = sessao.perguntas && sessao.perguntas[currentIdx];
+
+                        // Se o aluno já respondeu ESTA questão específica
+                        if (this.lastAnswerQuestionIndex === currentIdx) {
+                            root.innerHTML = `
+                                <div class="card" style="text-align: center; padding: 3rem 1.5rem;">
+                                    <div style="width: 4.5rem; height: 4.5rem; border-radius: 50%; background: #e0e7ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 1rem;">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                    <h3 style="font-size: 1.5rem; font-weight: 900; color: #0f172a;">Resposta Enviada!</h3>
+                                    <p style="font-size: 0.875rem; color: #64748b; margin-top: 0.25rem;">Aguarde o encerramento do tempo da rodada...</p>
+                                </div>
+                            `;
+                            return;
+                        }
+
+                        if (!pergunta) {
+                            root.innerHTML = `<div class="card" style="text-align: center;">Carregando questão...</div>`;
+                            return;
+                        }
+
+                        const tipo = pergunta.tipo || 'multipla';
+                        if (tipo === 'verdadeiro_falso') {
+                            root.innerHTML = `
+                                <div class="answer-grid-2">
+                                    <button onclick="QuizAlunoApp.enviarResposta(0, true)" class="ans-btn ans-btn--vf" style="background: linear-gradient(135deg, #059669, #10b981);">
+                                        <i class="fas fa-check-circle" style="font-size: 2.25rem;"></i>
+                                        <span>VERDADEIRO</span>
+                                    </button>
+                                    <button onclick="QuizAlunoApp.enviarResposta(1, false)" class="ans-btn ans-btn--vf" style="background: linear-gradient(135deg, #dc2626, #ef4444);">
+                                        <i class="fas fa-times-circle" style="font-size: 2.25rem;"></i>
+                                        <span>FALSO</span>
+                                    </button>
+                                </div>
+                            `;
+                        } else {
+                            const botoes = [
+                                { bg: '#dc2626', icon: '▲', label: 'Opção A', index: 0 },
+                                { bg: '#2563eb', icon: '◆', label: 'Opção B', index: 1 },
+                                { bg: '#d97706', icon: '●', label: 'Opção C', index: 2 },
+                                { bg: '#059669', icon: '■', label: 'Opção D', index: 3 },
+                                { bg: '#7c3aed', icon: '★', label: 'Opção E', index: 4 }
+                            ];
+                            const totalAlts = (pergunta.alternativas && pergunta.alternativas.length) || 4;
+                            const altsExibidas = botoes.slice(0, totalAlts);
+
+                            root.innerHTML = `
+                                <div class="answer-grid-4">
+                                    ${altsExibidas.map(b => `
+                                        <button onclick="QuizAlunoApp.enviarResposta(${b.index})" class="ans-btn ans-btn--alt" style="background-color: ${b.bg};">
+                                            <span>${b.icon}</span>
+                                            <span style="font-size: 0.8125rem; opacity: 0.9;">${b.label}</span>
+                                        </button>
+                                    `).join('')}
+                                </div>
+                            `;
+                        }
+                        break;
+
+                    case 'FEEDBACK':
+                        const isAcerto = player && player.isCorrect === true;
+                        if (isAcerto) {
+                            root.innerHTML = `
+                                <div class="card" style="text-align: center; padding: 3rem 1.5rem; background: linear-gradient(135deg, #ecfdf5, #d1fae5); border-color: #6ee7b7;">
+                                    <div style="width: 4.5rem; height: 4.5rem; border-radius: 50%; background: #059669; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 2.25rem; margin: 0 auto 1rem;">
+                                        <i class="fas fa-check"></i>
+                                    </div>
+                                    <h3 style="font-size: 1.75rem; font-weight: 900; color: #065f46;">Correto!</h3>
+                                    <p style="font-size: 1.125rem; font-weight: 800; color: #047857; margin-top: 0.25rem;">Pontos somados ao seu placar!</p>
+                                    ${player.streak > 1 ? `
+                                        <div style="display: inline-flex; align-items: center; gap: 0.375rem; background: #fef3c7; color: #b45309; padding: 0.375rem 0.875rem; border-radius: 9999px; font-weight: 800; font-size: 0.8125rem; margin-top: 1rem;">
+                                            <i class="fas fa-fire" style="color: #f59e0b;"></i> Sequência de ${player.streak} acertos!
+                                        </div>
+                                    ` : ''}
+                                </div>
+                            `;
+                        } else {
+                            root.innerHTML = `
+                                <div class="card" style="text-align: center; padding: 3rem 1.5rem; background: linear-gradient(135deg, #fef2f2, #fee2e2); border-color: #fca5a5;">
+                                    <div style="width: 4.5rem; height: 4.5rem; border-radius: 50%; background: #dc2626; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 2.25rem; margin: 0 auto 1rem;">
+                                        <i class="fas fa-times"></i>
+                                    </div>
+                                    <h3 style="font-size: 1.75rem; font-weight: 900; color: #991b1b;">Não foi dessa vez!</h3>
+                                    <p style="font-size: 0.9375rem; color: #7f1d1d; margin-top: 0.25rem;">Veja a explicação na tela do professor.</p>
+                                </div>
+                            `;
+                        }
+                        break;
+
+                    case 'LEADERBOARD':
+                    case 'PODIUM':
+                        root.innerHTML = `
+                            <div class="card" style="text-align: center; padding: 3rem 1.5rem;">
+                                <div style="font-size: 4rem; margin-bottom: 0.5rem;">🏆</div>
+                                <h3 style="font-size: 1.75rem; font-weight: 900; color: #0f172a;">Partida Concluída!</h3>
+                                <p style="font-size: 0.875rem; color: #64748b; margin: 0.25rem 0 1.5rem;">Confira o pódio na tela do professor!</p>
+                                
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                    <div style="padding: 1rem; background: #f8fafc; border-radius: 1rem; border: 1px solid #e2e8f0;">
+                                        <span style="font-size: 1.5rem; font-weight: 900; color: var(--primary);">${player ? player.score || 0 : 0}</span>
+                                        <p style="font-size: 0.6875rem; font-weight: 800; color: #64748b; text-transform: uppercase;">Pontos</p>
+                                    </div>
+                                    <div style="padding: 1rem; background: #f8fafc; border-radius: 1rem; border: 1px solid #e2e8f0;">
+                                        <span style="font-size: 1.5rem; font-weight: 900; color: #059669;">${player ? player.totalCorrect || 0 : 0}</span>
+                                        <p style="font-size: 0.6875rem; font-weight: 800; color: #64748b; text-transform: uppercase;">Acertos</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        break;
+                }
+            },
+
+            async enviarResposta(indexEscolhido, valorVF = null) {
+                if (!this.sessaoData || !this.pin) return;
+                const currentIdx = this.sessaoData.currentQuestionIndex || 0;
+                const pergunta = this.sessaoData.perguntas && this.sessaoData.perguntas[currentIdx];
+                if (!pergunta) return;
+
+                let isCorrect = false;
+                if (pergunta.tipo === 'verdadeiro_falso') {
+                    const corretaVF = pergunta.is_verdadeiro !== false;
+                    isCorrect = (valorVF === corretaVF);
+                } else {
+                    const corretaIdx = pergunta.correta !== undefined ? pergunta.correta : 0;
+                    isCorrect = (indexEscolhido === corretaIdx);
+                }
+
+                let pontosGanhos = 0;
+                if (isCorrect) {
+                    const tempoLimite = (pergunta.tempo || 30) * 1000;
+                    const tempoInicio = this.sessaoData.questionStartTime || Date.now();
+                    const tempoDecorrido = Math.max(0, Date.now() - tempoInicio);
+                    const fatorTempo = Math.max(0.5, 1 - (tempoDecorrido / (tempoLimite * 1.5)));
+                    pontosGanhos = Math.round(1000 * fatorTempo);
+                }
+
+                // Registra o índice da questão respondida
+                this.lastAnswerQuestionIndex = currentIdx;
+
+                if (this.broadcastChannel) {
+                    this.broadcastChannel.postMessage({
+                        type: 'PLAYER_ANSWER',
+                        playerId: this.playerId,
+                        questionIndex: currentIdx,
+                        answerIndex: indexEscolhido,
+                        isCorrect,
+                        pointsEarned: pontosGanhos
+                    });
+                }
+
+                try {
+                    const docRef = db.collection('quiz_sessions').doc(String(this.pin));
+                    const player = this.obterPlayerData() || {};
+                    const novoScore = (player.score || 0) + pontosGanhos;
+                    const novoStreak = isCorrect ? (player.streak || 0) + 1 : 0;
+                    const novoTotalCorrect = isCorrect ? (player.totalCorrect || 0) + 1 : (player.totalCorrect || 0);
+
+                    await docRef.update({
+                        [`players.${this.playerId}.lastAnswerIndex`]: indexEscolhido,
+                        [`players.${this.playerId}.lastAnswerQuestionIndex`]: currentIdx,
+                        [`players.${this.playerId}.isCorrect`]: isCorrect,
+                        [`players.${this.playerId}.score`]: novoScore,
+                        [`players.${this.playerId}.streak`]: novoStreak,
+                        [`players.${this.playerId}.totalCorrect`]: novoTotalCorrect
+                    });
+                } catch (e) {
+                    console.warn("Aviso Firestore ao responder:", e);
+                }
+
+                // Atualizar estado local
+                if (this.sessaoData && this.sessaoData.players && this.sessaoData.players[this.playerId]) {
+                    const p = this.sessaoData.players[this.playerId];
+                    p.lastAnswerIndex = indexEscolhido;
+                    p.lastAnswerQuestionIndex = currentIdx;
+                    p.isCorrect = isCorrect;
+                    p.score = (p.score || 0) + pontosGanhos;
+                    if (isCorrect) p.totalCorrect = (p.totalCorrect || 0) + 1;
+                }
+
+                this.renderEstado();
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', () => {
+            window.QuizAlunoApp.init();
+        });
+    </script>
+</body>
+</html>

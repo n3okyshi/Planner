@@ -4,7 +4,11 @@ export const firebaseService = {
     auth: null,
     db: null,
     functions: null,
+    initialized: false,
     init() {
+        if (this.initialized) return;
+        this.initialized = true;
+
         if (typeof firebase === 'undefined') {
             console.error("ERRO: Firebase SDK não carregado.");
             return;
@@ -15,17 +19,20 @@ export const firebaseService = {
         this.auth = firebase.auth();
         this.db = firebase.firestore();
         this.functions = firebase.functions();
-        this.db.enablePersistence({ synchronizeTabs: true })
-            .catch(err => {
-                if (err.code === 'failed-precondition') {
-                    console.warn("Persistência falhou: Múltiplas abas abertas sem suporte.");
-                } else if (err.code === 'unimplemented') {
-                    console.warn("Persistência falhou: Navegador não suporta.");
-                } else {
-                    console.warn("Erro na persistência:", err);
-                }
-            });
-        console.log("Firebase Service (Granular v2) inicializado com Comunidade.");
+        
+        try {
+            this.db.enablePersistence({ synchronizeTabs: true })
+                .catch(err => {
+                    if (err.code === 'failed-precondition') {
+                        console.warn("Persistência: Múltiplas abas abertas.");
+                    } else if (err.code === 'unimplemented') {
+                        console.warn("Persistência: Navegador sem suporte.");
+                    }
+                });
+        } catch (e) {
+            console.warn("Persistência já ativa ou não permitida.");
+        }
+        console.log("Firebase Service inicializado.");
     },
     onAuthStateChanged(callback) {
         if (this.auth) this.auth.onAuthStateChanged(callback);
@@ -272,6 +279,145 @@ export const firebaseService = {
         } catch (e) {
             console.error("Erro no Firestore ao publicar:", e);
             throw e;
+        }
+    },
+
+    // =========================================================================
+    // QUIZ AO VIVO - MÉTODOS EM TEMPO REAL (FIRESTORE)
+    // =========================================================================
+    async criarSessaoQuiz(quizData) {
+        if (!this.db) throw new Error("Firestore não inicializado.");
+        const pin = String(Math.floor(100000 + Math.random() * 900000));
+        const hostUid = this.auth?.currentUser?.uid || 'host_anon';
+        
+        const cleanQuiz = JSON.parse(JSON.stringify(quizData));
+        const sessaoData = {
+            pin,
+            hostUid,
+            quizId: cleanQuiz.id || 'quiz_' + Date.now().toString(36),
+            titulo: cleanQuiz.titulo || 'Quiz Interativo',
+            disciplina: cleanQuiz.disciplina || 'Geral',
+            status: 'LOBBY', // 'LOBBY' | 'COUNTDOWN' | 'QUESTION' | 'FEEDBACK' | 'LEADERBOARD' | 'PODIUM' | 'FINISHED'
+            currentQuestionIndex: 0,
+            questionStartTime: null,
+            perguntas: cleanQuiz.perguntas || [],
+            players: {},
+            createdAt: Date.now()
+        };
+
+        try {
+            await this.db.collection('quiz_sessions').doc(pin).set(sessaoData);
+        } catch (e) {
+            console.warn("Aviso Firestore ao salvar sessão no banco de dados (coleção quiz_sessions requer regra pública):", e.message);
+        }
+        return pin;
+    },
+
+    ouvirSessaoQuiz(pin, callback) {
+        if (!this.db || !pin) return () => {};
+        try {
+            return this.db.collection('quiz_sessions').doc(String(pin)).onSnapshot((doc) => {
+                if (doc.exists) {
+                    callback(doc.data());
+                } else {
+                    callback(null);
+                }
+            }, (error) => {
+                console.warn("Aviso onSnapshot Firestore no Quiz:", error.message);
+            });
+        } catch (e) {
+            console.warn("Aviso ao subscrever snapshot:", e.message);
+            return () => {};
+        }
+    },
+
+    async atualizarStatusSessao(pin, novoStatus, questionIndex = null, questionStartTime = null) {
+        if (!this.db || !pin) return;
+        const updateData = { status: novoStatus };
+        if (questionIndex !== null) updateData.currentQuestionIndex = questionIndex;
+        if (questionStartTime !== null) updateData.questionStartTime = questionStartTime;
+        try {
+            await this.db.collection('quiz_sessions').doc(String(pin)).update(updateData);
+        } catch (e) {
+            console.warn("Aviso Firestore ao atualizar status da sessão:", e.message);
+        }
+    },
+
+    async entrarSessaoQuiz(pin, playerId, playerName, avatar = '🎓') {
+        if (!this.db || !pin) return false;
+        try {
+            const docRef = this.db.collection('quiz_sessions').doc(String(pin));
+            const docSnap = await docRef.get();
+            if (docSnap.exists) {
+                const data = docSnap.data();
+                if (data.status === 'FINISHED') {
+                    throw new Error("Esta partida de quiz já foi encerrada.");
+                }
+
+                const playerKey = `players.${playerId}`;
+                await docRef.update({
+                    [playerKey]: {
+                        id: playerId,
+                        nome: playerName,
+                        avatar: avatar,
+                        score: 0,
+                        streak: 0,
+                        lastAnswerIndex: null,
+                        lastAnswerTime: null,
+                        isCorrect: null,
+                        totalCorrect: 0,
+                        joinedAt: Date.now()
+                    }
+                });
+            }
+        } catch (e) {
+            console.warn("Aviso Firestore ao entrar na sessão:", e.message);
+        }
+        return true;
+    },
+
+    async enviarRespostaQuiz(pin, playerId, answerIndex, isCorrect, pointsEarned) {
+        if (!this.db || !pin || !playerId) return;
+        try {
+            const docRef = this.db.collection('quiz_sessions').doc(String(pin));
+            const docSnap = await docRef.get();
+            if (!docSnap.exists) return;
+
+            const data = docSnap.data();
+            const player = (data.players && data.players[playerId]) || {
+                id: playerId,
+                nome: 'Jogador',
+                avatar: '🎓',
+                score: 0,
+                streak: 0,
+                totalCorrect: 0
+            };
+
+            const novoScore = (player.score || 0) + (pointsEarned || 0);
+            const novoStreak = isCorrect ? (player.streak || 0) + 1 : 0;
+            const novoTotalCorrect = isCorrect ? (player.totalCorrect || 0) + 1 : (player.totalCorrect || 0);
+
+            await docRef.update({
+                [`players.${playerId}.lastAnswerIndex`]: answerIndex,
+                [`players.${playerId}.lastAnswerTime`]: Date.now(),
+                [`players.${playerId}.isCorrect`]: isCorrect,
+                [`players.${playerId}.score`]: novoScore,
+                [`players.${playerId}.streak`]: novoStreak,
+                [`players.${playerId}.totalCorrect`]: novoTotalCorrect
+            });
+        } catch (e) {
+            console.warn("Aviso Firestore ao registrar resposta:", e.message);
+        }
+    },
+
+    async encerrarSessaoQuiz(pin) {
+        if (!this.db || !pin) return;
+        try {
+            await this.db.collection('quiz_sessions').doc(String(pin)).update({
+                status: 'FINISHED'
+            });
+        } catch (e) {
+            console.warn("Aviso ao encerrar sessão:", e.message);
         }
     }
 };

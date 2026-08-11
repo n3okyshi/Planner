@@ -2,14 +2,19 @@ import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
 import { renderKatex } from '../utils.js';
+import { firebaseService } from '../firebase-service.js';
 
 export const quizPlayerView = {
     quiz: null,
+    pin: '',
+    sessaoData: null,
+    unsubscribe: null,
+    broadcastChannel: null,
     estadoAtual: 'LOBBY',
     indicePerguntaAtual: 0,
     tempoRestante: 0,
     intervaloTimer: null,
-    coresAlternativas: ['bg-red-500', 'bg-blue-500', 'bg-amber-500', 'bg-emerald-500'],
+    coresAlternativas: ['#dc2626', '#2563eb', '#d97706', '#059669', '#7c3aed'],
 
     async render(container, quizId = null) {
         if (quizId) {
@@ -26,9 +31,9 @@ export const quizPlayerView = {
         if (container) {
             container.innerHTML = `
                 <div class="card" style="padding: 4rem 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; max-width: 600px; margin: 2rem auto;">
-                    <i class="fas fa-gamepad text-5xl text-slate-300 mb-4"></i>
-                    <h3 class="text-xl font-bold text-slate-700 mb-2">Nenhum Quiz em Execução</h3>
-                    <p class="text-sm text-slate-500 mb-6">Selecione ou crie um quiz no Gestor de Quizzes para iniciar a apresentação ao vivo.</p>
+                    <i class="fas fa-gamepad" style="font-size: 3rem; color: var(--color-slate-300); margin-bottom: 1rem;"></i>
+                    <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-700); margin-bottom: 0.5rem;">Nenhum Quiz em Execução</h3>
+                    <p style="font-size: 0.875rem; color: var(--color-slate-500); margin-bottom: 1.5rem;">Selecione ou crie um quiz no Gestor de Quizzes para iniciar a apresentação ao vivo.</p>
                     <button onclick="controller.navigate('quiz-gestor')" class="btn-primary">
                         <i class="fas fa-arrow-left"></i> <span>Ir para Gestor de Quizzes</span>
                     </button>
@@ -37,32 +42,181 @@ export const quizPlayerView = {
         }
     },
 
+    embaralharQuestoesEAlternativas(perguntasOriginais) {
+        return (perguntasOriginais || []).map(p => {
+            const copia = JSON.parse(JSON.stringify(p));
+            const tipo = copia.tipo || 'multipla';
+
+            // Embaralhar alternativas para múltipla escolha, lacuna ou identificação
+            if ((tipo === 'multipla' || tipo === 'lacuna' || tipo === 'identificacao') && Array.isArray(copia.alternativas) && copia.alternativas.length > 1) {
+                const altsComIndices = copia.alternativas.map((alt, idx) => ({
+                    texto: alt,
+                    eraCorreta: (idx === (copia.correta !== undefined ? copia.correta : 0))
+                }));
+
+                // Algoritmo Fisher-Yates para embaralhamento justo
+                for (let i = altsComIndices.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [altsComIndices[i], altsComIndices[j]] = [altsComIndices[j], altsComIndices[i]];
+                }
+
+                copia.alternativas = altsComIndices.map(item => item.texto);
+                copia.correta = altsComIndices.findIndex(item => item.eraCorreta);
+            }
+            return copia;
+        });
+    },
+
     async start(quizId) {
         const quiz = (model.state.quizzes || []).find(q => String(q.id) === String(quizId));
         if (!quiz || !quiz.perguntas || quiz.perguntas.length === 0) {
-            Toast.show("Quiz não possui perguntas cadastradas.", "warning");
+            Toast.show("Este quiz não possui perguntas cadastradas.", "warning");
             return controller.navigate('quiz-gestor');
         }
-        this.quiz = quiz;
+
+        // Embaralha alternativas a cada nova partida
+        const perguntasEmbaralhadas = this.embaralharQuestoesEAlternativas(quiz.perguntas);
+
+        this.quiz = {
+            ...quiz,
+            perguntas: perguntasEmbaralhadas
+        };
+
         this.estadoAtual = 'LOBBY';
         this.indicePerguntaAtual = 0;
+        this.pin = String(Math.floor(100000 + Math.random() * 900000));
+
+        // Inicializa dados da sessão
+        this.sessaoData = {
+            pin: this.pin,
+            quizId: this.quiz.id,
+            titulo: this.quiz.titulo,
+            disciplina: this.quiz.disciplina || 'Geral',
+            status: 'LOBBY',
+            currentQuestionIndex: 0,
+            perguntas: this.quiz.perguntas,
+            players: {},
+            createdAt: Date.now()
+        };
+
+        // Inicia canal de sincronização local (BroadcastChannel)
+        if (typeof BroadcastChannel !== 'undefined') {
+            if (this.broadcastChannel) this.broadcastChannel.close();
+            this.broadcastChannel = new BroadcastChannel('quiz_sync_' + this.pin);
+            this.broadcastChannel.onmessage = (event) => {
+                const data = event.data;
+                if (!data) return;
+
+                if (data.type === 'PLAYER_JOIN' && data.player) {
+                    if (!this.sessaoData.players) this.sessaoData.players = {};
+                    this.sessaoData.players[data.player.id] = data.player;
+                    this.atualizarInterfaceTempoReal();
+                    this.enviarSincronizacaoLocal();
+                } else if (data.type === 'PLAYER_ANSWER') {
+                    if (this.sessaoData.players && this.sessaoData.players[data.playerId]) {
+                        const p = this.sessaoData.players[data.playerId];
+                        p.lastAnswerIndex = data.answerIndex;
+                        p.lastAnswerQuestionIndex = data.questionIndex;
+                        p.isCorrect = data.isCorrect;
+                        p.score = (p.score || 0) + (data.pointsEarned || 0);
+                        if (data.isCorrect) p.totalCorrect = (p.totalCorrect || 0) + 1;
+                        this.atualizarInterfaceTempoReal();
+                        this.verificarSeTodosResponderam();
+                    }
+                }
+            };
+        }
+
+        try {
+            const pinCriado = await firebaseService.criarSessaoQuiz(this.quiz);
+            if (pinCriado) this.pin = pinCriado;
+
+            if (this.unsubscribe) this.unsubscribe();
+            this.unsubscribe = firebaseService.ouvirSessaoQuiz(this.pin, (dados) => {
+                if (dados) {
+                    this.sessaoData = dados;
+                    this.atualizarInterfaceTempoReal();
+                    this.verificarSeTodosResponderam();
+                }
+            });
+        } catch (e) {
+            console.warn("Aviso na inicialização do Firestore:", e.message);
+        }
+
         this.renderTelaCheia();
+    },
+
+    verificarSeTodosResponderam() {
+        if (this.estadoAtual !== 'QUESTION') return;
+        const players = Object.values(this.sessaoData?.players || {});
+        if (players.length === 0) return;
+
+        const totalRespondidos = players.filter(p => p.lastAnswerQuestionIndex === this.indicePerguntaAtual).length;
+        if (totalRespondidos >= players.length) {
+            clearInterval(this.intervaloTimer);
+            this.concluirPergunta();
+        }
+    },
+
+    enviarSincronizacaoLocal() {
+        if (this.broadcastChannel && this.sessaoData) {
+            this.broadcastChannel.postMessage({
+                type: 'SESSION_UPDATE',
+                session: this.sessaoData
+            });
+        }
     },
 
     renderTelaCheia() {
         const container = document.getElementById('view-container');
         if (!container) return;
         container.innerHTML = `
-            <div id="game-fullscreen-container" class="fixed inset-0 z-50 bg-slate-900 text-white flex flex-col font-sans overflow-hidden">
+            <div id="game-fullscreen-container" style="position: fixed; inset: 0; z-index: 50; background-color: #0f172a; color: #ffffff; display: flex; flex-direction: column; font-family: system-ui, -apple-system, sans-serif; overflow: hidden;">
             </div>
         `;
         this.atualizarEstado();
+    },
+
+    atualizarInterfaceTempoReal() {
+        if (this.estadoAtual === 'LOBBY') {
+            const listaJogadoresEl = document.getElementById('lobby-players-grid');
+            const contadorEl = document.getElementById('lobby-player-count');
+            const players = Object.values(this.sessaoData?.players || {});
+            
+            if (contadorEl) {
+                contadorEl.innerText = `${players.length} Aluno(s) Conectado(s)`;
+            }
+            if (listaJogadoresEl) {
+                listaJogadoresEl.innerHTML = players.map(p => `
+                    <div class="animate-bounce-in" style="background-color: rgba(255,255,255,0.1); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 9999px; display: flex; align-items: center; gap: 0.5rem; font-weight: 800; font-size: 1rem;">
+                        <span style="font-size: 1.25rem;">${p.avatar || '🎓'}</span>
+                        <span>${window.escapeHTML(p.nome)}</span>
+                    </div>
+                `).join('');
+            }
+        } else if (this.estadoAtual === 'QUESTION') {
+            const contadorRespostasEl = document.getElementById('question-responses-counter');
+            const players = Object.values(this.sessaoData?.players || {});
+            const totalPlayers = players.length;
+            const totalRespondidos = players.filter(p => p.lastAnswerQuestionIndex === this.indicePerguntaAtual).length;
+
+            if (contadorRespostasEl) {
+                contadorRespostasEl.innerText = `${totalRespondidos} de ${totalPlayers} responderam`;
+            }
+        }
     },
 
     atualizarEstado() {
         const gameContainer = document.getElementById('game-fullscreen-container');
         if (!gameContainer) return;
         clearInterval(this.intervaloTimer);
+
+        if (this.sessaoData) {
+            this.sessaoData.status = this.estadoAtual;
+            this.sessaoData.currentQuestionIndex = this.indicePerguntaAtual;
+            this.enviarSincronizacaoLocal();
+        }
+
         switch (this.estadoAtual) {
             case 'LOBBY':
                 this.renderLobby(gameContainer);
@@ -76,6 +230,9 @@ export const quizPlayerView = {
             case 'FEEDBACK':
                 this.renderFeedback(gameContainer);
                 break;
+            case 'LEADERBOARD':
+                this.renderLeaderboard(gameContainer);
+                break;
             case 'PODIUM':
                 this.renderPodio(gameContainer);
                 break;
@@ -83,32 +240,104 @@ export const quizPlayerView = {
         renderKatex(gameContainer);
     },
 
+    obterUrlAluno() {
+        // Redireciona o link oficial diretamente para o portal isolado aluno.html
+        const baseUrl = window.location.href.split('index.html')[0].split('#')[0].split('?')[0];
+        const alunoUrl = baseUrl.endsWith('/') ? `${baseUrl}aluno.html` : `${baseUrl}/aluno.html`;
+        return `${alunoUrl}?pin=${this.pin}`;
+    },
+
+    copiarLinkSala() {
+        const link = this.obterUrlAluno();
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(link).then(() => {
+                Toast.show("📋 Link do aluno copiado com sucesso!", "success");
+            }).catch(() => {
+                prompt("Copie o link do aluno:", link);
+            });
+        } else {
+            prompt("Copie o link do aluno:", link);
+        }
+    },
+
     renderLobby(container) {
-        const pin = Math.floor(100000 + Math.random() * 900000);
+        const urlEntrada = this.obterUrlAluno();
+        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(urlEntrada)}`;
+        const players = Object.values(this.sessaoData?.players || {});
+
         container.innerHTML = `
-            <div class="flex-1 flex flex-col items-center justify-center p-8 bg-gradient-to-br from-indigo-900 via-slate-900 to-purple-950 text-center">
-                <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/10 text-indigo-300 text-sm font-bold mb-6 backdrop-blur-sm">
-                    <i class="fas fa-gamepad"></i> Quiz Interativo
-                </div>
-                <h1 class="text-5xl md:text-6xl font-black mb-4 tracking-tight max-w-4xl text-white drop-shadow-md">
-                    ${window.escapeHTML(this.quiz.titulo)}
-                </h1>
-                <p class="text-xl text-indigo-200 mb-8 font-medium">
-                    ${window.escapeHTML(this.quiz.disciplina || 'Geral')} • ${this.quiz.perguntas.length} Questões
-                </p>
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 2rem 3rem; background: radial-gradient(circle at center, #1e1b4b, #0f172a); text-align: center;">
                 
-                <div class="bg-black/40 border border-white/10 px-8 py-6 rounded-3xl backdrop-blur-md mb-10 flex flex-col items-center shadow-2xl">
-                    <span class="text-xs uppercase tracking-widest text-slate-400 font-bold mb-2">PIN DA SALA DE JOGO</span>
-                    <span class="text-5xl md:text-7xl font-black tracking-widest text-yellow-400 font-mono drop-shadow-[0_0_20px_rgba(250,204,21,0.4)]">
-                        ${pin}
-                    </span>
+                <!-- TOPO -->
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <span class="badge" style="background-color: rgba(99,102,241,0.25); color: #a5b4fc; font-size: 0.875rem; font-weight: 800; padding: 0.5rem 1rem; border-radius: 9999px; border: 1px solid rgba(99,102,241,0.4);">
+                            <i class="fas fa-gamepad mr-1"></i> QUIZ AO VIVO
+                        </span>
+                        <span style="color: #94a3b8; font-weight: 700; font-size: 1rem;">
+                            ${window.escapeHTML(this.quiz.disciplina || 'Geral')}
+                        </span>
+                    </div>
+
+                    <div style="display: flex; gap: 0.75rem;">
+                        <button onclick="quizPlayerView.copiarLinkSala()" class="btn-secondary" style="background-color: rgba(255,255,255,0.1); color: white; border: none; padding: 0.5rem 1.25rem;">
+                            <i class="fas fa-link mr-2"></i> Copiar Link do Aluno
+                        </button>
+                        <button onclick="quizPlayerView.encerrar()" class="btn-secondary" style="background-color: rgba(239,68,68,0.2); color: #fca5a5; border: none; padding: 0.5rem 1.25rem;">
+                            <i class="fas fa-times mr-2"></i> Encerrar Quiz
+                        </button>
+                    </div>
                 </div>
 
-                <div class="flex gap-4">
-                    <button onclick="quizPlayerView.encerrar()" class="px-8 py-4 bg-white/10 hover:bg-white/20 rounded-2xl font-bold text-lg transition-all text-white">
-                        <i class="fas fa-times mr-2"></i> Sair
-                    </button>
-                    <button onclick="quizPlayerView.avancarEstado('COUNTDOWN')" class="px-12 py-4 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl font-black text-xl hover:scale-105 transition-all shadow-[0_0_30px_rgba(99,102,241,0.4)]">
+                <!-- CENTRO: PIN E QR CODE -->
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 1.5rem; max-width: 900px; margin: 0 auto; width: 100%;">
+                    <div>
+                        <h1 style="font-size: 3rem; font-weight: 900; color: #ffffff; letter-spacing: -0.025em; line-height: 1.1; margin-bottom: 0.5rem;">
+                            ${window.escapeHTML(this.quiz.titulo)}
+                        </h1>
+                        <p style="font-size: 1.125rem; color: #cbd5e1; font-weight: 600;">
+                            Acesse <span style="color: #facc15; font-weight: 800;">aluno.html</span> ou escaneie o QR Code
+                        </p>
+                    </div>
+
+                    <div style="display: flex; align-items: center; justify-content: center; gap: 3rem; flex-wrap: wrap; background-color: rgba(0,0,0,0.4); padding: 2rem 3.5rem; border-radius: 2rem; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
+                        <!-- QR Code -->
+                        <div style="background-color: #ffffff; padding: 0.75rem; border-radius: 1.25rem; box-shadow: 0 10px 25px rgba(0,0,0,0.3);">
+                            <img src="${qrCodeUrl}" alt="QR Code de Acesso" style="width: 160px; height: 160px; display: block; border-radius: 0.5rem;" onerror="this.style.display='none'; document.getElementById('qr-fallback-btn').style.display='flex';">
+                            <div id="qr-fallback-btn" style="display: none; width: 160px; height: 160px; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; text-align: center; color: #0f172a; font-weight: 800; font-size: 0.75rem;">
+                                <i class="fas fa-qrcode text-4xl text-indigo-600"></i>
+                                <span>PIN: ${this.pin}</span>
+                            </div>
+                        </div>
+
+                        <!-- PIN GIGANTE -->
+                        <div style="display: flex; flex-direction: column; align-items: center;">
+                            <span style="font-size: 0.875rem; font-weight: 900; letter-spacing: 0.2em; color: #94a3b8; text-transform: uppercase; margin-bottom: 0.25rem;">
+                                PIN DA SALA
+                            </span>
+                            <span style="font-size: 5.5rem; font-weight: 900; letter-spacing: 0.15em; font-family: monospace; color: #facc15; text-shadow: 0 0 30px rgba(250,204,21,0.5); line-height: 1;">
+                                ${this.pin}
+                            </span>
+                            <span id="lobby-player-count" style="font-size: 1.125rem; font-weight: 800; color: #a5b4fc; margin-top: 0.75rem;">
+                                ${players.length} Aluno(s) Conectado(s)
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- GRID DE JOGADORES CONECTADOS -->
+                    <div id="lobby-players-grid" style="display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center; max-height: 140px; overflow-y: auto; width: 100%; padding: 0.5rem;" class="custom-scrollbar">
+                        ${players.map(p => `
+                            <div class="animate-bounce-in" style="background-color: rgba(255,255,255,0.1); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,0.2); padding: 0.5rem 1rem; border-radius: 9999px; display: flex; align-items: center; gap: 0.5rem; font-weight: 800; font-size: 1rem;">
+                                <span style="font-size: 1.25rem;">${p.avatar || '🎓'}</span>
+                                <span>${window.escapeHTML(p.nome)}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+
+                <!-- CONTROLE INFERIOR -->
+                <div>
+                    <button onclick="quizPlayerView.iniciarPartida()" class="btn-primary" style="padding: 1.25rem 4rem; font-size: 1.5rem; font-weight: 900; background: linear-gradient(135deg, #4f46e5, #7c3aed); border-radius: 1.5rem; box-shadow: 0 10px 30px rgba(79,70,229,0.5);">
                         <i class="fas fa-play mr-2"></i> Iniciar Quiz
                     </button>
                 </div>
@@ -116,17 +345,26 @@ export const quizPlayerView = {
         `;
     },
 
+    async iniciarPartida() {
+        try {
+            await firebaseService.atualizarStatusSessao(this.pin, 'COUNTDOWN');
+        } catch (e) {
+            console.warn("Aviso Firestore ao iniciar:", e.message);
+        }
+        this.avancarEstado('COUNTDOWN');
+    },
+
     renderCountdown(container) {
         container.innerHTML = `
-            <div class="flex-1 flex flex-col items-center justify-center bg-indigo-600 text-white">
-                <span class="text-xl font-bold uppercase tracking-widest opacity-75 mb-4">Prepare-se!</span>
-                <div id="countdown-number" class="text-9xl font-black animate-bounce-in drop-shadow-2xl">3</div>
+            <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; background: linear-gradient(135deg, #4338ca, #312e81); text-align: center;">
+                <span style="font-size: 1.5rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.2em; color: #c7d2fe; margin-bottom: 1rem;">Prepare-se!</span>
+                <div id="countdown-number" style="font-size: 10rem; font-weight: 900; color: #ffffff; text-shadow: 0 0 40px rgba(255,255,255,0.5);" class="animate-bounce-in">3</div>
             </div>
         `;
 
         let counter = 3;
         const numberEl = document.getElementById('countdown-number');
-        const interval = setInterval(() => {
+        const interval = setInterval(async () => {
             counter--;
             if (counter > 0) {
                 if (numberEl) {
@@ -137,6 +375,11 @@ export const quizPlayerView = {
                 }
             } else {
                 clearInterval(interval);
+                try {
+                    await firebaseService.atualizarStatusSessao(this.pin, 'QUESTION', this.indicePerguntaAtual, Date.now());
+                } catch (e) {
+                    console.warn("Aviso Firestore na pergunta:", e.message);
+                }
                 this.avancarEstado('QUESTION');
             }
         }, 1000);
@@ -147,85 +390,83 @@ export const quizPlayerView = {
         this.tempoRestante = pergunta.tempo || 30;
         const tipo = pergunta.tipo || 'multipla';
 
-        const tipoBadgeLabels = {
-            'multipla': 'Alternativas',
-            'lacuna': 'Complete a Frase',
-            'identificacao': 'Qual é o Conceito / Evento?',
-            'verdadeiro_falso': 'Verdadeiro ou Falso'
-        };
+        const totalPlayers = Object.keys(this.sessaoData?.players || {}).length;
 
         let respostasHtml = '';
 
         if (tipo === 'verdadeiro_falso') {
             respostasHtml = `
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; width: 100%; max-width: 900px; margin: 0 auto; padding: 1rem;">
-                    <button onclick="quizPlayerView.responderVF(true)" style="background: linear-gradient(135deg, #059669, #10b981); border: none; border-radius: 1.5rem; padding: 2.5rem 1.5rem; color: white; font-size: 1.75rem; font-weight: 900; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; box-shadow: 0 10px 25px -5px rgba(16,185,129,0.5); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
-                        <i class="fas fa-check-circle" style="font-size: 3.5rem;"></i>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; width: 100%; max-width: 1000px; margin: 0 auto;">
+                    <div style="background: linear-gradient(135deg, #059669, #10b981); border-radius: 1.5rem; padding: 2.5rem 1.5rem; color: white; font-size: 2rem; font-weight: 900; display: flex; align-items: center; justify-content: center; gap: 1rem; box-shadow: 0 10px 25px -5px rgba(16,185,129,0.5);">
+                        <i class="fas fa-check-circle" style="font-size: 3rem;"></i>
                         <span>VERDADEIRO</span>
-                    </button>
-                    <button onclick="quizPlayerView.responderVF(false)" style="background: linear-gradient(135deg, #dc2626, #ef4444); border: none; border-radius: 1.5rem; padding: 2.5rem 1.5rem; color: white; font-size: 1.75rem; font-weight: 900; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem; box-shadow: 0 10px 25px -5px rgba(239,68,68,0.5); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform='scale(1)'">
-                        <i class="fas fa-times-circle" style="font-size: 3.5rem;"></i>
+                    </div>
+                    <div style="background: linear-gradient(135deg, #dc2626, #ef4444); border-radius: 1.5rem; padding: 2.5rem 1.5rem; color: white; font-size: 2rem; font-weight: 900; display: flex; align-items: center; justify-content: center; gap: 1rem; box-shadow: 0 10px 25px -5px rgba(239,68,68,0.5);">
+                        <i class="fas fa-times-circle" style="font-size: 3rem;"></i>
                         <span>FALSO</span>
-                    </button>
+                    </div>
                 </div>
             `;
         } else {
             const alts = pergunta.alternativas && pergunta.alternativas.length > 0 ? pergunta.alternativas : ["Opção A", "Opção B", "Opção C", "Opção D"];
             const bgCores = ['#dc2626', '#2563eb', '#d97706', '#059669', '#7c3aed'];
+            const icones = ['▲', '◆', '●', '■', '★'];
+
             respostasHtml = `
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; width: 100%; max-width: 1000px; margin: 0 auto; padding: 1rem;">
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; width: 100%; max-width: 1100px; margin: 0 auto;">
                     ${alts.map((alt, i) => `
-                        <button onclick="quizPlayerView.responderAlternativa(${i})" style="background-color: ${bgCores[i % bgCores.length]}; border: none; border-radius: 1.25rem; padding: 1.75rem 1.25rem; color: white; font-size: 1.25rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; gap: 1rem; text-align: left; box-shadow: 0 4px 15px rgba(0,0,0,0.3); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
-                            <span style="width: 2.5rem; height: 2.5rem; border-radius: 50%; background-color: rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: 900; flex-shrink: 0;">
-                                ${['A', 'B', 'C', 'D', 'E'][i] || i + 1}
+                        <div style="background-color: ${bgCores[i % bgCores.length]}; border-radius: 1.5rem; padding: 1.75rem 1.5rem; color: white; font-size: 1.35rem; font-weight: 800; display: flex; align-items: center; gap: 1.25rem; box-shadow: 0 8px 25px rgba(0,0,0,0.3);">
+                            <span style="width: 3rem; height: 3rem; border-radius: 50%; background-color: rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 900; flex-shrink: 0;">
+                                ${icones[i] || i + 1}
                             </span>
-                            <span style="flex: 1;">${window.escapeHTML(alt)}</span>
-                        </button>
+                            <span style="flex: 1; line-height: 1.3;">${window.escapeHTML(alt)}</span>
+                        </div>
                     `).join('')}
                 </div>
             `;
         }
 
         container.innerHTML = `
-            <div class="flex-1 flex flex-col justify-between p-6 bg-slate-900 text-white select-none">
-                <!-- Cabeçalho -->
-                <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 1100px; margin: 0 auto;">
-                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 2rem 3rem; background-color: #0f172a; text-align: center;">
+                
+                <!-- TOPO COM TEMPORIZADOR E CONTADOR DE RESPOSTAS -->
+                <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; width: 100%;">
+                    <div style="text-align: left;">
                         <span style="font-size: 1.125rem; font-weight: 800; color: #94a3b8;">
                             Questão ${this.indicePerguntaAtual + 1} de ${this.quiz.perguntas.length}
                         </span>
-                        <span style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; background-color: rgba(99,102,241,0.2); color: #818cf8; padding: 0.25rem 0.625rem; border-radius: 9999px; border: 1px solid rgba(99,102,241,0.4);">
-                            ${tipoBadgeLabels[tipo] || 'Quiz'}
-                        </span>
+                        <h4 id="question-responses-counter" style="font-size: 1rem; font-weight: 800; color: #a5b4fc; margin-top: 0.25rem;">
+                            0 de ${totalPlayers} responderam
+                        </h4>
                     </div>
 
                     <!-- Temporizador Circular -->
-                    <div style="position: relative; width: 4.5rem; height: 4.5rem; display: flex; align-items: center; justify-content: center;">
-                        <svg style="width: 4.5rem; height: 4.5rem; transform: rotate(-90deg);">
-                            <circle cx="36" cy="36" r="30" fill="none" stroke="#334155" stroke-width="6"></circle>
-                            <circle id="timer-circle" cx="36" cy="36" r="30" fill="none" stroke="#6366f1" stroke-width="6" stroke-dasharray="188" stroke-dashoffset="0" style="transition: stroke-dashoffset 1s linear, stroke 0.3s;"></circle>
+                    <div style="position: relative; width: 5.5rem; height: 5.5rem; display: flex; align-items: center; justify-content: center;">
+                        <svg style="width: 5.5rem; height: 5.5rem; transform: rotate(-90deg);">
+                            <circle cx="44" cy="44" r="38" fill="none" stroke="#334155" stroke-width="8"></circle>
+                            <circle id="timer-circle" cx="44" cy="44" r="38" fill="none" stroke="#6366f1" stroke-width="8" stroke-dasharray="238" stroke-dashoffset="0" style="transition: stroke-dashoffset 1s linear, stroke 0.3s;"></circle>
                         </svg>
-                        <span id="timer-text" style="position: absolute; font-size: 1.375rem; font-weight: 900; color: white;">${this.tempoRestante}</span>
+                        <span id="timer-text" style="position: absolute; font-size: 1.75rem; font-weight: 900; color: white;">${this.tempoRestante}</span>
                     </div>
 
-                    <button onclick="quizPlayerView.forcarPulo()" class="btn-secondary" style="padding: 0.5rem 1.25rem; background-color: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2); color: white;">
-                        Pular <i class="fas fa-forward ml-1"></i>
+                    <button onclick="quizPlayerView.forcarPulo()" class="btn-secondary" style="background-color: rgba(255,255,255,0.1); border: none; color: white; padding: 0.75rem 1.5rem; font-weight: 800;">
+                        Pular Questão <i class="fas fa-forward ml-2"></i>
                     </button>
                 </div>
 
-                <!-- Enunciado -->
-                <div style="flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; max-width: 1000px; margin: 1rem auto; width: 100%;">
-                    <h2 style="font-size: 2rem; font-weight: 800; line-height: 1.35; color: #f8fafc; text-shadow: 0 2px 10px rgba(0,0,0,0.5);">
+                <!-- ENUNCIADO GIGANTE -->
+                <div style="flex: 1; display: flex; align-items: center; justify-content: center; max-width: 1100px; margin: 1rem auto; width: 100%;">
+                    <h2 style="font-size: 2.25rem; font-weight: 900; color: #f8fafc; line-height: 1.35; text-shadow: 0 4px 15px rgba(0,0,0,0.5);">
                         ${window.escapeHTML(pergunta.enunciado)}
                     </h2>
                 </div>
 
-                <!-- Barra de Progresso -->
-                <div style="width: 100%; max-width: 1000px; height: 0.375rem; background-color: #334155; margin: 0 auto 1.5rem; border-radius: 9999px; overflow: hidden;">
+                <!-- BARRA DE PROGRESSO DO TEMPO -->
+                <div style="width: 100%; max-width: 1100px; height: 0.5rem; background-color: #334155; margin: 0 auto 1.5rem; border-radius: 9999px; overflow: hidden;">
                     <div id="time-progress-bar" style="height: 100%; background-color: #6366f1; transition: width 1s linear; width: 100%;"></div>
                 </div>
 
-                <!-- Respostas -->
+                <!-- ALTERNATIVAS -->
                 ${respostasHtml}
             </div>
         `;
@@ -233,22 +474,14 @@ export const quizPlayerView = {
         this.iniciarTimer();
     },
 
-    responderAlternativa(indice) {
-        this.avancarEstado('FEEDBACK');
-    },
-
-    responderVF(valorEscolhido) {
-        this.avancarEstado('FEEDBACK');
-    },
-
     iniciarTimer() {
         const tempoTotal = this.tempoRestante;
         const textEl = document.getElementById('timer-text');
         const circleEl = document.getElementById('timer-circle');
         const barEl = document.getElementById('time-progress-bar');
-        const perimetro = 188;
+        const perimetro = 238;
 
-        this.intervaloTimer = setInterval(() => {
+        this.intervaloTimer = setInterval(async () => {
             this.tempoRestante--;
             if (textEl && circleEl && barEl) {
                 textEl.innerText = this.tempoRestante;
@@ -263,13 +496,22 @@ export const quizPlayerView = {
             }
             if (this.tempoRestante <= 0) {
                 clearInterval(this.intervaloTimer);
-                this.avancarEstado('FEEDBACK');
+                await this.concluirPergunta();
             }
         }, 1000);
     },
 
-    forcarPulo() {
+    async forcarPulo() {
         clearInterval(this.intervaloTimer);
+        await this.concluirPergunta();
+    },
+
+    async concluirPergunta() {
+        try {
+            await firebaseService.atualizarStatusSessao(this.pin, 'FEEDBACK');
+        } catch (e) {
+            console.warn("Aviso Firestore no feedback:", e.message);
+        }
         this.avancarEstado('FEEDBACK');
     },
 
@@ -277,118 +519,238 @@ export const quizPlayerView = {
         clearInterval(this.intervaloTimer);
         const pergunta = this.quiz.perguntas[this.indicePerguntaAtual];
         const tipo = pergunta.tipo || 'multipla';
+        const players = Object.values(this.sessaoData?.players || {});
 
-        let resultadoGabaritoHtml = '';
+        // Contagem de votos por alternativa na questão ATUAL
+        const contagemVotos = {};
+        players.forEach(p => {
+            if (p.lastAnswerQuestionIndex === this.indicePerguntaAtual && p.lastAnswerIndex !== null && p.lastAnswerIndex !== undefined) {
+                contagemVotos[p.lastAnswerIndex] = (contagemVotos[p.lastAnswerIndex] || 0) + 1;
+            }
+        });
 
+        const totalVotos = players.filter(p => p.lastAnswerQuestionIndex === this.indicePerguntaAtual).length || 1;
+
+        let graficoBarrasHtml = '';
         if (tipo === 'verdadeiro_falso') {
+            const votosV = contagemVotos[0] || 0;
+            const votosF = contagemVotos[1] || 0;
             const isVerdadeiro = pergunta.is_verdadeiro !== false;
-            resultadoGabaritoHtml = `
-                <div style="background-color: ${isVerdadeiro ? 'rgba(16, 185, 129, 0.15)' : 'rgba(239, 68, 68, 0.15)'}; border: 2px solid ${isVerdadeiro ? '#10b981' : '#ef4444'}; border-radius: 1.5rem; padding: 2rem; max-width: 700px; margin: 0 auto; text-align: center;">
-                    <div style="display: inline-flex; align-items: center; gap: 0.75rem; font-size: 2.25rem; font-weight: 900; color: ${isVerdadeiro ? '#10b981' : '#ef4444'}; margin-bottom: 1rem;">
-                        <i class="fas ${isVerdadeiro ? 'fa-check-circle' : 'fa-times-circle'}"></i>
-                        <span>${isVerdadeiro ? 'VERDADEIRO' : 'FALSO'}</span>
+
+            graficoBarrasHtml = `
+                <div style="display: flex; gap: 2rem; align-items: flex-end; justify-content: center; height: 180px; margin: 1.5rem 0;">
+                    <div style="display: flex; flex-direction: column; align-items: center; width: 140px;">
+                        <span style="font-size: 1.5rem; font-weight: 900; margin-bottom: 0.5rem;">${votosV}</span>
+                        <div style="width: 100%; height: ${Math.max(20, (votosV / totalVotos) * 140)}px; background: ${isVerdadeiro ? '#10b981' : '#64748b'}; border-radius: 1rem 1rem 0 0; display: flex; align-items: center; justify-content: center; border: 2px solid ${isVerdadeiro ? '#34d399' : 'transparent'};">
+                            ${isVerdadeiro ? '<i class="fas fa-check text-white text-2xl"></i>' : ''}
+                        </div>
+                        <span style="font-weight: 800; margin-top: 0.5rem; color: #cbd5e1;">VERDADEIRO</span>
                     </div>
-                    ${pergunta.justificativa ? `
-                        <p style="font-size: 1.125rem; color: #cbd5e1; line-height: 1.6; margin-top: 1rem;">
-                            <strong>Explicação:</strong> ${window.escapeHTML(pergunta.justificativa)}
-                        </p>
-                    ` : ''}
+                    <div style="display: flex; flex-direction: column; align-items: center; width: 140px;">
+                        <span style="font-size: 1.5rem; font-weight: 900; margin-bottom: 0.5rem;">${votosF}</span>
+                        <div style="width: 100%; height: ${Math.max(20, (votosF / totalVotos) * 140)}px; background: ${!isVerdadeiro ? '#10b981' : '#64748b'}; border-radius: 1rem 1rem 0 0; display: flex; align-items: center; justify-content: center; border: 2px solid ${!isVerdadeiro ? '#34d399' : 'transparent'};">
+                            ${!isVerdadeiro ? '<i class="fas fa-check text-white text-2xl"></i>' : ''}
+                        </div>
+                        <span style="font-weight: 800; margin-top: 0.5rem; color: #cbd5e1;">FALSO</span>
+                    </div>
                 </div>
             `;
         } else {
             const alts = pergunta.alternativas || [];
             const indiceCorreto = pergunta.correta !== undefined ? pergunta.correta : 0;
-            const respostaCorreta = alts[indiceCorreto] || pergunta.resposta_correta || '';
+            const bgCores = ['#dc2626', '#2563eb', '#d97706', '#059669', '#7c3aed'];
 
-            resultadoGabaritoHtml = `
-                <div style="background-color: rgba(16, 185, 129, 0.15); border: 2px solid #10b981; border-radius: 1.5rem; padding: 2rem; max-width: 700px; margin: 0 auto; text-align: center;">
-                    <span style="font-size: 0.875rem; font-weight: 800; text-transform: uppercase; color: #34d399; letter-spacing: 0.1em; display: block; margin-bottom: 0.5rem;">Resposta Correta</span>
-                    <h3 style="font-size: 2rem; font-weight: 900; color: #ffffff; margin-bottom: 1rem;">
-                        ${window.escapeHTML(respostaCorreta)}
-                    </h3>
-                    ${pergunta.justificativa ? `
-                        <p style="font-size: 1.0625rem; color: #cbd5e1; line-height: 1.6; border-top: 1px solid rgba(255,255,255,0.1); padding-top: 1rem; margin-top: 1rem;">
-                            <strong>Comentário pedagógico:</strong> ${window.escapeHTML(pergunta.justificativa)}
-                        </p>
-                    ` : ''}
+            graficoBarrasHtml = `
+                <div style="display: flex; gap: 1.5rem; align-items: flex-end; justify-content: center; height: 180px; margin: 1.5rem 0;">
+                    ${alts.map((alt, i) => {
+                        const votos = contagemVotos[i] || 0;
+                        const isCorreta = (i === indiceCorreto);
+                        const altura = Math.max(24, Math.round((votos / totalVotos) * 140));
+                        return `
+                            <div style="display: flex; flex-direction: column; align-items: center; width: 110px;">
+                                <span style="font-size: 1.25rem; font-weight: 900; margin-bottom: 0.25rem;">${votos}</span>
+                                <div style="width: 100%; height: ${altura}px; background-color: ${isCorreta ? '#10b981' : bgCores[i % bgCores.length]}; opacity: ${isCorreta ? 1 : 0.45}; border-radius: 0.75rem 0.75rem 0 0; display: flex; align-items: center; justify-content: center; border: ${isCorreta ? '3px solid #34d399' : 'none'}; box-shadow: ${isCorreta ? '0 0 20px rgba(16,185,129,0.6)' : 'none'};">
+                                    ${isCorreta ? '<i class="fas fa-check text-white text-xl"></i>' : ''}
+                                </div>
+                                <span style="font-weight: 800; font-size: 0.875rem; margin-top: 0.5rem; color: ${isCorreta ? '#34d399' : '#94a3b8'};">
+                                    ${['A', 'B', 'C', 'D', 'E'][i]}
+                                </span>
+                            </div>
+                        `;
+                    }).join('')}
                 </div>
             `;
         }
 
         container.innerHTML = `
-            <div class="flex-1 flex flex-col justify-between p-8 bg-slate-900 text-white select-none">
-                <div style="text-align: center; margin-bottom: 2rem;">
-                    <span style="font-size: 0.875rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.15em; color: #94a3b8;">Gabarito e Explicação</span>
-                    <h2 style="font-size: 1.5rem; font-weight: 800; color: #ffffff; margin-top: 0.5rem;">
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 2rem 3rem; background-color: #0f172a; text-align: center;">
+                
+                <div>
+                    <span style="font-size: 0.875rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.2em; color: #94a3b8;">
+                        Resultado da Turma
+                    </span>
+                    <h2 style="font-size: 1.75rem; font-weight: 900; color: #ffffff; margin-top: 0.5rem; max-width: 900px; margin: 0.5rem auto 0;">
                         ${window.escapeHTML(pergunta.enunciado)}
                     </h2>
                 </div>
 
-                <div style="flex: 1; display: flex; align-items: center; justify-content: center;">
-                    ${resultadoGabaritoHtml}
+                <!-- GRÁFICO DE BARRAS DE RESPOSTAS DA TURMA -->
+                <div>
+                    ${graficoBarrasHtml}
                 </div>
 
-                <div style="display: flex; justify-content: flex-end; max-width: 1000px; margin: 2rem auto 0; width: 100%;">
-                    <button onclick="quizPlayerView.proximaPergunta()" class="btn-primary" style="padding: 1rem 2.5rem; font-size: 1.25rem; font-weight: 900; background-color: #6366f1; box-shadow: 0 10px 25px -5px rgba(99,102,241,0.5);">
-                        ${this.indicePerguntaAtual < this.quiz.perguntas.length - 1 ? 'Próxima Questão <i class="fas fa-chevron-right ml-2"></i>' : 'Ver Pódio Final <i class="fas fa-trophy ml-2"></i>'}
+                <!-- COMENTÁRIO PEDAGÓGICO -->
+                ${pergunta.justificativa ? `
+                    <div style="background-color: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 1.5rem; padding: 1.25rem 2rem; max-width: 800px; margin: 0 auto; text-align: left;">
+                        <strong style="color: #38bdf8;"><i class="fas fa-chalkboard-teacher mr-2"></i>Explicação Pedagógica:</strong>
+                        <p style="color: #cbd5e1; font-size: 1rem; margin-top: 0.375rem; line-height: 1.5;">${window.escapeHTML(pergunta.justificativa)}</p>
+                    </div>
+                ` : ''}
+
+                <!-- BOTÃO PRÓXIMO -->
+                <div>
+                    <button onclick="quizPlayerView.avancarParaLeaderboard()" class="btn-primary" style="padding: 1rem 3rem; font-size: 1.25rem; font-weight: 900; background: linear-gradient(135deg, #4f46e5, #7c3aed); border-radius: 1.25rem; box-shadow: 0 10px 25px rgba(79,70,229,0.4);">
+                        Ver Placar de Líderes <i class="fas fa-trophy ml-2"></i>
                     </button>
                 </div>
             </div>
         `;
     },
 
-    proximaPergunta() {
+    async avancarParaLeaderboard() {
+        try {
+            await firebaseService.atualizarStatusSessao(this.pin, 'LEADERBOARD');
+        } catch (e) {
+            console.warn("Aviso Firestore no leaderboard:", e.message);
+        }
+        this.avancarEstado('LEADERBOARD');
+    },
+
+    renderLeaderboard(container) {
+        const players = Object.values(this.sessaoData?.players || {});
+        players.sort((a, b) => (b.score || 0) - (a.score || 0));
+        const top5 = players.slice(0, 5);
+
+        container.innerHTML = `
+            <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 2.5rem 3rem; background: radial-gradient(circle at center, #1e1b4b, #0f172a); text-align: center;">
+                
+                <div>
+                    <span style="font-size: 0.875rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.2em; color: #fbbf24;">
+                        <i class="fas fa-crown mr-1"></i> Ranking Parcial
+                    </span>
+                    <h1 style="font-size: 3rem; font-weight: 900; color: #ffffff; margin-top: 0.25rem;">
+                        Placar de Líderes
+                    </h1>
+                </div>
+
+                <!-- LISTA TOP 5 -->
+                <div style="display: flex; flex-direction: column; gap: 0.75rem; max-width: 650px; margin: 0 auto; width: 100%;">
+                    ${top5.map((p, i) => `
+                        <div class="animate-enter" style="animation-delay: ${i * 100}ms; background-color: ${i === 0 ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.08)'}; border: 2px solid ${i === 0 ? '#fbbf24' : 'rgba(255,255,255,0.15)'}; border-radius: 1.25rem; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 8px 20px rgba(0,0,0,0.25);">
+                            <div style="display: flex; align-items: center; gap: 1rem;">
+                                <span style="font-size: 1.5rem; font-weight: 900; color: ${i === 0 ? '#fbbf24' : '#94a3b8'}; width: 2rem;">
+                                    #${i + 1}
+                                </span>
+                                <span style="font-size: 1.75rem;">${p.avatar || '🎓'}</span>
+                                <span style="font-size: 1.25rem; font-weight: 800; color: #ffffff;">
+                                    ${window.escapeHTML(p.nome)}
+                                </span>
+                            </div>
+
+                            <span style="font-size: 1.5rem; font-weight: 900; color: #facc15;">
+                                ${p.score || 0} pts
+                            </span>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <!-- CONTROLE -->
+                <div>
+                    <button onclick="quizPlayerView.proximaPergunta()" class="btn-primary" style="padding: 1rem 3.5rem; font-size: 1.25rem; font-weight: 900; background: linear-gradient(135deg, #4f46e5, #7c3aed); border-radius: 1.25rem; box-shadow: 0 10px 25px rgba(79,70,229,0.4);">
+                        ${this.indicePerguntaAtual < this.quiz.perguntas.length - 1 ? 'Próxima Questão <i class="fas fa-chevron-right ml-2"></i>' : 'Ver Grande Pódio Final <i class="fas fa-trophy ml-2"></i>'}
+                    </button>
+                </div>
+            </div>
+        `;
+    },
+
+    async proximaPergunta() {
         this.indicePerguntaAtual++;
         if (this.indicePerguntaAtual >= this.quiz.perguntas.length) {
+            try {
+                await firebaseService.atualizarStatusSessao(this.pin, 'PODIUM');
+            } catch (e) {
+                console.warn("Aviso Firestore no podio:", e.message);
+            }
             this.avancarEstado('PODIUM');
         } else {
-            this.avancarEstado('QUESTION');
+            try {
+                await firebaseService.atualizarStatusSessao(this.pin, 'COUNTDOWN');
+            } catch (e) {
+                console.warn("Aviso Firestore countdown:", e.message);
+            }
+            this.avancarEstado('COUNTDOWN');
         }
     },
 
     renderPodio(container) {
+        const players = Object.values(this.sessaoData?.players || {});
+        players.sort((a, b) => (b.score || 0) - (a.score || 0));
+
+        const p1 = players[0] || { nome: '---', score: 0, avatar: '🥇' };
+        const p2 = players[1] || { nome: '---', score: 0, avatar: '🥈' };
+        const p3 = players[2] || { nome: '---', score: 0, avatar: '🥉' };
+
         container.innerHTML = `
-            <div class="flex-1 flex flex-col items-center justify-between p-8 bg-gradient-to-b from-slate-900 via-indigo-950 to-slate-900 text-white select-none">
-                <div style="text-align: center; margin-top: 2rem;">
-                    <div style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 1rem; font-weight: 800; color: #fbbf24; background-color: rgba(251,191,36,0.15); padding: 0.5rem 1.25rem; border-radius: 9999px; margin-bottom: 1rem;">
-                        <i class="fas fa-crown"></i> Parabéns a todos!
+            <div style="flex: 1; display: flex; flex-direction: column; items: center; justify-content: space-between; padding: 2.5rem 3rem; background: radial-gradient(circle at center, #311042, #0f172a); text-align: center;">
+                
+                <div>
+                    <div style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 1.125rem; font-weight: 900; color: #fbbf24; background-color: rgba(251,191,36,0.15); padding: 0.5rem 1.5rem; border-radius: 9999px; margin-bottom: 0.5rem;">
+                        <i class="fas fa-crown"></i> Parabéns a todos os participantes!
                     </div>
-                    <h1 class="text-5xl md:text-6xl font-black text-white tracking-tight">
-                        Quiz Concluído!
+                    <h1 style="font-size: 3.5rem; font-weight: 900; color: #ffffff; letter-spacing: -0.025em;">
+                        Pódio dos Campeões
                     </h1>
-                    <p class="text-slate-400 text-lg mt-2">${window.escapeHTML(this.quiz.titulo)}</p>
+                    <p style="color: #cbd5e1; font-size: 1.125rem;">${window.escapeHTML(this.quiz.titulo)}</p>
                 </div>
 
-                <div style="display: flex; align-items: flex-end; justify-content: center; gap: 1.5rem; width: 100%; max-width: 600px; margin: 2rem auto;">
+                <!-- PÓDIO 3D -->
+                <div style="display: flex; align-items: flex-end; justify-content: center; gap: 2rem; width: 100%; max-width: 800px; margin: 1rem auto;">
                     <!-- 2º Lugar -->
-                    <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
-                        <span style="font-weight: 800; font-size: 1.125rem; margin-bottom: 0.5rem; color: #cbd5e1;">2º Lugar</span>
-                        <div style="width: 100%; height: 140px; background: linear-gradient(to top, #475569, #64748b); border-radius: 1rem 1rem 0 0; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: 900; color: #e2e8f0; box-shadow: 0 10px 20px rgba(0,0,0,0.3);">
+                    <div class="animate-enter" style="animation-delay: 200ms; flex: 1; display: flex; flex-direction: column; align-items: center;">
+                        <span style="font-size: 2.5rem; margin-bottom: 0.25rem;">${p2.avatar || '🥈'}</span>
+                        <span style="font-weight: 900; font-size: 1.25rem; color: #e2e8f0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;">${window.escapeHTML(p2.nome)}</span>
+                        <span style="font-weight: 800; font-size: 1rem; color: #94a3b8; margin-bottom: 0.75rem;">${p2.score} pts</span>
+                        <div style="width: 100%; height: 160px; background: linear-gradient(to top, #475569, #94a3b8); border-radius: 1.5rem 1.5rem 0 0; display: flex; align-items: center; justify-content: center; font-size: 3.5rem; font-weight: 900; color: #f8fafc; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
                             2
                         </div>
                     </div>
 
                     <!-- 1º Lugar -->
-                    <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
-                        <i class="fas fa-crown" style="font-size: 2rem; color: #f59e0b; margin-bottom: 0.5rem; animation: bounce 1s infinite;"></i>
-                        <span style="font-weight: 900; font-size: 1.25rem; margin-bottom: 0.5rem; color: #fef08a;">1º Lugar</span>
-                        <div style="width: 100%; height: 200px; background: linear-gradient(to top, #d97706, #fbbf24); border-radius: 1rem 1rem 0 0; display: flex; align-items: center; justify-content: center; font-size: 3.5rem; font-weight: 900; color: #78350f; box-shadow: 0 0 35px rgba(251,191,36,0.5);">
+                    <div class="animate-enter" style="flex: 1.2; display: flex; flex-direction: column; align-items: center;">
+                        <i class="fas fa-crown" style="font-size: 2.5rem; color: #f59e0b; margin-bottom: 0.25rem; animation: bounce 1s infinite;"></i>
+                        <span style="font-size: 3.5rem; margin-bottom: 0.25rem;">${p1.avatar || '🥇'}</span>
+                        <span style="font-weight: 900; font-size: 1.5rem; color: #fef08a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px;">${window.escapeHTML(p1.nome)}</span>
+                        <span style="font-weight: 900; font-size: 1.25rem; color: #fde047; margin-bottom: 0.75rem;">${p1.score} pts</span>
+                        <div style="width: 100%; height: 230px; background: linear-gradient(to top, #d97706, #fbbf24); border-radius: 1.5rem 1.5rem 0 0; display: flex; align-items: center; justify-content: center; font-size: 5rem; font-weight: 900; color: #78350f; box-shadow: 0 0 45px rgba(251,191,36,0.6);">
                             1
                         </div>
                     </div>
 
                     <!-- 3º Lugar -->
-                    <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
-                        <span style="font-weight: 800; font-size: 1.125rem; margin-bottom: 0.5rem; color: #cbd5e1;">3º Lugar</span>
-                        <div style="width: 100%; height: 100px; background: linear-gradient(to top, #78350f, #b45309); border-radius: 1rem 1rem 0 0; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 900; color: #fde68a; box-shadow: 0 10px 20px rgba(0,0,0,0.3);">
+                    <div class="animate-enter" style="animation-delay: 400ms; flex: 1; display: flex; flex-direction: column; align-items: center;">
+                        <span style="font-size: 2.5rem; margin-bottom: 0.25rem;">${p3.avatar || '🥉'}</span>
+                        <span style="font-weight: 900; font-size: 1.25rem; color: #fed7aa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;">${window.escapeHTML(p3.nome)}</span>
+                        <span style="font-weight: 800; font-size: 1rem; color: #fdba74; margin-bottom: 0.75rem;">${p3.score} pts</span>
+                        <div style="width: 100%; height: 120px; background: linear-gradient(to top, #7c2d12, #c2410c); border-radius: 1.5rem 1.5rem 0 0; display: flex; align-items: center; justify-content: center; font-size: 3rem; font-weight: 900; color: #ffedd5; box-shadow: 0 10px 25px rgba(0,0,0,0.5);">
                             3
                         </div>
                     </div>
                 </div>
 
-                <div style="margin-bottom: 2rem;">
-                    <button onclick="quizPlayerView.encerrar()" class="btn-primary" style="padding: 1rem 3rem; font-size: 1.125rem; font-weight: 900; background-color: #ffffff; color: #0f172a;">
-                        <i class="fas fa-arrow-left mr-2"></i> Voltar ao Painel de Quizzes
+                <div>
+                    <button onclick="quizPlayerView.encerrar()" class="btn-primary" style="padding: 1rem 3.5rem; font-size: 1.25rem; font-weight: 900; background-color: #ffffff; color: #0f172a; border-radius: 1.25rem;">
+                        <i class="fas fa-times-circle mr-2"></i> Encerrar Partida e Fechar Salas
                     </button>
                 </div>
             </div>
@@ -402,16 +764,38 @@ export const quizPlayerView = {
 
     async encerrar() {
         if (this.intervaloTimer) clearInterval(this.intervaloTimer);
-        try {
-            if (document.fullscreenElement) {
-                await document.exitFullscreen();
-            }
-        } catch (e) {
-            console.log("Ignorando erro de exitFullscreen.");
+        
+        // Notifica canal local que a sala foi FECHADA (faz todos os alunos fecharem suas abas)
+        if (this.broadcastChannel) {
+            this.broadcastChannel.postMessage({
+                type: 'SESSION_UPDATE',
+                session: { status: 'CLOSED' }
+            });
+            this.broadcastChannel.close();
+            this.broadcastChannel = null;
         }
+
+        if (this.unsubscribe) {
+            this.unsubscribe();
+            this.unsubscribe = null;
+        }
+
+        if (this.pin) {
+            try {
+                // Atualiza Firestore para CLOSED
+                await firebaseService.db?.collection('quiz_sessions').doc(String(this.pin)).update({
+                    status: 'CLOSED'
+                });
+            } catch (e) {
+                console.warn("Aviso ao encerrar sessão:", e.message);
+            }
+        }
+
         const container = document.getElementById('view-container');
         if (container) container.innerHTML = '';
+        window.location.hash = '';
         controller.navigate('quiz-gestor');
+        Toast.show("Partida de Quiz encerrada com sucesso.", "info");
     }
 };
 

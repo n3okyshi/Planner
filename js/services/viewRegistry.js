@@ -17,6 +17,7 @@ import { criarMaterialView } from '../views/criarMaterial.js';
 import { bibliotecaView } from '../views/biblioteca.js';
 import { quizGestorView } from '../views/quizGestor.js';
 import { quizPlayerView } from '../views/quizPlayer.js';
+import { quizAlunoView } from '../views/quizAluno.js';
 import { conteudoGeradoView } from '../views/conteudoGerado.js';
 import { correcaoAutomaticaView } from '../views/correcaoAutomatica.js';
 import { simuladoresView } from '../views/simuladores.js';
@@ -45,6 +46,7 @@ export const viewRegistry = {
     biblioteca: bibliotecaView,
     'quiz-gestor': quizGestorView,
     'quiz-player': quizPlayerView,
+    'quiz-aluno': quizAlunoView,
     'conteudo-gerado': conteudoGeradoView,
     correcao: correcaoAutomaticaView,
     simuladores: simuladoresView,
@@ -56,6 +58,9 @@ export const viewRegistry = {
 
 export const publicViewAliases = {
     estudosVisuaisView,
+    quizAlunoView,
+    quizPlayerView,
+    quizGestorView,
     salaView,
     diarioView,
     turmasView,
@@ -66,14 +71,14 @@ export const publicViewAliases = {
     frequenciaView,
     horarioView,
     mensalView,
+    estatisticasProvaView,
     estatisticasProvasView,
     comunidadeView,
     notasAnuaisView,
     settingsView,
+    dashboardView,
     criarMaterialView,
     bibliotecaView,
-    quizGestorView,
-    quizPlayerView,
     conteudoGeradoView,
     correcaoAutomaticaView,
     simuladoresView

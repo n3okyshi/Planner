@@ -1,7 +1,5 @@
 import { model } from './model.js';
 import { firebaseService } from './firebase-service.js';
-import { uiController } from './controllers/uiController.js';
-import { authController } from './controllers/authController.js';
 import { controller } from './controller.js';
 
 export const app = {
@@ -31,8 +29,31 @@ export const app = {
 
         if (typeof window !== 'undefined') {
             window.controller = controller;
-            window.controller.currentView = 'dashboard';
-            controller.navigate('dashboard');
+
+            // Detecta se o usuário entrou direto com uma hash (ex: #quiz-entrar?pin=123456)
+            const hash = window.location.hash.replace(/^#/, '');
+            let rotaInicial = 'dashboard';
+
+            if (hash) {
+                const rotaSemQuery = hash.split('?')[0];
+                if (rotaSemQuery) {
+                    rotaInicial = rotaSemQuery;
+                }
+            }
+
+            window.controller.currentView = rotaInicial;
+            controller.navigate(rotaInicial);
+
+            // Ouvinte de mudança de hash na barra de endereço
+            window.addEventListener('hashchange', () => {
+                const novaHash = window.location.hash.replace(/^#/, '');
+                if (novaHash) {
+                    const novaRota = novaHash.split('?')[0];
+                    if (novaRota && novaRota !== controller.currentView) {
+                        controller.navigate(novaRota);
+                    }
+                }
+            });
         }
     }
 };

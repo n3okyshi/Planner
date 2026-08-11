@@ -22,6 +22,7 @@ export const routeRegistry = {
     'notas-anuais': { label: 'Notas Anuais', navId: 'nav-notas-anuais' },
     'conteudo-gerado': { label: 'Material Pedagógico', navId: 'nav-biblioteca' },
     'quiz-player': { label: 'Apresentação de Quiz', navId: 'nav-quiz-gestor' },
+    'quiz-aluno': { label: 'Participar de Quiz', navId: 'nav-quiz-gestor' },
     'estudos-visuais': { label: 'Flashcards & Mapas Mentais', navId: 'nav-estudos-visuais' },
     config: { label: 'Configurações', navId: 'nav-config' }
 };
@@ -36,6 +37,8 @@ export const routeAliases = {
     'bimestralizacao-formosa': 'bimestralizacao',
     'material-gerado': 'conteudo-gerado',
     'quiz-game': 'quiz-player',
+    'quiz-entrar': 'quiz-aluno',
+    'quiz-participar': 'quiz-aluno',
     flashcards: 'estudos-visuais',
     mindmaps: 'estudos-visuais',
     'mapas-mentais': 'estudos-visuais'
