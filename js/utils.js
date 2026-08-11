@@ -91,7 +91,50 @@ export function renderKatex(element, customOptions = {}) {
     }
 }
 
+/**
+ * Lê o conteúdo textual de um arquivo (TXT, MD, CSV, JSON, PDF simples) no navegador.
+ * @param {File} file 
+ * @returns {Promise<string>}
+ */
+export async function lerArquivoTexto(file) {
+    if (!file) return "";
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        const ext = file.name.split('.').pop().toLowerCase();
+
+        if (ext === 'pdf') {
+            reader.onload = function(e) {
+                try {
+                    const content = e.target.result;
+                    // Extração de texto de fluxos PDF sem dependências externas
+                    const textMatches = content.match(/\(([^)]+)\)\s*Tj|\[([^\]]+)\]\s*TJ/g);
+                    if (textMatches && textMatches.length > 0) {
+                        const cleanText = textMatches.map(m => m.replace(/[()[\]TjTJ]/g, '').trim()).join(' ');
+                        resolve(cleanText.substring(0, 35000));
+                    } else {
+                        // Fallback: extrai cadeias legíveis
+                        const rawText = content.replace(/[^\x20-\x7E\u00A0-\u00FF\n\r]/g, ' ').replace(/\s+/g, ' ');
+                        resolve(rawText.substring(0, 35000));
+                    }
+                } catch (err) {
+                    resolve(`[Arquivo PDF: ${file.name}]`);
+                }
+            };
+            reader.onerror = reject;
+            reader.readAsBinaryString(file);
+        } else {
+            reader.onload = function(e) {
+                const text = e.target.result || "";
+                resolve(text.substring(0, 35000));
+            };
+            reader.onerror = reject;
+            reader.readAsText(file, 'UTF-8');
+        }
+    });
+}
+
 if (typeof window !== 'undefined') {
     window.renderKatex = renderKatex;
+    window.lerArquivoTexto = lerArquivoTexto;
 }
 

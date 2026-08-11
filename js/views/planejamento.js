@@ -1,5 +1,6 @@
 import { model } from '../model.js';
 import { controller } from '../controller.js';
+import { uiController } from '../controllers/uiController.js';
 
 export const planejamentoView = {
     currentTurmaId: null,
@@ -73,6 +74,7 @@ export const planejamentoView = {
         `;
 
         container.innerHTML = html;
+        uiController.initAllDropdowns(container);
     },
 
     mudarTurma(id) {

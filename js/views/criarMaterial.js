@@ -2,8 +2,11 @@ import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { aiService } from '../ai-service.js';
 import { Toast } from '../components/toast.js';
+import { lerArquivoTexto } from '../utils.js';
+
 export const criarMaterialView = {
     ferramentaAtiva: null,
+    contextoArquivoTexto: '',
     categoriasMenu: [
         {
             titulo: 'PLANEJAR',
@@ -64,8 +67,7 @@ export const criarMaterialView = {
                 { id: 'linha-1', tipo: 'row', colunas: [{ id: 'disciplina', tipo: 'select-disciplina' }, { id: 'serie', tipo: 'select-serie' }] },
                 { id: 'tema', tipo: 'text', label: 'Fenômeno a ser investigado', placeholder: 'Ex: Leis de Newton, Células, Eletricidade...' },
                 { id: 'materiais', tipo: 'text', label: 'Materiais Disponíveis', placeholder: 'Ex: Simulador PhET, Garrafas PET, Água, Sal...' },
-                { id: 'abordagem', tipo: 'pills', label: 'Abordagem Investigativa', opcoes: ['Guiada (Passo a Passo)', 'Aberta (Alunos criam o método)'], default: 'Guiada (Passo a Passo)' },
-                { id: 'adaptacao', tipo: 'inclusao' }
+                { id: 'abordagem', tipo: 'pills', label: 'Abordagem Investigativa', opcoes: ['Guiada (Passo a Passo)', 'Aberta (Alunos criam o método)'], default: 'Guiada (Passo a Passo)' }
             ]
         },
         'planejamento': {
@@ -77,8 +79,7 @@ export const criarMaterialView = {
                 { id: 'tipo-plano', tipo: 'pills', label: 'TIPO DE PLANEJAMENTO', opcoes: ['Aula', 'Semanal', 'Mensal', 'Bimestral', 'Trimestral', 'Semestral', 'Anual'], default: 'Semanal' },
                 { id: 'duracao', tipo: 'number', label: 'DURAÇÃO (MINUTOS)', default: 50 },
                 { id: 'objetivos', tipo: 'text', label: 'Objetivos de aprendizagem', placeholder: 'Ex: Compreender a fotossíntese...' },
-                { id: 'bncc', tipo: 'text', label: 'Código BNCC (opcional)', placeholder: 'Ex: EF06CI05' },
-                { id: 'adaptacao', tipo: 'inclusao' }
+                { id: 'bncc', tipo: 'text', label: 'Código BNCC (opcional)', placeholder: 'Ex: EF06CI05' }
             ]
         },
         'dinamica-jogo': {
@@ -94,8 +95,7 @@ export const criarMaterialView = {
                     ], default: 'Quiz Batalha'
                 },
                 { id: 'tempo', tipo: 'pills', label: 'TEMPO DISPONÍVEL', opcoes: ['15 min', '30 min', 'Aula completa'], default: '30 min' },
-                { id: 'tamanho', tipo: 'pills', label: 'TAMANHO DA TURMA', opcoes: ['Pequena', 'Média', 'Grande'], default: 'Média' },
-                { id: 'adaptacao', tipo: 'inclusao' }
+                { id: 'tamanho', tipo: 'pills', label: 'TAMANHO DA TURMA', opcoes: ['Pequena', 'Média', 'Grande'], default: 'Média' }
             ]
         },
         'situacao-problema': {
@@ -107,8 +107,7 @@ export const criarMaterialView = {
                 { id: 'qtd-questoes', tipo: 'pills', label: 'NÚMERO DE QUESTÕES', opcoes: ['4', '5', '6', '7', '8'], default: '5' },
                 { id: 'complexidade', tipo: 'pills', label: 'NÍVEL DE COMPLEXIDADE', opcoes: ['Básico', 'Intermediário', 'Avançado'], default: 'Intermediário' },
                 { id: 'cenario', tipo: 'text', label: 'CENÁRIO SUGERIDO (opcional)', placeholder: 'Ex: feira livre do bairro, viagem de ônibus...' },
-                { id: 'bncc', tipo: 'text', label: 'Código BNCC (opcional)', placeholder: 'Ex: EF05MA01' },
-                { id: 'adaptacao', tipo: 'inclusao' }
+                { id: 'bncc', tipo: 'text', label: 'Código BNCC (opcional)', placeholder: 'Ex: EF05MA01' }
             ]
         },
         'atividade-investigativa': {
@@ -118,8 +117,7 @@ export const criarMaterialView = {
                 { id: 'linha-1', tipo: 'row', colunas: [{ id: 'disciplina', tipo: 'select-disciplina' }, { id: 'serie', tipo: 'select-serie' }] },
                 { id: 'tema', tipo: 'text', label: 'Tema da Investigação', placeholder: 'Ex: Fotossíntese, Reações Químicas...' },
                 { id: 'recursos', tipo: 'pills', label: 'RECURSOS DISPONÍVEIS', opcoes: ['Sala de Aula', 'Laboratório', 'Ar Livre', 'Casa'], default: 'Sala de Aula' },
-                { id: 'bncc', tipo: 'text', label: 'Código BNCC (opcional)', placeholder: 'Ex: EF06CI05' },
-                { id: 'adaptacao', tipo: 'inclusao' }
+                { id: 'bncc', tipo: 'text', label: 'Código BNCC (opcional)', placeholder: 'Ex: EF06CI05' }
             ]
         },
         'atividade-imprimivel': {
@@ -149,8 +147,7 @@ export const criarMaterialView = {
                 { id: 'tema', tipo: 'text', label: 'Tema', placeholder: 'Ex: Funções e Gráficos, Eletromagnetismo...' },
                 { id: 'quantidade', tipo: 'number', label: 'QUANTIDADE DE QUESTÕES', default: 10 },
                 { id: 'tipo-questao', tipo: 'pills', label: 'TIPO DE QUESTÃO', opcoes: ['Múltipla escolha', 'Dissertativa', 'Mista (ambas)'], default: 'Múltipla escolha' },
-                { id: 'bncc', tipo: 'text', label: 'Código BNCC (opcional)', placeholder: 'Ex: EF08MA07' },
-                { id: 'adaptacao', tipo: 'inclusao' }
+                { id: 'bncc', tipo: 'text', label: 'Código BNCC (opcional)', placeholder: 'Ex: EF08MA07' }
             ]
         },
         'lista-exercicios': {
@@ -161,8 +158,7 @@ export const criarMaterialView = {
                 { id: 'tema', tipo: 'text', label: 'Tema', placeholder: 'Ex: Equações do 2º grau...' },
                 { id: 'quantidade', tipo: 'number', label: 'QUANTIDADE DE EXERCÍCIOS', default: 10 },
                 { id: 'tipo-questao', tipo: 'pills', label: 'TIPO DE EXERCÍCIO', opcoes: ['Múltipla escolha', 'Dissertativa', 'Mista (ambas)'], default: 'Múltipla escolha' },
-                { id: 'bncc', tipo: 'text', label: 'Código BNCC (opcional)', placeholder: 'Ex: EF09MA06' },
-                { id: 'adaptacao', tipo: 'inclusao' }
+                { id: 'bncc', tipo: 'text', label: 'Código BNCC (opcional)', placeholder: 'Ex: EF09MA06' }
             ]
         },
         'adaptacao-tea': {
@@ -202,8 +198,7 @@ export const criarMaterialView = {
                 { id: 'linha-1', tipo: 'row', colunas: [{ id: 'disciplina', tipo: 'select-disciplina' }, { id: 'serie', tipo: 'select-serie' }] },
                 { id: 'tema', tipo: 'text', label: 'Tema Integrador', placeholder: 'Ex: O mundo das cores, Os animais da floresta...' },
                 { id: 'duracao-dias', tipo: 'number', label: 'DURAÇÃO (DIAS)', default: 5 },
-                { id: 'bncc', tipo: 'text', label: 'Campo de Experiência BNCC (opcional)', placeholder: 'Ex: EI02CG01' },
-                { id: 'adaptacao', tipo: 'inclusao' }
+                { id: 'bncc', tipo: 'text', label: 'Campo de Experiência BNCC (opcional)', placeholder: 'Ex: EI02CG01' }
             ]
         },
         'rotina-semanal': {
@@ -212,8 +207,7 @@ export const criarMaterialView = {
             campos: [
                 { id: 'linha-1', tipo: 'row', colunas: [{ id: 'disciplina', tipo: 'select-disciplina' }, { id: 'serie', tipo: 'select-serie' }] },
                 { id: 'tema', tipo: 'text', label: 'Foco Semanal', placeholder: 'Ex: Adaptação, Higiene...' },
-                { id: 'bncc', tipo: 'text', label: 'Código BNCC (opcional)', placeholder: 'Ex: EI03CG01' },
-                { id: 'adaptacao', tipo: 'inclusao' }
+                { id: 'bncc', tipo: 'text', label: 'Código BNCC (opcional)', placeholder: 'Ex: EI03CG01' }
             ]
         },
         'proposta-brincadeira': {
@@ -222,8 +216,7 @@ export const criarMaterialView = {
             campos: [
                 { id: 'linha-1', tipo: 'row', colunas: [{ id: 'disciplina', tipo: 'select-disciplina' }, { id: 'serie', tipo: 'select-serie' }] },
                 { id: 'tema', tipo: 'text', label: 'Foco da Brincadeira', placeholder: 'Ex: Coordenação motora fina, Reconhecimento das cores...' },
-                { id: 'bncc', tipo: 'text', label: 'Código BNCC (opcional)', placeholder: 'Ex: EI02TS01' },
-                { id: 'adaptacao', tipo: 'inclusao' }
+                { id: 'bncc', tipo: 'text', label: 'Código BNCC (opcional)', placeholder: 'Ex: EI02TS01' }
             ]
         }
     },
@@ -307,6 +300,29 @@ export const criarMaterialView = {
             
             <form id="dynamic-form" class="space-y-6 flex-1 animate-enter">
                 ${config.campos.map(campo => this.gerarHtmlInput(campo)).join('')}
+
+                <!-- CONTEXTO ADICIONAL / NOTEBOOKLM & UPLOAD -->
+                <div style="background-color: var(--color-slate-50); border: 1px solid var(--color-slate-200); border-radius: var(--radius-xl); padding: var(--spacing-4); margin-top: 1.5rem; display: flex; flex-direction: column; gap: var(--spacing-3);">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <span style="font-size: 0.8125rem; font-weight: 800; color: var(--color-slate-700); display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-file-upload" style="color: var(--color-primary);"></i> Contexto de Apoio (Upload de Arquivo / NotebookLM)
+                        </span>
+                        <span id="mat-badge-contexto" style="font-size: 0.6875rem; font-weight: 700; color: var(--color-slate-400);">Opcional</span>
+                    </div>
+
+                    <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                        <label class="btn-outline interactive-element" style="cursor: pointer; padding: 0.5rem 0.875rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.375rem; background-color: #fff;">
+                            <i class="fas fa-paperclip"></i> <span>Anexar Arquivo (PDF / TXT / MD)</span>
+                            <input type="file" id="mat-file-input" accept=".txt,.md,.pdf,.csv,.json" style="display: none;" onchange="criarMaterialView.carregarArquivoContexto(this)">
+                        </label>
+                        <span id="mat-nome-arquivo" style="font-size: 0.75rem; color: var(--color-slate-500); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px;"></span>
+                    </div>
+
+                    <div>
+                        <label class="form-label" style="font-size: 0.75rem; color: var(--color-slate-500);">Ou cole o Link / Resumo do Google NotebookLM:</label>
+                        <textarea id="mat-contexto-texto" rows="2" class="form-input custom-scrollbar" placeholder="Cole anotações ou dados do seu caderno no NotebookLM..." style="font-size: 0.8125rem; resize: vertical;"></textarea>
+                    </div>
+                </div>
             </form>
             <div class="mt-8 pt-6 border-t border-slate-100 flex items-center gap-4 sticky bottom-0 bg-white z-10 pb-2">
                 <button type="button" onclick="criarMaterialView.submeterFormulario(this)" class="btn-primary interactive-element w-full flex-1 py-3.5 px-6 rounded-xl font-bold text-white flex items-center justify-center gap-2" style="background-color: #4f46e5; box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.25);">
@@ -580,12 +596,6 @@ export const criarMaterialView = {
                             </button>
                         </div>
                     </div>`; break;
-            case 'inclusao': htmlComponente = `
-                    <div class="dynamic-box">
-                        <h4 style="font-weight: 700; color: #1e293b; font-size: 0.875rem; margin-bottom: 0.5rem;">Adaptar para inclusão (Opcional)</h4>
-                        <label class="inclusion-label"><input type="checkbox" id="check-tea"><span style="font-size: 0.875rem; font-weight: 700; color: #334155;">Aluno com TEA</span></label>
-                        <label class="inclusion-label"><input type="checkbox" id="check-tdah"><span style="font-size: 0.875rem; font-weight: 700; color: #334155;">Aluno com TDAH</span></label>
-                    </div>`; break;
             default: return '';
         }
         if (temCondicao) {
@@ -647,6 +657,29 @@ export const criarMaterialView = {
             }
         });
     },
+    async carregarArquivoContexto(input) {
+        if (!input.files || input.files.length === 0) return;
+        const file = input.files[0];
+        const nomeEl = document.getElementById('mat-nome-arquivo');
+        const badgeEl = document.getElementById('mat-badge-contexto');
+
+        try {
+            if (nomeEl) nomeEl.innerText = `Lendo ${file.name}...`;
+            const texto = await lerArquivoTexto(file);
+            this.contextoArquivoTexto = texto;
+
+            if (nomeEl) nomeEl.innerText = `📄 ${file.name} (${texto.length} caracteres)`;
+            if (badgeEl) {
+                badgeEl.innerText = `✅ Arquivo carregado`;
+                badgeEl.style.color = '#059669';
+            }
+            Toast.show(`Arquivo "${file.name}" carregado com sucesso!`, 'success');
+        } catch (e) {
+            console.error(e);
+            if (nomeEl) nomeEl.innerText = 'Erro ao ler arquivo';
+            Toast.show('Não foi possível ler o arquivo anexado.', 'error');
+        }
+    },
     async submeterFormulario(btn) {
         const iconOriginal = btn.innerHTML;
         const dadosExtrahidos = {};
@@ -662,16 +695,15 @@ export const criarMaterialView = {
             const palavras = Array.from(palavrasInputs).map(i => i.value.trim()).filter(v => v !== '');
             if (palavras.length > 0) dadosExtrahidos["Palavras Listadas"] = palavras.join(', ');
         }
-        const adaptaTEA = document.getElementById('check-tea')?.checked;
-        const adaptaTDAH = document.getElementById('check-tdah')?.checked;
-        if (adaptaTEA || adaptaTDAH) {
-            dadosExtrahidos["Adaptações Inclusivas Obrigatórias"] = `${adaptaTEA ? 'Autismo (TEA)' : ''} ${adaptaTDAH ? 'TDAH' : ''}`;
-        }
         if (Object.keys(dadosExtrahidos).length < 2) return Toast.show("Preencha os campos essenciais antes de gerar.", "warning");
+        
+        const textoNotebookLM = document.getElementById('mat-contexto-texto')?.value.trim() || '';
+        const contextoFinal = (this.contextoArquivoTexto ? `${this.contextoArquivoTexto}\n\n` : '') + textoNotebookLM;
+
         try {
             btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> Processando com IA...`;
             btn.disabled = true;
-            const materialPronto = await aiService.gerarMaterial(this.ferramentaAtiva, dadosExtrahidos);
+            const materialPronto = await aiService.gerarMaterial(this.ferramentaAtiva, dadosExtrahidos, contextoFinal);
             const salvo = await model.saveMaterial(materialPronto);
             Toast.show("Material gerado com sucesso!", "success");
             if (window.conteudoGeradoView) {

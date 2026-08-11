@@ -66,7 +66,7 @@ export const planejamentoController = {
     mudarTurmaDiario(novoId) {
         if (window.diarioView) {
             window.diarioView.currentTurmaId = novoId;
-            window.controller.navigate('dia');
+            window.diarioView.render('view-container');
         }
     },
     abrirModalCopiarPlanejamento(turmaIdAtual) {

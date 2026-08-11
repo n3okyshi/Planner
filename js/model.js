@@ -72,6 +72,8 @@ export const model = {
                 if (cloudData.horario) this.state.horario = cloudData.horario;
                 if (cloudData.materiaisGerados) this.state.materiaisGerados = cloudData.materiaisGerados;
                 if (cloudData.quizzes) this.state.quizzes = cloudData.quizzes;
+                if (cloudData.flashcards) this.state.flashcards = cloudData.flashcards;
+                if (cloudData.mindmaps) this.state.mindmaps = cloudData.mindmaps;
                 if (cloudData.lastUpdate) this.state.lastUpdate = cloudData.lastUpdate;
 
                 this.state.questoes = listaFinalQuestoes;
@@ -107,6 +109,8 @@ export const model = {
                 if (newData.horario) this.state.horario = newData.horario;
                 if (newData.materiaisGerados) this.state.materiaisGerados = newData.materiaisGerados;
                 if (newData.quizzes) this.state.quizzes = newData.quizzes;
+                if (newData.flashcards) this.state.flashcards = newData.flashcards;
+                if (newData.mindmaps) this.state.mindmaps = newData.mindmaps;
                 try {
                     storageService.save(this.state);
                 } catch (e) { console.error(e); }
@@ -179,7 +183,78 @@ export const model = {
             this.saveLocal();
             return this.state.materiaisGerados[index];
         }
-        return null;
+    },
+    async saveQuiz(quiz) {
+        if (!this.state.quizzes) this.state.quizzes = [];
+        const cleanQuiz = JSON.parse(JSON.stringify(quiz));
+        const novoQuiz = {
+            id: cleanQuiz.id || 'quiz_' + Date.now().toString(36),
+            createdAt: cleanQuiz.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            ...cleanQuiz
+        };
+        const index = this.state.quizzes.findIndex(q => String(q.id) === String(novoQuiz.id));
+        if (index !== -1) {
+            this.state.quizzes[index] = novoQuiz;
+        } else {
+            this.state.quizzes.push(novoQuiz);
+        }
+        this.saveLocal();
+        return novoQuiz;
+    },
+    async deleteQuiz(quizId) {
+        if (!this.state.quizzes) this.state.quizzes = [];
+        this.state.quizzes = this.state.quizzes.filter(q => String(q.id) !== String(quizId));
+        this.saveLocal();
+        return true;
+    },
+    async saveFlashcardDeck(deck) {
+        if (!this.state.flashcards) this.state.flashcards = [];
+        const cleanDeck = JSON.parse(JSON.stringify(deck));
+        const novoDeck = {
+            id: cleanDeck.id || 'deck_' + Date.now().toString(36),
+            createdAt: cleanDeck.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            ...cleanDeck
+        };
+        const index = this.state.flashcards.findIndex(d => String(d.id) === String(novoDeck.id));
+        if (index !== -1) {
+            this.state.flashcards[index] = novoDeck;
+        } else {
+            this.state.flashcards.push(novoDeck);
+        }
+        this.saveLocal();
+        return novoDeck;
+    },
+    async deleteFlashcardDeck(deckId) {
+        if (!this.state.flashcards) this.state.flashcards = [];
+        this.state.flashcards = this.state.flashcards.filter(d => String(d.id) !== String(deckId));
+        this.saveLocal();
+        return true;
+    },
+    async saveMindmap(mindmap) {
+        if (!this.state.mindmaps) this.state.mindmaps = [];
+        const cleanMindmap = JSON.parse(JSON.stringify(mindmap));
+        const novoMindmap = {
+            id: cleanMindmap.id || 'map_' + Date.now().toString(36),
+            createdAt: cleanMindmap.createdAt || new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            ...cleanMindmap
+        };
+        const index = this.state.mindmaps.findIndex(m => String(m.id) === String(novoMindmap.id));
+        if (index !== -1) {
+            this.state.mindmaps[index] = novoMindmap;
+        } else {
+            this.state.mindmaps.push(novoMindmap);
+        }
+        this.saveLocal();
+        return novoMindmap;
+    },
+    async deleteMindmap(mindmapId) {
+        if (!this.state.mindmaps) this.state.mindmaps = [];
+        this.state.mindmaps = this.state.mindmaps.filter(m => String(m.id) !== String(mindmapId));
+        this.saveLocal();
+        return true;
     },
     async persist(cloudOperation) {
         this.saveLocal();

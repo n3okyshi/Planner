@@ -242,7 +242,7 @@ export const uiController = {
     setupCustomDropdown(dropdownId, onChangeCallback) {
         const container = document.getElementById(dropdownId);
         if (!container) return;
-        this.initAllDropdowns();
+        this.initAllDropdowns(container);
         if (onChangeCallback) {
             const inputHidden = container.querySelector('input[type="hidden"]');
             if (inputHidden) {
@@ -250,7 +250,23 @@ export const uiController = {
             }
         }
     },
+    _globalClickListenerAtivo: false,
     iniciarObservadorDropdowns() {
+        if (!this._globalClickListenerAtivo) {
+            document.addEventListener('click', (e) => {
+                const targetDropdown = e.target.closest('.custom-dropdown');
+                document.querySelectorAll('.custom-dropdown').forEach(d => {
+                    if (d !== targetDropdown) {
+                        const m = d.querySelector('.dropdown-menu');
+                        const b = d.querySelector('.dropdown-button');
+                        if (m) m.classList.add('hidden');
+                        if (b) b.classList.remove('dropdown-button--active');
+                    }
+                });
+            });
+            this._globalClickListenerAtivo = true;
+        }
+
         if (this._observerAtivo) return;
         const observer = new MutationObserver((mutations) => {
             let temNovoElemento = false;
@@ -268,7 +284,8 @@ export const uiController = {
         this._observerAtivo = true;
     },
     initAllDropdowns(scope = document) {
-        scope.querySelectorAll('.custom-dropdown').forEach(container => {
+        const containers = scope.querySelectorAll ? scope.querySelectorAll('.custom-dropdown') : [];
+        containers.forEach(container => {
             if (container.dataset.initialized === 'true') return;
             container.dataset.initialized = 'true';
             container.classList.add('dropdown-initialized');
@@ -307,41 +324,37 @@ export const uiController = {
                     labelElement.innerText = text;
                 }
 
-                if (inputHidden) {
-                    inputHidden.value = value !== undefined ? value : text;
-                    
-                    // 1. Executa onchange atribuído programaticamente
-                    if (typeof inputHidden.onchange === 'function') {
-                        try {
-                            inputHidden.onchange.call(inputHidden, { target: inputHidden });
-                        } catch (err) {
-                            console.error("Erro no handler onchange do dropdown:", err);
-                        }
-                    } else if (inputHidden.getAttribute('onchange')) {
-                        // 2. Executa string do atributo onchange inline com contexto correto
-                        try {
-                            const handlerFn = new Function('event', inputHidden.getAttribute('onchange'));
-                            handlerFn.call(inputHidden, { target: inputHidden });
-                        } catch (err) {
-                            console.error("Erro ao executar atributo onchange do dropdown:", err);
-                        }
-                    }
-
-                    // 3. Dispara eventos padrão DOM
-                    inputHidden.dispatchEvent(new Event('change', { bubbles: true }));
-                    inputHidden.dispatchEvent(new Event('input', { bubbles: true }));
-                }
-
                 menu.classList.add('hidden');
                 button.classList.remove('dropdown-button--active');
                 menu.querySelectorAll('.dropdown-item').forEach(i => i.classList.remove('dropdown-item--selected'));
                 item.classList.add('dropdown-item--selected');
-            });
 
-            document.addEventListener('click', (e) => {
-                if (!container.contains(e.target)) {
-                    menu.classList.add('hidden');
-                    button.classList.remove('dropdown-button--active');
+                if (inputHidden) {
+                    inputHidden.value = value !== undefined ? value : text;
+                    
+                    // Executa callback de forma assíncrona para permitir encerramento do clique
+                    setTimeout(() => {
+                        // 1. Executa onchange atribuído programaticamente
+                        if (typeof inputHidden.onchange === 'function') {
+                            try {
+                                inputHidden.onchange.call(inputHidden, { target: inputHidden });
+                            } catch (err) {
+                                console.error("Erro no handler onchange do dropdown:", err);
+                            }
+                        } else if (inputHidden.getAttribute('onchange')) {
+                            // 2. Executa string do atributo onchange inline com contexto correto
+                            try {
+                                const handlerFn = new Function('event', inputHidden.getAttribute('onchange'));
+                                handlerFn.call(inputHidden, { target: inputHidden });
+                            } catch (err) {
+                                console.error("Erro ao executar atributo onchange do dropdown:", err);
+                            }
+                        }
+
+                        // 3. Dispara eventos padrão DOM
+                        inputHidden.dispatchEvent(new Event('change', { bubbles: true }));
+                        inputHidden.dispatchEvent(new Event('input', { bubbles: true }));
+                    }, 0);
                 }
             });
         });

@@ -1,5 +1,6 @@
 import { model } from '../model.js';
 import { controller } from '../controller.js';
+import { uiController } from '../controllers/uiController.js';
 import { Toast } from '../components/toast.js';
 
 export const mensalView = {
@@ -192,6 +193,7 @@ export const mensalView = {
         `;
 
         container.innerHTML = html;
+        uiController.initAllDropdowns(container);
     },
 
     gerarCardHabilidade(habilidade, turmaId, mes) {

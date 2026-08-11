@@ -1,6 +1,7 @@
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
+import { uiController } from '../controllers/uiController.js';
 
 export const frequenciaView = {
     currentTurmaId: null,
@@ -123,6 +124,7 @@ export const frequenciaView = {
         `;
 
         container.innerHTML = html;
+        uiController.initAllDropdowns(container);
         this.autoScrollParaHoje(ano, mes);
     },
 

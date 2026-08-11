@@ -2,12 +2,14 @@ import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
 import { aiService } from '../ai-service.js';
-import { renderKatex } from '../utils.js';
+import { renderKatex, lerArquivoTexto } from '../utils.js';
+
 export const provasView = {
     selecionadas: new Set(),
     gabaritosOcultos: new Set(),
     termoBusca: '',
     tempDados: null,
+    contextoQuestaoArquivo: '',
     abaAtiva: 'minhas',
     filtros: {
         materia: '',
@@ -664,9 +666,27 @@ export const provasView = {
                 </div>
                 <div style="padding-top: 1rem; display: flex; flex-direction: column; gap: 1rem;">
                     <div id="ai-section" class="${exibirBotaoIA ? '' : 'hidden'}">
+                        <!-- UPLOAD DE ARQUIVO E CONTEXTO NOTEBOOKLM -->
+                        <div style="background-color: var(--color-slate-50); border: 1px solid var(--color-slate-200); border-radius: var(--radius-xl); padding: var(--spacing-3); margin-bottom: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 0.6875rem; font-weight: 800; color: var(--color-slate-600); display: flex; align-items: center; gap: 0.25rem;">
+                                    <i class="fas fa-file-upload" style="color: var(--color-primary);"></i> Contexto / Arquivo / NotebookLM
+                                </span>
+                                <span id="q-badge-contexto" style="font-size: 0.625rem; font-weight: 700; color: var(--color-slate-400);">Opcional</span>
+                            </div>
+                            <div style="display: flex; gap: 0.375rem; align-items: center;">
+                                <label class="btn-outline" style="cursor: pointer; padding: 0.375rem 0.625rem; font-size: 0.6875rem; display: flex; align-items: center; gap: 0.25rem; background-color: #fff;">
+                                    <i class="fas fa-paperclip"></i> <span>Anexar Arquivo</span>
+                                    <input type="file" id="q-file-input" accept=".txt,.md,.pdf,.csv,.json" style="display: none;" onchange="provasView.carregarArquivoQuestao(this)">
+                                </label>
+                                <span id="q-nome-arquivo" style="font-size: 0.6875rem; color: var(--color-slate-500); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px;"></span>
+                            </div>
+                            <textarea id="q-notebooklm-texto" rows="1" class="input-default" style="width: 100%; border: 1px solid var(--color-slate-200); padding: 0.375rem 0.5rem; border-radius: var(--radius-lg); font-size: 0.75rem;" placeholder="Ou cole o link/resumo do Google NotebookLM..."></textarea>
+                        </div>
+
                         <div id="ai-loading" class="hidden" style="text-align: center; padding: 0.75rem; background-color: #e0e7ff; border-radius: var(--radius-xl); margin-bottom: 0.75rem; animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;">
                             <i class="fas fa-robot" style="color: #4f46e5; margin-right: 0.5rem;"></i> 
-                            <span style="font-size: 0.75rem; font-weight: 700; color: #4f46e5; text-transform: uppercase;">A IA está escrevendo...</span>
+                            <span style="font-size: 0.75rem; font-weight: 700; color: #4f46e5; text-transform: uppercase;">A IA está elaborando a questão...</span>
                         </div>
                         <button onclick="provasView.gerarComIA()" 
                             style="width: 100%; background: linear-gradient(to right, #4f46e5, #9333ea); color: var(--color-white); padding: 0.75rem; border-radius: var(--radius-xl); font-weight: 700; box-shadow: var(--shadow-lg); transition: all var(--transition-fast); display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; border: none; cursor: pointer;" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter='none'">
@@ -693,6 +713,29 @@ export const provasView = {
             else provasView.mudarTipoQuestao();
         }, 50);
     },
+    async carregarArquivoQuestao(input) {
+        if (!input.files || input.files.length === 0) return;
+        const file = input.files[0];
+        const nomeEl = document.getElementById('q-nome-arquivo');
+        const badgeEl = document.getElementById('q-badge-contexto');
+
+        try {
+            if (nomeEl) nomeEl.innerText = `Lendo ${file.name}...`;
+            const texto = await lerArquivoTexto(file);
+            this.contextoQuestaoArquivo = texto;
+
+            if (nomeEl) nomeEl.innerText = `📄 ${file.name} (${texto.length} carac.)`;
+            if (badgeEl) {
+                badgeEl.innerText = `✅ Carregado`;
+                badgeEl.style.color = '#059669';
+            }
+            Toast.show(`Arquivo "${file.name}" carregado!`, 'success');
+        } catch (e) {
+            console.error(e);
+            if (nomeEl) nomeEl.innerText = 'Erro no arquivo';
+            Toast.show('Não foi possível ler o arquivo anexado.', 'error');
+        }
+    },
     async gerarComIA() {
         const materia = document.getElementById('q-materia').value;
         const codBncc = document.getElementById('q-bncc-cod').value;
@@ -701,6 +744,9 @@ export const provasView = {
         const tipo = document.getElementById('q-tipo').value;
         const idExistente = document.getElementById('q-id')?.value;
         const enunciadoAtual = document.getElementById('q-enunciado')?.value;
+        const textoNotebookLM = document.getElementById('q-notebooklm-texto')?.value.trim() || '';
+        const contextoFinal = (this.contextoQuestaoArquivo ? `${this.contextoQuestaoArquivo}\n\n` : '') + textoNotebookLM;
+
         if (idExistente || (enunciadoAtual && enunciadoAtual.length > 20)) {
             if (!confirm("Isso substituirá o conteúdo atual pela resposta da IA. Deseja continuar?")) {
                 return;
@@ -716,12 +762,14 @@ export const provasView = {
                 materia,
                 habilidade: { codigo: codBncc, descricao: descBncc },
                 dificuldade,
-                tipo
+                tipo,
+                contextoDocumento: contextoFinal
             });
             document.getElementById('q-enunciado').value = questaoGerada.enunciado;
             if (tipo === 'multipla') {
-                document.getElementById('q-qtd-alt').value = questaoGerada.alternativas.length;
-                this.gerarInputsAlternativas(questaoGerada.alternativas, questaoGerada.correta);
+                const alts = questaoGerada.alternativas || ["A", "B", "C", "D"];
+                document.getElementById('q-qtd-alt').value = alts.length;
+                this.gerarInputsAlternativas(alts, questaoGerada.correta);
             } else {
                 document.getElementById('q-gabarito').value = questaoGerada.gabarito;
             }

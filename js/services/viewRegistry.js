@@ -21,6 +21,7 @@ import { conteudoGeradoView } from '../views/conteudoGerado.js';
 import { correcaoAutomaticaView } from '../views/correcaoAutomatica.js';
 import { simuladoresView } from '../views/simuladores.js';
 import { bimestralizacaoView } from '../views/bimestralizacao.js';
+import { estudosVisuaisView } from '../views/estudosVisuais.js';
 
 export const viewRegistry = {
     dashboard: dashboardView,
@@ -46,10 +47,15 @@ export const viewRegistry = {
     'quiz-player': quizPlayerView,
     'conteudo-gerado': conteudoGeradoView,
     correcao: correcaoAutomaticaView,
-    simuladores: simuladoresView
+    simuladores: simuladoresView,
+    'estudos-visuais': estudosVisuaisView,
+    flashcards: estudosVisuaisView,
+    mindmaps: estudosVisuaisView,
+    'mapas-mentais': estudosVisuaisView
 };
 
 export const publicViewAliases = {
+    estudosVisuaisView,
     salaView,
     diarioView,
     turmasView,

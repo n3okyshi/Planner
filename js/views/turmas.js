@@ -1,5 +1,6 @@
 import { model } from '../model.js';
 import { controller } from '../controller.js';
+import { uiController } from '../controllers/uiController.js';
 export const turmasView = {
     confirmandoExclusao: null,
     periodoAtivo: 1,
@@ -38,6 +39,7 @@ export const turmasView = {
         `;
 
         container.innerHTML = html;
+        uiController.initAllDropdowns(container);
     },
     _renderCardTurma(turma) {
         const serieNum = turma.serie ? turma.serie.replace(/\D/g, '') : '?';
@@ -90,7 +92,8 @@ export const turmasView = {
     renderDetalhesTurma(container, turmaId) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
-        const turma = model.state.turmas.find(t => String(t.id) === String(turmaId));
+        const turmas = model.state.turmas || [];
+        const turma = turmas.find(t => String(t.id) === String(turmaId));
         if (!turma) return controller.navigate('turmas');
         const tipoConfig = (model.state.userConfig && model.state.userConfig.periodType) || 'bimestre';
         const numPeriodos = tipoConfig === 'bimestre' ? 4 : tipoConfig === 'trimestre' ? 3 : 2;
@@ -103,9 +106,22 @@ export const turmasView = {
         const html = `
             <div class="fade-in" style="padding-bottom: 5rem;">
                 <div style="display: flex; flex-direction: row; gap: var(--spacing-4); justify-content: space-between; align-items: center; margin-bottom: var(--spacing-8); flex-wrap: wrap;">
-                    <button onclick="controller.navigate('turmas')" style="color: var(--color-slate-400); font-weight: 700; display: flex; align-items: center; gap: var(--spacing-2); font-size: 0.875rem; background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='var(--color-slate-700)'" onmouseout="this.style.color='var(--color-slate-400)'">
-                        <i class="fas fa-arrow-left"></i> Voltar
-                    </button>
+                    <div style="display: flex; align-items: center; gap: var(--spacing-3);">
+                        <button onclick="controller.navigate('turmas')" style="color: var(--color-slate-400); font-weight: 700; display: flex; align-items: center; gap: var(--spacing-2); font-size: 0.875rem; background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='var(--color-slate-700)'" onmouseout="this.style.color='var(--color-slate-400)'">
+                            <i class="fas fa-arrow-left"></i> Voltar
+                        </button>
+                        <div class="custom-dropdown" style="min-width: 200px;">
+                            <input type="hidden" id="select-turma-detalhe" onchange="turmasView.renderDetalhesTurma('view-container', this.value)" value="${turma.id}">
+                            <button type="button" class="dropdown-button" style="padding: 0.4rem 0.75rem; font-size: 0.8125rem;">
+                                <i class="fas fa-users" style="color: var(--color-primary); margin-right: 0.5rem;"></i>
+                                <span class="dropdown-label font-bold">${window.escapeHTML(turma.nome)}</span>
+                                <i class="fas fa-chevron-down text-slate-400 text-xs ml-2"></i>
+                            </button>
+                            <ul class="dropdown-menu hidden custom-scrollbar">
+                                ${turmas.map(t => `<li class="dropdown-item ${String(t.id) === String(turma.id) ? 'dropdown-item--selected' : ''}" data-value="${t.id}">${window.escapeHTML(t.nome)}</li>`).join('')}
+                            </ul>
+                        </div>
+                    </div>
                     <div style="flex: 1; min-width: 250px;">
                         <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--color-slate-800);"><span style="color: var(--color-primary);">${window.escapeHTML(turma.nome)}</span></h2>
                         <div style="display: flex; gap: var(--spacing-4); font-size: 0.75rem; font-weight: 700; color: var(--color-slate-500); margin-top: 0.25rem;">
@@ -316,6 +332,7 @@ export const turmasView = {
         `;
 
         container.innerHTML = html;
+        uiController.initAllDropdowns(container);
     },
     mudarPeriodo(turmaId, num) {
         this.periodoAtivo = num;

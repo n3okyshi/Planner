@@ -1,6 +1,7 @@
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
+import { uiController } from '../controllers/uiController.js';
 
 export const salaView = {
     alunoSelecionadoParaMover: null,
@@ -80,6 +81,7 @@ export const salaView = {
         `;
 
         container.innerHTML = html;
+        uiController.initAllDropdowns(container);
 
         if (this.currentTurmaId) {
             this.carregarMapa(this.currentTurmaId);

@@ -1,5 +1,6 @@
 import { model } from '../model.js';
 import { controller } from '../controller.js';
+import { uiController } from '../controllers/uiController.js';
 
 export const notasAnuaisView = {
     turmaIdSelecionada: null,
@@ -61,6 +62,7 @@ export const notasAnuaisView = {
         `;
 
         container.innerHTML = html;
+        uiController.initAllDropdowns(container);
     },
 
     selecionarTurma(id) {

@@ -1,5 +1,6 @@
 import { model } from '../model.js';
 import { controller } from '../controller.js';
+import { uiController } from '../controllers/uiController.js';
 
 export const diarioView = {
     currentDate: new Date().toISOString().split('T')[0],
@@ -83,6 +84,7 @@ export const diarioView = {
         `;
 
         container.innerHTML = html;
+        uiController.initAllDropdowns(container);
 
         if (turmas.length > 0) {
             this.preencherCampos();
