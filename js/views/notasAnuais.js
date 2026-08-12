@@ -7,6 +7,12 @@ import { renderKatex, formatarTextoComLatex } from '../utils.js';
 
 export const notasAnuaisView = {
     turmaIdSelecionada: null,
+    criterioOrdenacao: 'nome_asc',
+
+    mudarOrdenacao(criterio) {
+        this.criterioOrdenacao = criterio;
+        this.render('view-container');
+    },
 
     async render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
@@ -36,8 +42,22 @@ export const notasAnuaisView = {
                         </p>
                     </div>
 
-                    <div style="display: flex; align-items: center; gap: var(--spacing-3);">
-                        <div class="custom-dropdown" style="min-width: 220px;">
+                    <div style="display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap;">
+                        <!-- SELETOR DE ORDENAÇÃO -->
+                        <div style="display: flex; align-items: center; gap: 0.35rem;">
+                            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">
+                                <i class="fas fa-sort-amount-down"></i> Ordenar:
+                            </label>
+                            <select onchange="notasAnuaisView.mudarOrdenacao(this.value)" class="form-input" style="padding: 0.35rem 0.625rem; font-size: 0.75rem; width: auto; border-radius: var(--radius-lg); background: var(--bg-surface); font-weight: 600;">
+                                <option value="nome_asc" ${this.criterioOrdenacao === 'nome_asc' ? 'selected' : ''}>Nome (A - Z)</option>
+                                <option value="nome_desc" ${this.criterioOrdenacao === 'nome_desc' ? 'selected' : ''}>Nome (Z - A)</option>
+                                <option value="chamada_asc" ${this.criterioOrdenacao === 'chamada_asc' ? 'selected' : ''}>Nº Chamada (1, 2, 3...)</option>
+                                <option value="matricula_asc" ${this.criterioOrdenacao === 'matricula_asc' ? 'selected' : ''}>Matrícula / ID</option>
+                                <option value="status_nome" ${this.criterioOrdenacao === 'status_nome' ? 'selected' : ''}>Situação + Nome (Ativos 1º)</option>
+                            </select>
+                        </div>
+
+                        <div class="custom-dropdown" style="min-width: 200px;">
                             <input type="hidden" id="select-turma-notas" onchange="notasAnuaisView.selecionarTurma(this.value)" value="${this.turmaIdSelecionada || ''}">
                             <button type="button" class="dropdown-button">
                                 <i class="fas fa-users" style="color: var(--color-slate-400); margin-right: var(--spacing-2);"></i>
@@ -89,7 +109,7 @@ export const notasAnuaisView = {
                             </tr>
                         </thead>
                         <tbody>
-                            ${turma.alunos.length > 0 ? turma.alunos.map(aluno => {
+                            ${turma.alunos.length > 0 ? (window.ordenarEstudantes ? window.ordenarEstudantes(turma.alunos, this.criterioOrdenacao) : turma.alunos).map(aluno => {
                                 const resumo = model.getResumoAcademico ? model.getResumoAcademico(turma.id, aluno.id, turma, aluno) : null;
                                 const mediaAnual = resumo?.mediaAnual || 0;
                                 const isAprovado = mediaAnual >= 6;
@@ -101,8 +121,13 @@ export const notasAnuaisView = {
                                         onmouseover="this.style.backgroundColor='var(--color-slate-50)'"
                                         onmouseout="this.style.backgroundColor='transparent'">
                                         <td style="padding: var(--spacing-4) var(--spacing-6);">
-                                            <div style="font-weight: 700; color: var(--color-slate-800); font-size: 0.875rem;">${window.escapeHTML(aluno.nome)}</div>
-                                            <div style="font-size: 0.6875rem; color: var(--color-slate-400); font-weight: 600; text-transform: uppercase;">Matrícula: ${aluno.matricula || aluno.id.slice(-6)}</div>
+                                            <div style="display: flex; align-items: center; gap: 0.375rem;">
+                                                <div style="font-weight: 700; color: var(--color-slate-800); font-size: 0.875rem;">${window.escapeHTML(aluno.nome)}</div>
+                                                <button type="button" onclick="uiController.gerarDossieAluno('${turma.id}', '${aluno.id}')" style="background: none; border: none; cursor: pointer; color: var(--color-slate-400); padding: 0.1rem 0.25rem; border-radius: 0.25rem; transition: all 120ms ease;" onmouseover="this.style.color='#10b981'; this.style.backgroundColor='#ecfdf5';" onmouseout="this.style.color='var(--color-slate-400)'; this.style.backgroundColor='transparent';" title="Gerar Ficha Individual / Dossiê (PDF)">
+                                                    <i class="fas fa-file-invoice" style="font-size: 0.8125rem;"></i>
+                                                </button>
+                                            </div>
+                                            <div style="font-size: 0.6875rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase;">Matrícula: ${aluno.matricula || aluno.id.slice(-6)}</div>
                                         </td>
                                         ${Array.from({ length: numPeriodos }, (_, i) => {
                                             const nota = resumo?.periodos ? (resumo.periodos[i + 1] || 0) : 0;

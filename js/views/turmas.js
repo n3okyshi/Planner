@@ -4,6 +4,25 @@ import { uiController } from '../controllers/uiController.js';
 export const turmasView = {
     confirmandoExclusao: null,
     periodoAtivo: 1,
+    criterioOrdenacao: 'chamada_asc',
+
+    mudarOrdenacao(criterio, turmaId) {
+        this.criterioOrdenacao = criterio;
+        this.renderDetalhesTurma('view-container', turmaId);
+    },
+
+    toggleOrdenacaoColuna(coluna, turmaId) {
+        if (coluna === 'nome') {
+            this.criterioOrdenacao = this.criterioOrdenacao === 'nome_asc' ? 'nome_desc' : 'nome_asc';
+        } else if (coluna === 'chamada') {
+            this.criterioOrdenacao = this.criterioOrdenacao === 'chamada_asc' ? 'chamada_desc' : 'chamada_asc';
+        } else if (coluna === 'matricula') {
+            this.criterioOrdenacao = 'matricula_asc';
+        } else if (coluna === 'status') {
+            this.criterioOrdenacao = 'status_nome';
+        }
+        this.renderDetalhesTurma('view-container', turmaId);
+    },
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
@@ -206,18 +225,37 @@ export const turmasView = {
                     </div>
                 </div>
                 <div style="background-color: var(--color-white); border-radius: var(--radius-2xl); box-shadow: var(--shadow-sm); border: 1px solid var(--color-slate-200); overflow: hidden;">
-                    <div style="padding: var(--spacing-4); background-color: var(--color-slate-50); border-bottom: 1px solid var(--color-slate-200); display: flex; justify-content: space-between; align-items: center;">
-                        <h3 style="font-weight: 700; color: var(--color-slate-700); font-size: 0.875rem;">Diário de Notas - ${this.periodoAtivo}º Período</h3>
-                        <div style="font-size: 0.75rem; color: var(--color-slate-400); text-transform: uppercase; font-weight: 700; letter-spacing: -0.05em;">
-                             Calculado base 10
+                    <div style="padding: var(--spacing-4); background-color: var(--color-slate-50); border-bottom: 1px solid var(--color-slate-200); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                        <div>
+                            <h3 style="font-weight: 700; color: var(--color-slate-700); font-size: 0.875rem; margin: 0;">Diário de Notas - ${this.periodoAtivo}º Período</h3>
+                            <span style="font-size: 0.6875rem; color: var(--color-slate-400); text-transform: uppercase; font-weight: 700; letter-spacing: -0.05em;">Calculado base 10</span>
+                        </div>
+                        
+                        <!-- SELETOR DE ORDENAÇÃO (SORTER) -->
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 0.25rem;">
+                                <i class="fas fa-sort-amount-down"></i> Ordenar:
+                            </label>
+                            <select onchange="turmasView.mudarOrdenacao(this.value, '${turmaId}')" class="form-input" style="padding: 0.35rem 0.625rem; font-size: 0.75rem; width: auto; border-radius: var(--radius-lg); background: var(--bg-surface); font-weight: 600;">
+                                <option value="chamada_asc" ${this.criterioOrdenacao === 'chamada_asc' ? 'selected' : ''}>Nº Chamada (1, 2, 3...)</option>
+                                <option value="chamada_desc" ${this.criterioOrdenacao === 'chamada_desc' ? 'selected' : ''}>Nº Chamada Inverso</option>
+                                <option value="nome_asc" ${this.criterioOrdenacao === 'nome_asc' ? 'selected' : ''}>Nome (A - Z)</option>
+                                <option value="nome_desc" ${this.criterioOrdenacao === 'nome_desc' ? 'selected' : ''}>Nome (Z - A)</option>
+                                <option value="matricula_asc" ${this.criterioOrdenacao === 'matricula_asc' ? 'selected' : ''}>Matrícula / ID</option>
+                                <option value="status_nome" ${this.criterioOrdenacao === 'status_nome' ? 'selected' : ''}>Situação + Nome (Ativos 1º)</option>
+                            </select>
                         </div>
                     </div>
                     <div style="overflow-x: auto;">
                         <table style="width: 100%; text-align: left; border-collapse: collapse;">
                             <thead>
                                 <tr style="background-color: rgba(248, 250, 252, 0.5);">
-                                    <th style="padding: var(--spacing-4); font-size: 0.75rem; font-weight: 700; color: var(--color-slate-500); text-transform: uppercase; width: 2.5rem;">#</th>
-                                    <th style="padding: var(--spacing-4); font-size: 0.75rem; font-weight: 700; color: var(--color-slate-500); text-transform: uppercase; min-width: 200px;">Nome do Aluno</th>
+                                    <th onclick="turmasView.toggleOrdenacaoColuna('chamada', '${turmaId}')" style="padding: var(--spacing-4); font-size: 0.75rem; font-weight: 700; color: var(--color-slate-500); text-transform: uppercase; width: 3.5rem; cursor: pointer;" title="Clique para inverter ordem da chamada">
+                                        # <i class="fas fa-sort" style="font-size: 0.625rem; opacity: 0.5;"></i>
+                                    </th>
+                                    <th onclick="turmasView.toggleOrdenacaoColuna('nome', '${turmaId}')" style="padding: var(--spacing-4); font-size: 0.75rem; font-weight: 700; color: var(--color-slate-500); text-transform: uppercase; min-width: 200px; cursor: pointer;" title="Clique para ordenar alfabeticamente">
+                                        Nome do Aluno <i class="fas fa-sort" style="font-size: 0.625rem; opacity: 0.5;"></i>
+                                    </th>
                                     ${avaliacoesFiltradas.map(av => `
                                         <th style="padding: var(--spacing-2); text-align: center; min-width: 100px; position: relative;" class="hover-group">
                                             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
@@ -233,13 +271,13 @@ export const turmasView = {
                                         </th>
                                     `).join('')}
                                     <th style="padding: var(--spacing-4); font-size: 0.75rem; font-weight: 700; color: var(--color-slate-500); text-transform: uppercase; text-align: center; width: 6rem; background-color: var(--color-slate-50); border-left: 1px solid var(--color-slate-100);">Soma Per.</th>
-                                    <th style="padding: var(--spacing-4); width: 2.5rem;"></th>
+                                    <th style="padding: var(--spacing-4); width: 4rem; text-align: center;">Ações</th>
                                 </tr>
                             </thead>
                             <tbody style="border-top: 1px solid var(--color-slate-100);">
                                 ${turma.alunos.length === 0
                 ? '<tr><td colspan="100%" style="padding: 2rem; text-align: center; color: var(--color-slate-400); font-size: 0.875rem;">Nenhum aluno cadastrado.</td></tr>'
-                : turma.alunos.map((aluno, idx) => {
+                : (window.ordenarEstudantes ? window.ordenarEstudantes(turma.alunos, this.criterioOrdenacao) : turma.alunos).map((aluno, idx) => {
 
                     const status = aluno.status || 'cursando';
                     const chamada = aluno.chamada || (idx + 1);
@@ -307,6 +345,9 @@ export const turmasView = {
                                                 
                                                 <td style="padding: var(--spacing-4); text-align: center;">
                                                     <div style="display: flex; align-items: center; justify-content: center; gap: var(--spacing-2);">
+                                                        <button onclick="uiController.gerarDossieAluno('${turmaId}', '${aluno.id}')" style="color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='#10b981'" onmouseout="this.style.color='var(--color-slate-300)'" title="Gerar Dossiê / Ficha Individual (PDF)">
+                                                            <i class="fas fa-file-invoice"></i>
+                                                        </button>
                                                         <button onclick="controller.openAddAluno('${turmaId}', '${aluno.id}')" style="color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='#3b82f6'" onmouseout="this.style.color='var(--color-slate-300)'" title="Editar Estudante">
                                                             <i class="fas fa-edit"></i>
                                                         </button>

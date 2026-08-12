@@ -247,6 +247,247 @@ export const uiController = {
             document.documentElement.style.setProperty('--primary-color', model.state.userConfig.themeColor);
         }
     },
+    aplicarTema() {
+        const configTheme = model.state.userConfig?.theme;
+        const localTheme = localStorage.getItem('planner_theme');
+        const temaAtual = configTheme || localTheme || 'light';
+        document.documentElement.setAttribute('data-theme', temaAtual);
+        
+        const icon = document.getElementById('theme-toggle-icon');
+        if (icon) {
+            icon.className = temaAtual === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            icon.parentElement.title = temaAtual === 'dark' ? 'Mudar para Tema Claro' : 'Mudar para Tema Escuro';
+        }
+    },
+
+    toggleTema() {
+        const atual = document.documentElement.getAttribute('data-theme') || 'light';
+        const novoTema = atual === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', novoTema);
+        localStorage.setItem('planner_theme', novoTema);
+        
+        if (model.state.userConfig) {
+            model.state.userConfig = { ...model.state.userConfig, theme: novoTema };
+            if (model.salvarEstado) model.salvarEstado();
+        }
+
+        const icon = document.getElementById('theme-toggle-icon');
+        if (icon) {
+            icon.className = novoTema === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
+            icon.parentElement.title = novoTema === 'dark' ? 'Mudar para Tema Claro' : 'Mudar para Tema Escuro';
+        }
+
+        Toast.show(`Tema ${novoTema === 'dark' ? 'Escuro' : 'Claro'} ativado.`, 'info');
+    },
+
+    toggleZenMode() {
+        const isZen = document.body.classList.toggle('zen-presentation-mode');
+        let exitBtn = document.querySelector('.zen-exit-btn');
+        
+        if (isZen) {
+            if (!exitBtn) {
+                exitBtn = document.createElement('button');
+                exitBtn.className = 'zen-exit-btn';
+                exitBtn.innerHTML = '<i class="fas fa-compress"></i> Sair do Modo Apresentação';
+                exitBtn.onclick = () => uiController.toggleZenMode();
+                document.body.appendChild(exitBtn);
+            }
+            if (document.documentElement.requestFullscreen) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            }
+            Toast.show('Modo Apresentação ativado. Barras administrativas ocultadas.', 'info');
+        } else {
+            if (document.fullscreenElement && document.exitFullscreen) {
+                document.exitFullscreen().catch(() => {});
+            }
+            Toast.show('Modo Apresentação encerrado.', 'info');
+        }
+    },
+
+    gerarDossieAluno(turmaId, alunoId) {
+        const turmas = model.state.turmas || [];
+        const turma = turmas.find(t => String(t.id) === String(turmaId));
+        if (!turma) return Toast.show('Turma não encontrada.', 'error');
+        
+        const estudante = (turma.estudantes || []).find(e => String(e.id) === String(alunoId));
+        if (!estudante) return Toast.show('Estudante não encontrado.', 'error');
+
+        // Calcula Frequência
+        const freqTurma = (model.state.frequencia || {})[turma.id] || {};
+        const totalAulas = Object.keys(freqTurma).length;
+        let presencas = 0;
+        let faltas = 0;
+
+        Object.values(freqTurma).forEach(dia => {
+            if (dia && dia[estudante.id] !== undefined) {
+                if (dia[estudante.id] === true || dia[estudante.id] === 'P') presencas++;
+                else if (dia[estudante.id] === false || dia[estudante.id] === 'F') faltas++;
+            }
+        });
+
+        const pctFreq = totalAulas > 0 ? ((presencas / totalAulas) * 100).toFixed(1) : '100.0';
+        const isRiscoLDB = Number(pctFreq) < 75;
+
+        // Calcula Notas Bimestrais
+        const avaliacoes = (model.state.avaliacoes || []).filter(a => String(a.turmaId) === String(turma.id));
+        const mediasBimestrais = { '1º Bimestre': [], '2º Bimestre': [], '3º Bimestre': [], '4º Bimestre': [] };
+
+        avaliacoes.forEach(av => {
+            const bim = av.bimestre || '1º Bimestre';
+            const nota = av.notas ? av.notas[estudante.id] : null;
+            if (nota !== null && nota !== undefined && !isNaN(Number(nota))) {
+                if (mediasBimestrais[bim]) mediasBimestrais[bim].push(Number(nota));
+            }
+        });
+
+        const mediasCalculadas = {};
+        let somaTotal = 0;
+        let bimestresComNota = 0;
+
+        ['1º Bimestre', '2º Bimestre', '3º Bimestre', '4º Bimestre'].forEach(b => {
+            const arr = mediasBimestrais[b] || [];
+            if (arr.length > 0) {
+                const mediaBim = arr.reduce((acc, v) => acc + v, 0) / arr.length;
+                mediasCalculadas[b] = mediaBim.toFixed(1);
+                somaTotal += mediaBim;
+                bimestresComNota++;
+            } else {
+                mediasCalculadas[b] = '-';
+            }
+        });
+
+        const mediaAnual = bimestresComNota > 0 ? (somaTotal / bimestresComNota).toFixed(1) : '-';
+        const professor = model.state.userConfig?.nome || model.state.userConfig?.name || 'Professor(a)';
+        const escola = turma.escola || model.state.userConfig?.escola || 'Escola de Educação Básica';
+
+        // Gráfico SVG de Evolução das Médias
+        const barrasSvg = ['1º Bimestre', '2º Bimestre', '3º Bimestre', '4º Bimestre'].map((b, idx) => {
+            const val = mediasCalculadas[b] !== '-' ? Number(mediasCalculadas[b]) : 0;
+            const altura = Math.min(100, Math.max(8, val * 10));
+            const cor = val >= 6.0 ? '#10b981' : val > 0 ? '#ef4444' : '#cbd5e1';
+            const x = 30 + (idx * 60);
+            const y = 120 - altura;
+            return `
+                <rect x="${x}" y="${y}" width="32" height="${altura}" fill="${cor}" rx="4"></rect>
+                <text x="${x + 16}" y="${y - 6}" font-size="11" font-weight="bold" fill="var(--text-main)" text-anchor="middle">${mediasCalculadas[b]}</text>
+                <text x="${x + 16}" y="136" font-size="10" fill="var(--text-muted)" text-anchor="middle">${b.split(' ')[0]}</text>
+            `;
+        }).join('');
+
+        const modalHtml = `
+            <div class="dossie-modal-container">
+                <div class="dossie-header-box">
+                    <div>
+                        <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--color-primary); margin: 0;">Ficha Individual de Desempenho & Frequência</h2>
+                        <p style="font-size: 0.8125rem; color: var(--text-muted); margin: 0.25rem 0 0 0;">Dossiê Pedagógico do Estudante — Ano Letivo 2026</p>
+                    </div>
+                    <button onclick="window.print()" class="btn-primary btn-print-hide" style="padding: 0.5rem 1rem; font-size: 0.8125rem;">
+                        <i class="fas fa-print"></i> Imprimir Ficha
+                    </button>
+                </div>
+
+                <div class="dossie-student-info">
+                    <div class="dossie-info-field">
+                        <span class="dossie-info-label">Estudante</span>
+                        <span class="dossie-info-val">${window.escapeHTML(estudante.nome)}</span>
+                    </div>
+                    <div class="dossie-info-field">
+                        <span class="dossie-info-label">Turma / Série</span>
+                        <span class="dossie-info-val">${window.escapeHTML(turma.nome)} (${window.escapeHTML(turma.serie || 'Ensino Regular')})</span>
+                    </div>
+                    <div class="dossie-info-field">
+                        <span class="dossie-info-label">Instituição</span>
+                        <span class="dossie-info-val">${window.escapeHTML(escola)}</span>
+                    </div>
+                    <div class="dossie-info-field">
+                        <span class="dossie-info-label">Docente Responsável</span>
+                        <span class="dossie-info-val">${window.escapeHTML(professor)}</span>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <!-- Tabela de Médias -->
+                    <div>
+                        <h4 style="font-size: 0.875rem; font-weight: 800; margin-bottom: 0.5rem;">Desempenho Acadêmico</h4>
+                        <table class="dossie-table">
+                            <thead>
+                                <tr>
+                                    <th>1º Bim</th>
+                                    <th>2º Bim</th>
+                                    <th>3º Bim</th>
+                                    <th>4º Bim</th>
+                                    <th>Média Anual</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>${mediasCalculadas['1º Bimestre']}</td>
+                                    <td>${mediasCalculadas['2º Bimestre']}</td>
+                                    <td>${mediasCalculadas['3º Bimestre']}</td>
+                                    <td>${mediasCalculadas['4º Bimestre']}</td>
+                                    <td style="color: var(--color-primary); font-size: 1.0625rem; font-weight: 800;">${mediaAnual}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <!-- Frequência e Assiduidade -->
+                    <div>
+                        <h4 style="font-size: 0.875rem; font-weight: 800; margin-bottom: 0.5rem;">Assiduidade (LDB Art. 24)</h4>
+                        <div style="display: flex; gap: 0.75rem; background: var(--bg-surface-secondary); padding: 0.75rem; border-radius: var(--radius-lg); border: 1px solid var(--border-color);">
+                            <div style="flex: 1; text-align: center;">
+                                <div style="font-size: 0.6875rem; font-weight: 700; color: var(--text-muted);">PRESENÇAS</div>
+                                <div style="font-size: 1.125rem; font-weight: 800; color: #059669;">${presencas}</div>
+                            </div>
+                            <div style="flex: 1; text-align: center; border-left: 1px solid var(--border-color); border-right: 1px solid var(--border-color);">
+                                <div style="font-size: 0.6875rem; font-weight: 700; color: var(--text-muted);">FALTAS</div>
+                                <div style="font-size: 1.125rem; font-weight: 800; color: ${faltas > 5 ? '#dc2626' : 'var(--text-main)'};">${faltas}</div>
+                            </div>
+                            <div style="flex: 1; text-align: center;">
+                                <div style="font-size: 0.6875rem; font-weight: 700; color: var(--text-muted);">FREQUÊNCIA</div>
+                                <div style="font-size: 1.125rem; font-weight: 800; color: ${isRiscoLDB ? '#dc2626' : '#059669'};">${pctFreq}%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Gráfico de Evolução -->
+                <div class="dossie-chart-box">
+                    <h4 style="font-size: 0.8125rem; font-weight: 800; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.5rem;">Evolução das Notas por Bimestre</h4>
+                    <svg viewBox="0 0 280 150" style="width: 100%; max-height: 120px;">
+                        <line x1="20" y1="120" x2="260" y2="120" stroke="var(--border-color)" stroke-width="1.5"></line>
+                        <!-- Linha de Média 6.0 -->
+                        <line x1="20" y1="60" x2="260" y2="60" stroke="#f59e0b" stroke-width="1" stroke-dasharray="3 3"></line>
+                        <text x="265" y="63" font-size="9" fill="#f59e0b" font-weight="bold">Meta 6.0</text>
+                        ${barrasSvg}
+                    </svg>
+                </div>
+
+                <!-- Parecer Pedagógico -->
+                <div>
+                    <h4 style="font-size: 0.875rem; font-weight: 800; margin-bottom: 0.375rem;">Parecer Descritivo e Observações do Docente</h4>
+                    <div style="border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 0.75rem; min-height: 70px; font-size: 0.8125rem; line-height: 1.5; color: var(--text-main); background: var(--bg-surface);">
+                        ${window.escapeHTML(estudante.observacoes || 'Estudante com participação e engajamento registrados nas atividades curriculares.')}
+                    </div>
+                </div>
+
+                <div class="dossie-signatures-grid">
+                    <div class="dossie-signature-line">
+                        Assinatura do(a) Professor(a)
+                    </div>
+                    <div class="dossie-signature-line">
+                        Coordenação Pedagógica
+                    </div>
+                    <div class="dossie-signature-line">
+                        Responsável pelo Estudante
+                    </div>
+                </div>
+            </div>
+        `;
+
+        this.openModal('Dossiê do Estudante', modalHtml, 'large');
+    },
+
     setupCustomDropdown(dropdownId, onChangeCallback) {
         const container = document.getElementById(dropdownId);
         if (!container) return;

@@ -7,6 +7,8 @@ import { uiController } from './controllers/uiController.js';
 import { authController } from './controllers/authController.js';
 import { turmaController } from './controllers/turmaController.js';
 import { planejamentoController } from './controllers/planejamentoController.js';
+import { commandPaletteController } from './controllers/commandPaletteController.js';
+import { notificationController } from './controllers/notificationController.js';
 import { router } from './router.js';
 import { viewRegistry, publicViewAliases } from './services/viewRegistry.js';
 /**
@@ -26,6 +28,8 @@ export const controller = {
         this.bindViews();
         uiController.aplicarTema();
         uiController.iniciarObservadorDropdowns();
+        commandPaletteController.init();
+        notificationController.init();
         router.initNavigation();
         this.setupGlobalListeners();
         authController.monitorAuth();

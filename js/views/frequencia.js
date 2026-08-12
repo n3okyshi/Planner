@@ -160,9 +160,11 @@ export const frequenciaView = {
         if (!turma || !turma.alunos || turma.alunos.length === 0) {
             return Toast.show("Não há alunos para realizar a chamada.", "warning");
         }
-        this.alunosChamada = [...turma.alunos]
-            .filter(a => a.status !== 'transferido')
-            .sort((a, b) => (a.nome || '').localeCompare((b.nome || ''), 'pt-BR', { sensitivity: 'base' }));
+        this.alunosChamada = window.ordenarEstudantes 
+            ? window.ordenarEstudantes(turma.alunos.filter(a => a.status !== 'transferido'), 'chamada_asc')
+            : [...turma.alunos]
+                .filter(a => a.status !== 'transferido')
+                .sort((a, b) => (a.nome || '').localeCompare((b.nome || ''), 'pt-BR', { sensitivity: 'base' }));
         if (this.alunosChamada.length === 0) {
             return Toast.show("Não há alunos ativos para a chamada nesta turma.", "warning");
         }
@@ -423,9 +425,11 @@ export const frequenciaView = {
             `;
         }
 
-        const alunosOrdenados = [...turma.alunos]
-            .filter(a => a.status !== 'transferido')
-            .sort((a, b) => (a.nome || '').localeCompare((b.nome || ''), 'pt-BR', { sensitivity: 'base' }));
+        const alunosOrdenados = window.ordenarEstudantes
+            ? window.ordenarEstudantes(turma.alunos.filter(a => a.status !== 'transferido'), 'chamada_asc')
+            : [...turma.alunos]
+                .filter(a => a.status !== 'transferido')
+                .sort((a, b) => (a.nome || '').localeCompare((b.nome || ''), 'pt-BR', { sensitivity: 'base' }));
 
         let alunosEmRiscoLDB = 0;
 

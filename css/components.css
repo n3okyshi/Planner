@@ -3231,3 +3231,482 @@
   min-height: 48px;
   color: var(--color-slate-800);
 }
+
+/* ==========================================================================
+   PILAR 1: COMMAND PALETTE (CTRL + K)
+   ========================================================================== */
+.cmd-palette-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  z-index: 9999;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 4rem 1rem 1rem;
+  animation: cmdFadeIn 150ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cmd-palette-modal {
+  width: 100%;
+  max-width: 640px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-2xl);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  animation: cmdSlideDown 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.cmd-palette-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-surface);
+}
+
+.cmd-palette-header i {
+  color: var(--color-primary);
+  font-size: 1.125rem;
+}
+
+.cmd-palette-input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 1.0625rem;
+  color: var(--text-main);
+  outline: none;
+  font-family: inherit;
+}
+
+.cmd-palette-input::placeholder {
+  color: var(--text-faint);
+}
+
+.cmd-palette-body {
+  max-height: 380px;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.cmd-palette-group-title {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 0.5rem 0.75rem 0.25rem;
+}
+
+.cmd-palette-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 0.875rem;
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: background 120ms ease, color 120ms ease;
+  color: var(--text-main);
+}
+
+.cmd-palette-item:hover,
+.cmd-palette-item.active {
+  background: var(--color-primary-light);
+  color: var(--color-primary);
+}
+
+.cmd-palette-item-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.cmd-palette-item-icon {
+  width: 2rem;
+  height: 2rem;
+  border-radius: var(--radius-md);
+  background: var(--bg-surface-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  transition: all 120ms ease;
+}
+
+.cmd-palette-item:hover .cmd-palette-item-icon,
+.cmd-palette-item.active .cmd-palette-item-icon {
+  background: var(--color-primary);
+  color: #ffffff;
+}
+
+.cmd-palette-item-badge {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  padding: 0.15rem 0.4rem;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface-secondary);
+  color: var(--text-muted);
+  border: 1px solid var(--border-color);
+}
+
+.cmd-palette-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 1.25rem;
+  background: var(--bg-surface-secondary);
+  border-top: 1px solid var(--border-color);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.cmd-kbd {
+  font-family: monospace;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  padding: 0.1rem 0.35rem;
+  border-radius: 4px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+}
+
+@keyframes cmdFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes cmdSlideDown {
+  from { opacity: 0; transform: translateY(-12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ==========================================================================
+   PILAR 2: CENTRAL DE NOTIFICAÇÕES PEDAGÓGICAS
+   ========================================================================== */
+.notification-container {
+  position: relative;
+}
+
+.notification-badge-icon {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 0.625rem;
+  font-weight: 800;
+  min-width: 1.125rem;
+  height: 1.125rem;
+  border-radius: var(--radius-full);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 0.25rem;
+  border: 2px solid var(--bg-surface);
+  animation: pulseBadge 2s infinite;
+}
+
+@keyframes pulseBadge {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+.notification-popover {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  width: 360px;
+  max-width: 90vw;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: cmdSlideDown 150ms ease;
+}
+
+.notification-header {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-surface);
+}
+
+.notification-header h4 {
+  font-size: 0.875rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin: 0;
+}
+
+.notification-list {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.notification-item:hover {
+  background: var(--bg-surface-secondary);
+}
+
+.notification-item--danger {
+  background: rgba(239, 68, 68, 0.05);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.notification-item--warning {
+  background: rgba(245, 158, 11, 0.05);
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.notification-item--info {
+  background: rgba(59, 130, 246, 0.05);
+  border-color: rgba(59, 130, 246, 0.2);
+}
+
+.notification-icon {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 0.8125rem;
+}
+
+.notification-item--danger .notification-icon {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.notification-item--warning .notification-icon {
+  background: #fef3c7;
+  color: #d97706;
+}
+
+.notification-item--info .notification-icon {
+  background: #dbeafe;
+  color: #2563eb;
+}
+
+.notification-text {
+  flex: 1;
+}
+
+.notification-text-title {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.2;
+}
+
+.notification-text-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 0.15rem;
+  line-height: 1.35;
+}
+
+/* ==========================================================================
+   PILAR 3: DOSSIÊ E FICHA INDIVIDUAL DO ALUNO (IMPRESSÃO A4)
+   ========================================================================== */
+.dossie-modal-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  color: var(--text-main);
+}
+
+.dossie-header-box {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 2px solid var(--border-color);
+  padding-bottom: 1rem;
+}
+
+.dossie-student-info {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+  background: var(--bg-surface-secondary);
+  padding: 1rem;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-color);
+}
+
+.dossie-info-field {
+  display: flex;
+  flex-direction: column;
+}
+
+.dossie-info-label {
+  font-size: 0.6875rem;
+  font-weight: 800;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dossie-info-val {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.dossie-chart-box {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-xl);
+  padding: 1rem;
+}
+
+.dossie-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.5rem 0;
+  font-size: 0.875rem;
+}
+
+.dossie-table th {
+  background: var(--bg-surface-secondary);
+  color: var(--text-main);
+  font-weight: 800;
+  padding: 0.625rem;
+  border: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.dossie-table td {
+  padding: 0.625rem;
+  border: 1px solid var(--border-color);
+  text-align: center;
+  font-weight: 600;
+}
+
+.dossie-signatures-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 2rem;
+  padding-top: 1rem;
+}
+
+.dossie-signature-line {
+  border-top: 1px solid var(--color-slate-400);
+  text-align: center;
+  padding-top: 0.375rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #global-modal, #global-modal * {
+    visibility: visible;
+  }
+  #global-modal {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 0 !important;
+  }
+  .modal__header, .modal__close, .btn-print-hide {
+    display: none !important;
+  }
+  .modal__content {
+    box-shadow: none !important;
+    border: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0 !important;
+  }
+  .dossie-modal-container {
+    color: #000000 !important;
+  }
+  .dossie-table th, .dossie-table td {
+    border-color: #cbd5e1 !important;
+    color: #000000 !important;
+  }
+}
+
+/* ==========================================================================
+   PILAR 4: MODO FOCO / APRESENTAÇÃO EM SALA (ZEN MODE)
+   ========================================================================== */
+body.zen-presentation-mode #app-sidebar,
+body.zen-presentation-mode .l-header {
+  display: none !important;
+}
+
+body.zen-presentation-mode #main-content {
+  margin: 0 !important;
+  padding: 1rem !important;
+  max-width: 100vw !important;
+}
+
+.zen-exit-btn {
+  position: fixed;
+  bottom: 1.5rem;
+  right: 1.5rem;
+  background: rgba(15, 23, 42, 0.85);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.75rem 1.25rem;
+  border-radius: var(--radius-full);
+  font-size: 0.875rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: var(--shadow-lg);
+  backdrop-filter: blur(8px);
+  z-index: 10000;
+  display: none;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 150ms ease;
+}
+
+.zen-exit-btn:hover {
+  background: var(--color-primary);
+  transform: scale(1.05);
+}
+
+body.zen-presentation-mode .zen-exit-btn {
+  display: flex !important;
+}

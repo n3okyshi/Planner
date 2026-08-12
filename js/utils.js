@@ -494,6 +494,65 @@ export async function lerArquivoTexto(file) {
     });
 }
 
+/**
+ * Ordena uma lista de estudantes de acordo com diferentes critérios pedagógicos e administrativos.
+ * Critérios suportados:
+ * - 'chamada_asc': Número de chamada crescente (1, 2, 3...)
+ * - 'chamada_desc': Número de chamada decrescente
+ * - 'nome_asc': Ordem alfabética pelo nome (A - Z)
+ * - 'nome_desc': Ordem alfabética inversa (Z - A)
+ * - 'matricula_asc': Matrícula ou ID institucional
+ * - 'status_nome': Situação ('cursando' no topo) + Ordem alfabética simultaneamente
+ * @param {Array} estudantes - Array de objetos de estudantes.
+ * @param {string} [criterio='chamada_asc'] - Critério de ordenação.
+ * @returns {Array} Nova array com os estudantes ordenados.
+ */
+export function ordenarEstudantes(estudantes, criterio = 'chamada_asc') {
+    if (!Array.isArray(estudantes)) return [];
+    const lista = [...estudantes];
+
+    const extrairNumeroChamada = (val) => {
+        if (val === null || val === undefined) return 999999;
+        const n = parseInt(String(val).replace(/\D/g, ''), 10);
+        return isNaN(n) ? 999999 : n;
+    };
+
+    switch (criterio) {
+        case 'nome_asc':
+            return lista.sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt-BR', { sensitivity: 'base' }));
+        case 'nome_desc':
+            return lista.sort((a, b) => (b.nome || '').localeCompare(a.nome || '', 'pt-BR', { sensitivity: 'base' }));
+        case 'chamada_asc':
+            return lista.sort((a, b) => {
+                const nA = extrairNumeroChamada(a.chamada || a.numero);
+                const nB = extrairNumeroChamada(b.chamada || b.numero);
+                if (nA !== nB) return nA - nB;
+                return (a.nome || '').localeCompare(b.nome || '', 'pt-BR', { sensitivity: 'base' });
+            });
+        case 'chamada_desc':
+            return lista.sort((a, b) => {
+                const nA = extrairNumeroChamada(a.chamada || a.numero);
+                const nB = extrairNumeroChamada(b.chamada || b.numero);
+                if (nA !== nB) return nB - nA;
+                return (b.nome || '').localeCompare(a.nome || '', 'pt-BR', { sensitivity: 'base' });
+            });
+        case 'matricula_asc':
+            return lista.sort((a, b) => (a.matricula || a.id || '').localeCompare(b.matricula || b.id || '', 'pt-BR', { numeric: true }));
+        case 'status_nome':
+            // Prioridade de status: 'cursando' (0), outros (1)
+            return lista.sort((a, b) => {
+                const stA = (a.status || 'cursando').toLowerCase();
+                const stB = (b.status || 'cursando').toLowerCase();
+                const pesoA = stA === 'cursando' ? 0 : 1;
+                const pesoB = stB === 'cursando' ? 0 : 1;
+                if (pesoA !== pesoB) return pesoA - pesoB;
+                return (a.nome || '').localeCompare(b.nome || '', 'pt-BR', { sensitivity: 'base' });
+            });
+        default:
+            return lista;
+    }
+}
+
 if (typeof window !== 'undefined') {
     window.escapeHTML = escapeHTML;
     window.sanitizeComLatex = sanitizeComLatex;
@@ -508,6 +567,7 @@ if (typeof window !== 'undefined') {
     window.generateSecurePIN = generateSecurePIN;
     window.secureRandomInt = secureRandomInt;
     window.secureShuffle = secureShuffle;
+    window.ordenarEstudantes = ordenarEstudantes;
 }
 
 
