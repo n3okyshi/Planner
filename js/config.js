@@ -1,3 +1,13 @@
+/**
+ * CONFIGURAÇÃO DO GOOGLE FIREBASE (CLIENTE WEB)
+ * 
+ * Nota de Segurança Arquitetural:
+ * Em aplicações web estáticas (SPAs) baseadas em Firebase, o objeto `firebaseConfig`
+ * atua como identificador público do projeto no Google Cloud (identifica o projeto,
+ * mas não autoriza privilégios administrativos).
+ * A segurança real dos dados é garantida pelas Regras de Segurança do Firestore
+ * (Security Rules) e restrições de HTTP Referrer no Google Cloud Console.
+ */
 export const firebaseConfig = {
     apiKey: atob("QUl6YVN5REJZOWhERVR1Z3pVYWNXcm1mcUgwNm9CTlpmR0FIXzJz"),
     authDomain: "planner-9aeac.firebaseapp.com",

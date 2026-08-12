@@ -1,6 +1,7 @@
 import { model } from './model.js';
 import { firebaseService } from './firebase-service.js';
 import { controller } from './controller.js';
+import { syncService } from './services/syncService.js';
 
 export const app = {
     initialized: false,
@@ -19,6 +20,10 @@ export const app = {
             firebaseService.init();
         } else {
             console.warn('[Planner] Firebase service indisponível no bootstrap.');
+        }
+
+        if (syncService && typeof syncService.init === 'function') {
+            syncService.init();
         }
 
         if (controller && typeof controller.init === 'function') {

@@ -13,70 +13,140 @@ export const model = {
     coresComponentes,
     tiposEventos,
     state: initialState,
+    _isHydrating: false,
+
     init() {
+        this._isHydrating = true;
         let loadedData = { ...this.state };
         const savedData = storageService.load();
         if (savedData) {
             try {
                 loadedData = { ...loadedData, ...savedData };
-                console.log("✅ Cache local carregado.");
+                console.log("✅ Cache síncrono carregado.");
             } catch (e) {
                 console.error("Erro ao restaurar cache local:", e);
             }
         }
+
         this.state = createReactiveState(loadedData, (caminho, novoValor, valorAntigo) => {
+            if (this._isHydrating) return;
             try {
-                storageService.save(this.state);
+                storageService.saveAsync(this.state);
             } catch (e) {
-                console.warn("Erro no AutoSave local (Quota/Espaço)", e);
+                console.warn("Erro no AutoSave IndexedDB:", e);
             }
             if (this._debouncedCloudSave) {
                 this._debouncedCloudSave();
             }
         });
+
+        // Hidratação assíncrona profunda via IndexedDB (sem limite de 5MB)
+        if (storageService.loadAsync) {
+            storageService.loadAsync().then(asyncData => {
+                if (asyncData) {
+                    this._isHydrating = true;
+                    Object.keys(asyncData).forEach(k => {
+                        if (asyncData[k] && (!this.state[k] || Array.isArray(asyncData[k]) && asyncData[k].length > (this.state[k]?.length || 0))) {
+                            this.state[k] = asyncData[k];
+                        }
+                    });
+                    console.log("⚡ IndexedDB totalmente sincronizado na memória.");
+                }
+            }).catch(err => console.warn("Aviso IndexedDB hydration:", err))
+            .finally(() => {
+                this._isHydrating = false;
+            });
+        } else {
+            this._isHydrating = false;
+        }
     },
+
+    mergeStates(local, cloud) {
+        if (!cloud) return local;
+        const merged = { ...local };
+
+        // 1. Configurações de Usuário
+        merged.userConfig = { ...(local.userConfig || {}), ...(cloud.userConfig || {}) };
+
+        // 2. Turmas (Merge por ID e timestamp granular)
+        const turmasMap = new Map();
+        (local.turmas || []).forEach(t => turmasMap.set(String(t.id), t));
+        (cloud.turmas || []).forEach(ct => {
+            const id = String(ct.id);
+            const lt = turmasMap.get(id);
+            if (!lt) {
+                turmasMap.set(id, ct);
+            } else {
+                const timeCloud = new Date(ct.updatedAt || ct.createdAt || 0).getTime();
+                const timeLocal = new Date(lt.updatedAt || lt.createdAt || 0).getTime();
+                if (timeCloud >= timeLocal) {
+                    // Mescla alunos e avaliações se existirem
+                    turmasMap.set(id, { ...lt, ...ct });
+                }
+            }
+        });
+        merged.turmas = Array.from(turmasMap.values());
+
+        // 3. Planos Diários (Merge por data e turma)
+        merged.planosDiarios = { ...(local.planosDiarios || {}) };
+        if (cloud.planosDiarios) {
+            Object.keys(cloud.planosDiarios).forEach(dataIso => {
+                merged.planosDiarios[dataIso] = {
+                    ...(merged.planosDiarios[dataIso] || {}),
+                    ...(cloud.planosDiarios[dataIso] || {})
+                };
+            });
+        }
+
+        // 4. Eventos do Calendário (Merge por data)
+        merged.eventos = { ...(local.eventos || {}), ...(cloud.eventos || {}) };
+
+        // 5. Horário Escolar
+        if (cloud.horario) {
+            merged.horario = { ...(local.horario || {}), ...(cloud.horario || {}) };
+        }
+
+        // 6. Coleções baseadas em Array (Questões, Materiais, Quizzes, Flashcards, Mindmaps)
+        const mergeColecaoPorId = (localArr = [], cloudArr = []) => {
+            const map = new Map();
+            localArr.forEach(item => map.set(String(item.id), item));
+            cloudArr.forEach(item => {
+                const id = String(item.id);
+                const existente = map.get(id);
+                if (!existente) {
+                    map.set(id, item);
+                } else {
+                    const timeC = new Date(item.updatedAt || item.createdAt || 0).getTime();
+                    const timeL = new Date(existente.updatedAt || existente.createdAt || 0).getTime();
+                    if (timeC >= timeL) map.set(id, item);
+                }
+            });
+            return Array.from(map.values());
+        };
+
+        merged.questoes = mergeColecaoPorId(local.questoes || [], cloud.questoes || []);
+        merged.materiaisGerados = mergeColecaoPorId(local.materiaisGerados || [], cloud.materiaisGerados || []);
+        merged.quizzes = mergeColecaoPorId(local.quizzes || [], cloud.quizzes || []);
+        merged.flashcards = mergeColecaoPorId(local.flashcards || [], cloud.flashcards || []);
+        merged.mindmaps = mergeColecaoPorId(local.mindmaps || [], cloud.mindmaps || []);
+
+        return merged;
+    },
+
     async loadUserData(user = null) {
         const userAuth = user || (firebaseService?.auth?.currentUser) || this.currentUser;
         if (!userAuth) return;
         this.currentUser = userAuth;
-        this.updateStatusCloud('<i class="fas fa-download"></i> Verificando dados...', 'text-blue-600');
+        this.updateStatusCloud('<i class="fas fa-download"></i> Sincronizando dados...', 'text-blue-600');
         try {
             const cloudData = await firebaseService.loadFullData(this.currentUser.uid);
             if (cloudData) {
-                const cloudQuestoes = cloudData.questoes || [];
-                const localQuestoes = this.state.questoes || [];
-                const mapaUnificado = new Map();
-                const processarQuestao = (q) => {
-                    const id = String(q.id);
-                    const existente = mapaUnificado.get(id);
-                    if (!existente) {
-                        mapaUnificado.set(id, q);
-                    } else {
-                        const dataNova = new Date(q.updatedAt || q.createdAt || 0).getTime();
-                        const dataExistente = new Date(existente.updatedAt || existente.createdAt || 0).getTime();
-                        if (dataNova > dataExistente) {
-                            mapaUnificado.set(id, q);
-                        }
-                    }
-                };
-                cloudQuestoes.forEach(processarQuestao);
-                localQuestoes.forEach(processarQuestao);
-                const listaFinalQuestoes = Array.from(mapaUnificado.values());
+                const merged = this.mergeStates(this.state, cloudData);
 
-                if (cloudData.userConfig) {
-                    this.state.userConfig = { ...this.state.userConfig, ...cloudData.userConfig };
-                }
-                if (cloudData.turmas) this.state.turmas = cloudData.turmas;
-                if (cloudData.eventos) this.state.eventos = cloudData.eventos;
-                if (cloudData.planosDiarios) this.state.planosDiarios = cloudData.planosDiarios;
-                if (cloudData.horario) this.state.horario = cloudData.horario;
-                if (cloudData.materiaisGerados) this.state.materiaisGerados = cloudData.materiaisGerados;
-                if (cloudData.quizzes) this.state.quizzes = cloudData.quizzes;
-                if (cloudData.flashcards) this.state.flashcards = cloudData.flashcards;
-                if (cloudData.mindmaps) this.state.mindmaps = cloudData.mindmaps;
-                if (cloudData.lastUpdate) this.state.lastUpdate = cloudData.lastUpdate;
-
-                this.state.questoes = listaFinalQuestoes;
+                // Aplica estado unificado
+                Object.keys(merged).forEach(k => {
+                    this.state[k] = merged[k];
+                });
 
                 // Fallback automático do nome do professor da conta Google se estiver vazio
                 if ((!this.state.userConfig.profName || this.state.userConfig.profName.trim() === '') && this.currentUser.displayName) {
@@ -101,19 +171,12 @@ export const model = {
         }
         firebaseService.subscribeToUserChanges(this.currentUser.uid, (newData) => {
             if (newData) {
-                console.log("🔄 Atualização remota recebida.");
-                if (newData.userConfig) this.state.userConfig = { ...this.state.userConfig, ...newData.userConfig };
-                if (newData.eventos) this.state.eventos = { ...this.state.eventos, ...newData.eventos };
-                if (newData.turmas) this.state.turmas = newData.turmas;
-                if (newData.planosDiarios) this.state.planosDiarios = newData.planosDiarios;
-                if (newData.horario) this.state.horario = newData.horario;
-                if (newData.materiaisGerados) this.state.materiaisGerados = newData.materiaisGerados;
-                if (newData.quizzes) this.state.quizzes = newData.quizzes;
-                if (newData.flashcards) this.state.flashcards = newData.flashcards;
-                if (newData.mindmaps) this.state.mindmaps = newData.mindmaps;
-                try {
-                    storageService.save(this.state);
-                } catch (e) { console.error(e); }
+                console.log("🔄 Atualização remota recebida com fusão granular.");
+                const merged = this.mergeStates(this.state, newData);
+                Object.keys(merged).forEach(k => {
+                    this.state[k] = merged[k];
+                });
+                storageService.saveAsync(this.state).catch(() => {});
             }
         });
     },

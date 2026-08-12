@@ -9,6 +9,7 @@ export const dashboardView = {
         const saudacao = this.getSaudacao();
         const pendencias = this.calcularPendencias();
         const aniversariantes = this.buscarAniversariantes();
+        const alunosRiscoLDB = this.calcularAlertasLDB();
 
         const hoje = new Date();
         const dataHojeIso = hoje.toISOString().split('T')[0];
@@ -37,6 +38,25 @@ export const dashboardView = {
                          </button>
                     </div>
                 </div>
+
+                ${alunosRiscoLDB > 0 ? `
+                    <div class="card" style="background: linear-gradient(135deg, #fef2f2, #fff1f2); border-left: 5px solid #ef4444; padding: 1rem 1.5rem; display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; box-shadow: 0 4px 15px rgba(239,68,68,0.08);">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div style="width: 2.75rem; height: 2.75rem; border-radius: 0.875rem; background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;">
+                                <i class="fas fa-exclamation-triangle"></i>
+                            </div>
+                            <div>
+                                <h4 style="font-size: 0.9375rem; font-weight: 800; color: #991b1b; margin: 0;">Atenção Pedagógica: Risco de Infrequência (LDB Art. 24)</h4>
+                                <p style="font-size: 0.8125rem; color: #b91c1c; margin: 0.25rem 0 0 0;">
+                                    Identificamos <strong>${alunosRiscoLDB} estudante(s)</strong> com 25% ou mais de faltas acumuladas nas suas turmas.
+                                </p>
+                            </div>
+                        </div>
+                        <button onclick="controller.navigate('frequencia')" class="btn-primary" style="background: #ef4444; border-color: #ef4444; font-size: 0.8125rem; font-weight: 800; padding: 0.5rem 1rem; border-radius: 0.75rem;">
+                            <i class="fas fa-clipboard-check"></i> Ver Frequência
+                        </button>
+                    </div>
+                ` : ''}
                 <div class="stat-grid stat-grid--3">
                     
                     <!-- Card 1: Situação de Hoje -->
@@ -176,5 +196,30 @@ export const dashboardView = {
     },
     buscarAniversariantes() {
         return [];
+    },
+    calcularAlertasLDB() {
+        const turmas = model.state.turmas || [];
+        let totalAlunosRisco = 0;
+
+        turmas.forEach(t => {
+            (t.alunos || []).forEach(aluno => {
+                if (aluno.status === 'transferido') return;
+                const freqObj = aluno.frequencia || {};
+                let totalReg = 0;
+                let totalFaltas = 0;
+                Object.values(freqObj).forEach(val => {
+                    if (val === 'P' || val === 'F' || val === 'J') totalReg++;
+                    if (val === 'F') totalFaltas++;
+                });
+                if (totalReg >= 5) {
+                    const pctFaltas = Math.round((totalFaltas / totalReg) * 100);
+                    if (pctFaltas >= 25) {
+                        totalAlunosRisco++;
+                    }
+                }
+            });
+        });
+
+        return totalAlunosRisco;
     }
 };

@@ -1,10 +1,11 @@
 import { firebaseService } from '../firebase-service.js';
 import { turmaService } from '../services/turmaService.js';
+import { generateId } from '../utils.js';
 
 export const turmaMethods = {
     addTurma(nome, nivel, serie, identificador) {
         const novaTurma = {
-            id: String(Date.now()),
+            id: generateId('turma'),
             nome: nome.trim(),
             nivel,
             serie,
@@ -31,7 +32,7 @@ export const turmaMethods = {
         const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
         if (turma && nomeAluno.trim()) {
             const novoAluno = {
-                id: String(Date.now() + Math.floor(Math.random() * 1000)),
+                id: generateId('aluno'),
                 nome: nomeAluno.trim(),
                 notas: {},
                 frequencia: {},

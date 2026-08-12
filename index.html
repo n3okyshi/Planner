@@ -8,7 +8,7 @@
     <meta name="theme-color" content="#0f172a">
 
     <meta http-equiv="Content-Security-Policy"
-        content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://www.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.gstatic.com; img-src 'self' data: https://www.gstatic.com https://lh3.googleusercontent.com https://api.qrserver.com; connect-src 'self' https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://www.gstatic.com https://generativelanguage.googleapis.com; frame-src 'self' https://planner-9aeac.firebaseapp.com https://phet.colorado.edu;">
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://www.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.gstatic.com; img-src 'self' data: https://www.gstatic.com https://lh3.googleusercontent.com https://api.qrserver.com; connect-src 'self' https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://gstatic.com https://www.gstatic.com https://generativelanguage.googleapis.com; frame-src 'self' https://planner-9aeac.firebaseapp.com https://phet.colorado.edu;">
 
 
     <title>Planner Pro Docente 2026</title>
@@ -26,8 +26,8 @@
     <link rel="stylesheet" href="./css/layout.css">
     <link rel="stylesheet" href="./css/components.css">
 
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
-    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 
     <style>
         #toast-container {
@@ -217,6 +217,14 @@
                     <i class="fas fa-award"></i>
                 </div>
                 <span class="nav-label" style="font-size: 0.875rem; font-weight: 500;">Notas Anuais</span>
+            </button>
+
+            <button id="nav-ata-conselho" onclick="controller.navigate('ata-conselho')" class="nav-item"
+                title="Ata do Conselho de Classe">
+                <div class="nav-item__icon">
+                    <i class="fas fa-clipboard-check"></i>
+                </div>
+                <span class="nav-label" style="font-size: 0.875rem; font-weight: 500;">Ata do Conselho</span>
             </button>
 
             <!-- CATEGORIA: CONTA -->

@@ -8,7 +8,7 @@ import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { firebaseService } from '../firebase-service.js';
 import { Toast } from '../components/toast.js';
-import { renderKatex } from '../utils.js';
+import { renderKatex, formatarTextoComLatex, sanitizeComLatex } from '../utils.js';
 
 /**
  * View da Comunidade de Questões.
@@ -409,8 +409,8 @@ export const comunidadeView = {
 
                     <div class="comunidade-card__content">
                         ${estrelasHtml}
-                        <div class="comunidade-card__enunciado">
-                            ${q.enunciado ? window.escapeHTML(q.enunciado.substring(0, 300)).replace(/\n/g, '<br>') + (q.enunciado.length > 300 ? '...' : '') : 'Sem texto.'}
+                        <div class="comunidade-card__enunciado" style="max-height: 140px; overflow-y: auto; line-height: 1.5;">
+                            ${q.enunciado ? formatarTextoComLatex(sanitizeComLatex(q.enunciado).replace(/\n/g, '<br>')) : 'Sem texto.'}
                         </div>
                     </div>
 

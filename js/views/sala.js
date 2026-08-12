@@ -2,6 +2,7 @@ import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
 import { uiController } from '../controllers/uiController.js';
+import { secureShuffle } from '../utils.js';
 
 export const salaView = {
     alunoSelecionadoParaMover: null,
@@ -205,7 +206,7 @@ export const salaView = {
             return Toast.show("Nenhum aluno nesta turma para embaralhar.", "warning");
         }
 
-        const posicoes = Array.from({ length: 36 }, (_, i) => i + 1).sort(() => Math.random() - 0.5);
+        const posicoes = secureShuffle(Array.from({ length: 36 }, (_, i) => i + 1));
         turma.alunos.forEach((aluno, index) => {
             aluno.posicao = posicoes[index];
         });

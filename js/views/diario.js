@@ -1,6 +1,7 @@
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { uiController } from '../controllers/uiController.js';
+import { renderKatex, formatarTextoComLatex, anexarPreviewLatex } from '../utils.js';
 
 export const diarioView = {
     currentDate: new Date().toISOString().split('T')[0],
@@ -92,6 +93,7 @@ export const diarioView = {
                 window.planejamentoController.initDiarioAutosave();
             }
         }
+        renderKatex(container);
     },
 
     gerarMiniCalendario() {

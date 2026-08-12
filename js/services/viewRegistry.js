@@ -23,6 +23,7 @@ import { correcaoAutomaticaView } from '../views/correcaoAutomatica.js';
 import { simuladoresView } from '../views/simuladores.js';
 import { bimestralizacaoView } from '../views/bimestralizacao.js';
 import { estudosVisuaisView } from '../views/estudosVisuais.js';
+import { ataConselhoView } from '../views/ataConselho.js';
 
 export const viewRegistry = {
     dashboard: dashboardView,
@@ -42,6 +43,8 @@ export const viewRegistry = {
     'stats-provas': estatisticasProvasView,
     comunidade: comunidadeView,
     'notas-anuais': notasAnuaisView,
+    'ata-conselho': ataConselhoView,
+    'conselho-classe': ataConselhoView,
     'criar-material': criarMaterialView,
     biblioteca: bibliotecaView,
     'quiz-gestor': quizGestorView,
@@ -75,6 +78,7 @@ export const publicViewAliases = {
     estatisticasProvasView,
     comunidadeView,
     notasAnuaisView,
+    ataConselhoView,
     settingsView,
     dashboardView,
     criarMaterialView,

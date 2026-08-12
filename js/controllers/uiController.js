@@ -2,6 +2,8 @@
 import { model } from '../model.js';
 import { Toast } from '../components/toast.js';
 import { controller } from '../controller.js';
+import { renderMath } from '../utils.js';
+
 export const uiController = {
     openModal(titulo, conteudo, tamanho = 'medium') {
         const modal = document.getElementById('global-modal');
@@ -28,7 +30,13 @@ export const uiController = {
         `;
         modal.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
-        setTimeout(() => uiController.initAllDropdowns(), 50);
+        setTimeout(() => {
+            uiController.initAllDropdowns();
+            renderMath(modal);
+        }, 50);
+        setTimeout(() => {
+            renderMath(modal);
+        }, 200);
     },
     closeModal() {
         const modal = document.getElementById('global-modal');
@@ -334,24 +342,16 @@ export const uiController = {
                     
                     // Executa callback de forma assíncrona para permitir encerramento do clique
                     setTimeout(() => {
-                        // 1. Executa onchange atribuído programaticamente
+                        // 1. Executa onchange atribuído programaticamente se existir
                         if (typeof inputHidden.onchange === 'function') {
                             try {
                                 inputHidden.onchange.call(inputHidden, { target: inputHidden });
                             } catch (err) {
                                 console.error("Erro no handler onchange do dropdown:", err);
                             }
-                        } else if (inputHidden.getAttribute('onchange')) {
-                            // 2. Executa string do atributo onchange inline com contexto correto
-                            try {
-                                const handlerFn = new Function('event', inputHidden.getAttribute('onchange'));
-                                handlerFn.call(inputHidden, { target: inputHidden });
-                            } catch (err) {
-                                console.error("Erro ao executar atributo onchange do dropdown:", err);
-                            }
                         }
 
-                        // 3. Dispara eventos padrão DOM
+                        // 2. Dispara eventos padrão DOM nativos de forma segura
                         inputHidden.dispatchEvent(new Event('change', { bubbles: true }));
                         inputHidden.dispatchEvent(new Event('input', { bubbles: true }));
                     }, 0);

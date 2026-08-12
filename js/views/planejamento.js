@@ -1,6 +1,7 @@
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { uiController } from '../controllers/uiController.js';
+import { renderKatex, formatarTextoComLatex } from '../utils.js';
 
 export const planejamentoView = {
     currentTurmaId: null,
@@ -75,6 +76,7 @@ export const planejamentoView = {
 
         container.innerHTML = html;
         uiController.initAllDropdowns(container);
+        renderKatex(container);
     },
 
     mudarTurma(id) {
@@ -190,7 +192,7 @@ export const planejamentoView = {
                     ${subtitulo}
                 </p>
                 <p style="font-size: 0.75rem; color: var(--color-slate-700); font-weight: 500; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
-                    ${descSafe}
+                    ${formatarTextoComLatex(descSafe)}
                 </p>
             </div>
         `;

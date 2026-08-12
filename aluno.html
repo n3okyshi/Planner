@@ -3,12 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#0f172a">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://www.gstatic.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.googleapis.com; font-src 'self' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://fonts.gstatic.com; img-src 'self' data: https://www.gstatic.com https://lh3.googleusercontent.com; connect-src 'self' https://identitytoolkit.googleapis.com https://firestore.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://www.gstatic.com; frame-src 'self' https://planner-9aeac.firebaseapp.com;">
+
     <title>Quiz ao Vivo — Planner Pro</title>
 
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🎮</text></svg>">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 
     <!-- Firebase SDK Compat -->
     <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
@@ -219,11 +222,18 @@
             <span style="font-size: 1.25rem;">🎮</span>
             <span>Planner Pro • Quiz</span>
         </div>
-        <div id="player-status-bar" style="display: none; align-items: center; gap: 0.75rem;">
-            <span id="player-avatar-badge" style="font-size: 1.35rem;">🎓</span>
-            <div style="text-align: right;">
-                <span id="player-name-badge" style="font-weight: 800; font-size: 0.8125rem; display: block; line-height: 1.1;">Jogador</span>
-                <span id="player-score-badge" style="font-size: 0.75rem; font-weight: 900; color: var(--primary);">0 pts</span>
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <button type="button" onclick="QuizAlunoApp.alternarFullscreen()" id="btn-fullscreen-toggle" 
+                    title="Alternar Modo Foco / Tela Cheia" 
+                    style="background: #f1f5f9; border: 1px solid #e2e8f0; color: #475569; width: 2.25rem; height: 2.25rem; border-radius: 0.625rem; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; cursor: pointer; transition: all 0.2s;">
+                <i class="fas fa-expand"></i>
+            </button>
+            <div id="player-status-bar" style="display: none; align-items: center; gap: 0.75rem;">
+                <span id="player-avatar-badge" style="font-size: 1.35rem;">🎓</span>
+                <div style="text-align: right;">
+                    <span id="player-name-badge" style="font-weight: 800; font-size: 0.8125rem; display: block; line-height: 1.1;">Jogador</span>
+                    <span id="player-score-badge" style="font-size: 0.75rem; font-weight: 900; color: var(--primary);">0 pts</span>
+                </div>
             </div>
         </div>
     </div>
@@ -238,6 +248,7 @@
 
     <script type="module">
         import { firebaseConfig } from './js/config.js';
+        import { generateId } from './js/utils.js';
 
         // Inicializar Firebase isolado para o aluno
         if (!firebase.apps.length) {
@@ -254,10 +265,11 @@
             unsubscribe: null,
             broadcastChannel: null,
             lastAnswerQuestionIndex: -1,
+            desfocosContagem: 0,
             avatares: ['🦊', '🦁', '🚀', '🐼', '⚡', '🌟', '🦄', '🎯', '🐯', '🦉', '🎓', '🐲', '🐬', '🎨', '⚽', '🎸'],
 
             init() {
-                // Ler PIN da URL (?pin=123456 ou #pin=123456)
+                // 1. Ler PIN da URL (?pin=123456 ou #pin=123456)
                 const urlParams = new URLSearchParams(window.location.search);
                 const hash = window.location.hash || '';
                 let pinUrl = urlParams.get('pin');
@@ -266,7 +278,108 @@
                 }
                 if (pinUrl) this.pin = pinUrl;
 
+                // 2. Camuflagem / Higienização da URL na barra de endereços (remove ?pin=... sem recarregar)
+                if (window.history && window.history.replaceState) {
+                    const cleanPath = window.location.pathname.split('/').pop() || 'aluno.html';
+                    window.history.replaceState({}, document.title, cleanPath);
+                }
+
+                // 3. Inicializar travas de segurança do navegador (Anti-Inspeção e Anti-Cheat)
+                this.inicializarTravasSeguranca();
+
                 this.renderTelaEntrada();
+            },
+
+            inicializarTravasSeguranca() {
+                // Desativar menu de contexto do clique direito
+                document.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    return false;
+                });
+
+                // Bloquear atalhos de desenvolvedor e visualização de código
+                document.addEventListener('keydown', (e) => {
+                    if (
+                        e.key === 'F12' ||
+                        (e.ctrlKey && e.shiftKey && ['I', 'J', 'C'].includes(e.key.toUpperCase())) ||
+                        (e.ctrlKey && ['U', 'S', 'P'].includes(e.key.toUpperCase()))
+                    ) {
+                        e.preventDefault();
+                        return false;
+                    }
+                });
+
+                // Detecção de troca de abas / perda de foco (Anti-Cheat)
+                document.addEventListener('visibilitychange', () => {
+                    if (document.hidden && this.sessaoData && this.sessaoData.status === 'QUESTION') {
+                        this.desfocosContagem = (this.desfocosContagem || 0) + 1;
+                        if (this.playerId && this.pin && db) {
+                            db.collection('quiz_sessions').doc(String(this.pin)).update({
+                                [`players.${this.playerId}.focusLossCount`]: this.desfocosContagem
+                            }).catch(() => {});
+                        }
+                    } else if (!document.hidden && this.desfocosContagem > 0 && this.sessaoData && this.sessaoData.status === 'QUESTION') {
+                        this.exibirAvisoFoco();
+                    }
+                });
+
+                // Proteção contra fechamento acidental de aba durante a partida
+                window.addEventListener('beforeunload', (e) => {
+                    if (this.sessaoData && this.sessaoData.status && !['LOBBY', 'PODIUM', 'FINISHED', 'CLOSED'].includes(this.sessaoData.status)) {
+                        e.preventDefault();
+                        e.returnValue = 'Você está em uma partida ativa. Tem certeza de que deseja sair?';
+                        return e.returnValue;
+                    }
+                });
+            },
+
+            exibirAvisoFoco() {
+                let avisoEl = document.getElementById('focus-warning-badge');
+                if (!avisoEl) {
+                    avisoEl = document.createElement('div');
+                    avisoEl.id = 'focus-warning-badge';
+                    avisoEl.style.cssText = `
+                        position: fixed;
+                        top: 1rem;
+                        left: 50%;
+                        transform: translateX(-50%);
+                        z-index: 999999;
+                        background: #dc2626;
+                        color: #ffffff;
+                        padding: 0.625rem 1.25rem;
+                        border-radius: 9999px;
+                        box-shadow: 0 10px 25px rgba(220,38,38,0.4);
+                        font-weight: 800;
+                        font-size: 0.8125rem;
+                        display: flex;
+                        align-items: center;
+                        gap: 0.5rem;
+                        pointer-events: none;
+                        animation: pulse 1.5s infinite;
+                    `;
+                    document.body.appendChild(avisoEl);
+                }
+                avisoEl.innerHTML = `<i class="fas fa-exclamation-triangle"></i> Mantenha o foco no Quiz! Troca de aba registrada (${this.desfocosContagem}x).`;
+                avisoEl.style.display = 'flex';
+                setTimeout(() => {
+                    if (avisoEl) avisoEl.style.display = 'none';
+                }, 4000);
+            },
+
+            solicitarModoFoco() {
+                try {
+                    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+                        document.documentElement.requestFullscreen().catch(() => {});
+                    }
+                } catch (err) {}
+            },
+
+            alternarFullscreen() {
+                if (!document.fullscreenElement) {
+                    this.solicitarModoFoco();
+                } else if (document.exitFullscreen) {
+                    document.exitFullscreen().catch(() => {});
+                }
             },
 
             renderTelaEntrada() {
@@ -343,8 +456,11 @@
                 this.pin = pinInput;
                 this.nomeJogador = nomeInput;
                 if (!this.playerId) {
-                    this.playerId = 'aluno_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6);
+                    this.playerId = generateId('aluno');
                 }
+
+                // Solicita modo foco / tela cheia no clique do aluno
+                this.solicitarModoFoco();
 
                 const btn = document.getElementById('btn-entrar');
                 if (btn) {
@@ -585,6 +701,22 @@
                             </div>
                         `;
                         break;
+                }
+
+                if (typeof renderMathInElement === 'function') {
+                    try {
+                        renderMathInElement(root, {
+                            delimiters: [
+                                { left: '$$', right: '$$', display: true },
+                                { left: '\\[', right: '\\]', display: true },
+                                { left: '\\(', right: '\\)', display: false },
+                                { left: '$', right: '$', display: false }
+                            ],
+                            throwOnError: false
+                        });
+                    } catch (e) {
+                        console.warn("KaTeX aluno:", e);
+                    }
                 }
             },
 

@@ -1,7 +1,7 @@
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
-import { renderKatex } from '../utils.js';
+import { renderKatex, formatarTextoComLatex, sanitizeComLatex, generateSecurePIN, secureRandomInt } from '../utils.js';
 import { firebaseService } from '../firebase-service.js';
 
 export const quizPlayerView = {
@@ -54,9 +54,9 @@ export const quizPlayerView = {
                     eraCorreta: (idx === (copia.correta !== undefined ? copia.correta : 0))
                 }));
 
-                // Algoritmo Fisher-Yates para embaralhamento justo
+                // Algoritmo Fisher-Yates para embaralhamento justo usando CSPRNG
                 for (let i = altsComIndices.length - 1; i > 0; i--) {
-                    const j = Math.floor(Math.random() * (i + 1));
+                    const j = secureRandomInt(0, i);
                     [altsComIndices[i], altsComIndices[j]] = [altsComIndices[j], altsComIndices[i]];
                 }
 
@@ -84,7 +84,7 @@ export const quizPlayerView = {
 
         this.estadoAtual = 'LOBBY';
         this.indicePerguntaAtual = 0;
-        this.pin = String(Math.floor(100000 + Math.random() * 900000));
+        this.pin = generateSecurePIN(6);
 
         // Inicializa dados da sessão
         this.sessaoData = {
@@ -295,9 +295,12 @@ export const quizPlayerView = {
                         <h1 style="font-size: 3rem; font-weight: 900; color: #ffffff; letter-spacing: -0.025em; line-height: 1.1; margin-bottom: 0.5rem;">
                             ${window.escapeHTML(this.quiz.titulo)}
                         </h1>
-                        <p style="font-size: 1.125rem; color: #cbd5e1; font-weight: 600;">
+                        <p style="font-size: 1.125rem; color: #cbd5e1; font-weight: 600; margin-bottom: 0.5rem;">
                             Acesse <span style="color: #facc15; font-weight: 800;">aluno.html</span> ou escaneie o QR Code
                         </p>
+                        <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #6ee7b7; font-size: 0.8125rem; font-weight: 700; padding: 0.375rem 0.875rem; border-radius: 9999px;">
+                            <i class="fas fa-shield-alt"></i> Modo Foco & Anti-Trapaça Ativo
+                        </div>
                     </div>
 
                     <div style="display: flex; align-items: center; justify-content: center; gap: 3rem; flex-wrap: wrap; background-color: rgba(0,0,0,0.4); padding: 2rem 3.5rem; border-radius: 2rem; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);">
@@ -419,7 +422,7 @@ export const quizPlayerView = {
                             <span style="width: 3rem; height: 3rem; border-radius: 50%; background-color: rgba(255,255,255,0.25); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 900; flex-shrink: 0;">
                                 ${icones[i] || i + 1}
                             </span>
-                            <span style="flex: 1; line-height: 1.3;">${window.escapeHTML(alt)}</span>
+                            <span style="flex: 1; line-height: 1.3;">${formatarTextoComLatex(sanitizeComLatex(alt))}</span>
                         </div>
                     `).join('')}
                 </div>
@@ -457,7 +460,7 @@ export const quizPlayerView = {
                 <!-- ENUNCIADO GIGANTE -->
                 <div style="flex: 1; display: flex; align-items: center; justify-content: center; max-width: 1100px; margin: 1rem auto; width: 100%;">
                     <h2 style="font-size: 2.25rem; font-weight: 900; color: #f8fafc; line-height: 1.35; text-shadow: 0 4px 15px rgba(0,0,0,0.5);">
-                        ${window.escapeHTML(pergunta.enunciado)}
+                        ${formatarTextoComLatex(sanitizeComLatex(pergunta.enunciado))}
                     </h2>
                 </div>
 
@@ -590,7 +593,7 @@ export const quizPlayerView = {
                         Resultado da Turma
                     </span>
                     <h2 style="font-size: 1.75rem; font-weight: 900; color: #ffffff; margin-top: 0.5rem; max-width: 900px; margin: 0.5rem auto 0;">
-                        ${window.escapeHTML(pergunta.enunciado)}
+                        ${formatarTextoComLatex(sanitizeComLatex(pergunta.enunciado))}
                     </h2>
                 </div>
 
@@ -603,7 +606,7 @@ export const quizPlayerView = {
                 ${pergunta.justificativa ? `
                     <div style="background-color: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 1.5rem; padding: 1.25rem 2rem; max-width: 800px; margin: 0 auto; text-align: left;">
                         <strong style="color: #38bdf8;"><i class="fas fa-chalkboard-teacher mr-2"></i>Explicação Pedagógica:</strong>
-                        <p style="color: #cbd5e1; font-size: 1rem; margin-top: 0.375rem; line-height: 1.5;">${window.escapeHTML(pergunta.justificativa)}</p>
+                        <p style="color: #cbd5e1; font-size: 1rem; margin-top: 0.375rem; line-height: 1.5;">${formatarTextoComLatex(sanitizeComLatex(pergunta.justificativa))}</p>
                     </div>
                 ` : ''}
 
@@ -748,13 +751,206 @@ export const quizPlayerView = {
                     </div>
                 </div>
 
-                <div>
-                    <button onclick="quizPlayerView.encerrar()" class="btn-primary" style="padding: 1rem 3.5rem; font-size: 1.25rem; font-weight: 900; background-color: #ffffff; color: #0f172a; border-radius: 1.25rem;">
-                        <i class="fas fa-times-circle mr-2"></i> Encerrar Partida e Fechar Salas
+                <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+                    <button onclick="quizPlayerView.abrirModalLancarNotas()" class="btn-primary" 
+                            style="padding: 1rem 2.5rem; font-size: 1.125rem; font-weight: 900; background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; border-radius: 1.25rem; box-shadow: 0 10px 25px rgba(16,185,129,0.4); display: inline-flex; align-items: center; gap: 0.5rem; border: none; cursor: pointer;">
+                        <i class="fas fa-file-invoice"></i> Lançar Resultados no Diário
+                    </button>
+                    <button onclick="quizPlayerView.encerrar()" class="btn-secondary" 
+                            style="padding: 1rem 2.5rem; font-size: 1.125rem; font-weight: 900; background-color: rgba(255,255,255,0.15); color: #ffffff; border: 1px solid rgba(255,255,255,0.25); border-radius: 1.25rem; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <i class="fas fa-times-circle"></i> Encerrar Partida
                     </button>
                 </div>
             </div>
         `;
+    },
+
+    abrirModalLancarNotas() {
+        const turmas = model.state.turmas || [];
+        if (turmas.length === 0) {
+            return Toast.show("Nenhuma turma cadastrada no sistema. Cadastre uma turma primeiro.", "warning");
+        }
+
+        const players = Object.values(this.sessaoData?.players || {});
+        if (players.length === 0) {
+            return Toast.show("Nenhum participante conectado nesta partida.", "warning");
+        }
+
+        const totalPerguntas = this.quiz?.perguntas?.length || 1;
+        const defaultTurma = turmas[0];
+
+        const html = `
+            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; max-width: 620px;">
+                <div>
+                    <h3 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-file-invoice text-emerald-600"></i> Lançar Resultados do Quiz
+                    </h3>
+                    <p style="font-size: 0.8125rem; color: #64748b; margin-top: 0.25rem;">
+                        Transfira os acertos e pontuação dos alunos diretamente para o diário de classe.
+                    </p>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <label class="form-label" style="font-size: 0.75rem; font-weight: 800; color: #475569; text-transform: uppercase;">Turma de Destino</label>
+                        <select id="modal-quiz-turma" class="form-input" style="width: 100%; padding: 0.625rem 0.875rem; border-radius: 0.75rem; border: 1.5px solid #cbd5e1; font-weight: 700;" onchange="quizPlayerView.atualizarPreviewTurma(this.value)">
+                            ${turmas.map(t => `<option value="${t.id}">${window.escapeHTML(t.nome)} (${t.alunos?.length || 0} alunos)</option>`).join('')}
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="form-label" style="font-size: 0.75rem; font-weight: 800; color: #475569; text-transform: uppercase;">Tipo de Registro</label>
+                        <select id="modal-quiz-tipo" class="form-input" style="width: 100%; padding: 0.625rem 0.875rem; border-radius: 0.75rem; border: 1.5px solid #cbd5e1; font-weight: 700;">
+                            <option value="avaliacao">Nova Avaliação no Diário (0 a 10)</option>
+                            <option value="xp">Pontos de Gamificação / XP</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="form-label" style="font-size: 0.75rem; font-weight: 800; color: #475569; text-transform: uppercase;">Nome da Avaliação no Diário</label>
+                    <input type="text" id="modal-quiz-nome-av" class="form-input" 
+                           style="width: 100%; padding: 0.625rem 0.875rem; border-radius: 0.75rem; border: 1.5px solid #cbd5e1; font-weight: 700;" 
+                           value="Quiz: ${window.escapeHTML(this.quiz.titulo || 'Atividade')}">
+                </div>
+
+                <!-- PREVIEW DE ALUNOS MAPEADOS -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <span style="font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">Mapeamento de Alunos na Turma</span>
+                        <span id="modal-quiz-match-count" style="font-size: 0.75rem; font-weight: 800; color: #059669;"></span>
+                    </div>
+                    <div id="modal-quiz-preview-list" class="custom-scrollbar" 
+                         style="max-height: 180px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 0.75rem; background: #f8fafc; padding: 0.5rem;">
+                        <!-- Preenchido dinamicamente -->
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+                    <button type="button" onclick="controller.closeModal()" class="btn-secondary" style="padding: 0.625rem 1.25rem;">
+                        Cancelar
+                    </button>
+                    <button type="button" onclick="quizPlayerView.salvarLancamentoNotas()" class="btn-primary" style="background: #059669; border-color: #059669; padding: 0.625rem 1.5rem; font-weight: 800;">
+                        <i class="fas fa-check"></i> Confirmar e Gravar Notas
+                    </button>
+                </div>
+            </div>
+        `;
+
+        controller.openModal('Lançamento no Diário', html);
+        this.atualizarPreviewTurma(defaultTurma.id);
+    },
+
+    atualizarPreviewTurma(turmaId) {
+        const turma = (model.state.turmas || []).find(t => String(t.id) === String(turmaId));
+        const listEl = document.getElementById('modal-quiz-preview-list');
+        const countEl = document.getElementById('modal-quiz-match-count');
+        if (!turma || !listEl) return;
+
+        const players = Object.values(this.sessaoData?.players || {});
+        const totalPerguntas = this.quiz?.perguntas?.length || 1;
+
+        let matchCount = 0;
+        const norm = (str) => (str || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+        const htmlItems = players.map(p => {
+            const playerNorm = norm(p.nome);
+            const alunoMatch = (turma.alunos || []).find(a => {
+                const aNorm = norm(a.nome);
+                return aNorm === playerNorm || aNorm.includes(playerNorm) || playerNorm.includes(aNorm);
+            });
+
+            if (alunoMatch) matchCount++;
+            const corretas = p.totalCorrect || 0;
+            const notaCalc = ((corretas / totalPerguntas) * 10).toFixed(1);
+
+            return `
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.375rem 0.625rem; border-bottom: 1px solid #edf2f7; font-size: 0.8125rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span>${p.avatar || '🎓'}</span>
+                        <span style="font-weight: 700; color: #1e293b;">${window.escapeHTML(p.nome)}</span>
+                        ${alunoMatch 
+                            ? `<span style="font-size: 0.6875rem; color: #059669; font-weight: 800;"><i class="fas fa-link"></i> ${window.escapeHTML(alunoMatch.nome)}</span>`
+                            : `<span style="font-size: 0.6875rem; color: #eab308; font-weight: 700;"><i class="fas fa-question-circle"></i> Não vinculado</span>`
+                        }
+                    </div>
+                    <div style="font-weight: 900; color: #4338ca;">
+                        ${corretas}/${totalPerguntas} acertos (${notaCalc})
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        listEl.innerHTML = htmlItems;
+        if (countEl) countEl.innerText = `${matchCount} de ${players.length} alunos vinculados`;
+    },
+
+    salvarLancamentoNotas() {
+        const turmaSelect = document.getElementById('modal-quiz-turma');
+        const tipoSelect = document.getElementById('modal-quiz-tipo');
+        const nomeAvInput = document.getElementById('modal-quiz-nome-av');
+
+        if (!turmaSelect) return;
+        const turmaId = turmaSelect.value;
+        const tipo = tipoSelect?.value || 'avaliacao';
+        const nomeAv = (nomeAvInput?.value || 'Quiz').trim();
+
+        const turma = (model.state.turmas || []).find(t => String(t.id) === String(turmaId));
+        if (!turma) return Toast.show("Turma não encontrada.", "error");
+
+        const players = Object.values(this.sessaoData?.players || {});
+        const totalPerguntas = this.quiz?.perguntas?.length || 1;
+        const norm = (str) => (str || '').normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+        let alunosAtualizados = 0;
+
+        if (tipo === 'avaliacao') {
+            // Criar nova avaliação na turma
+            const novaAv = {
+                id: 'av_quiz_' + Date.now(),
+                nome: nomeAv,
+                max: 10,
+                periodo: 1
+            };
+            if (!turma.avaliacoes) turma.avaliacoes = [];
+            turma.avaliacoes.push(novaAv);
+
+            players.forEach(p => {
+                const playerNorm = norm(p.nome);
+                const aluno = (turma.alunos || []).find(a => {
+                    const aNorm = norm(a.nome);
+                    return aNorm === playerNorm || aNorm.includes(playerNorm) || playerNorm.includes(aNorm);
+                });
+                if (aluno) {
+                    if (!aluno.notas) aluno.notas = {};
+                    const corretas = p.totalCorrect || 0;
+                    aluno.notas[novaAv.id] = Number(((corretas / totalPerguntas) * 10).toFixed(1));
+                    alunosAtualizados++;
+                }
+            });
+        } else {
+            // Adicionar pontos de XP
+            players.forEach(p => {
+                const playerNorm = norm(p.nome);
+                const aluno = (turma.alunos || []).find(a => {
+                    const aNorm = norm(a.nome);
+                    return aNorm === playerNorm || aNorm.includes(playerNorm) || playerNorm.includes(aNorm);
+                });
+                if (aluno) {
+                    const pts = p.score || 0;
+                    aluno.xp = (aluno.xp || 0) + pts;
+                    alunosAtualizados++;
+                }
+            });
+        }
+
+        model.saveLocal();
+        if (model.currentUser && window.turmaService) {
+            window.turmaService.saveTurma(model.currentUser.uid, turma);
+        }
+
+        controller.closeModal();
+        Toast.show(`✅ Sucesso! Resultados lançados para ${alunosAtualizados} aluno(s) na turma ${turma.nome}.`, "success", 5000);
     },
 
     avancarEstado(novoEstado) {

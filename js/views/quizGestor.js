@@ -2,7 +2,7 @@ import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
 import { aiService } from '../ai-service.js';
-import { renderKatex, lerArquivoTexto } from '../utils.js';
+import { renderKatex, formatarTextoComLatex, sanitizeComLatex, alternarModoEdicaoPreview, lerArquivoTexto } from '../utils.js';
 import { uiController } from '../controllers/uiController.js';
 
 export const quizGestorView = {
@@ -523,12 +523,15 @@ export const quizGestorView = {
         } else {
             const alts = p.alternativas && p.alternativas.length > 0 ? p.alternativas : ["", "", "", ""];
             let alternativasHtml = alts.map((alt, i) => `
-                <div style="display: flex; align-items: center; gap: var(--spacing-3);">
-                    <input type="radio" name="quiz-correta" value="${i}" ${p.correta === i ? 'checked' : ''} style="width: 1.25rem; height: 1.25rem; accent-color: #10b981; cursor: pointer;" title="Marcar como alternativa correta">
-                    <div style="width: 2rem; height: 2rem; border-radius: 50%; background-color: var(--color-slate-100); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800; color: var(--color-slate-600); flex-shrink: 0;">
-                        ${['A', 'B', 'C', 'D', 'E'][i] || i + 1}
+                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                    <div style="display: flex; align-items: center; gap: var(--spacing-3);">
+                        <input type="radio" name="quiz-correta" value="${i}" ${p.correta === i ? 'checked' : ''} style="width: 1.25rem; height: 1.25rem; accent-color: #10b981; cursor: pointer;" title="Marcar como alternativa correta">
+                        <div style="width: 2rem; height: 2rem; border-radius: 50%; background-color: var(--color-slate-100); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 800; color: var(--color-slate-600); flex-shrink: 0;">
+                            ${['A', 'B', 'C', 'D', 'E'][i] || i + 1}
+                        </div>
+                        <input type="text" id="quiz-alt-${i}" value="${window.escapeHTML(alt)}" class="form-input" style="flex: 1;" placeholder="Opção ${['A', 'B', 'C', 'D', 'E'][i] || i + 1} (suporta LaTeX $...$)">
                     </div>
-                    <input type="text" id="quiz-alt-${i}" value="${window.escapeHTML(alt)}" class="form-input" style="flex: 1;" placeholder="Opção ${['A', 'B', 'C', 'D', 'E'][i] || i + 1}...">
+                    <div id="preview-quiz-alt-${i}" style="display: none; margin-left: 3.25rem;"></div>
                 </div>
             `).join('');
 
@@ -572,8 +575,14 @@ export const quizGestorView = {
 
             <div style="display: flex; flex-direction: column; gap: var(--spacing-5);">
                 <div>
-                    <label class="form-label">${tipoAtual === 'lacuna' ? 'Frase com Lacuna (Use ___ para a lacuna. Suporta TeX com $$)' : tipoAtual === 'identificacao' ? 'Pistas e Contexto do Conceito / Evento (Suporta TeX com $$)' : 'Enunciado da Questão (Suporta TeX com $$)'}</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                        <label class="form-label" style="margin-bottom: 0;">${tipoAtual === 'lacuna' ? 'Frase com Lacuna (Use ___)' : tipoAtual === 'identificacao' ? 'Pistas e Contexto' : 'Enunciado da Questão'}</label>
+                        <button type="button" onclick="alternarModoEdicaoPreview('quiz-enunciado', 'preview-quiz-enunciado', 'btn-prev-quiz-enunciado')" id="btn-prev-quiz-enunciado" class="btn-secondary" style="padding: 0.25rem 0.625rem; font-size: 0.6875rem;">
+                            <i class="fas fa-eye"></i> Visualizar Formatação (TeX)
+                        </button>
+                    </div>
                     <textarea id="quiz-enunciado" rows="3" class="form-input custom-scrollbar" style="resize: vertical; font-size: 1rem;">${window.escapeHTML(p.enunciado || '')}</textarea>
+                    <div id="preview-quiz-enunciado" style="display: none;"></div>
                 </div>
 
                 ${corpoFormatoHtml}
@@ -587,6 +596,18 @@ export const quizGestorView = {
         `;
 
         renderKatex(editorArea);
+
+        setTimeout(() => {
+            if (window.anexarPreviewLatex) {
+                window.anexarPreviewLatex('quiz-enunciado', 'preview-quiz-enunciado');
+                if (tipoAtual !== 'verdadeiro_falso') {
+                    const alts = p.alternativas && p.alternativas.length > 0 ? p.alternativas : ["", "", "", ""];
+                    alts.forEach((_, i) => {
+                        window.anexarPreviewLatex(`quiz-alt-${i}`, `preview-quiz-alt-${i}`);
+                    });
+                }
+            }
+        }, 30);
     },
 
     alterarTipoPergunta(index, novoTipo) {

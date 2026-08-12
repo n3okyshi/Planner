@@ -19,19 +19,15 @@ export const criarMaterialView = {
             itens: [
                 { id: 'dinamica-jogo', label: 'Dinâmica e Jogo', icone: 'fas fa-users', cor: 'text-blue-500' },
                 { id: 'situacao-problema', label: 'Situação-Problema', icone: 'far fa-lightbulb', cor: 'text-amber-500' },
-                { id: 'atividade-investigativa', label: 'Atividade Investigativa', icone: 'fas fa-microscope', cor: 'text-purple-500' },
                 { id: 'atividade-imprimivel', label: 'Atividade Imprimível', icone: 'fas fa-print', cor: 'text-emerald-500' },
                 { id: 'apresentacao', label: 'Apresentação Animada', icone: 'fas fa-desktop', cor: 'text-slate-300', badge: 'EM BREVE', disabled: true }
             ]
         },
         {
-            titulo: "Prática de Laboratório",
+            titulo: 'CIÊNCIAS & EXPERIMENTAÇÃO',
             itens: [
-                { id: 'linha-1', tipo: 'row', colunas: [{ id: 'disciplina', tipo: 'select-disciplina' }, { id: 'serie', tipo: 'select-serie' }] },
-                { id: 'tema', tipo: 'text', label: 'Fenômeno a ser investigado', placeholder: 'Ex: Leis de Newton, Células, Eletricidade...' },
-                { id: 'materiais', tipo: 'text', label: 'Materiais Disponíveis', placeholder: 'Ex: Simulador PhET, Garrafas PET, Água, Sal...' },
-                { id: 'abordagem', tipo: 'pills', label: 'Abordagem Investigativa', opcoes: ['Guiada (Passo a Passo)', 'Aberta (Alunos criam o método)'], default: 'Guiada (Passo a Passo)' },
-                { id: 'adaptacao', tipo: 'inclusao' }
+                { id: 'pratica-laboratorio', label: 'Roteiro de Aula Prática', icone: 'fas fa-flask', cor: 'text-emerald-500' },
+                { id: 'atividade-investigativa', label: 'Atividade Investigativa', icone: 'fas fa-microscope', cor: 'text-purple-500' }
             ]
         },
         {
@@ -61,13 +57,15 @@ export const criarMaterialView = {
     ],
     formConfig: {
         'pratica-laboratorio': {
-            titulo: 'Prática de Laboratório',
-            descricao: 'Roteiros guiados pelo Método Científico com simulações interativas',
+            titulo: 'Roteiro de Aula Prática & Laboratório',
+            descricao: 'Roteiros de experimentação científica com materiais de baixo custo ou laboratório, tabelas de observação e normas de segurança',
             campos: [
                 { id: 'linha-1', tipo: 'row', colunas: [{ id: 'disciplina', tipo: 'select-disciplina' }, { id: 'serie', tipo: 'select-serie' }] },
-                { id: 'tema', tipo: 'text', label: 'Fenômeno a ser investigado', placeholder: 'Ex: Leis de Newton, Células, Eletricidade...' },
-                { id: 'materiais', tipo: 'text', label: 'Materiais Disponíveis', placeholder: 'Ex: Simulador PhET, Garrafas PET, Água, Sal...' },
-                { id: 'abordagem', tipo: 'pills', label: 'Abordagem Investigativa', opcoes: ['Guiada (Passo a Passo)', 'Aberta (Alunos criam o método)'], default: 'Guiada (Passo a Passo)' }
+                { id: 'tema', tipo: 'text', label: 'Assunto / Fenômeno a ser Investigado', placeholder: 'Ex: Densidade dos Líquidos, Reações Químicas, Leis de Newton, Células Vegetais...' },
+                { id: 'materiais', tipo: 'text', label: 'Materiais Disponíveis ou em Foco', placeholder: 'Ex: Garrafas PET, Água, Óleo, Detergente, Copos, Balança...' },
+                { id: 'baixo-custo', tipo: 'pills', label: 'FOCO DOS MATERIAIS', opcoes: ['Materiais de Baixo Custo / Cotidiano', 'Equipamentos de Laboratório'], default: 'Materiais de Baixo Custo / Cotidiano' },
+                { id: 'tempo', tipo: 'pills', label: 'DURAÇÃO DA PRÁTICA', opcoes: ['30 min', '50 min (1 aula)', '100 min (2 aulas)'], default: '50 min (1 aula)' },
+                { id: 'bncc', tipo: 'text', label: 'Código BNCC (opcional)', placeholder: 'Ex: EF06CI02' }
             ]
         },
         'planejamento': {
@@ -703,7 +701,22 @@ export const criarMaterialView = {
         try {
             btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> Processando com IA...`;
             btn.disabled = true;
-            const materialPronto = await aiService.gerarMaterial(this.ferramentaAtiva, dadosExtrahidos, contextoFinal);
+
+            let materialPronto;
+            if (this.ferramentaAtiva === 'pratica-laboratorio') {
+                materialPronto = await aiService.gerarRoteiroPratico({
+                    disciplina: dadosExtrahidos["Disciplina"] || "Ciências",
+                    assunto: dadosExtrahidos["Assunto / Fenômeno a ser Investigado"] || dadosExtrahidos["Tema"] || "Investigação Científica",
+                    materiaisDisponiveis: dadosExtrahidos["Materiais Disponíveis ou em Foco"] || "",
+                    nivelTurma: dadosExtrahidos["Série / Ano"] || "Ensino Fundamental II",
+                    tempoEstimado: dadosExtrahidos["DURAÇÃO DA PRÁTICA"] || "50 min (1 aula)",
+                    baixoCusto: (dadosExtrahidos["FOCO DOS MATERIAIS"] || '').includes('Baixo Custo'),
+                    contextoDocumento: contextoFinal
+                });
+            } else {
+                materialPronto = await aiService.gerarMaterial(this.ferramentaAtiva, dadosExtrahidos, contextoFinal);
+            }
+
             const salvo = await model.saveMaterial(materialPronto);
             Toast.show("Material gerado com sucesso!", "success");
             if (window.conteudoGeradoView) {

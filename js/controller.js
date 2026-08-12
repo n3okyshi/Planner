@@ -2,7 +2,7 @@
 import { model } from './model.js';
 import { firebaseService } from './firebase-service.js';
 import { Toast } from './components/toast.js';
-import { escapeHTML, renderKatex } from './utils.js';
+import { escapeHTML, renderMath, renderKatex } from './utils.js';
 import { uiController } from './controllers/uiController.js';
 import { authController } from './controllers/authController.js';
 import { turmaController } from './controllers/turmaController.js';
@@ -72,7 +72,12 @@ export const controller = {
                     else await view.render(wrapper);
                 }
                 container.appendChild(wrapper);
-                renderKatex(wrapper);
+                
+                // DISPARO DO KATEX NO ESCOPO DO WRAPPER INJETADO
+                renderMath(wrapper);
+                setTimeout(() => renderMath(wrapper), 50);
+                setTimeout(() => renderMath(wrapper), 200);
+
                 uiController.initLazyLoading(wrapper);
                 uiController.updateBreadcrumb(target);
                 uiController.initAllDropdowns(container);
@@ -81,8 +86,21 @@ export const controller = {
                     uiController.toggleSidebar();
                 }
             } catch (e) {
-                console.error(`Erro na view ${target}:`, e);
-                container.innerHTML = `<div class="p-4 text-red-500">Erro ao carregar a view: ${window.escapeHTML(e.message)}</div>`;
+                console.error(`Erro ao inicializar view '${target}':`, e);
+                container.innerHTML = `
+                    <div class="card" style="margin: 2rem auto; max-width: 500px; text-align: center; border-top: 4px solid #ef4444;">
+                        <div style="font-size: 2.5rem; color: #ef4444; margin-bottom: 0.75rem;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <h3 style="font-weight: 800; color: #0f172a; margin-bottom: 0.5rem;">Indisponibilidade Temporária</h3>
+                        <p style="color: #64748b; font-size: 0.875rem; margin-bottom: 1.25rem;">
+                            Não foi possível carregar a tela selecionada. Seus dados continuam salvos e seguros.
+                        </p>
+                        <button onclick="controller.navigate('dashboard')" class="btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; margin: 0 auto;">
+                            <i class="fas fa-arrow-left"></i> <span>Voltar ao Painel</span>
+                        </button>
+                    </div>
+                `;
             }
         }, 50);
     },

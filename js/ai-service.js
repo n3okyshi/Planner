@@ -31,10 +31,15 @@ export const aiService = {
         { id: 'gemini-1.5-flash', v: 'v1beta' },
         { id: 'gemini-1.5-flash-8b', v: 'v1beta' },
         { id: 'gemini-2.0-flash-lite-preview-02-05', v: 'v1beta' },
-        { id: 'gemini-1.5-pro', v: 'v1beta' }
+        { id: 'gemini-1.5-pro', v: 'v1beta' },
+        { id: 'gemini-3.5-flash', v: 'v1beta' },
+        { id: 'gemini-3-flash-preview', v: 'v1beta' },
+        { id: 'gemini-2.5-flash', v: 'v1beta' },
+        { id: 'gemini-2.5-flash-lite', v: 'v1beta' },
+        { id: 'gemini-2.5-pro', v: 'v1beta' }
     ],
     _esperar: (ms) => new Promise(res => setTimeout(res, ms)),
-    async _executarPromptGemini(prompt, maxTokens = 2048) {
+    async _executarPromptGemini(prompt, maxTokens = 4096) {
         if (!navigator.onLine) {
             Toast.show("Você está offline. Conecte-se para usar a IA.", "warning");
             throw new Error("Sem conexão com a internet.");
@@ -300,5 +305,142 @@ export const aiService = {
         `;
 
         return await this._executarPromptGemini(prompt, 3500);
+    },
+
+    async gerarRoteiroPratico({ disciplina, assunto, materiaisDisponiveis = '', nivelTurma = 'Ensino Fundamental II', tempoEstimado = '50 min (1 aula)', baixoCusto = true, contextoDocumento = '' }) {
+        const secaoContexto = contextoDocumento && contextoDocumento.trim() !== ''
+            ? `\n\nMATERIAL E CONTEXTO DE BASE (ARQUIVO ANEXADO):\n${contextoDocumento}`
+            : '';
+
+        const prompt = `
+            Atue como um professor especialista em experimentação científica, laboratório escolar, metodologia investigativa e BNCC para a disciplina de ${disciplina || 'Ciências/Biologia/Química/Física'}.
+            Crie um ROTEIRO DE AULA PRÁTICA E EXPERIMENTAÇÃO COMPLETO sobre o assunto: "${assunto}".
+            Público-alvo/Nível: ${nivelTurma}.
+            Duração estimada: ${tempoEstimado}.
+            Foco em materiais de baixo custo / do cotidiano: ${baixoCusto ? 'SIM (priorize materiais acessíveis, garrafas, alimentos, copos, itens de cozinha/casa)' : 'NÃO (pode incluir reagentes e vidrarias padrão de laboratório)'}.
+            Materiais informados pelo professor: ${materiaisDisponiveis || 'Materiais comuns do cotidiano'}.
+            ${secaoContexto}
+
+            REGRAS OBRIGATÓRIAS:
+            1. Responda APENAS um objeto JSON puro. Sem blocos \`\`\`json, sem markdown.
+            2. Para fórmulas químicas, reações ou equações matemáticas, use notação TeX/LaTeX padrão ($...$ ou $$...$$).
+            3. No campo "conteudo_html", formate o documento completo com tags HTML nativas contendo:
+               - Cabeçalho de identificação com Nome da Prática, Disciplina, Duração e Habilidade BNCC.
+               - Caixa de destaque: <div class="laboratorio-seguranca"><h3>⚠️ Segurança no Laboratório & EPIs</h3><ul>...regras de cuidado...</ul></div>
+               - Lista de Materiais por Grupo de Alunos.
+               - Procedimento Experimental Passo a Passo (<div class="etapa-experimento"><h4>Etapa 1: ...</h4><p>...</p></div>).
+               - Tabela de Coleta de Dados e Observações (<table class="tabela-experimento"><thead><tr><th>Amostra/Variável</th><th>Observação Visual</th><th>Resultado/Medição</th><th>Conclusão Preliminar</th></tr></thead><tbody>...linhas vazias ou com amostras para preenchimento...</tbody></table>).
+               - Questões Investigativas e de Discussão em Grupo.
+               - Gabarito e Expectativa de Resposta do Professor (OBRIGATORIAMENTE dentro de <div class="gabarito-bloco"><h3>Gabarito & Expectativa de Resposta (Professor)</h3>...respostas detalhadas...</div>).
+            4. Estrutura exata do JSON:
+            {
+                "titulo": "Nome chamativo e investigativo para a aula prática",
+                "disciplina": "${disciplina || 'Ciências'}",
+                "serie": "${nivelTurma}",
+                "tipo": "pratica-laboratorio",
+                "assunto": "${assunto}",
+                "objetivo": "Objetivo pedagógico claro alinhado à BNCC",
+                "conteudo_html": "HTML completo formatado rigorosamente conforme instruções acima."
+            }
+        `;
+
+        return await this._executarPromptGemini(prompt, 3800);
+    },
+
+    /**
+     * Gera um Plano Individualizado de Recuperação Paralela baseado no histórico de notas e habilidades da BNCC.
+     * @param {Object} params - { aluno, turma, disciplina, avaliacoes, habilidadesBNCC, mediaAtual }
+     * @returns {Promise<Object>}
+     */
+    async gerarPlanoRecuperacao({ aluno, turma, disciplina = 'Geral', avaliacoes = [], habilidadesBNCC = [], mediaAtual = 0 }) {
+        const alunoNome = typeof aluno === 'object' ? aluno.nome : aluno;
+        const turmaNome = typeof turma === 'object' ? turma.nome : turma;
+        const discNome = disciplina || (typeof turma === 'object' ? turma.disciplina : 'Matemática');
+
+        const habTexto = Array.isArray(habilidadesBNCC) && habilidadesBNCC.length > 0
+            ? habilidadesBNCC.map(h => `- ${h.codigo || ''}: ${h.descricao || ''}`).join('\n')
+            : 'Foco nas habilidades fundamentais de raciocínio, fixação e resolução de problemas da série.';
+
+        const avalTexto = Array.isArray(avaliacoes) && avaliacoes.length > 0
+            ? avaliacoes.map(a => `- ${a.titulo || a.nome || 'Avaliação'}: Nota ${a.nota || 'N/A'}`).join('\n')
+            : `Média Atual no período: ${Number(mediaAtual).toFixed(1)} (Abaixo da média padrão de 6,0).`;
+
+        const prompt = `
+            Atue como um Especialista Pedagógico em Avaliação Formativa, Recomposição de Aprendizagem e BNCC.
+            Elabore um PLANO DE RECUPERAÇÃO PARALELA INDIVIDUALIZADO E PRÁTICO para o seguinte estudante:
+
+            - Nome do Estudante: ${alunoNome}
+            - Turma/Série: ${turmaNome}
+            - Disciplina: ${discNome}
+            - Desempenho e Avaliações:
+            ${avalTexto}
+            - Habilidades Trabalhadas no Período:
+            ${habTexto}
+
+            DIRETRIZES PEDAGÓGICAS E REGRAS:
+            1. Responda APENAS um objeto JSON puro, sem blocos \`\`\`json, sem markdown externo.
+            2. Para fórmulas matemáticas, notações científicas e equações, utilize notação TeX/LaTeX padrão ($...$ ou $$...$$).
+            3. O plano deve conter:
+               - "diagnostico": Análise formativa das principais dificuldades conceituais observadas e competências a recuperar.
+               - "habilidadesFoco": Lista com código e descrição das habilidades prioritárias da BNCC.
+               - "roteiroEstudos": Array com 3 etapas pedagógicas progressivas (Revisão Conceitual, Prática Guiada e Fixação Autônoma).
+               - "questoesPraticas": Array com EXATAMENTE 3 questões práticas inéditas, diagnósticas e progressivas (Fácil, Média, Desafiadora), acompanhadas de resolução detalhada passo a passo e gabarito.
+            4. Estrutura exata do JSON:
+            {
+                "aluno": "${alunoNome}",
+                "disciplina": "${discNome}",
+                "turma": "${turmaNome}",
+                "mediaAtual": ${Number(mediaAtual).toFixed(1)},
+                "diagnostico": "Diagnóstico pedagógico claro e acolhedor...",
+                "habilidadesFoco": [
+                    { "codigo": "EF...", "descricao": "Descrição da habilidade foco..." }
+                ],
+                "roteiroEstudos": [
+                    {
+                        "etapa": 1,
+                        "titulo": "1. Recomposição Conceitual",
+                        "conteudo": "Orientações de leitura e síntese...",
+                        "sugestaoAtividade": "Elaboração de resumo ou mapa mental..."
+                    },
+                    {
+                        "etapa": 2,
+                        "titulo": "2. Prática Dirigida",
+                        "conteudo": "Exercícios comentados...",
+                        "sugestaoAtividade": "Resolução guiada..."
+                    },
+                    {
+                        "etapa": 3,
+                        "titulo": "3. Autoavaliação & Verificação",
+                        "conteudo": "Aplicação das questões práticas...",
+                        "sugestaoAtividade": "Checagem com gabarito comentado..."
+                    }
+                ],
+                "questoesPraticas": [
+                    {
+                        "numero": 1,
+                        "nivel": "Fácil",
+                        "enunciado": "Enunciado claro da questão 1...",
+                        "resolucaoPassoAPasso": "Passo 1: ...\\nPasso 2: ...",
+                        "gabarito": "Resposta final esperada"
+                    },
+                    {
+                        "numero": 2,
+                        "nivel": "Médio",
+                        "enunciado": "Enunciado claro da questão 2...",
+                        "resolucaoPassoAPasso": "Passo 1: ...\\nPasso 2: ...",
+                        "gabarito": "Resposta final esperada"
+                    },
+                    {
+                        "numero": 3,
+                        "nivel": "Desafiador",
+                        "enunciado": "Enunciado claro da questão 3...",
+                        "resolucaoPassoAPasso": "Passo 1: ...\\nPasso 2: ...",
+                        "gabarito": "Resposta final esperada"
+                    }
+                ]
+            }
+        `;
+
+        return await this._executarPromptGemini(prompt, 3800);
     }
 };

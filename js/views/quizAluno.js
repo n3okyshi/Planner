@@ -1,6 +1,7 @@
 import { firebaseService } from '../firebase-service.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
+import { generateId } from '../utils.js';
 
 export const quizAlunoView = {
     pin: '',
@@ -129,7 +130,7 @@ export const quizAlunoView = {
         this.pin = pinInput;
         this.nomeJogador = nomeInput;
         if (!this.playerId) {
-            this.playerId = 'aluno_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6);
+            this.playerId = generateId('aluno');
         }
 
         const btn = document.getElementById('btn-conectar-aluno');

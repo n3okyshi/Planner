@@ -1,4 +1,4 @@
-const CACHE_NAME = 'planner-pro-docente-v2.2';
+const CACHE_NAME = 'planner-pro-docente-v2.4';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -27,6 +27,7 @@ const ASSETS_TO_CACHE = [
 
     './js/services/viewRegistry.js',
     './js/services/storageService.js',
+    './js/services/syncService.js',
     './js/services/turmaService.js',
     './js/services/provaService.js',
     './js/services/planejamentoService.js',
@@ -38,6 +39,7 @@ const ASSETS_TO_CACHE = [
 
     './js/views/dashboard.js',
     './js/views/notasAnuais.js',
+    './js/views/ataConselho.js',
     './js/views/criarMaterial.js',
     './js/views/biblioteca.js',
     './js/views/quizGestor.js',
@@ -45,6 +47,7 @@ const ASSETS_TO_CACHE = [
     './js/views/conteudoGerado.js',
     './js/views/correcaoAutomatica.js',
     './js/views/simuladores.js',
+    './js/views/estudosVisuais.js',
     './js/views/horario.js',
     './js/views/calendario.js',
     './js/views/mensal.js',
@@ -106,4 +109,18 @@ self.addEventListener('fetch', (event) => {
             return response || fetch(event.request);
         })
     );
+});
+
+// Background Sync API: acionado quando a conexão Wi-Fi/dados móveis é restabelecida
+self.addEventListener('sync', (event) => {
+    if (event.tag === 'sync-offline-operations') {
+        console.log('[Service Worker] Background sync acionado:', event.tag);
+        event.waitUntil(
+            self.clients.matchAll({ includeUncontrolled: true, type: 'window' }).then((clients) => {
+                clients.forEach((client) => {
+                    client.postMessage({ type: 'PROCESS_OFFLINE_SYNC', timestamp: Date.now() });
+                });
+            })
+        );
+    }
 });

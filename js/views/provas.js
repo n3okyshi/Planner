@@ -2,7 +2,7 @@ import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
 import { aiService } from '../ai-service.js';
-import { renderKatex, lerArquivoTexto } from '../utils.js';
+import { renderKatex, formatarTextoComLatex, sanitizeComLatex, alternarModoEdicaoPreview, lerArquivoTexto } from '../utils.js';
 
 export const provasView = {
     selecionadas: new Set(),
@@ -46,25 +46,10 @@ export const provasView = {
     },
     formatarHTMLQuestao(texto) {
         if (!texto) return '';
-        let safeText = window.escapeHTML(texto);
-        safeText = safeText
-            .replace(/&lt;br\/?&gt;/gi, '<br>')
-            .replace(/&lt;b&gt;/gi, '<b style="font-weight: 700; color: var(--color-slate-800);">').replace(/&lt;\/b&gt;/gi, '</b>')
-            .replace(/&lt;strong&gt;/gi, '<strong style="font-weight: 700; color: var(--color-slate-800);">').replace(/&lt;\/strong&gt;/gi, '</strong>')
-            .replace(/&lt;i&gt;/gi, '<i>').replace(/&lt;\/i&gt;/gi, '</i>')
-            .replace(/&lt;table.*?&gt;/gi, '<div style="overflow-x: auto; margin: var(--spacing-4) 0; border-radius: var(--radius-xl); border: 1px solid var(--color-slate-200); box-shadow: var(--shadow-sm);"><table style="width: 100%; font-size: 0.875rem; text-align: left; border-collapse: collapse;">')
-            .replace(/&lt;\/table&gt;/gi, '</table></div>')
-            .replace(/&lt;thead.*?&gt;/gi, '<thead style="background-color: var(--color-slate-50); color: var(--color-slate-500); font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.05em;">')
-            .replace(/&lt;\/thead&gt;/gi, '</thead>')
-            .replace(/&lt;tbody.*?&gt;/gi, '<tbody>')
-            .replace(/&lt;\/tbody&gt;/gi, '</tbody>')
-            .replace(/&lt;tr.*?&gt;/gi, '<tr class="hover-row-default" style="border-bottom: 1px solid var(--color-slate-100);">')
-            .replace(/&lt;\/tr&gt;/gi, '</tr>')
-            .replace(/&lt;th.*?&gt;/gi, '<th style="padding: var(--spacing-3); font-weight: 700;">')
-            .replace(/&lt;\/th&gt;/gi, '</th>')
-            .replace(/&lt;td.*?&gt;/gi, '<td style="padding: var(--spacing-3); color: var(--color-slate-600);">')
-            .replace(/&lt;\/td&gt;/gi, '</td>');
-        return safeText;
+        if (window.sanitizeComLatex) {
+            return window.sanitizeComLatex(texto);
+        }
+        return window.escapeHTML(texto);
     },
     _renderEstrelasDificuldade(nivel = 0) {
         const n = Number(nivel) || 0;
@@ -323,10 +308,7 @@ export const provasView = {
         </div>
         `;
         container.innerHTML = html;
-        const listaQuestoesEl = document.getElementById('lista-questoes');
-        if (listaQuestoesEl && listaQuestoesEl.innerHTML.includes('$')) {
-            this.renderizarLatex(listaQuestoesEl);
-        }
+        this.renderizarLatex(container);
         questoesPaginadas.forEach(async (q) => {
             if (q.suporte && q.suporte.tem_imagem) {
                 const containerImg = document.getElementById(`img-container-${q.id}`);
@@ -654,15 +636,27 @@ export const provasView = {
                     ${habilidadeHtml}
                 </div>
                 <div>
-                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--color-slate-400); text-transform: uppercase; margin-bottom: 0.25rem;">Enunciado (Aceita $$...$$)</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                        <label style="font-size: 0.75rem; font-weight: 700; color: var(--color-slate-400); text-transform: uppercase;">Enunciado (Suporta TeX/LaTeX)</label>
+                        <button type="button" onclick="alternarModoEdicaoPreview('q-enunciado', 'preview-q-enunciado', 'btn-prev-q-enunciado')" id="btn-prev-q-enunciado" class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.6875rem;">
+                            <i class="fas fa-eye"></i> Visualizar (TeX)
+                        </button>
+                    </div>
                     <textarea id="q-enunciado" rows="4" class="input-default" style="width: 100%; border: 2px solid var(--color-slate-100); padding: 0.75rem; border-radius: var(--radius-xl); outline: none; font-size: 0.875rem; font-weight: 500;">${dados.enunciado || ''}</textarea>
+                    <div id="preview-q-enunciado" style="display: none;"></div>
                 </div>
                 <div id="area-alternativas" class="${dados.tipo === 'multipla' ? '' : 'hidden'}" style="margin-top: 0.5rem; border-top: 1px solid var(--color-slate-100); padding-top: 0.75rem;">
                     <div id="inputs-alternativas" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
                 </div>
                 <div id="area-gabarito" class="${dados.tipo === 'multipla' ? 'hidden' : ''}" style="margin-top: 0.5rem; border-top: 1px solid var(--color-slate-100); padding-top: 0.75rem;">
-                    <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--color-slate-400); text-transform: uppercase; margin-bottom: 0.25rem;">Resposta / Gabarito Sugerido</label>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                        <label style="font-size: 0.75rem; font-weight: 700; color: var(--color-slate-400); text-transform: uppercase;">Resposta / Gabarito Sugerido</label>
+                        <button type="button" onclick="alternarModoEdicaoPreview('q-gabarito', 'preview-q-gabarito', 'btn-prev-q-gabarito')" id="btn-prev-q-gabarito" class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.6875rem;">
+                            <i class="fas fa-eye"></i> Visualizar (TeX)
+                        </button>
+                    </div>
                     <textarea id="q-gabarito" rows="2" class="input-default" style="width: 100%; border: 1px solid var(--color-slate-200); padding: 0.75rem; border-radius: var(--radius-xl); outline: none; font-size: 0.875rem; background-color: rgba(236, 253, 245, 0.3);" placeholder="Resposta esperada...">${dados.gabarito || ''}</textarea>
+                    <div id="preview-q-gabarito" style="display: none;"></div>
                 </div>
                 <div style="padding-top: 1rem; display: flex; flex-direction: column; gap: 1rem;">
                     <div id="ai-section" class="${exibirBotaoIA ? '' : 'hidden'}">
@@ -709,6 +703,9 @@ export const provasView = {
             </div>`;
         controller.openModal(dados.id ? 'Editar Questão' : 'Nova Questão', html);
         setTimeout(() => {
+            if (window.anexarPreviewLatex) {
+                window.anexarPreviewLatex('q-enunciado', 'preview-q-enunciado');
+            }
             if (dados.tipo === 'multipla') provasView.gerarInputsAlternativas(dados.alternativas, dados.correta);
             else provasView.mudarTipoQuestao();
         }, 50);
@@ -819,13 +816,24 @@ export const provasView = {
             const valor = (valores && valores[i]) ? valores[i] : '';
             const isChecked = (correta != null && correta == i) ? 'checked' : '';
             html += `
-                <div style="display: flex; align-items: center; gap: 0.75rem; padding: 0.25rem; border-radius: var(--radius-lg); transition: background-color var(--transition-fast);" onmouseover="this.style.backgroundColor='var(--color-slate-50)'" onmouseout="this.style.backgroundColor='transparent'">
-                    <input type="radio" name="correta" value="${i}" ${isChecked} style="width: 1rem; height: 1rem; cursor: pointer; accent-color: var(--color-primary);">
-                    <span style="width: 1.5rem; height: 1.5rem; border-radius: 50%; background-color: var(--color-slate-100); color: var(--color-slate-500); font-weight: 700; font-size: 0.625rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">${letras[i]}</span>
-                    <input type="text" id="alt-${i}" value="${valor}" placeholder="Alternativa ${letras[i]}" class="input-default" style="flex: 1; border: 1px solid var(--color-slate-200); padding: 0.5rem; border-radius: var(--radius-lg); font-size: 0.875rem; outline: none;">
+                <div style="display: flex; flex-direction: column; gap: 0.25rem; padding: 0.375rem; border-radius: var(--radius-lg); transition: background-color var(--transition-fast);" onmouseover="this.style.backgroundColor='var(--color-slate-50)'" onmouseout="this.style.backgroundColor='transparent'">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <input type="radio" name="correta" value="${i}" ${isChecked} style="width: 1rem; height: 1rem; cursor: pointer; accent-color: var(--color-primary);">
+                        <span style="width: 1.5rem; height: 1.5rem; border-radius: 50%; background-color: var(--color-slate-100); color: var(--color-slate-500); font-weight: 700; font-size: 0.625rem; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">${letras[i]}</span>
+                        <input type="text" id="alt-${i}" value="${window.escapeHTML(valor)}" placeholder="Alternativa ${letras[i]} (suporta LaTeX $...$)" class="input-default" style="flex: 1; border: 1px solid var(--color-slate-200); padding: 0.5rem; border-radius: var(--radius-lg); font-size: 0.875rem; outline: none;">
+                    </div>
+                    <div id="preview-alt-${i}" style="display: none; margin-left: 2.25rem;"></div>
                 </div>`;
         }
         container.innerHTML = html;
+
+        setTimeout(() => {
+            if (window.anexarPreviewLatex) {
+                for (let i = 0; i < qtd; i++) {
+                    window.anexarPreviewLatex(`alt-${i}`, `preview-alt-${i}`);
+                }
+            }
+        }, 30);
     },
 
     getDataModal() {
@@ -893,19 +901,37 @@ export const provasView = {
     abrirOpcoesImpressao() {
         const html = `
             <div style="padding: 1.5rem; text-align: center; display: flex; flex-direction: column; gap: 1rem;">
-                <h3 style="font-size: 1.25rem; font-weight: 700; color: var(--color-slate-800);">Gerar Documento</h3>
-                <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1.5rem;">
+                <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); margin: 0;">Gerar Documento de Avaliação</h3>
+                <p style="font-size: 0.8125rem; color: var(--color-slate-500); margin: 0;">Escolha o formato de diagramação adequado para a aplicação:</p>
+                <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; margin-top: 1rem;">
                     <button onclick="controller.closeModal(); provasView.imprimirProva('aluno')" 
-                            style="padding: 1rem; border: 2px solid var(--color-slate-100); border-radius: var(--radius-2xl); cursor: pointer; transition: all var(--transition-fast); background-color: var(--color-white);"
+                            style="padding: 1.25rem 0.75rem; border: 2px solid var(--color-slate-100); border-radius: var(--radius-2xl); cursor: pointer; transition: all var(--transition-fast); background-color: var(--color-white); display: flex; flex-direction: column; align-items: center; gap: 0.5rem;"
                             onmouseover="this.style.borderColor='var(--color-primary)'; this.style.backgroundColor='#eff6ff';" onmouseout="this.style.borderColor='var(--color-slate-100)'; this.style.backgroundColor='var(--color-white)';">
-                        <i class="fas fa-user-graduate" style="font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--color-slate-400);"></i>
-                        <div style="font-weight: 700; color: var(--color-slate-700);">Aluno</div>
+                        <div style="width: 2.75rem; height: 2.75rem; border-radius: 50%; background: #eff6ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                        <div style="font-weight: 800; font-size: 0.875rem; color: var(--color-slate-700);">Padrão Aluno</div>
+                        <div style="font-size: 0.6875rem; color: var(--color-slate-400);">Layout ABNT tradicional</div>
                     </button>
+
+                    <button onclick="controller.closeModal(); provasView.imprimirProva('acessivel')" 
+                            style="padding: 1.25rem 0.75rem; border: 2px solid var(--color-slate-100); border-radius: var(--radius-2xl); cursor: pointer; transition: all var(--transition-fast); background-color: var(--color-white); display: flex; flex-direction: column; align-items: center; gap: 0.5rem;"
+                            onmouseover="this.style.borderColor='#3b82f6'; this.style.backgroundColor='#eff6ff';" onmouseout="this.style.borderColor='var(--color-slate-100)'; this.style.backgroundColor='var(--color-white)';">
+                        <div style="width: 2.75rem; height: 2.75rem; border-radius: 50%; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                            <i class="fas fa-universal-access"></i>
+                        </div>
+                        <div style="font-weight: 800; font-size: 0.875rem; color: var(--color-slate-700);">Acessível (AEE)</div>
+                        <div style="font-size: 0.6875rem; color: var(--color-slate-400);">Dislexia & Baixa Visão</div>
+                    </button>
+
                     <button onclick="controller.closeModal(); provasView.imprimirProva('professor')" 
-                            style="padding: 1rem; border: 2px solid var(--color-slate-100); border-radius: var(--radius-2xl); cursor: pointer; transition: all var(--transition-fast); background-color: var(--color-white);"
+                            style="padding: 1.25rem 0.75rem; border: 2px solid var(--color-slate-100); border-radius: var(--radius-2xl); cursor: pointer; transition: all var(--transition-fast); background-color: var(--color-white); display: flex; flex-direction: column; align-items: center; gap: 0.5rem;"
                             onmouseover="this.style.borderColor='#10b981'; this.style.backgroundColor='#ecfdf5';" onmouseout="this.style.borderColor='var(--color-slate-100)'; this.style.backgroundColor='var(--color-white)';">
-                        <i class="fas fa-chalkboard-teacher" style="font-size: 1.5rem; margin-bottom: 0.5rem; color: var(--color-slate-400);"></i>
-                        <div style="font-weight: 700; color: var(--color-slate-700);">Gabarito</div>
+                        <div style="width: 2.75rem; height: 2.75rem; border-radius: 50%; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                        </div>
+                        <div style="font-weight: 800; font-size: 0.875rem; color: var(--color-slate-700);">Gabarito</div>
+                        <div style="font-size: 0.6875rem; color: var(--color-slate-400);">Resoluções do Docente</div>
                     </button>
                 </div>
             </div>`;
@@ -918,7 +944,8 @@ export const provasView = {
         }
         const bancoTotal = [
             ...(model.state.questoesSistema || []),
-            ...(model.state.questoes || [])
+            ...(model.state.questoes || []),
+            ...(model.state.questoesEnem || [])
         ];
         const selecionadas = bancoTotal.filter(q => this.selecionadas.has(String(q.id)));
         if (selecionadas.length === 0) { Toast.show("Erro ao recuperar questões selecionadas.", "error"); return; }
@@ -928,20 +955,23 @@ export const provasView = {
         }
         const logoUrl = model.state.userConfig.logo || '';
         const isProf = tipo === 'professor';
+        const isAcessivel = tipo === 'acessivel';
+
         const questoesHtml = selecionadas.map((q, i) => {
             const letras = ['a', 'b', 'c', 'd', 'e'];
             let conteudoResposta = '';
             if (q.tipo === 'multipla' && q.alternativas) {
                 conteudoResposta = `
-                    <div style="margin-top: 10px;">
+                    <div style="margin-top: ${isAcessivel ? '16px' : '10px'};">
                         ${q.alternativas.map((alt, idx) => {
                     const styleCorrect = (isProf && q.correta == idx)
                         ? 'font-weight: bold; color: #059669; background-color: #ecfdf5; border-radius: 4px;'
                         : '';
                     const iconCheck = (isProf && q.correta == idx) ? ' ✓' : '';
                     return `
-                                <div class="alternativa" style="${styleCorrect} padding: 4px 8px;">
-                                    <strong>${letras[idx]})</strong> ${this.formatarHTMLQuestao(alt)} ${iconCheck}
+                                <div class="alternativa" style="${styleCorrect}">
+                                    <span class="alt-letra">( &nbsp; ) <strong>${letras[idx]})</strong></span> 
+                                    <span>${this.formatarHTMLQuestao(alt)} ${iconCheck}</span>
                                 </div>
                             `;
                 }).join('')}
@@ -964,40 +994,62 @@ export const provasView = {
                 `;
             }
             return `
-                <div class="questao">
+                <div class="questao ${isAcessivel ? 'questao-acessivel' : ''}">
                     ${q.bncc ? `<div class="questao-info no-print">Habilidade: ${window.escapeHTML(q.bncc.codigo)}</div>` : ''}
-                    <span class="questao-numero">${i + 1})</span>
-                    <span class="questao-texto">${this.formatarHTMLQuestao(q.enunciado).replace(/\n/g, '<br>')}</span>
+                    <div style="display: flex; align-items: baseline; gap: 0.5rem;">
+                        <span class="questao-numero">${i + 1})</span>
+                        <span class="questao-texto">${this.formatarHTMLQuestao(q.enunciado).replace(/\n/g, '<br>')}</span>
+                    </div>
                     ${conteudoResposta}
                 </div>
             `;
         }).join('');
-        const divTemporaria = document.createElement('div');
-        divTemporaria.innerHTML = questoesHtml;
-        renderKatex(divTemporaria);
-        const htmlProcessado = divTemporaria.innerHTML;
-        const tituloDoc = isProf ? 'GABARITO - Avaliação' : 'Avaliação de Aprendizagem';
+
+        const tituloDoc = isProf ? 'GABARITO - Avaliação' : isAcessivel ? 'Avaliação Adaptada (AEE / Acessível)' : 'Avaliação de Aprendizagem';
+
         const estiloImpressao = `
             <style>
-                @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
-                body { font-family: 'Roboto', sans-serif; padding: 40px; color: #000; }
+                @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Roboto:wght@400;700&display=swap');
+                body { 
+                    font-family: ${isAcessivel ? "'Atkinson Hyperlegible', 'Arial', sans-serif" : "'Roboto', sans-serif"}; 
+                    padding: 40px; 
+                    color: #000; 
+                    line-height: ${isAcessivel ? '1.8' : '1.5'};
+                    letter-spacing: ${isAcessivel ? '0.03em' : 'normal'};
+                }
                 
-                /* NOVO: Header atualizado com Flexbox para suportar o logo à direita */
-                .header { display: flex; align-items: center; justify-content: space-between; border: 1px solid #000; padding: 15px; margin-bottom: 40px; border-radius: 4px; }
+                .header { display: flex; align-items: center; justify-content: space-between; border: ${isAcessivel ? '2px solid #000' : '1px solid #000'}; padding: 15px; margin-bottom: 30px; border-radius: 6px; }
                 .header-info { flex: 1; }
-                .header-info p { margin: 5px 0; font-size: 14px; }
+                .header-info p { margin: 6px 0; font-size: ${isAcessivel ? '15px' : '14px'}; font-weight: 500; }
                 .header-logo { max-width: 80px; max-height: 80px; object-fit: contain; margin-left: 20px; }
                 
-                .titulo-prova { text-align: center; text-transform: uppercase; font-weight: bold; font-size: 18px; margin-bottom: 40px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+                .titulo-prova { text-align: center; text-transform: uppercase; font-weight: 800; font-size: ${isAcessivel ? '20px' : '18px'}; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 10px; }
                 
-                .questao { margin-bottom: 30px; page-break-inside: avoid; }
+                .questao { margin-bottom: 25px; page-break-inside: avoid; }
+                .questao-acessivel { 
+                    background: #fbfcfe; 
+                    border: 1.5px solid #cbd5e1; 
+                    border-left: 6px solid #2563eb; 
+                    padding: 16px 20px; 
+                    border-radius: 8px; 
+                    margin-bottom: 30px; 
+                }
+                
                 .questao-info { font-size: 10px; color: #666; margin-bottom: 5px; text-transform: uppercase; font-weight: bold; }
+                .questao-numero { font-weight: 800; font-size: ${isAcessivel ? '18px' : '16px'}; margin-right: 5px; color: ${isAcessivel ? '#1d4ed8' : '#000'}; }
+                .questao-texto { font-size: ${isAcessivel ? '16px' : '14px'}; text-align: left; margin-bottom: 12px; }
                 
-                .questao-numero { font-weight: bold; font-size: 16px; margin-right: 5px; }
-                .questao-texto { font-size: 14px; line-height: 1.5; text-align: justify; margin-bottom: 15px; }
-                
-                .resposta-area { border-bottom: 1px solid #ccc; height: 25px; width: 100%; display: block; margin-top: 5px; }
-                .alternativa { margin-bottom: 5px; font-size: 14px; }
+                .resposta-area { border-bottom: 1px solid #94a3b8; height: 28px; width: 100%; display: block; margin-top: 8px; }
+                .alternativa { 
+                    margin-bottom: ${isAcessivel ? '10px' : '6px'}; 
+                    font-size: ${isAcessivel ? '15px' : '14px'}; 
+                    display: flex; 
+                    align-items: baseline; 
+                    gap: 8px; 
+                    padding: ${isAcessivel ? '4px 6px' : '2px 0'};
+                }
+                .alt-letra { font-family: monospace; font-size: ${isAcessivel ? '16px' : '14px'}; font-weight: bold; }
+
                 .btn-voltar {
                     position: fixed; top: 20px; right: 20px;
                     background-color: #ef4444; color: white; padding: 12px 20px;
@@ -1009,15 +1061,20 @@ export const provasView = {
                 .btn-voltar:hover { background-color: #dc2626; }
                 @media print {
                     .no-print, .btn-voltar { display: none !important; }
-                    body { padding: 0; }
+                    body { padding: 0; background: transparent; }
+                    .questao-acessivel { background: transparent !important; border: 1px solid #000 !important; border-left: 4px solid #000 !important; }
                 }
             </style>
             <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
             <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+            <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"><\/script>
+            <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"><\/script>
         `;
         const conteudoFinal = `
-            <html>
+            <!DOCTYPE html>
+            <html lang="pt-BR">
             <head>
+                <meta charset="utf-8">
                 <title>Impressão - ${tituloDoc}</title>
                 ${estiloImpressao}
             </head>
@@ -1034,9 +1091,22 @@ export const provasView = {
                     ${logoUrl ? `<img src="${logoUrl}" class="header-logo" alt="Logo da Instituição" />` : ''}
                 </div>
                 <div class="titulo-prova">${tituloDoc}</div>
-                <div id="conteudo-prova">${htmlProcessado}</div>
+                <div id="conteudo-prova">${questoesHtml}</div>
                 <script>
-                    window.onload = function() { setTimeout(() => window.print(), 500); }
+                    window.onload = function() {
+                        if (typeof renderMathInElement === 'function') {
+                            renderMathInElement(document.body, {
+                                delimiters: [
+                                    { left: '$$', right: '$$', display: true },
+                                    { left: '\\\\[', right: '\\\\]', display: true },
+                                    { left: '\\\\(', right: '\\\\)', display: false },
+                                    { left: '$', right: '$', display: false }
+                                ],
+                                throwOnError: false
+                            });
+                        }
+                        setTimeout(() => window.print(), 350);
+                    };
                 <\/script>
             </body>
             </html>

@@ -2,7 +2,7 @@ import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
 import { aiService } from '../ai-service.js';
-import { renderKatex, lerArquivoTexto } from '../utils.js';
+import { renderKatex, formatarTextoComLatex, sanitizeComLatex, alternarModoEdicaoPreview, lerArquivoTexto, secureShuffle } from '../utils.js';
 import { uiController } from '../controllers/uiController.js';
 
 export const estudosVisuaisView = {
@@ -536,12 +536,24 @@ export const estudosVisuaisView = {
 
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-4);">
                                 <div>
-                                    <label class="form-label">Frente (Pergunta / Conceito / Termo)</label>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                        <label class="form-label" style="margin-bottom: 0;">Frente (Pergunta / Conceito)</label>
+                                        <button type="button" onclick="alternarModoEdicaoPreview('deck-frente-${i}', 'preview-deck-frente-${i}', 'btn-prev-frente-${i}')" id="btn-prev-frente-${i}" class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.6875rem;">
+                                            <i class="fas fa-eye"></i> Visualizar (TeX)
+                                        </button>
+                                    </div>
                                     <textarea id="deck-frente-${i}" rows="3" class="form-input custom-scrollbar" style="resize: vertical;" onchange="estudosVisuaisView.salvarCarta(${i})">${window.escapeHTML(c.frente || '')}</textarea>
+                                    <div id="preview-deck-frente-${i}" style="display: none;"></div>
                                 </div>
                                 <div>
-                                    <label class="form-label">Verso (Resposta / Definição Detalhada)</label>
+                                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                                        <label class="form-label" style="margin-bottom: 0;">Verso (Resposta / Definição)</label>
+                                        <button type="button" onclick="alternarModoEdicaoPreview('deck-verso-${i}', 'preview-deck-verso-${i}', 'btn-prev-verso-${i}')" id="btn-prev-verso-${i}" class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.6875rem;">
+                                            <i class="fas fa-eye"></i> Visualizar (TeX)
+                                        </button>
+                                    </div>
                                     <textarea id="deck-verso-${i}" rows="3" class="form-input custom-scrollbar" style="resize: vertical;" onchange="estudosVisuaisView.salvarCarta(${i})">${window.escapeHTML(c.verso || '')}</textarea>
+                                    <div id="preview-deck-verso-${i}" style="display: none;"></div>
                                 </div>
                             </div>
                             
@@ -612,6 +624,9 @@ export const estudosVisuaisView = {
             } else {
                 cardEl.classList.remove('is-flipped');
             }
+            if (window.renderKatex) {
+                window.renderKatex(cardEl);
+            }
         }
     },
 
@@ -640,7 +655,7 @@ export const estudosVisuaisView = {
 
     embaralharCartas() {
         if (!this.currentDeck || !this.currentDeck.cards) return;
-        this.currentDeck.cards.sort(() => Math.random() - 0.5);
+        this.currentDeck.cards = secureShuffle(this.currentDeck.cards);
         this.currentCardIndex = 0;
         this.isCardFlipped = false;
         this.estudoScores = {};
@@ -782,12 +797,12 @@ export const estudosVisuaisView = {
 
                             <div style="flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; padding: 1rem;">
                                 <h3 style="font-size: 1.625rem; font-weight: 800; color: var(--color-slate-800); line-height: 1.4;">
-                                    ${window.escapeHTML(card.frente)}
+                                    ${window.formatarTextoComLatex ? window.formatarTextoComLatex(window.escapeHTML(card.frente)) : window.escapeHTML(card.frente)}
                                 </h3>
                             </div>
 
                             <div style="text-align: center;">
-                                ${card.dica ? `<p style="font-size: 0.8125rem; color: var(--color-slate-400); font-style: italic;"><i class="far fa-lightbulb"></i> Dica: ${window.escapeHTML(card.dica)}</p>` : ''}
+                                ${card.dica ? `<p style="font-size: 0.8125rem; color: var(--color-slate-400); font-style: italic;"><i class="far fa-lightbulb"></i> Dica: ${window.formatarTextoComLatex ? window.formatarTextoComLatex(window.escapeHTML(card.dica)) : window.escapeHTML(card.dica)}</p>` : ''}
                             </div>
                         </div>
 
@@ -800,7 +815,7 @@ export const estudosVisuaisView = {
 
                             <div style="flex: 1; display: flex; align-items: center; justify-content: center; text-align: center; padding: 1rem;">
                                 <p style="font-size: 1.375rem; font-weight: 700; color: var(--color-slate-800); line-height: 1.5;">
-                                    ${window.escapeHTML(card.verso)}
+                                    ${window.formatarTextoComLatex ? window.formatarTextoComLatex(window.escapeHTML(card.verso)) : window.escapeHTML(card.verso)}
                                 </p>
                             </div>
 
@@ -1459,7 +1474,7 @@ export const estudosVisuaisView = {
                 <div id="mm-node-el-${id}" class="${cardClass}" style="left: ${x}px; top: ${y}px; ${borderStyle} cursor: grab;" 
                      onmousedown="estudosVisuaisView.iniciarArrasteNo(event, '${id}')"
                      onclick="estudosVisuaisView.selecionarNo('${id}')">
-                    <span style="font-weight: 800;">${window.escapeHTML(node.label)}</span>
+                    <span style="font-weight: 800;">${formatarTextoComLatex(sanitizeComLatex(node.label))}</span>
 
                     ${hasChildren ? `
                         <div class="mindmap-node-toggle" onclick="event.stopPropagation(); estudosVisuaisView.toggleRecolherNo('${id}')" title="${isCollapsed ? 'Expandir ramo' : 'Recolher ramo'}">

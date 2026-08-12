@@ -1,7 +1,7 @@
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
-import { renderKatex } from '../utils.js';
+import { renderKatex, formatarTextoComLatex, sanitizeComLatex, alternarModoEdicaoPreview } from '../utils.js';
 
 export const conteudoGeradoView = {
     materialIdAtual: null,
@@ -93,7 +93,7 @@ export const conteudoGeradoView = {
                             <i class="far fa-file-word"></i> <span>Baixar Word (${isAluno ? 'Aluno' : 'Professor'})</span>
                         </button>
                         
-                        <button type="button" onclick="conteudoGeradoView.imprimirDocumento()" class="btn-secondary interactive-element">
+                        <button type="button" onclick="conteudoGeradoView.abrirOpcoesImpressao()" class="btn-secondary interactive-element">
                             <i class="fas fa-print"></i> <span>Imprimir / PDF</span>
                         </button>
 
@@ -304,6 +304,9 @@ export const conteudoGeradoView = {
                     </div>
 
                     <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;">
+                        <button type="button" onclick="alternarModoEdicaoPreview('editor-mat-conteudo', 'editor-mat-preview', 'btn-prev-editor-mat')" id="btn-prev-editor-mat" class="btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;" title="Alternar entre edição de código e pré-visualização formatada">
+                            <i class="fas fa-eye"></i> <span>Visualizar Formatação (TeX)</span>
+                        </button>
                         <button type="button" onclick="conteudoGeradoView.inserirBlocoGabarito()" class="btn-primary" style="background-color: #059669; font-size: 0.75rem; padding: 0.375rem 0.75rem; box-shadow: var(--shadow-sm);" title="Inserir bloco de respostas que fica visível apenas para o professor">
                             <i class="fas fa-check-circle"></i> + Gabarito (Oculto no Aluno)
                         </button>
@@ -317,6 +320,7 @@ export const conteudoGeradoView = {
                 <div>
                     <label class="form-label">Conteúdo do Material (HTML Mestre)</label>
                     <textarea id="editor-mat-conteudo" rows="14" class="form-input custom-scrollbar" style="width: 100%; font-family: monospace; font-size: 0.875rem; line-height: 1.6;">${window.escapeHTML(conteudoAtual)}</textarea>
+                    <div id="editor-mat-preview" style="display: none; margin-top: 0.5rem;"></div>
                 </div>
 
                 <!-- ALERTA INFORMATIVO -->
@@ -418,7 +422,7 @@ export const conteudoGeradoView = {
         Toast.show(`Baixando Versão ${comGabarito ? 'do Professor (Com Gabarito)' : 'do Aluno (Sem Gabarito)'}...`, "info");
 
         const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = htmlProcessado;
+        tempDiv.innerHTML = formatarTextoComLatex(htmlProcessado);
         renderKatex(tempDiv);
 
         const sufixo = comGabarito ? '_professor_gabarito' : '_aluno';
@@ -438,6 +442,12 @@ export const conteudoGeradoView = {
                     p, li { line-height: 1.6; color: #334155; font-size: 11pt; }
                     .gabarito-bloco, .gabarito { background-color: #ecfdf5; border: 1px solid #a7f3d0; border-left: 4px solid #059669; padding: 12px; margin: 15px 0; }
                     .comentario-professor { background-color: #fefce8; border-left: 4px solid #ca8a04; padding: 10px; }
+                    .laboratorio-seguranca { background-color: #fef2f2; border: 1.5px solid #fecaca; border-left: 4px solid #ef4444; padding: 12px; margin: 15px 0; color: #991b1b; }
+                    .laboratorio-seguranca h3 { color: #b91c1c; }
+                    .etapa-experimento { background-color: #f8fafc; border: 1px solid #e2e8f0; border-left: 4px solid #4f46e5; padding: 10px 14px; margin: 12px 0; }
+                    .tabela-experimento { width: 100%; border-collapse: collapse; margin: 16px 0; border: 2px solid #cbd5e1; }
+                    .tabela-experimento th { background-color: #f1f5f9; color: #334155; font-weight: bold; padding: 8px; border: 1px solid #cbd5e1; text-align: left; }
+                    .tabela-experimento td { border: 1px solid #cbd5e1; padding: 10px; min-height: 30px; }
                     .katex { font-size: 1.1em; }
                 </style>
             </head>
@@ -455,8 +465,278 @@ export const conteudoGeradoView = {
         document.body.removeChild(fileDownload);
     },
 
-    imprimirDocumento() {
-        window.print();
+    abrirOpcoesImpressao() {
+        const material = (model.state.materiaisGerados || []).find(m => m.id === this.materialIdAtual);
+        if (!material) return Toast.show("Nenhum material carregado para impressão.", "error");
+
+        const html = `
+            <div style="padding: 1.5rem; text-align: center; display: flex; flex-direction: column; gap: 1rem;">
+                <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); margin: 0;">Imprimir / Exportar Documento Pedagógico</h3>
+                <p style="font-size: 0.8125rem; color: var(--color-slate-500); margin: 0;">Escolha o formato de diagramação adequado para a aplicação em sala de aula ou arquivo do professor:</p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-top: 1rem;">
+                    
+                    <!-- OPÇÃO 1: PADRÃO ALUNO -->
+                    <button type="button" onclick="controller.closeModal(); conteudoGeradoView.gerarDocumentoImpressao('aluno')" 
+                            class="interactive-element"
+                            style="padding: 1.25rem 0.75rem; border: 2px solid var(--color-slate-100); border-radius: var(--radius-2xl); cursor: pointer; transition: all var(--transition-fast); background-color: var(--color-white); display: flex; flex-direction: column; align-items: center; gap: 0.5rem;"
+                            onmouseover="this.style.borderColor='var(--color-primary)'; this.style.backgroundColor='#eff6ff';" onmouseout="this.style.borderColor='var(--color-slate-100)'; this.style.backgroundColor='var(--color-white)';">
+                        <div style="width: 2.75rem; height: 2.75rem; border-radius: 50%; background: #eff6ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                        <div style="font-weight: 800; font-size: 0.875rem; color: var(--color-slate-700);">Padrão Aluno</div>
+                        <div style="font-size: 0.6875rem; color: var(--color-slate-400);">Sem gabaritos, com cabeçalho de identificação</div>
+                    </button>
+
+                    <!-- OPÇÃO 2: ACESSÍVEL AEE / INCLUSÃO -->
+                    <button type="button" onclick="controller.closeModal(); conteudoGeradoView.gerarDocumentoImpressao('acessivel')" 
+                            class="interactive-element"
+                            style="padding: 1.25rem 0.75rem; border: 2px solid var(--color-slate-100); border-radius: var(--radius-2xl); cursor: pointer; transition: all var(--transition-fast); background-color: var(--color-white); display: flex; flex-direction: column; align-items: center; gap: 0.5rem;"
+                            onmouseover="this.style.borderColor='#3b82f6'; this.style.backgroundColor='#eff6ff';" onmouseout="this.style.borderColor='var(--color-slate-100)'; this.style.backgroundColor='var(--color-white)';">
+                        <div style="width: 2.75rem; height: 2.75rem; border-radius: 50%; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                            <i class="fas fa-universal-access"></i>
+                        </div>
+                        <div style="font-weight: 800; font-size: 0.875rem; color: var(--color-slate-700);">Acessível (AEE)</div>
+                        <div style="font-size: 0.6875rem; color: var(--color-slate-400);">Tipografia Atkinson, alto contraste e entrelinhas 1.85</div>
+                    </button>
+
+                    <!-- OPÇÃO 3: GUIA DO PROFESSOR (COM GABARITO) -->
+                    <button type="button" onclick="controller.closeModal(); conteudoGeradoView.gerarDocumentoImpressao('professor')" 
+                            class="interactive-element"
+                            style="padding: 1.25rem 0.75rem; border: 2px solid var(--color-slate-100); border-radius: var(--radius-2xl); cursor: pointer; transition: all var(--transition-fast); background-color: var(--color-white); display: flex; flex-direction: column; align-items: center; gap: 0.5rem;"
+                            onmouseover="this.style.borderColor='#10b981'; this.style.backgroundColor='#ecfdf5';" onmouseout="this.style.borderColor='var(--color-slate-100)'; this.style.backgroundColor='var(--color-white)';">
+                        <div style="width: 2.75rem; height: 2.75rem; border-radius: 50%; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                            <i class="fas fa-chalkboard-teacher"></i>
+                        </div>
+                        <div style="font-weight: 800; font-size: 0.875rem; color: var(--color-slate-700);">Guia do Professor</div>
+                        <div style="font-size: 0.6875rem; color: var(--color-slate-400);">Completo com gabaritos comentados e critérios</div>
+                    </button>
+                </div>
+            </div>`;
+        controller.openModal('Impressão & Exportação em PDF', html);
+    },
+
+    gerarDocumentoImpressao(tipo = 'aluno') {
+        const material = (model.state.materiaisGerados || []).find(m => m.id === this.materialIdAtual);
+        if (!material) return Toast.show("Material não encontrado para impressão.", "error");
+
+        const isProf = tipo === 'professor';
+        const isAcessivel = tipo === 'acessivel';
+
+        let nomeProf = model.state.userConfig?.profName || '__________________________';
+        if ((!model.state.userConfig?.profName || model.state.userConfig.profName.trim() === '') && model.currentUser) {
+            nomeProf = model.currentUser.displayName || '__________________________';
+        }
+        const logoUrl = model.state.userConfig?.logo || '';
+        const nomeEscola = model.state.userConfig?.schoolName || '________________________________________________';
+
+        const htmlProcessado = this.processarHTMLParaModo(material.conteudo_html || '', isProf ? 'professor' : 'aluno');
+        const conteudoFinalHTML = formatarTextoComLatex(htmlProcessado);
+
+        const tituloDocumento = isProf 
+            ? `GUIA DO PROFESSOR: ${material.titulo || material.tema || 'Material Pedagógico'}`
+            : isAcessivel 
+                ? `DOCUMENTO ADAPTADO (AEE): ${material.titulo || material.tema || 'Material Pedagógico'}`
+                : `${material.titulo || material.tema || 'Material Pedagógico'}`;
+
+        const estiloImpressao = `
+            <style>
+                @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Roboto:wght@400;500;700&display=swap');
+                
+                * { box-sizing: border-box; }
+                body { 
+                    font-family: ${isAcessivel ? "'Atkinson Hyperlegible', Arial, sans-serif" : "'Roboto', Arial, sans-serif"}; 
+                    padding: 40px; 
+                    color: #1e293b; 
+                    line-height: ${isAcessivel ? '1.85' : '1.6'};
+                    letter-spacing: ${isAcessivel ? '0.03em' : 'normal'};
+                    background-color: #ffffff;
+                }
+                
+                /* CABEÇALHO ESCOLAR */
+                .header { 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: space-between; 
+                    border: ${isAcessivel ? '2px solid #000' : '1px solid #334155'}; 
+                    padding: 14px 18px; 
+                    margin-bottom: 24px; 
+                    border-radius: 8px; 
+                }
+                .header-info { flex: 1; }
+                .header-info p { margin: 5px 0; font-size: ${isAcessivel ? '14.5px' : '13px'}; font-weight: 500; }
+                .header-logo { max-width: 80px; max-height: 80px; object-fit: contain; margin-left: 20px; }
+                
+                .titulo-documento { 
+                    text-align: center; 
+                    text-transform: uppercase; 
+                    font-weight: 800; 
+                    font-size: ${isAcessivel ? '19px' : '17px'}; 
+                    margin-bottom: 24px; 
+                    border-bottom: 2px solid #1e293b; 
+                    padding-bottom: 10px; 
+                    color: #0f172a;
+                }
+                
+                /* FORMATAÇÃO DE CONTEÚDO PEDAGÓGICO */
+                h1, h2, h3, h4 { color: #0f172a; page-break-after: avoid; }
+                h3 { font-size: ${isAcessivel ? '16px' : '15px'}; margin-top: 18px; margin-bottom: 8px; }
+                p, li { font-size: ${isAcessivel ? '15px' : '13.5px'}; color: #334155; margin-bottom: 10px; }
+                ul, ol { padding-left: 24px; margin-bottom: 14px; }
+                
+                /* CAIXAS DE DESTAQUE E LABORATÓRIO */
+                .laboratorio-seguranca { 
+                    background-color: #fef2f2; 
+                    border: 1.5px solid #fecaca; 
+                    border-left: 5px solid #ef4444; 
+                    border-radius: 8px; 
+                    padding: 12px 16px; 
+                    margin: 16px 0; 
+                    color: #991b1b;
+                    page-break-inside: avoid;
+                }
+                .laboratorio-seguranca h3, .laboratorio-seguranca h4 { color: #b91c1c; margin-top: 0; }
+                
+                .etapa-experimento { 
+                    background-color: #f8fafc; 
+                    border: 1px solid #e2e8f0; 
+                    border-left: 4px solid #4f46e5; 
+                    border-radius: 6px; 
+                    padding: 10px 14px; 
+                    margin: 12px 0; 
+                    page-break-inside: avoid;
+                }
+                
+                .tabela-experimento { 
+                    width: 100%; 
+                    border-collapse: collapse; 
+                    margin: 18px 0; 
+                    border: 2px solid #334155; 
+                    page-break-inside: avoid;
+                }
+                .tabela-experimento th { 
+                    background-color: #f1f5f9; 
+                    color: #0f172a; 
+                    font-weight: bold; 
+                    padding: 9px; 
+                    border: 1px solid #334155; 
+                    text-align: left; 
+                    font-size: 12px;
+                    text-transform: uppercase;
+                }
+                .tabela-experimento td { 
+                    border: 1px solid #334155; 
+                    padding: 12px; 
+                    min-height: 44px; 
+                    font-size: 13px;
+                }
+
+                .gabarito-bloco, .gabarito { 
+                    background-color: #ecfdf5; 
+                    border: 1px solid #a7f3d0; 
+                    border-left: 5px solid #059669; 
+                    border-radius: 8px; 
+                    padding: 14px 18px; 
+                    margin: 20px 0; 
+                    page-break-inside: avoid;
+                }
+                .gabarito-bloco h3, .gabarito-bloco h4 { color: #065f46; margin-top: 0; }
+
+                .comentario-professor { 
+                    background-color: #fefce8; 
+                    border: 1px solid #fef08a; 
+                    border-left: 4px solid #ca8a04; 
+                    padding: 10px 14px; 
+                    margin: 12px 0; 
+                    border-radius: 6px; 
+                }
+
+                .btn-voltar {
+                    position: fixed; top: 20px; right: 20px;
+                    background-color: #ef4444; color: white; padding: 12px 22px;
+                    border: none; border-radius: 50px; font-weight: bold; cursor: pointer;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.25); z-index: 9999;
+                    display: flex; align-items: center; gap: 8px;
+                    font-family: sans-serif; text-transform: uppercase; font-size: 12px;
+                    transition: background-color 0.2s ease;
+                }
+                .btn-voltar:hover { background-color: #dc2626; }
+
+                @media print {
+                    .no-print, .btn-voltar { display: none !important; }
+                    body { padding: 0; background: transparent; }
+                    .header { border-color: #000; }
+                    .laboratorio-seguranca { background: transparent !important; border: 1px solid #000 !important; border-left: 4px solid #000 !important; color: #000 !important; }
+                    .etapa-experimento { background: transparent !important; border: 1px solid #000 !important; border-left: 4px solid #000 !important; }
+                    .tabela-experimento, .tabela-experimento th, .tabela-experimento td { border-color: #000 !important; }
+                    .gabarito-bloco { background: transparent !important; border: 1px solid #000 !important; border-left: 4px solid #000 !important; }
+                }
+            </style>
+            <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+            <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"><\/script>
+            <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"><\/script>
+        `;
+
+        const conteudoFinal = `
+            <!DOCTYPE html>
+            <html lang="pt-BR">
+            <head>
+                <meta charset="utf-8">
+                <title>Impressão - ${window.escapeHTML(tituloDocumento)}</title>
+                ${estiloImpressao}
+            </head>
+            <body>
+                <button onclick="window.close()" class="btn-voltar">
+                    <i class="fas fa-arrow-left"></i> Voltar para o App
+                </button>
+                
+                <div class="header">
+                    <div class="header-info">
+                        <p><strong>ESCOLA:</strong> ${window.escapeHTML(nomeEscola)}</p>
+                        <p><strong>PROFESSOR(A):</strong> ${window.escapeHTML(nomeProf)} &nbsp;&nbsp;&nbsp;&nbsp; <strong>DISCIPLINA:</strong> ${window.escapeHTML(material.disciplina || 'Geral')} &nbsp;&nbsp;&nbsp;&nbsp; <strong>SÉRIE/ANO:</strong> ${window.escapeHTML(material.serie || '-')}</p>
+                        ${!isProf ? `
+                            <p><strong>ALUNO(A):</strong> _______________________________________________________ <strong>TURMA:</strong> ________ <strong>DATA:</strong> ____/____/2026</p>
+                        ` : `
+                            <p><strong>TIPO DO DOCUMENTO:</strong> Guia Pedagógico do Docente &nbsp;&nbsp;&nbsp;&nbsp; <strong>DATA:</strong> ____/____/2026</p>
+                        `}
+                    </div>
+                    ${logoUrl ? `<img src="${logoUrl}" class="header-logo" alt="Logo da Instituição" />` : ''}
+                </div>
+
+                <div class="titulo-documento">${window.escapeHTML(material.titulo || material.tema || 'Atividade Pedagógica')}</div>
+                
+                <div id="conteudo-documento">
+                    ${conteudoFinalHTML}
+                </div>
+
+                <script>
+                    window.onload = function() { 
+                        if (typeof renderMathInElement === 'function') {
+                            renderMathInElement(document.body, {
+                                delimiters: [
+                                    { left: '$$', right: '$$', display: true },
+                                    { left: '\\\\[', right: '\\\\]', display: true },
+                                    { left: '\\\\(', right: '\\\\)', display: false },
+                                    { left: '$', right: '$', display: false }
+                                ],
+                                throwOnError: false
+                            });
+                        }
+                        setTimeout(() => window.print(), 350); 
+                    };
+                <\/script>
+            </body>
+            </html>
+        `;
+
+        const win = window.open('', '_blank');
+        if (win) {
+            win.document.write(conteudoFinal);
+            win.document.close();
+        } else {
+            Toast.show("Permita pop-ups no seu navegador para abrir a tela de impressão.", "warning");
+        }
     },
 
     copiarTextoFormatado() {

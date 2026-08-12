@@ -4,7 +4,7 @@ import { firebaseService } from '../firebase-service.js';
 import { provaService } from '../services/provaService.js';
 import { viewRegistry } from '../services/viewRegistry.js';
 import { Toast } from '../components/toast.js';
-import { normalizeText, generateUUID } from '../utils.js';
+import { normalizeText, generateUUID, generateId, secureShuffle } from '../utils.js';
 export const provaMethods = {
     async carregarQuestoesSistema() {
         try {
@@ -17,7 +17,7 @@ export const provaMethods = {
             const resultados = await Promise.all(buscas);
             this.state.questoesSistema = resultados.flat().map(q => ({
                 ...q,
-                id: q.id || `sys_${Math.random().toString(36).substr(2, 9)}`,
+                id: q.id || generateId('sys'),
                 dificuldade: Number(q.dificuldade) || 0,
                 preDefinida: true
             }));
@@ -33,10 +33,7 @@ export const provaMethods = {
             updatedAt: new Date().toISOString()
         };
         if (!questaoSalvar.id) {
-            const randomPart = typeof crypto !== 'undefined' && crypto.randomUUID
-                ? crypto.randomUUID().split('-')[0]
-                : Math.random().toString(36).substr(2, 5);
-            questaoSalvar.id = `prof_${Date.now()}_${randomPart}`;
+            questaoSalvar.id = generateId(`prof_${Date.now()}`);
             questaoSalvar.createdAt = new Date().toISOString();
         }
         if (!this.state.questoes) this.state.questoes = [];
@@ -161,7 +158,7 @@ export const provaMethods = {
         const alvoDificil = quantidade - alvoFacil - alvoMedio;
         const selecionadas = new Set();
         const pegarAleatorio = (lista, n) => {
-            const embaralhado = lista.sort(() => 0.5 - Math.random());
+            const embaralhado = secureShuffle(lista);
             return embaralhado.slice(0, n);
         };
         const selecionadasFacil = pegarAleatorio(buckets.facil, alvoFacil);

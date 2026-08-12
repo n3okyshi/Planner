@@ -427,6 +427,8 @@ export const frequenciaView = {
             .filter(a => a.status !== 'transferido')
             .sort((a, b) => (a.nome || '').localeCompare((b.nome || ''), 'pt-BR', { sensitivity: 'base' }));
 
+        let alunosEmRiscoLDB = 0;
+
         const linhasAlunos = alunosOrdenados.map(aluno => {
             let colunas = '';
             for (let d = 1; d <= diasNoMes; d++) {
@@ -451,18 +453,60 @@ export const frequenciaView = {
                 `;
             }
 
+            // Cálculo de percentual de faltas para alerta legal LDB
+            const freqObj = aluno.frequencia || {};
+            let totalReg = 0;
+            let totalFaltas = 0;
+            Object.values(freqObj).forEach(val => {
+                if (val === 'P' || val === 'F' || val === 'J') totalReg++;
+                if (val === 'F') totalFaltas++;
+            });
+            const pctFaltas = totalReg > 0 ? Math.round((totalFaltas / totalReg) * 100) : 0;
+
+            let badgeRisco = '';
+            if (totalReg >= 5 && pctFaltas >= 25) {
+                alunosEmRiscoLDB++;
+                badgeRisco = `
+                    <span style="background-color: #fee2e2; color: #dc2626; border: 1px solid #fecaca; font-size: 0.625rem; font-weight: 900; padding: 0.125rem 0.375rem; border-radius: 0.375rem; margin-left: auto; display: inline-flex; align-items: center; gap: 0.25rem; flex-shrink: 0;" title="Risco LDB: ${pctFaltas}% de faltas (Limite máximo da lei: 25%)">
+                        <i class="fas fa-exclamation-triangle"></i> LDB ${pctFaltas}%
+                    </span>
+                `;
+            } else if (totalReg >= 5 && pctFaltas >= 18) {
+                badgeRisco = `
+                    <span style="background-color: #fef3c7; color: #d97706; border: 1px solid #fde68a; font-size: 0.625rem; font-weight: 800; padding: 0.125rem 0.375rem; border-radius: 0.375rem; margin-left: auto; display: inline-flex; align-items: center; gap: 0.25rem; flex-shrink: 0;" title="Atenção: ${pctFaltas}% de faltas (Aproximando do limite LDB)">
+                        <i class="fas fa-clock"></i> ${pctFaltas}%
+                    </span>
+                `;
+            }
+
             return `
                 <div style="display: flex; align-items: center; border-bottom: 1px solid var(--color-slate-100); background-color: var(--color-white);">
                     <div style="width: 16rem; flex-shrink: 0; padding: var(--spacing-3); border-right: 1px solid var(--color-slate-200); position: sticky; left: 0; background-color: var(--color-white); z-index: 10; display: flex; align-items: center; gap: var(--spacing-3); box-shadow: 2px 0 5px -2px rgba(0,0,0,0.05);">
-                        <div style="width: 2rem; height: 2rem; border-radius: 50%; background-color: var(--color-slate-100); display: flex; align-items: center; justify-content: center; color: var(--color-slate-600); font-size: 0.75rem; font-weight: 800; border: 1px solid var(--color-slate-200);">
+                        <div style="width: 2rem; height: 2rem; border-radius: 50%; background-color: var(--color-slate-100); display: flex; align-items: center; justify-content: center; color: var(--color-slate-600); font-size: 0.75rem; font-weight: 800; border: 1px solid var(--color-slate-200); flex-shrink: 0;">
                             ${aluno.nome.charAt(0)}
                         </div>
                         <span style="font-size: 0.875rem; font-weight: 600; color: var(--color-slate-700); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${window.escapeHTML(aluno.nome)}</span>
+                        ${badgeRisco}
                     </div>
                     ${colunas}
                 </div>
             `;
         }).join('');
+
+        const bannerRiscoHtml = alunosEmRiscoLDB > 0 ? `
+            <div style="background: linear-gradient(135deg, #fef2f2, #fff1f2); border-left: 4px solid #ef4444; border-radius: 1rem; padding: 0.875rem 1.25rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; box-shadow: 0 4px 12px rgba(239,68,68,0.06); margin-bottom: var(--spacing-4);">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="width: 2.25rem; height: 2.25rem; border-radius: 0.75rem; background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 1.125rem;">
+                        <i class="fas fa-bell"></i>
+                    </div>
+                    <div>
+                        <h4 style="font-weight: 800; color: #991b1b; font-size: 0.875rem; margin: 0;">Alerta de Infrequência Escolar (LDB Art. 24)</h4>
+                        <p style="font-size: 0.75rem; color: #b91c1c; margin: 0.125rem 0 0 0;">Existem <strong>${alunosEmRiscoLDB} estudante(s)</strong> que atingiram ou superaram 25% de faltas nesta turma.</p>
+                    </div>
+                </div>
+                <span class="badge" style="background: #ef4444; color: white; font-weight: 800; font-size: 0.6875rem; padding: 0.375rem 0.75rem; border-radius: 9999px; white-space: nowrap;">Busca Ativa Recomendada</span>
+            </div>
+        ` : '';
 
         if (alunosOrdenados.length === 0) {
             return `
@@ -474,6 +518,7 @@ export const frequenciaView = {
         }
 
         return `
+            ${bannerRiscoHtml}
             <div class="card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column; position: relative;">
                 
                 <!-- STICKY HEADER -->

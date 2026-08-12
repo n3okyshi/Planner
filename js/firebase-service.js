@@ -1,5 +1,5 @@
-
 import { firebaseConfig } from './config.js';
+import { generateSecurePIN } from './utils.js';
 export const firebaseService = {
     auth: null,
     db: null,
@@ -23,22 +23,22 @@ export const firebaseService = {
         try {
             this.db.enablePersistence({ synchronizeTabs: true })
                 .catch(err => {
-                    if (err.code === 'failed-precondition') {
-                        console.warn("Persistência: Múltiplas abas abertas.");
-                    } else if (err.code === 'unimplemented') {
-                        console.warn("Persistência: Navegador sem suporte.");
+                    if (err.code == 'failed-precondition') {
+                        console.warn("Persistência falhou: Múltiplas abas abertas.");
+                    } else if (err.code == 'unimplemented') {
+                        console.warn("Navegador não suporta persistência offline.");
                     }
                 });
         } catch (e) {
-            console.warn("Persistência já ativa ou não permitida.");
+            console.warn("Erro ao configurar persistência:", e);
         }
         console.log("Firebase Service inicializado.");
     },
     onAuthStateChanged(callback) {
         if (this.auth) this.auth.onAuthStateChanged(callback);
     },
-    async loginGoogle() {
-        if (!this.auth) return;
+    async loginWithGoogle() {
+        if (!this.auth) this.init();
         const provider = new firebase.auth.GoogleAuthProvider();
 
         try {
@@ -53,11 +53,10 @@ export const firebaseService = {
                 console.log("Iniciando fallback para redirecionamento...");
                 await this.auth.signInWithRedirect(provider);
             } else {
-                console.error("Erro fatal no login:", error);
+                console.error("Erro na autenticação:", error);
+                const msgAmigavel = "Não foi possível concluir o login com o Google. Verifique sua conexão e tente novamente.";
                 if (window.Toast && window.Toast.show) {
-                    window.Toast.show("Erro ao conectar: " + error.message, "error");
-                } else {
-                    alert("Erro ao conectar: " + error.message);
+                    window.Toast.show(msgAmigavel, "error");
                 }
             }
         }
@@ -123,9 +122,10 @@ export const firebaseService = {
         }
     },
     async saveRoot(uid, data) {
-        if (!uid) return;
+        if (!uid || !this.db) return;
         const { turmas, ...rootData } = data;
-        await this.db.collection('professores').doc(uid).set(rootData, { merge: true });
+        const cleanData = JSON.parse(JSON.stringify(rootData));
+        await this.db.collection('professores').doc(uid).set(cleanData, { merge: true });
     },
     async saveHorarioOnly(uid, horarioData) {
         if (!uid) return;
@@ -287,7 +287,7 @@ export const firebaseService = {
     // =========================================================================
     async criarSessaoQuiz(quizData) {
         if (!this.db) throw new Error("Firestore não inicializado.");
-        const pin = String(Math.floor(100000 + Math.random() * 900000));
+        const pin = generateSecurePIN(6);
         const hostUid = this.auth?.currentUser?.uid || 'host_anon';
         
         const cleanQuiz = JSON.parse(JSON.stringify(quizData));
