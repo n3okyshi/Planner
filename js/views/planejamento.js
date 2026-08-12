@@ -1,5 +1,6 @@
 import { model } from '../model.js';
 import { controller } from '../controller.js';
+import { planejamentoController } from '../controllers/planejamentoController.js';
 import { uiController } from '../controllers/uiController.js';
 import { renderKatex, formatarTextoComLatex } from '../utils.js';
 
@@ -37,13 +38,21 @@ export const planejamentoView = {
                         <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--color-slate-800); letter-spacing: -0.025em; display: flex; align-items: center; gap: var(--spacing-2);">
                             <i class="fas fa-layer-group" style="color: var(--color-primary);"></i> Planejamento por ${config.label}
                         </h2>
-                        <p style="font-size: 0.875rem; color: var(--color-slate-500);">Distribuição pedagógica de habilidades da BNCC organizadas por período letivo.</p>
+                        <p style="font-size: 0.875rem; color: var(--color-slate-500);">Distribuição pedagógica de habilidades BNCC e personalizadas por período letivo.</p>
                     </div>
                     
                     <div style="display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap;">
                         ${turmaSelecionada ? `
+                            <button onclick="planejamentoController.exportarBimestralizacao('${turmaSelecionada.id}')" class="btn-secondary interactive-element" title="Baixar arquivo JSON com a bimestralização desta turma">
+                                <i class="fas fa-file-export"></i> <span>Exportar (JSON)</span>
+                            </button>
+
+                            <button onclick="planejamentoController.abrirModalImportarBimestralizacao('${turmaSelecionada.id}')" class="btn-secondary interactive-element" title="Importar arquivo JSON de bimestralização">
+                                <i class="fas fa-file-import"></i> <span>Importar (JSON)</span>
+                            </button>
+
                             <button onclick="controller.abrirModalCopiarPlanejamento('${turmaSelecionada.id}')" class="btn-secondary interactive-element" title="Copiar planejamento para outra turma">
-                                <i class="fas fa-copy"></i> <span>Replicar Planejamento</span>
+                                <i class="fas fa-copy"></i> <span>Replicar</span>
                             </button>
                         ` : ''}
 
@@ -56,9 +65,9 @@ export const planejamentoView = {
                             </button>
                             <ul class="dropdown-menu hidden custom-scrollbar">
                                 ${turmas.length > 0
-                ? turmas.map(t => `<li class="dropdown-item ${String(t.id) === String(this.currentTurmaId) ? 'dropdown-item--selected' : ''}" data-value="${t.id}">${window.escapeHTML(t.nome)}</li>`).join('')
-                : '<li class="p-3 text-slate-400 text-sm text-center">Nenhuma turma cadastrada</li>'
-            }
+                                    ? turmas.map(t => `<li class="dropdown-item ${String(t.id) === String(this.currentTurmaId) ? 'dropdown-item--selected' : ''}" data-value="${t.id}">${window.escapeHTML(t.nome)}</li>`).join('')
+                                    : '<li class="p-3 text-slate-400 text-sm text-center">Nenhuma turma cadastrada</li>'
+                                }
                             </ul>
                         </div>
                     </div>
@@ -67,9 +76,9 @@ export const planejamentoView = {
                 <!-- PERIODOS GRID -->
                 <div>
                     ${turmas.length > 0 && turmaSelecionada
-                ? this.gerarCardTurma(turmaSelecionada, config)
-                : this.estadoVazio()
-            }
+                        ? this.gerarCardTurma(turmaSelecionada, config)
+                        : this.estadoVazio()
+                    }
                 </div>
             </div>
         `;
@@ -98,15 +107,21 @@ export const planejamentoView = {
                 return codA.localeCompare(codB, undefined, { numeric: true });
             });
 
-            const btnAdicionar = `
-                <button onclick="controller.openSeletorBncc('${turma.id}', ${i}, '${turma.nivel}', '${turma.serie}')" 
-                        style="width: 100%; min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: var(--color-slate-400); border: 2px dashed var(--color-slate-200); border-radius: var(--radius-xl); transition: all var(--transition-fast); padding: 1.5rem; background-color: var(--color-white); cursor: pointer;"
-                        onmouseover="this.style.color='var(--color-primary)'; this.style.borderColor='var(--color-primary)'; this.style.boxShadow='var(--shadow-sm)';"
-                        onmouseout="this.style.color='var(--color-slate-400)'; this.style.borderColor='var(--color-slate-200)'; this.style.boxShadow='none';">
-                    <i class="fas fa-plus-circle" style="font-size: 2rem; margin-bottom: 0.5rem;"></i>
-                    <span style="font-size: 0.8125rem; font-weight: 700;">Adicionar Habilidade</span>
-                    <span style="font-size: 0.6875rem; color: var(--color-slate-400); margin-top: 0.25rem;">Buscar na BNCC</span>
-                </button>
+            const btnAdicionarVazio = `
+                <div style="width: 100%; min-height: 180px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.75rem; color: var(--color-slate-400); border: 2px dashed var(--color-slate-200); border-radius: var(--radius-xl); padding: 1.5rem; background-color: var(--color-white);">
+                    <i class="fas fa-layer-group" style="font-size: 2rem; color: var(--color-slate-300);"></i>
+                    <span style="font-size: 0.8125rem; font-weight: 700;">Nenhuma habilidade cadastrada</span>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center;">
+                        <button onclick="controller.openSeletorBncc('${turma.id}', ${i}, '${turma.nivel}', '${turma.serie}')" 
+                                class="btn-secondary" style="font-size: 0.75rem; padding: 0.35rem 0.65rem;">
+                            <i class="fas fa-search mr-1"></i> Buscar BNCC
+                        </button>
+                        <button onclick="planejamentoController.openModalCriarHabilidadePersonalizada('${turma.id}', ${i})" 
+                                class="btn-primary" style="font-size: 0.75rem; padding: 0.35rem 0.65rem; background-color: #7c3aed;">
+                            <i class="fas fa-plus mr-1"></i> Própria / Municipal
+                        </button>
+                    </div>
+                </div>
             `;
 
             colunasHtml += `
@@ -123,11 +138,16 @@ export const planejamentoView = {
                             </span>
                         </div>
 
-                        <div style="display: flex; align-items: center; gap: var(--spacing-2);">
+                        <div style="display: flex; align-items: center; gap: 0.375rem;">
                             ${!isVazio ? `<span class="badge" style="background-color: var(--color-primary-light); color: var(--color-primary); font-weight: 800;">${habilidades.length} hab.</span>` : ''}
                             <button onclick="controller.openSeletorBncc('${turma.id}', ${i}, '${turma.nivel}', '${turma.serie}')" 
-                                    class="btn-primary" style="padding: 0.375rem 0.625rem; font-size: 0.75rem; border-radius: var(--radius-lg);"
-                                    title="Adicionar Habilidade BNCC">
+                                    class="btn-icon" style="background-color: var(--color-slate-100); color: var(--color-primary); width: 1.85rem; height: 1.85rem; font-size: 0.75rem;"
+                                    title="Adicionar Habilidade da BNCC">
+                                <i class="fas fa-search"></i>
+                            </button>
+                            <button onclick="planejamentoController.openModalCriarHabilidadePersonalizada('${turma.id}', ${i})" 
+                                    class="btn-icon" style="background-color: #f3e8ff; color: #7c3aed; width: 1.85rem; height: 1.85rem; font-size: 0.75rem;"
+                                    title="Adicionar Habilidade Personalizada / Própria">
                                 <i class="fas fa-plus"></i>
                             </button>
                         </div>
@@ -136,9 +156,9 @@ export const planejamentoView = {
                     <!-- HABILIDADES LIST -->
                     <div class="custom-scrollbar" style="padding: var(--spacing-3); flex: 1; display: flex; flex-direction: column; gap: var(--spacing-3); overflow-y: auto;">
                         ${!isVazio
-                    ? habilidades.map(h => this.gerarMiniCardHabilidade(h, turma.id, i)).join('')
-                    : btnAdicionar
-                }
+                            ? habilidades.map(h => this.gerarMiniCardHabilidade(h, turma.id, i)).join('')
+                            : btnAdicionarVazio
+                        }
                     </div>
                 </div>
             `;
@@ -146,12 +166,15 @@ export const planejamentoView = {
 
         return `
             <div style="display: flex; flex-direction: column; gap: var(--spacing-4);">
-                <div style="display: flex; align-items: center; gap: var(--spacing-2);">
+                <div style="display: flex; align-items: center; gap: var(--spacing-2); flex-wrap: wrap;">
                     <span class="badge" style="background-color: var(--color-slate-200); color: var(--color-slate-700); font-weight: 700;">
                         <i class="fas fa-layer-group" style="margin-right: 0.25rem;"></i> ${window.escapeHTML(turma.nivel)}
                     </span>
                     <span class="badge" style="background-color: var(--color-slate-200); color: var(--color-slate-700); font-weight: 700;">
                         <i class="fas fa-graduation-cap" style="margin-right: 0.25rem;"></i> ${window.escapeHTML(turma.serie)}
+                    </span>
+                    <span style="font-size: 0.75rem; color: var(--color-slate-400); margin-left: auto;">
+                        <i class="fas fa-info-circle text-primary"></i> As habilidades configuradas aqui são sugeridas automaticamente no planejamento mensal e diário.
                     </span>
                 </div>
 
@@ -165,27 +188,46 @@ export const planejamentoView = {
     gerarMiniCardHabilidade(habilidade, turmaId, periodoIdx) {
         const codigoSafe = window.escapeHTML ? window.escapeHTML(habilidade.codigo) : habilidade.codigo;
         const descSafe = window.escapeHTML ? window.escapeHTML(habilidade.descricao) : habilidade.descricao;
-        const eixo = habilidade.objeto || habilidade.eixo || habilidade.componente || "Habilidade";
+        const isPersonalizada = habilidade.tipo === 'personalizada';
+        const eixo = habilidade.objeto || habilidade.eixo || habilidade.unidadeTematica || habilidade.componente || (isPersonalizada ? "Matriz Própria" : "BNCC");
         const subtitulo = window.escapeHTML ? window.escapeHTML(eixo) : "Habilidade";
-        const cor = habilidade.cor || (model.coresComponentes ? model.coresComponentes[habilidade.componente] : "#64748b") || "#64748b";
+        const cor = isPersonalizada ? "#7c3aed" : (habilidade.cor || (model.coresComponentes ? model.coresComponentes[habilidade.componente] : "#2563eb") || "#2563eb");
 
         return `
             <div class="card" style="padding: var(--spacing-3); border-left: 4px solid ${cor}; display: flex; flex-direction: column; gap: 0.375rem; position: relative; transition: all var(--transition-fast);" 
                  title="${descSafe}"
-                 onmouseover="this.style.boxShadow='var(--shadow-md)'; this.style.transform='translateY(-2px)'; const b = this.querySelector('.btn-remove-hab'); if(b) b.style.opacity='1';"
-                 onmouseout="this.style.boxShadow='var(--shadow-sm)'; this.style.transform='translateY(0)'; const b = this.querySelector('.btn-remove-hab'); if(b) b.style.opacity='0';">
+                 onmouseover="this.style.boxShadow='var(--shadow-md)'; this.style.transform='translateY(-2px)'; this.querySelectorAll('.btn-action-hab').forEach(b => b.style.opacity='1');"
+                 onmouseout="this.style.boxShadow='var(--shadow-sm)'; this.style.transform='translateY(0)'; this.querySelectorAll('.btn-action-hab').forEach(b => b.style.opacity='0');">
                 
                 <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
-                    <span style="font-size: 0.625rem; font-weight: 900; color: white; padding: 0.125rem 0.375rem; border-radius: var(--radius-sm); text-transform: uppercase; letter-spacing: 0.05em; background-color: ${cor}; box-shadow: var(--shadow-sm);">
-                        ${codigoSafe}
-                    </span>
-                    <button onclick="controller.removeHabilidade('${turmaId}', ${periodoIdx}, '${codigoSafe}')" 
-                            class="btn-remove-hab"
-                            style="color: var(--color-slate-300); background: none; border: none; padding: 0.125rem; opacity: 0; transition: opacity var(--transition-fast); cursor: pointer;"
-                            onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--color-slate-300)'"
-                            title="Remover Habilidade">
-                        <i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>
-                    </button>
+                    <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+                        <span style="font-size: 0.625rem; font-weight: 900; color: white; padding: 0.125rem 0.375rem; border-radius: var(--radius-sm); text-transform: uppercase; letter-spacing: 0.05em; background-color: ${cor}; box-shadow: var(--shadow-sm);">
+                            ${codigoSafe}
+                        </span>
+                        ${isPersonalizada ? `
+                            <span style="font-size: 0.5625rem; font-weight: 800; background-color: #f3e8ff; color: #7c3aed; border: 1px solid #e9d5ff; padding: 0.05rem 0.25rem; border-radius: var(--radius-sm);">
+                                Própria
+                            </span>
+                        ` : ''}
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                        ${isPersonalizada ? `
+                            <button onclick="planejamentoController.openModalEditarHabilidadePersonalizada('${turmaId}', ${periodoIdx}, '${codigoSafe}')" 
+                                    class="btn-action-hab"
+                                    style="color: var(--color-slate-400); background: none; border: none; padding: 0.125rem; opacity: 0; transition: opacity var(--transition-fast); cursor: pointer;"
+                                    onmouseover="this.style.color='#7c3aed'" onmouseout="this.style.color='var(--color-slate-400)'"
+                                    title="Editar Habilidade Personalizada">
+                                <i class="fas fa-pencil-alt" style="font-size: 0.75rem;"></i>
+                            </button>
+                        ` : ''}
+                        <button onclick="controller.removeHabilidade('${turmaId}', ${periodoIdx}, '${codigoSafe}')" 
+                                class="btn-action-hab"
+                                style="color: var(--color-slate-300); background: none; border: none; padding: 0.125rem; opacity: 0; transition: opacity var(--transition-fast); cursor: pointer;"
+                                onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--color-slate-300)'"
+                                title="Remover Habilidade">
+                            <i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <p style="font-size: 0.625rem; font-weight: 700; color: var(--color-slate-400); text-transform: uppercase; letter-spacing: 0.025em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">

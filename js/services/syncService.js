@@ -193,6 +193,57 @@ export const syncService = {
             await storageService.enfileirarOperacaoOffline({ tipo: 'salvar_aluno', uid, turmaId, aluno });
             return true;
         }
+    },
+    async forcarSincronizacao() {
+        if (!navigator.onLine) {
+            Toast.show("Dispositivo desconectado da internet. Conecte-se para sincronizar.", "warning");
+            return { sucesso: false, motivo: 'offline' };
+        }
+        this.atualizarIndicadorUI('sincronizando');
+        try {
+            await this.processarFilaOffline();
+            if (window.model && window.model.currentUser && firebaseService && firebaseService.saveRoot) {
+                await firebaseService.saveRoot(window.model.currentUser.uid, window.model.state);
+            }
+            this.atualizarIndicadorUI('online');
+            Toast.show("Sincronização com a nuvem concluída!", "success");
+            return { sucesso: true };
+        } catch (e) {
+            console.error("Erro na sincronização forçada:", e);
+            this.atualizarIndicadorUI('erro');
+            Toast.show("Falha ao sincronizar com o Firebase.", "error");
+            return { sucesso: false, erro: e.message };
+        }
+    },
+    async obterDetalhesFilaOffline() {
+        const fila = (await storageService.obterFilaOffline()) || [];
+        return fila.map(op => {
+            let label = 'Operação Pendente';
+            let detalhe = '';
+
+            if (op.tipo === 'salvar_turma') {
+                label = 'Turma';
+                detalhe = op.turma?.nome || 'Dados da Turma';
+            } else if (op.tipo === 'salvar_aluno') {
+                label = 'Estudante';
+                detalhe = op.aluno?.nome ? `${op.aluno.nome} (Turma ID ${op.turmaId})` : 'Dados do Estudante';
+            } else if (op.tipo === 'salvar_avaliacao') {
+                label = 'Avaliação';
+                detalhe = op.avaliacao?.nome ? `${op.avaliacao.nome} (${op.avaliacao.periodo}º Bim)` : 'Avaliação';
+            } else if (op.tipo === 'salvar_root') {
+                label = 'Backup Geral';
+                detalhe = 'Snapshot do Planejamento & Estado';
+            }
+
+            return {
+                id: op.id,
+                tipo: op.tipo,
+                label,
+                detalhe,
+                timestamp: op.timestamp || Date.now(),
+                dataHora: new Date(op.timestamp || Date.now()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+            };
+        });
     }
 };
 

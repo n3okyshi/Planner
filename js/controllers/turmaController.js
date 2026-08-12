@@ -90,6 +90,40 @@ export const turmaController = {
         }
         return true;
     },
+    parseLinhaAlunoLote(linha) {
+        linha = (linha || '').trim();
+        if (!linha) return null;
+
+        // Se a linha contiver underscores '_'
+        if (linha.includes('_')) {
+            const partes = linha.split('_').map(p => p.trim());
+            const idOuChamada = partes[0] || '';
+            const nome = partes[1] || partes[0] || '';
+            const matricula = partes[2] || '';
+            const dataNascimento = partes[3] || '';
+
+            if (!nome || nome.length < 2) return null;
+
+            return {
+                idPrefixo: idOuChamada,
+                nome: nome,
+                matricula: matricula,
+                dataNascimento: dataNascimento
+            };
+        } else {
+            // Sem underscore: tratar como apenas o nome do aluno.
+            // Remove número de lista no início (ex: "01. Nome", "1) Nome", "1 - Nome") mantendo hífens no meio do nome (ex: Jean-Luc)
+            let nome = linha.replace(/^\d+[\.\)\s\t]+/, '').replace(/^-\s+/, '').trim();
+            if (nome.length < 2) return null;
+
+            return {
+                idPrefixo: '',
+                nome: nome,
+                matricula: '',
+                dataNascimento: ''
+            };
+        }
+    },
     limparListaAlunos(textoBruto) {
         if (!textoBruto) {
             this.wizard.data.alunosRascunho = [];
@@ -98,11 +132,9 @@ export const turmaController = {
         const linhas = textoBruto.split('\n');
         const alunosLimpos = [];
         linhas.forEach(linha => {
-            let nome = linha.replace(/^[0-9]+[.\-)]*\s*/, '').trim();
-            nome = nome.replace(/^-\s*/, '').trim();
-            if (nome.length > 2) {
-                nome = nome.toLowerCase().replace(/(?:^|\s)\S/g, a => a.toUpperCase());
-                alunosLimpos.push(nome);
+            const parsed = this.parseLinhaAlunoLote(linha);
+            if (parsed) {
+                alunosLimpos.push(parsed.nome);
             }
         });
         this.wizard.data.alunosRascunho = alunosLimpos;
@@ -134,10 +166,12 @@ export const turmaController = {
                 nome: nomeAluno,
                 chamada: numChamada,
                 matricula: '',
+                dataNascimento: '',
                 status: 'cursando',
                 posicao: null,
                 frequencia: {},
-                notas: {}
+                notas: {},
+                dossie: []
             });
         });
         if (!model.state.turmas) model.state.turmas = [];
@@ -150,6 +184,401 @@ export const turmaController = {
         Toast.show("Turma criada com sucesso!", "success");
         controller.closeModal();
         controller.navigate('turmas');
+    },
+    openAddAlunoLote(turmaId) {
+        const html = `
+            <div style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4);">
+                <div class="alert alert--info">
+                    <div>
+                        <p style="font-weight: 700; margin-bottom: 0.25rem;"><i class="fas fa-magic"></i> Importação Flexível de Estudantes</p>
+                        <p style="font-size: 0.8125rem; line-height: 1.4;">
+                            Você pode colar nomes simples <em>(um por linha)</em> ou a estrutura padrão com underscore:<br>
+                            <code>ID _ NOME COMPLETO _ MATRÍCULA _ DATA/DE/NASCIMENTO</code><br>
+                            <small class="text-slate-400">* Hífens dentro dos nomes (ex: Jean-Luc) são preservados com segurança.</small>
+                        </p>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="form-label">Lista de Estudantes</label>
+                    <textarea id="al-lista" rows="10" class="form-input" style="font-family: monospace; resize: vertical;" placeholder="1 _ João da Silva _ 20260101 _ 15/03/2012\n2 _ Maria Oliveira _ 20260102 _ 22/07/2012\nou apenas nomes simples:\nPedro Santos\nAna Paula"></textarea>
+                </div>
+                
+                <div style="display: flex; align-items: center; gap: var(--spacing-3); padding: var(--spacing-3); background-color: var(--color-slate-50); border-radius: var(--radius-xl); border: 1px solid var(--color-slate-100);">
+                    <input type="checkbox" id="al-alfabetica" checked style="width: 1.25rem; height: 1.25rem; cursor: pointer;">
+                    <label for="al-alfabetica" style="font-size: 0.875rem; font-weight: 700; color: var(--color-slate-600); cursor: pointer; user-select: none;">
+                        Ordenar em ordem alfabética antes de importar
+                    </label>
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: var(--spacing-3); padding-top: var(--spacing-4); border-top: 1px solid var(--color-slate-100); margin-top: var(--spacing-2);">
+                    <button onclick="controller.closeModal()" class="btn-secondary">Cancelar</button>
+                    <button onclick="turmaController.saveAlunoLote('${turmaId}')" class="btn-primary">Importar Lista</button>
+                </div>
+            </div>
+        `;
+        controller.openModal('Importar Estudantes em Lote', html);
+    },
+    saveAlunoLote(turmaId) {
+        const texto = document.getElementById('al-lista')?.value || '';
+        const inputOrdenar = document.getElementById('al-alfabetica');
+        const ordenar = inputOrdenar ? inputOrdenar.checked : false;
+
+        const linhas = texto.split('\n');
+        let alunosParsed = [];
+
+        linhas.forEach(linha => {
+            const parsed = this.parseLinhaAlunoLote(linha);
+            if (parsed) {
+                alunosParsed.push(parsed);
+            }
+        });
+
+        if (alunosParsed.length === 0) return Toast.show("A lista informada está vazia.", "warning");
+
+        if (ordenar) {
+            alunosParsed.sort((a, b) => a.nome.localeCompare(b.nome));
+        }
+
+        const turma = model.state.turmas.find(t => String(t.id) === String(turmaId));
+        if (!turma) return;
+
+        let ultimoNumeroChamada = 0;
+        (turma.alunos || []).forEach(a => {
+            const num = parseInt(a.chamada);
+            if (!isNaN(num) && num > ultimoNumeroChamada) {
+                ultimoNumeroChamada = num;
+            }
+        });
+
+        alunosParsed.forEach((item, index) => {
+            const numChamada = item.idPrefixo && !isNaN(parseInt(item.idPrefixo))
+                ? String(parseInt(item.idPrefixo)).padStart(2, '0')
+                : String(ultimoNumeroChamada + index + 1).padStart(2, '0');
+
+            const novoAluno = {
+                id: 'aluno_' + Date.now().toString(36) + '_' + index,
+                nome: item.nome,
+                chamada: numChamada,
+                matricula: item.matricula || '',
+                dataNascimento: item.dataNascimento || '',
+                status: 'cursando',
+                notas: {},
+                frequencia: {},
+                dossie: []
+            };
+            turma.alunos.push(novoAluno);
+        });
+
+        model.saveLocal();
+        if (model.persist && window.firebaseService) {
+            model.persist(() => firebaseService.saveTurma(model.currentUser.uid, turma));
+        }
+        controller.closeModal();
+        if (window.turmasView) {
+            window.turmasView.renderDetalhesTurma('view-container', turmaId);
+        }
+        Toast.show(`${alunosParsed.length} estudantes importados com sucesso!`, "success");
+    },
+    abrirModalReplicarAvaliacao(turmaOrigemId) {
+        const turmaOrigem = model.state.turmas.find(t => String(t.id) === String(turmaOrigemId));
+        if (!turmaOrigem || !turmaOrigem.avaliacoes || turmaOrigem.avaliacoes.length === 0) {
+            return Toast.show("Esta turma não possui avaliações cadastradas para replicar.", "warning");
+        }
+
+        const outrasTurmas = (model.state.turmas || []).filter(t => String(t.id) !== String(turmaOrigemId));
+        if (outrasTurmas.length === 0) {
+            return Toast.show("Não há outras turmas cadastradas no sistema.", "info");
+        }
+
+        const htmlAvaliacoes = turmaOrigem.avaliacoes.map(av => `
+            <option value="${av.id}">
+                ${window.escapeHTML(av.nome)} (${av.periodo || 1}º Período - Max: ${av.max} pts)
+            </option>
+        `).join('');
+
+        const htmlTurmas = outrasTurmas.map(t => {
+            const isMesmaSerie = t.serie && turmaOrigem.serie && t.serie.trim().toLowerCase() === turmaOrigem.serie.trim().toLowerCase();
+            return `
+                <label style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; border: 1px solid var(--color-slate-200); border-radius: var(--radius-lg); background-color: var(--color-white); cursor: pointer;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" class="checkbox-replicar-av" value="${t.id}" ${isMesmaSerie ? 'checked' : ''}>
+                        <span style="font-weight: 700; font-size: 0.875rem; color: var(--color-slate-800);">${window.escapeHTML(t.nome)}</span>
+                    </div>
+                    <span style="font-size: 0.75rem; color: var(--color-slate-400); font-weight: 600;">
+                        ${window.escapeHTML(t.serie || '')} ${isMesmaSerie ? '<strong style="color: #10b981;">(Mesma Série)</strong>' : ''}
+                    </span>
+                </label>
+            `;
+        }).join('');
+
+        window.controller.openModal(`Replicar Avaliação para Outras Turmas`, `
+            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; max-width: 580px;">
+                <div class="alert alert--info" style="font-size: 0.8125rem;">
+                    <i class="fas fa-copy mr-1"></i> Selecione a avaliação de <strong>${window.escapeHTML(turmaOrigem.nome)}</strong> e as turmas que receberão a mesma estrutura avaliativa.
+                </div>
+
+                <div>
+                    <label class="form-label" style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">Avaliação a Replicar</label>
+                    <select id="select-av-origem" class="form-input" style="width: 100%; font-weight: 700;">
+                        ${htmlAvaliacoes}
+                    </select>
+                </div>
+
+                <div>
+                    <label class="form-label" style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; margin-bottom: 0.5rem; display: block;">Selecione as Turmas de Destino</label>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 250px; overflow-y: auto;" class="custom-scrollbar">
+                        ${htmlTurmas}
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+                    <button type="button" onclick="window.controller.closeModal()" class="btn-secondary">Cancelar</button>
+                    <button type="button" onclick="turmaController.confirmarReplicacaoAvaliacao('${turmaOrigemId}')" class="btn-primary">
+                        <i class="fas fa-check mr-1"></i> Replicar Avaliação
+                    </button>
+                </div>
+            </div>
+        `);
+    },
+    confirmarReplicacaoAvaliacao(turmaOrigemId) {
+        const avaliacaoId = document.getElementById('select-av-origem')?.value;
+        const checkboxes = document.querySelectorAll('.checkbox-replicar-av:checked');
+
+        if (!avaliacaoId) return Toast.show("Selecione a avaliação.", "warning");
+        if (checkboxes.length === 0) return Toast.show("Selecione ao menos uma turma de destino.", "warning");
+
+        const turmasDestinoIds = Array.from(checkboxes).map(cb => cb.value);
+        const total = model.replicarAvaliacaoParaTurmas(turmaOrigemId, avaliacaoId, turmasDestinoIds);
+
+        if (total > 0) {
+            window.controller.closeModal();
+            Toast.show(`Avaliação replicada com sucesso para ${total} turma${total > 1 ? 's' : ''}!`, "success");
+        } else {
+            Toast.show("Não foi possível replicar a avaliação.", "error");
+        }
+    },
+    abrirModalDossieComportamental(turmaId, alunoId) {
+        const turma = model.state.turmas.find(t => String(t.id) === String(turmaId));
+        if (!turma) return;
+        const aluno = (turma.alunos || []).find(a => String(a.id) === String(alunoId));
+        if (!aluno) return;
+
+        const dossie = Array.isArray(aluno.dossie) ? aluno.dossie : [];
+        const hojeIso = new Date().toISOString().split('T')[0];
+
+        const iconesTipo = {
+            'positivo': { icone: 'fa-star', cor: '#10b981', label: 'Elogio / Positivo', bg: '#ecfdf5' },
+            'indisciplina': { icone: 'fa-exclamation-triangle', cor: '#ef4444', label: 'Indisciplina / Atenção', bg: '#fef2f2' },
+            'coordenacao': { icone: 'fa-user-shield', cor: '#6366f1', label: 'Encaminhamento Coordenação', bg: '#eef2ff' },
+            'familia': { icone: 'fa-phone-alt', cor: '#a855f7', label: 'Contato com Família', bg: '#faf5ff' },
+            'outro': { icone: 'fa-sticky-note', cor: '#64748b', label: 'Observação Geral', bg: '#f8fafc' }
+        };
+
+        const htmlTimeline = dossie.length > 0 ? dossie.map(oc => {
+            const cfg = iconesTipo[oc.tipo] || iconesTipo['outro'];
+            const dataFmt = oc.data ? oc.data.split('-').reverse().join('/') : 'Data n/d';
+            return `
+                <div style="display: flex; gap: 1rem; position: relative; padding-bottom: 1.25rem;">
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <div style="width: 2rem; height: 2rem; border-radius: 50%; background-color: ${cfg.bg}; color: ${cfg.cor}; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; border: 2px solid ${cfg.cor}; z-index: 2;">
+                            <i class="fas ${cfg.icone}"></i>
+                        </div>
+                        <div style="width: 2px; height: 100%; background-color: #e2e8f0; margin-top: 0.25rem;"></div>
+                    </div>
+                    <div style="flex: 1; background-color: var(--color-white); border: 1px solid var(--color-slate-200); border-radius: var(--radius-lg); padding: 0.75rem 1rem; box-shadow: var(--shadow-sm);">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                            <span style="font-size: 0.6875rem; font-weight: 800; color: ${cfg.cor}; text-transform: uppercase; letter-spacing: 0.05em;">
+                                ${cfg.label}
+                            </span>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="font-size: 0.6875rem; color: var(--color-slate-400); font-weight: 600;">
+                                    <i class="far fa-calendar-alt mr-1"></i> ${dataFmt}
+                                </span>
+                                <button onclick="turmaController.removerOcorrenciaDossie('${turmaId}', '${alunoId}', '${oc.id}')" style="background: none; border: none; color: var(--color-slate-300); cursor: pointer; padding: 0;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--color-slate-300)'" title="Remover Ocorrência">
+                                    <i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <h4 style="font-size: 0.875rem; font-weight: 700; color: var(--color-slate-800); margin: 0 0 0.25rem 0;">${window.escapeHTML(oc.titulo || 'Registro')}</h4>
+                        <p style="font-size: 0.8125rem; color: var(--color-slate-600); margin: 0; line-height: 1.4;">${window.escapeHTML(oc.descricao || '')}</p>
+                    </div>
+                </div>
+            `;
+        }).join('') : `
+            <div style="text-align: center; padding: 2rem 1rem; color: var(--color-slate-400);">
+                <i class="fas fa-clipboard-list text-3xl" style="margin-bottom: 0.5rem; opacity: 0.5;"></i>
+                <p style="font-size: 0.875rem; font-weight: 600;">Nenhum registro comportamental no dossiê até o momento.</p>
+            </div>
+        `;
+
+        window.controller.openModal(`Dossiê Comportamental - ${aluno.nome}`, `
+            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; max-width: 680px; max-height: 80vh; overflow-y: auto;" class="custom-scrollbar">
+                
+                <!-- HEADER DO ESTUDANTE -->
+                <div style="display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 1rem 1.25rem; border-radius: var(--radius-xl);">
+                    <div>
+                        <span style="font-size: 0.6875rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em;">Ficha Pedagógica & Linha do Tempo</span>
+                        <h3 style="font-size: 1.25rem; font-weight: 800; color: white; margin: 0.125rem 0 0 0;">${window.escapeHTML(aluno.nome)}</h3>
+                        <p style="font-size: 0.75rem; color: #cbd5e1; margin-top: 0.125rem;">${window.escapeHTML(turma.nome)} • Chamada Nº ${aluno.chamada || '1'}</p>
+                    </div>
+                    <button onclick="turmaController.gerarRelatorioConselhoClasse('${turmaId}', '${alunoId}')" class="btn-secondary" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: white; font-size: 0.75rem; padding: 0.5rem 0.875rem; border-radius: var(--radius-lg);" title="Gerar Relatório para Conselho de Classe">
+                        <i class="fas fa-file-signature mr-1"></i> Relatório Conselho
+                    </button>
+                </div>
+
+                <!-- FORMULÁRIO DE NOVO REGISTRO RÁPIDO -->
+                <div style="background-color: var(--color-slate-50); border: 1px solid var(--color-slate-200); border-radius: var(--radius-xl); padding: 1.25rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                    <h4 style="font-size: 0.8125rem; font-weight: 800; color: var(--color-slate-700); text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.35rem;">
+                        <i class="fas fa-plus-circle text-primary"></i> Novo Registro na Linha do Tempo
+                    </h4>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                        <div>
+                            <label class="form-label" style="font-size: 0.6875rem; font-weight: 800; text-transform: uppercase;">Tipo de Ocorrência</label>
+                            <select id="dossie-tipo" class="form-input" style="width: 100%; font-weight: 700;">
+                                <option value="positivo">🟢 Elogio / Alta Participação</option>
+                                <option value="indisciplina">🔴 Indisciplina / Alerta</option>
+                                <option value="coordenacao">🔵 Encaminhamento Coordenação</option>
+                                <option value="familia">🟣 Contato com Família</option>
+                                <option value="outro">⚪ Observação Geral</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="form-label" style="font-size: 0.6875rem; font-weight: 800; text-transform: uppercase;">Data</label>
+                            <input type="date" id="dossie-data" class="form-input" value="${hojeIso}" style="width: 100%; font-weight: 700;">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="form-label" style="font-size: 0.6875rem; font-weight: 800; text-transform: uppercase;">Título do Registro</label>
+                        <input type="text" id="dossie-titulo" class="form-input" placeholder="Ex: Excelente liderança em trabalho de grupo / Advertência verbal por uso de celular" style="width: 100%; font-weight: 600;">
+                    </div>
+
+                    <div>
+                        <label class="form-label" style="font-size: 0.6875rem; font-weight: 800; text-transform: uppercase;">Detalhamento Pedagógico / Encaminhamento</label>
+                        <textarea id="dossie-desc" class="form-input" rows="2" placeholder="Descreva os fatos, atitudes tomadas ou combinados firmados com o estudante..." style="width: 100%; resize: vertical; font-weight: 500;"></textarea>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end;">
+                        <button type="button" onclick="turmaController.salvarOcorrenciaDossie('${turmaId}', '${alunoId}')" class="btn-primary" style="padding: 0.5rem 1.25rem; font-size: 0.8125rem;">
+                            <i class="fas fa-save mr-1"></i> Salvar no Dossiê
+                        </button>
+                    </div>
+                </div>
+
+                <!-- LINHA DO TEMPO CRONOLÓGICA -->
+                <div>
+                    <h4 style="font-size: 0.8125rem; font-weight: 800; color: var(--color-slate-700); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 1rem;">
+                        <i class="fas fa-stream mr-1 text-primary"></i> Linha do Tempo Cronológica (${dossie.length} registros)
+                    </h4>
+                    <div style="display: flex; flex-direction: column;">
+                        ${htmlTimeline}
+                    </div>
+                </div>
+            </div>
+        `, 'lg');
+    },
+    salvarOcorrenciaDossie(turmaId, alunoId) {
+        const tipo = document.getElementById('dossie-tipo')?.value || 'outro';
+        const data = document.getElementById('dossie-data')?.value || new Date().toISOString().split('T')[0];
+        const titulo = document.getElementById('dossie-titulo')?.value.trim();
+        const descricao = document.getElementById('dossie-desc')?.value.trim();
+
+        if (!titulo) {
+            return Toast.show("Informe o título da ocorrência.", "warning");
+        }
+
+        const novaOcorrencia = {
+            tipo,
+            data,
+            titulo,
+            descricao
+        };
+
+        const salvo = model.addOcorrenciaDossie(turmaId, alunoId, novaOcorrencia);
+        if (salvo) {
+            Toast.show("Registro adicionado à linha do tempo!", "success");
+            this.abrirModalDossieComportamental(turmaId, alunoId);
+        } else {
+            Toast.show("Não foi possível salvar o registro.", "error");
+        }
+    },
+    removerOcorrenciaDossie(turmaId, alunoId, ocorrenciaId) {
+        if (confirm("Remover esta ocorrência do dossiê?")) {
+            model.deleteOcorrenciaDossie(turmaId, alunoId, ocorrenciaId);
+            Toast.show("Registro removido.", "info");
+            this.abrirModalDossieComportamental(turmaId, alunoId);
+        }
+    },
+    gerarRelatorioConselhoClasse(turmaId, alunoId) {
+        const turma = model.state.turmas.find(t => String(t.id) === String(turmaId));
+        if (!turma) return;
+        const aluno = (turma.alunos || []).find(a => String(a.id) === String(alunoId));
+        if (!aluno) return;
+
+        const dossie = Array.isArray(aluno.dossie) ? aluno.dossie : [];
+
+        const relatorioHtml = `
+            <!DOCTYPE html>
+            <html lang="pt-BR">
+            <head>
+                <meta charset="UTF-8">
+                <title>Relatório de Conselho de Classe - ${window.escapeHTML(aluno.nome)}</title>
+                <style>
+                    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 2rem; color: #1e293b; line-height: 1.5; }
+                    .header { border-bottom: 2px solid #0f172a; padding-bottom: 1rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: flex-end; }
+                    h1 { font-size: 1.5rem; margin: 0 0 0.25rem 0; color: #0f172a; }
+                    .meta { font-size: 0.875rem; color: #64748b; }
+                    .card { border: 1px solid #e2e8f0; border-radius: 8px; padding: 1rem; margin-bottom: 1rem; page-break-inside: avoid; }
+                    .tag { display: inline-block; font-size: 0.75rem; font-weight: bold; text-transform: uppercase; padding: 2px 8px; border-radius: 4px; }
+                    .positivo { background-color: #dcfce7; color: #15803d; }
+                    .indisciplina { background-color: #fee2e2; color: #b91c1c; }
+                    .coordenacao { background-color: #e0e7ff; color: #4338ca; }
+                    .familia { background-color: #f3e8ff; color: #7e22ce; }
+                    .outro { background-color: #f1f5f9; color: #475569; }
+                    .print-btn { margin-bottom: 1.5rem; padding: 0.5rem 1rem; background: #2563eb; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+                    @media print { .print-btn { display: none; } }
+                </style>
+            </head>
+            <body>
+                <button class="print-btn" onclick="window.print()">Imprimir Relatório</button>
+                <div class="header">
+                    <div>
+                        <h1>Dossiê Pedagógico & Conselho de Classe</h1>
+                        <div class="meta">
+                            <strong>Estudante:</strong> ${window.escapeHTML(aluno.nome)} | 
+                            <strong>Turma:</strong> ${window.escapeHTML(turma.nome)} | 
+                            <strong>Nº Chamada:</strong> ${aluno.chamada || '1'}
+                        </div>
+                    </div>
+                    <div class="meta" style="text-align: right;">
+                        <strong>Emissão:</strong> ${new Date().toLocaleDateString('pt-BR')}
+                    </div>
+                </div>
+
+                <h3>Histórico Cronológico de Ocorrências & Acompanhamento</h3>
+                ${dossie.length > 0 ? dossie.map(oc => `
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span class="tag ${oc.tipo || 'outro'}">${oc.tipo?.toUpperCase() || 'REGISTRO'}</span>
+                            <span style="font-size: 0.8125rem; color: #64748b;">${oc.data ? oc.data.split('-').reverse().join('/') : ''}</span>
+                        </div>
+                        <h4 style="margin: 0 0 0.25rem 0; font-size: 1rem;">${window.escapeHTML(oc.titulo || '')}</h4>
+                        <p style="margin: 0; font-size: 0.875rem; color: #334155;">${window.escapeHTML(oc.descricao || '')}</p>
+                    </div>
+                `).join('') : '<p>Nenhum apontamento comportamental registrado.</p>'}
+            </body>
+            </html>
+        `;
+
+        const win = window.open('', '_blank');
+        if (win) {
+            win.document.write(relatorioHtml);
+            win.document.close();
+        } else {
+            Toast.show("Permita pop-ups para visualizar a impressão do relatório.", "warning");
+        }
     },
     renderWizardStep() {
         const container = document.getElementById('wizard-container');

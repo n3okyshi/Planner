@@ -196,6 +196,27 @@ export const aiService = {
             ? `\n\nMATERIAL E CONTEXTO DE BASE OBRIGATÓRIO (NOTEBOOKLM / ARQUIVO ANEXADO):\n${contextoDocumento}\n(Importante: Desenvolva o material totalmente fundamentado e alinhado ao conteúdo acima).`
             : '';
 
+        let instrucaoEspecifica = '';
+        if (idFerramenta === 'rubrica-avaliacao') {
+            instrucaoEspecifica = `
+            ESPECIFICAÇÃO DE RUBRICA DE AVALIAÇÃO:
+            - Gere uma MATRIZ ANALÍTICA COMPLETA em tabela HTML formatada com a classe 'rubrica-matrix'.
+            - Colunas da tabela: Critério Avaliativo | Insuficiente | Regular | Bom | Excelente | Pontuação Máxima.
+            - Cada nível de desempenho deve conter descritores claros e objetivos de aprendizagem com valor numérico em pontos.
+            - No topo, inclua orientações para o avaliador e autoavaliação do estudante.
+            `;
+        } else if (idFerramenta === 'jogos-rpg') {
+            instrucaoEspecifica = `
+            ESPECIFICAÇÃO DE JOGOS & RPG / ESCAPE ROOM:
+            - Estruture: 1. História/Cenário Imersivo e Missão Principal; 2. Preparação da Sala e Materiais; 3. Regras e Mecânica do Jogo; 4. Cartas de Desafios, Pistas e Enigmas Pedagógicos; 5. Condições de Vitória e Desfecho Educativo; 6. Conexão curricular com a BNCC.
+            `;
+        } else if (idFerramenta === 'diario-laboratorio') {
+            instrucaoEspecifica = `
+            ESPECIFICAÇÃO DE DIÁRIO DE LABORATÓRIO / AULA PRÁTICA:
+            - Estruture: 1. Problema Investigativo e Hipóteses Iniciais; 2. Lista de Materiais e Equipamentos (com foco em itens acessíveis); 3. Normas e Cuidados de Segurança; 4. Procedimento Passo a Passo Ilustrativo; 5. Tabela de Coleta e Registro de Dados para o aluno preencher; 6. Quatro Questões Investigativas Reflexivas para Conclusão.
+            `;
+        }
+
         const prompt = `
             Atue como um professor especialista e coordenador pedagógico.
             Crie um material do tipo: ${idFerramenta.toUpperCase()}.
@@ -203,6 +224,7 @@ export const aiService = {
             Baseie-se rigorosamente nestes parâmetros fornecidos:
             ${parametros}
             ${secaoContexto}
+            ${instrucaoEspecifica}
             
             REGRAS OBRIGATÓRIAS:
             1. Responda APENAS um objeto JSON puro. Sem formatação markdown, sem blocos \`\`\`json.
@@ -212,11 +234,11 @@ export const aiService = {
                 "disciplina": "A disciplina informada",
                 "serie": "A série informada",
                 "tipo": "${idFerramenta}",
-                "conteudo_html": "O conteúdo completo do material formatado em tags HTML nativas (h3, p, ul, li, strong, etc) pronto para exibição. IMPORTANTE: 1. Para avaliações, listas ou atividades com exercícios, envolva toda a seção de gabarito e respostas dentro da tag <div class='gabarito-bloco'><h3>Gabarito e Expectativa de Resposta</h3>...</div> para possibilitar a separação automática entre a Versão do Aluno e a Versão do Professor. 2. Para qualquer fórmula matemática, equação, fração, expoente ou expressão científica, utilize OBRIGATORIAMENTE notação TeX/LaTeX padrão entre $$ ... $$ (para fórmulas em destaque/bloco) ou $ ... $ (para fórmulas no meio do texto)."
+                "conteudo_html": "O conteúdo completo do material formatado em tags HTML nativas (h3, p, ul, li, strong, table, thead, tbody, tr, th, td, etc) pronto para exibição. IMPORTANTE: 1. Para avaliações, listas ou atividades com exercícios, envolva toda a seção de gabarito e respostas dentro da tag <div class='gabarito-bloco'><h3>Gabarito e Expectativa de Resposta</h3>...</div> para possibilitar a separação automática entre a Versão do Aluno e a Versão do Professor. 2. Para qualquer fórmula matemática, equação, fração, expoente ou expressão científica, utilize OBRIGATORIAMENTE notação TeX/LaTeX padrão entre $$ ... $$ (para fórmulas em destaque/bloco) ou $ ... $ (para fórmulas no meio do texto)."
             }
         `;
 
-        return await this._executarPromptGemini(prompt, 3000);
+        return await this._executarPromptGemini(prompt, 3500);
     },
     async gerarFlashcards({ disciplina, serie, assunto, quantidade = 8, nivel = 'Médio', contextoDocumento = '' }) {
         const secaoContexto = contextoDocumento && contextoDocumento.trim() !== ''

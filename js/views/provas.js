@@ -453,8 +453,8 @@ export const provasView = {
                     </button>
                 </div>
             </div>
-            <div style="color: var(--color-slate-700); font-size: 0.875rem; line-height: 1.625; font-weight: 500; font-family: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif;">
-                ${this.formatarHTMLQuestao(q.enunciado).replace(/\n/g, '<br>')}
+            <div style="color: var(--color-slate-700); font-size: 0.875rem; line-height: 1.625; font-weight: 500; font-family: ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif; white-space: pre-line;">
+                ${this.formatarHTMLQuestao(q.enunciado)}
                 <div id="img-container-${q.id}" style="display: none; margin-top: 1rem; flex-direction: column; align-items: center;"></div>
             </div>
             ${conteudoGabarito}
@@ -985,9 +985,9 @@ export const provasView = {
                         <div class="resposta-area"></div>
                         <div class="resposta-area"></div>
                         ${isProf && q.gabarito ? `
-                            <div style="margin-top: 15px; padding: 10px; background-color: #f0fdf4; border: 1px dashed #16a34a; border-radius: 6px; font-size: 12px; color: #15803d;">
+                            <div style="margin-top: 15px; padding: 10px; background-color: #f0fdf4; border: 1px dashed #16a34a; border-radius: 6px; font-size: 12px; color: #15803d; white-space: pre-line;">
                                 <strong>Gabarito Esperado:</strong><br>
-                                ${this.formatarHTMLQuestao(q.gabarito).replace(/\n/g, '<br>')}
+                                ${this.formatarHTMLQuestao(q.gabarito)}
                             </div>
                         ` : ''}
                     </div>
@@ -998,7 +998,7 @@ export const provasView = {
                     ${q.bncc ? `<div class="questao-info no-print">Habilidade: ${window.escapeHTML(q.bncc.codigo)}</div>` : ''}
                     <div style="display: flex; align-items: baseline; gap: 0.5rem;">
                         <span class="questao-numero">${i + 1})</span>
-                        <span class="questao-texto">${this.formatarHTMLQuestao(q.enunciado).replace(/\n/g, '<br>')}</span>
+                        <span class="questao-texto" style="white-space: pre-line;">${this.formatarHTMLQuestao(q.enunciado)}</span>
                     </div>
                     ${conteudoResposta}
                 </div>

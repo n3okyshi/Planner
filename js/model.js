@@ -329,6 +329,114 @@ export const model = {
             }
         }
     },
+    async compartilharMaterial(materialId) {
+        const user = this.currentUser || firebaseService?.auth?.currentUser;
+        if (!user) {
+            if (Toast) Toast.show("Você precisa estar conectado com o Google para compartilhar com a comunidade.", "warning");
+            return;
+        }
+
+        if (!this.state.materiaisGerados) this.state.materiaisGerados = [];
+        const mat = this.state.materiaisGerados.find(m => String(m.id) === String(materialId));
+        if (!mat) {
+            if (Toast) Toast.show("Material não encontrado.", "error");
+            return;
+        }
+
+        try {
+            const tituloNormalizado = (mat.titulo || mat.tema || "Material").trim();
+            const jaExiste = await firebaseService.verificarDuplicataMaterialComunidade(tituloNormalizado);
+            if (jaExiste) {
+                mat.compartilhado = true;
+                this.saveLocal();
+                if (Toast) Toast.show("Este material já está publicado na comunidade.", "info");
+                this._atualizarViewsMaterial();
+                return;
+            }
+
+            const matPublico = {
+                titulo: tituloNormalizado,
+                tema: mat.tema || mat.titulo || '',
+                tipo: mat.tipo || 'planejamento',
+                disciplina: mat.disciplina || 'Geral',
+                serie: mat.serie || '',
+                conteudo_html: mat.conteudo_html || '',
+                autor: user.displayName || this.state.userConfig?.profName || "Professor(a)",
+                uid_autor: user.uid,
+                id_local_origem: String(mat.id),
+                data_partilha: new Date().toISOString()
+            };
+
+            await firebaseService.publicarMaterialComunidade(matPublico);
+            mat.compartilhado = true;
+            this.saveLocal();
+            if (Toast) Toast.show("Material compartilhado com sucesso na comunidade!", "success");
+            this._atualizarViewsMaterial();
+        } catch (error) {
+            console.error("❌ Erro ao compartilhar material:", error);
+            if (error?.code === 'permission-denied' || String(error?.message).includes('permissions')) {
+                if (Toast) Toast.show("Permissão pendente no Firestore. Atualize o arquivo firestore.rules no Console.", "error");
+            } else {
+                if (Toast) Toast.show("Falha ao enviar para a comunidade.", "error");
+            }
+        }
+    },
+
+    async removerMaterialDaComunidade(materialId) {
+        const user = this.currentUser || firebaseService?.auth?.currentUser;
+        if (!user) {
+            if (Toast) Toast.show("Faça login com o Google para gerenciar materiais na comunidade.", "warning");
+            return;
+        }
+
+        if (!this.state.materiaisGerados) return;
+        const mat = this.state.materiaisGerados.find(m => String(m.id) === String(materialId));
+
+        try {
+            if (firebaseService?.removerMaterialComunidade) {
+                await firebaseService.removerMaterialComunidade(user.uid, materialId);
+            }
+            if (mat) {
+                delete mat.compartilhado;
+                this.saveLocal();
+            }
+            if (Toast) Toast.show("Material retirado da comunidade.", "info");
+            this._atualizarViewsMaterial();
+        } catch (error) {
+            console.error("❌ Erro ao remover material da comunidade:", error);
+            if (Toast) Toast.show("Erro ao retirar material da comunidade.", "error");
+        }
+    },
+
+    importarMaterialComunidade(materialPublico) {
+        if (!this.state.materiaisGerados) this.state.materiaisGerados = [];
+        const novoLocal = {
+            id: 'mat_import_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 4),
+            titulo: materialPublico.titulo || materialPublico.tema || 'Material Importado',
+            tema: materialPublico.tema || materialPublico.titulo || '',
+            tipo: materialPublico.tipo || 'planejamento',
+            disciplina: materialPublico.disciplina || 'Geral',
+            serie: materialPublico.serie || '',
+            conteudo_html: materialPublico.conteudo_html || '',
+            autorOriginal: materialPublico.autor || 'Comunidade',
+            importadoComunidade: true,
+            createdAt: new Date().toISOString()
+        };
+
+        this.state.materiaisGerados.unshift(novoLocal);
+        this.saveLocal();
+        if (Toast) Toast.show("Material importado para sua Biblioteca!", "success");
+        return novoLocal;
+    },
+
+    _atualizarViewsMaterial() {
+        if (window.bibliotecaView && window.controller?.currentView === 'biblioteca') {
+            window.bibliotecaView.render('view-container');
+        }
+        if (window.conteudoGeradoView && window.controller?.currentView === 'conteudo-gerado') {
+            window.conteudoGeradoView.render('view-container');
+        }
+    },
     ...turmaMethods,
     ...provaMethods,
     ...planejamentoMethods,

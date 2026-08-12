@@ -3710,3 +3710,63 @@ body.zen-presentation-mode #main-content {
 body.zen-presentation-mode .zen-exit-btn {
   display: flex !important;
 }
+
+/* ==========================================================================
+   MATRIZ DE RUBRICA & METODOLOGIAS ATIVAS
+   ========================================================================== */
+.rubrica-matrix {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin: 1.5rem 0;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  border: 1px solid var(--color-slate-200);
+}
+
+.rubrica-matrix th {
+  background-color: var(--color-slate-100);
+  color: var(--color-slate-700);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.75rem 1rem;
+  border-bottom: 2px solid var(--color-slate-200);
+}
+
+.rubrica-matrix td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--color-slate-100);
+  border-right: 1px solid var(--color-slate-100);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--color-slate-600);
+  vertical-align: top;
+}
+
+.rubrica-matrix tr:last-child td {
+  border-bottom: none;
+}
+
+.rubrica-matrix td:last-child {
+  border-right: none;
+}
+
+.rubrica-quadrante-btn:hover {
+  filter: brightness(0.97);
+  transform: translateY(-1px);
+}
+
+/* CARTEIRA DE SALA DRAG AND DROP */
+.carteira-aluno.dragging {
+  opacity: 0.45;
+  transform: scale(0.95);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.carteira-aluno.dragover-target {
+  outline: 3px dashed var(--color-primary) !important;
+  background-color: var(--color-primary-light) !important;
+  transform: scale(1.05);
+}

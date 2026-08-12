@@ -21,52 +21,14 @@ export const planejamentoController = {
             });
         });
     },
-    salvarDiario(silent = false) {
-        const dataEl = document.getElementById('diario-data');
-        const turmaEl = document.getElementById('diario-turma');
-        if (!dataEl || !turmaEl) return;
-        const data = dataEl.value;
-        const turmaId = turmaEl.value;
-        if (!data || !turmaId) {
-            if (!silent) Toast.show("Selecione uma data e uma turma!", "warning");
-            return;
-        }
-        const conteudo = {
-            tema: document.getElementById('plan-tema')?.value || '',
-            bncc: document.getElementById('plan-bncc')?.value || '',
-            objetivos: document.getElementById('plan-objetivos')?.value || '',
-            recursos: document.getElementById('plan-recursos')?.value || '',
-            metodologia: document.getElementById('plan-metodologia')?.value || '',
-            avaliacao: document.getElementById('plan-avaliacao')?.value || ''
-        };
-        model.savePlanoDiario(data, turmaId, conteudo);
-        if (silent) {
-            const statusEl = document.getElementById('status-salvamento');
-            if (statusEl) statusEl.innerHTML = '<i class="fas fa-check text-green-500"></i> Salvo';
-        } else {
-            Toast.show("Planejamento salvo com sucesso!", 'success');
-        }
-    },
-    mudarDataDiario(novaData) {
-        if (window.diarioView) {
-            window.diarioView.currentDate = novaData;
-            const [ano, mes] = novaData.split('-');
-            window.diarioView.viewDate = new Date(parseInt(ano), parseInt(mes) - 1, 1);
-            window.controller.navigate('dia');
-        }
-    },
-    mudarMesDiario(delta) {
-        if (window.diarioView) {
-            const novaData = new Date(window.diarioView.viewDate);
-            novaData.setMonth(novaData.getMonth() + delta);
-            window.diarioView.viewDate = novaData;
-            window.controller.navigate('dia');
-        }
-    },
     mudarTurmaDiario(novoId) {
         if (window.diarioView) {
-            window.diarioView.currentTurmaId = novoId;
-            window.diarioView.render('view-container');
+            if (window.diarioView.selecionarTurma) {
+                window.diarioView.selecionarTurma(novoId);
+            } else {
+                window.diarioView.currentTurmaId = novoId;
+                window.diarioView.render('view-container');
+            }
         }
     },
     abrirModalCopiarPlanejamento(turmaIdAtual) {
@@ -203,8 +165,480 @@ export const planejamentoController = {
             }
             if (window.Toast) window.Toast.show("Habilidade removida do planejamento mensal.", "info");
         });
+    },
+
+    openModalCriarHabilidadePersonalizada(turmaId, periodoIdx, habilidadeExistente = null) {
+        const turma = model.state.turmas.find(t => String(t.id) === String(turmaId));
+        if (!turma) return;
+
+        const isEdit = !!habilidadeExistente;
+        const codVal = habilidadeExistente?.codigo || '';
+        const discVal = habilidadeExistente?.componente || habilidadeExistente?.disciplina || turma.disciplina || 'Geral';
+        const eixoVal = habilidadeExistente?.unidadeTematica || habilidadeExistente?.objeto || habilidadeExistente?.eixo || '';
+        const descVal = habilidadeExistente?.descricao || '';
+        const codOriginal = habilidadeExistente?.codigo || '';
+
+        const listaDisciplinas = [
+            'Língua Portuguesa', 'Matemática', 'Ciências', 'História', 'Geografia', 
+            'Arte', 'Educação Física', 'Língua Inglesa', 'Ensino Religioso', 
+            'Biologia', 'Física', 'Química', 'Filosofia', 'Sociologia', 
+            'Robótica & Maker', 'Projeto de Vida', 'Educação Financeira', 'Geral'
+        ];
+
+        const optionsDisc = listaDisciplinas.map(d => `
+            <option value="${d}" ${d.toLowerCase() === discVal.toLowerCase() ? 'selected' : ''}>${d}</option>
+        `).join('');
+
+        window.controller.openModal(`${isEdit ? 'Editar Habilidade Personalizada' : 'Nova Habilidade Personalizada'} - ${periodoIdx}º Período`, `
+            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; max-width: 560px;">
+                <div class="alert alert--info" style="font-size: 0.8125rem;">
+                    <i class="fas fa-info-circle mr-1"></i> Cadastre ou edite objetivos curriculares municipais, institucionais ou tópicos próprios fora da base BNCC.
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                    <div>
+                        <label class="form-label" style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">Código / Identificador</label>
+                        <input type="text" id="hab-custom-codigo" class="form-input" value="${window.escapeHTML(codVal)}" placeholder="Ex: HAB-MAT-01 ou CURR-04" style="width: 100%; text-transform: uppercase; font-weight: 800;">
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">Disciplina / Componente</label>
+                        <select id="hab-custom-disciplina" class="form-input" style="width: 100%; font-weight: 700;">
+                            ${optionsDisc}
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="form-label" style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">Unidade Temática / Eixo Temático</label>
+                    <input type="text" id="hab-custom-eixo" class="form-input" value="${window.escapeHTML(eixoVal)}" placeholder="Ex: Educação Financeira / Robótica / Produção Textual" style="width: 100%; font-weight: 600;">
+                </div>
+
+                <div>
+                    <label class="form-label" style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">Descrição Detalhada do Objetivo / Habilidade</label>
+                    <textarea id="hab-custom-desc" class="form-input" rows="4" placeholder="Descreva claramente o que o estudante deve aprender ou desenvolver..." style="width: 100%; resize: vertical; font-weight: 500;">${window.escapeHTML(descVal)}</textarea>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+                    <button type="button" onclick="window.controller.closeModal()" class="btn-secondary">Cancelar</button>
+                    <button type="button" onclick="planejamentoController.salvarHabilidadePersonalizada('${turmaId}', ${periodoIdx}, '${codOriginal}')" class="btn-primary" style="background-color: #7c3aed;">
+                        <i class="fas fa-check mr-1"></i> ${isEdit ? 'Salvar Alterações' : 'Adicionar ao Planejamento'}
+                    </button>
+                </div>
+            </div>
+        `);
+    },
+
+    openModalEditarHabilidadePersonalizada(turmaId, periodoIdx, codigoHabilidade) {
+        const turma = model.state.turmas.find(t => String(t.id) === String(turmaId));
+        if (!turma || !turma.planejamento) return;
+
+        const chavePeriodo = String(periodoIdx);
+        const listaHabs = turma.planejamento[chavePeriodo] || [];
+        const habilidade = listaHabs.find(h => h.codigo === codigoHabilidade);
+        if (!habilidade) return;
+
+        this.openModalCriarHabilidadePersonalizada(turmaId, periodoIdx, habilidade);
+    },
+
+    salvarHabilidadePersonalizada(turmaId, periodoIdx, codigoOriginal = '') {
+        const cod = document.getElementById('hab-custom-codigo')?.value.trim();
+        const disc = document.getElementById('hab-custom-disciplina')?.value.trim() || 'Geral';
+        const eixo = document.getElementById('hab-custom-eixo')?.value.trim() || 'Habilidade Própria';
+        const desc = document.getElementById('hab-custom-desc')?.value.trim();
+
+        if (!cod || !desc) {
+            return Toast.show("Por favor, preencha o código e a descrição da habilidade.", "warning");
+        }
+
+        const novaHabilidade = {
+            codigo: cod.toUpperCase(),
+            descricao: desc,
+            disciplina: disc,
+            componente: disc,
+            unidadeTematica: eixo,
+            objeto: eixo,
+            eixo: eixo,
+            tipo: 'personalizada',
+            cor: '#7c3aed'
+        };
+
+        if (codigoOriginal && codigoOriginal !== '') {
+            model.editarHabilidadePlanejamento(turmaId, String(periodoIdx), codigoOriginal, novaHabilidade);
+            Toast.show(`Habilidade ${cod} atualizada com sucesso!`, "success");
+        } else {
+            model.addHabilidadePlanejamento(turmaId, String(periodoIdx), novaHabilidade);
+            Toast.show(`Habilidade ${cod} adicionada ao ${periodoIdx}º período!`, "success");
+        }
+
+        window.controller.closeModal();
+
+        if (window.planejamentoView) {
+            window.planejamentoView.render('view-container');
+        }
+    },
+
+    exportarBimestralizacao(turmaId) {
+        const sucesso = model.exportarPlanejamentoTurma(turmaId);
+        if (sucesso) {
+            Toast.show("Arquivo de planejamento exportado com sucesso!", "success");
+        } else {
+            Toast.show("Não foi possível exportar o planejamento.", "error");
+        }
+    },
+
+    abrirModalImportarBimestralizacao(turmaId) {
+        const turma = model.state.turmas.find(t => String(t.id) === String(turmaId));
+        if (!turma) return;
+
+        window.controller.openModal(`Importar Bimestralização (JSON)`, `
+            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; max-width: 520px;">
+                <div class="alert alert--info" style="font-size: 0.8125rem;">
+                    <i class="fas fa-file-import mr-1"></i> Selecione um arquivo <strong>.json</strong> de bimestralização exportado anteriormente do Planner Pro.
+                </div>
+
+                <div style="border: 2px dashed var(--color-slate-300); border-radius: var(--radius-xl); padding: 2rem 1.5rem; text-align: center; background-color: var(--color-slate-50);">
+                    <i class="fas fa-cloud-upload-alt text-3xl text-indigo-500" style="margin-bottom: 0.75rem;"></i>
+                    <p style="font-size: 0.875rem; font-weight: 700; color: var(--color-slate-700); margin-bottom: 0.5rem;">Escolha o arquivo JSON</p>
+                    <input type="file" id="input-json-bimestralizacao" accept=".json" style="font-size: 0.8125rem;">
+                </div>
+
+                <div class="alert alert--danger" style="font-size: 0.75rem;">
+                    <i class="fas fa-exclamation-triangle mr-1"></i> A importação substituirá o planejamento periódico atual da turma <strong>${window.escapeHTML(turma.nome)}</strong>.
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                    <button type="button" onclick="window.controller.closeModal()" class="btn-secondary">Cancelar</button>
+                    <button type="button" onclick="planejamentoController.processarImportacaoBimestralizacao('${turmaId}')" class="btn-primary">
+                        <i class="fas fa-check mr-1"></i> Importar e Aplicar
+                    </button>
+                </div>
+            </div>
+        `);
+    },
+
+    processarImportacaoBimestralizacao(turmaId) {
+        const fileInput = document.getElementById('input-json-bimestralizacao');
+        const file = fileInput?.files?.[0];
+
+        if (!file) {
+            return Toast.show("Selecione um arquivo .json para importar.", "warning");
+        }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            try {
+                const dados = JSON.parse(e.target.result);
+                const sucesso = model.importarPlanejamentoTurma(turmaId, dados);
+                if (sucesso) {
+                    window.controller.closeModal();
+                    Toast.show("Bimestralização importada com sucesso!", "success");
+                    if (window.planejamentoView) {
+                        window.planejamentoView.render('view-container');
+                    }
+                } else {
+                    Toast.show("Formato de arquivo inválido para bimestralização.", "error");
+                }
+            } catch (err) {
+                console.error("Erro ao analisar JSON:", err);
+                Toast.show("Erro ao ler arquivo JSON. Verifique a integridade.", "error");
+            }
+        };
+        reader.readAsText(file);
+    },
+
+    salvarDiario(silent = false) {
+        const dataEl = document.getElementById('diario-data');
+        const turmaEl = document.getElementById('select-turma-global') || document.getElementById('diario-turma');
+        const turmaId = turmaEl?.value || window.diarioView?.currentTurmaId;
+        const data = dataEl?.value || window.diarioView?.currentDate || new Date().toISOString().split('T')[0];
+
+        if (!data || !turmaId) {
+            if (!silent && typeof Toast !== 'undefined') Toast.show("Selecione uma data e uma turma!", "warning");
+            return false;
+        }
+
+        const conteudo = {
+            tema: document.getElementById('plan-tema')?.value || '',
+            bncc: document.getElementById('plan-bncc')?.value || '',
+            objetivos: document.getElementById('plan-objetivos')?.value || '',
+            recursos: document.getElementById('plan-recursos')?.value || '',
+            metodologia: document.getElementById('plan-metodologia')?.value || '',
+            avaliacao: document.getElementById('plan-avaliacao')?.value || ''
+        };
+
+        model.savePlanoDiario(data, turmaId, conteudo);
+        if (silent) {
+            const statusEl = document.getElementById('status-salvamento');
+            if (statusEl) statusEl.innerHTML = '<i class="fas fa-check text-green-500"></i> Salvo';
+        } else {
+            if (typeof Toast !== 'undefined') Toast.show("Planejamento salvo com sucesso!", 'success');
+        }
+        return true;
+    },
+    mudarDataDiario(novaData) {
+        if (window.diarioView) {
+            if (window.controller?.currentView === 'dia' && window.diarioView.selecionarData) {
+                window.diarioView.selecionarData(novaData);
+            } else {
+                window.diarioView.currentDate = novaData;
+                const [ano, mes] = novaData.split('-');
+                window.diarioView.viewDate = new Date(parseInt(ano), parseInt(mes) - 1, 1);
+                window.controller.navigate('dia');
+            }
+        }
+    },
+    mudarMesDiario(delta) {
+        if (window.diarioView) {
+            if (window.controller?.currentView === 'dia' && window.diarioView.mudarMes) {
+                window.diarioView.mudarMes(delta);
+            } else {
+                const novaData = new Date(window.diarioView.viewDate);
+                novaData.setMonth(novaData.getMonth() + delta);
+                window.diarioView.viewDate = novaData;
+                window.controller.navigate('dia');
+            }
+        }
+    },
+    abrirModalReplicarPlanoDiario(dataAtual, turmaOrigemId) {
+        this.salvarDiario(true);
+
+        dataAtual = dataAtual || (window.diarioView && (window.diarioView.currentDate || window.diarioView.currentData)) || new Date().toISOString().split('T')[0];
+        turmaOrigemId = turmaOrigemId || (window.diarioView && window.diarioView.currentTurmaId) || (model.state.turmas?.[0]?.id);
+
+        const turmas = model.state.turmas || [];
+        const turmaOrigem = turmas.find(t => String(t.id) === String(turmaOrigemId));
+        if (!turmaOrigem) {
+            return Toast.show("Selecione a turma de origem.", "warning");
+        }
+
+        const planoOrigem = model.getPlanoDiario(dataAtual, turmaOrigemId);
+        const temConteudo = planoOrigem && (
+            (planoOrigem.tema && planoOrigem.tema.trim()) ||
+            (planoOrigem.bncc && planoOrigem.bncc.trim()) ||
+            (planoOrigem.objetivos && planoOrigem.objetivos.trim()) ||
+            (planoOrigem.metodologia && planoOrigem.metodologia.trim())
+        );
+
+        if (!temConteudo) {
+            return Toast.show("O plano de aula desta data está vazio. Preencha o plano antes de replicar.", "warning");
+        }
+
+        const turmasMesmaSerie = turmas.filter(t => 
+            String(t.id) !== String(turmaOrigemId) && 
+            t.serie && turmaOrigem.serie && 
+            t.serie.trim().toLowerCase() === turmaOrigem.serie.trim().toLowerCase()
+        );
+
+        let linhasIniciaisHtml = '';
+        if (turmasMesmaSerie.length > 0) {
+            linhasIniciaisHtml = turmasMesmaSerie.map(t => this.gerarHtmlLinhaDestino(t.id, dataAtual, turmaOrigemId)).join('');
+        } else {
+            const outraTurma = turmas.find(t => String(t.id) !== String(turmaOrigemId)) || turmaOrigem;
+            linhasIniciaisHtml = this.gerarHtmlLinhaDestino(outraTurma.id, dataAtual, turmaOrigemId);
+        }
+
+        const dataFmt = dataAtual.split('-').reverse().join('/');
+        const temaSafe = window.escapeHTML(planoOrigem.tema || 'Plano de Aula');
+
+        window.controller.openModal(`Replicar Plano de Aula Diário`, `
+            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; max-width: 680px;">
+                <div class="card" style="padding: 1rem 1.25rem; background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border: 1px solid #dbeafe; border-radius: var(--radius-xl);">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
+                        <div>
+                            <span class="badge" style="background: #e0e7ff; color: #4338ca; font-weight: 800; margin-bottom: 0.35rem;">
+                                <i class="far fa-calendar mr-1"></i> ${dataFmt} • ${window.escapeHTML(turmaOrigem.nome)} (${window.escapeHTML(turmaOrigem.serie || 'Série')})
+                            </span>
+                            <h4 style="font-size: 1.05rem; font-weight: 800; color: var(--color-slate-800); margin: 0.25rem 0;">
+                                ${temaSafe}
+                            </h4>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                    <label style="font-size: 0.875rem; font-weight: 800; color: var(--color-slate-700);">
+                        Destinos de Replicação (Turmas e Datas)
+                    </label>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button type="button" onclick="planejamentoController.adicionarTodasDaSerieReplicacao('${turmaOrigemId}', '${dataAtual}')" class="btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;" title="Adicionar todas as turmas compatíveis da mesma série">
+                            <i class="fas fa-layer-group mr-1"></i> Todas da Série
+                        </button>
+                        <button type="button" onclick="planejamentoController.adicionarProximaSemanaReplicacao()" class="btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;" title="Duplicar destinos para a próxima semana (+7 dias)">
+                            <i class="fas fa-calendar-plus mr-1"></i> +7 Dias
+                        </button>
+                        <button type="button" onclick="planejamentoController.adicionarLinhaDestinoReplicacao('', '${dataAtual}', '${turmaOrigemId}')" class="btn-primary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem; background: #4f46e5;">
+                            <i class="fas fa-plus mr-1"></i> + Mais Data/Turma
+                        </button>
+                    </div>
+                </div>
+
+                <div id="container-destinos-replicacao" style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 320px; overflow-y: auto; padding-right: 0.25rem;" class="custom-scrollbar">
+                    ${linhasIniciaisHtml}
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-slate-100); padding-top: 1rem; margin-top: 0.5rem;">
+                    <button type="button" onclick="window.controller.closeModal()" class="btn-secondary">
+                        Cancelar
+                    </button>
+                    <button type="button" onclick="planejamentoController.confirmarReplicacaoPlanoDiario('${dataAtual}', '${turmaOrigemId}')" class="btn-primary" style="padding: 0.625rem 1.5rem; font-weight: 800;">
+                        <i class="fas fa-check mr-1"></i> Confirmar Replicação
+                    </button>
+                </div>
+            </div>
+        `, 'medium');
+    },
+
+    gerarHtmlLinhaDestino(turmaSelecionadaId, data, turmaOrigemId) {
+        const turmas = model.state.turmas || [];
+        const opcoesTurmas = turmas.map(t => {
+            const isSelected = String(t.id) === String(turmaSelecionadaId) ? 'selected' : '';
+            const isOrigem = String(t.id) === String(turmaOrigemId) ? ' (Atual)' : '';
+            return `<option value="${t.id}" ${isSelected}>${window.escapeHTML(t.nome)} (${window.escapeHTML(t.serie || 'Série')})${isOrigem}</option>`;
+        }).join('');
+
+        return `
+            <div class="linha-destino-replicacao card animate-enter" style="padding: 0.75rem 1rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; background: var(--color-white); border: 1px solid var(--color-slate-200); border-radius: var(--radius-xl); box-shadow: var(--shadow-sm);">
+                <div style="flex: 1.3; min-width: 140px;">
+                    <label style="font-size: 0.6875rem; font-weight: 700; color: var(--color-slate-500); display: block; margin-bottom: 0.25rem;">Turma Destino</label>
+                    <select class="form-select select-destino-turma" style="padding: 0.375rem 0.5rem; font-size: 0.8125rem; font-weight: 600; width: 100%;">
+                        ${opcoesTurmas}
+                    </select>
+                </div>
+                <div style="flex: 1; min-width: 130px;">
+                    <label style="font-size: 0.6875rem; font-weight: 700; color: var(--color-slate-500); display: block; margin-bottom: 0.25rem;">Data da Aula</label>
+                    <input type="date" class="form-input input-destino-data" value="${data}" style="padding: 0.375rem 0.5rem; font-size: 0.8125rem; font-weight: 600; width: 100%;">
+                </div>
+                <div style="display: flex; align-items: flex-end; padding-top: 1.125rem;">
+                    <button type="button" onclick="planejamentoController.removerLinhaDestinoReplicacao(this)" class="btn-icon" style="width: 2rem; height: 2rem; color: #ef4444; border-radius: var(--radius-md);" title="Remover este destino">
+                        <i class="fas fa-trash-alt" style="font-size: 0.875rem;"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+    },
+
+    adicionarLinhaDestinoReplicacao(turmaPadraoId = '', dataPadrao = '', turmaOrigemId = '') {
+        const container = document.getElementById('container-destinos-replicacao');
+        if (!container) return;
+
+        const turmas = model.state.turmas || [];
+        if (!turmaPadraoId && turmas.length > 0) {
+            turmaPadraoId = turmas[0].id;
+        }
+        if (!dataPadrao) {
+            dataPadrao = new Date().toISOString().split('T')[0];
+        }
+
+        const div = document.createElement('div');
+        div.innerHTML = this.gerarHtmlLinhaDestino(turmaPadraoId, dataPadrao, turmaOrigemId);
+        container.appendChild(div.firstElementChild);
+        container.scrollTop = container.scrollHeight;
+    },
+
+    removerLinhaDestinoReplicacao(btn) {
+        const linha = btn.closest('.linha-destino-replicacao');
+        const container = document.getElementById('container-destinos-replicacao');
+        if (linha && container) {
+            const totalLinhas = container.querySelectorAll('.linha-destino-replicacao').length;
+            if (totalLinhas <= 1) {
+                return Toast.show("Mantenha ao menos um destino para replicação.", "info");
+            }
+            linha.remove();
+        }
+    },
+
+    adicionarTodasDaSerieReplicacao(turmaOrigemId, dataAtual) {
+        const container = document.getElementById('container-destinos-replicacao');
+        if (!container) return;
+
+        const turmas = model.state.turmas || [];
+        const turmaOrigem = turmas.find(t => String(t.id) === String(turmaOrigemId));
+        if (!turmaOrigem || !turmaOrigem.serie) {
+            return Toast.show("Turma de origem não possui série definida.", "warning");
+        }
+
+        const compativeis = turmas.filter(t => 
+            String(t.id) !== String(turmaOrigemId) && 
+            t.serie && t.serie.trim().toLowerCase() === turmaOrigem.serie.trim().toLowerCase()
+        );
+
+        if (compativeis.length === 0) {
+            return Toast.show(`Não há outras turmas cadastradas na mesma série (${turmaOrigem.serie}).`, "info");
+        }
+
+        compativeis.forEach(t => {
+            this.adicionarLinhaDestinoReplicacao(t.id, dataAtual, turmaOrigemId);
+        });
+        Toast.show(`${compativeis.length} turma(s) adicionada(s)!`, "success");
+    },
+
+    adicionarProximaSemanaReplicacao() {
+        const container = document.getElementById('container-destinos-replicacao');
+        if (!container) return;
+
+        const linhasAtuais = container.querySelectorAll('.linha-destino-replicacao');
+        if (linhasAtuais.length === 0) return;
+
+        let adicionadas = 0;
+        linhasAtuais.forEach(linha => {
+            const turmaId = linha.querySelector('.select-destino-turma')?.value;
+            const dataInput = linha.querySelector('.input-destino-data')?.value;
+            if (turmaId && dataInput) {
+                const dt = new Date(dataInput + 'T12:00:00');
+                dt.setDate(dt.getDate() + 7);
+                const proxData = dt.toISOString().split('T')[0];
+                this.adicionarLinhaDestinoReplicacao(turmaId, proxData);
+                adicionadas++;
+            }
+        });
+
+        if (adicionadas > 0) {
+            Toast.show(`+${adicionadas} destino(s) adicionados para a próxima semana!`, "success");
+        }
+    },
+
+    confirmarReplicacaoPlanoDiario(dataOrigem, turmaOrigemId) {
+        const container = document.getElementById('container-destinos-replicacao');
+        if (!container) return;
+
+        const linhas = container.querySelectorAll('.linha-destino-replicacao');
+        if (linhas.length === 0) {
+            return Toast.show("Adicione ao menos um destino.", "warning");
+        }
+
+        const destinos = [];
+        const chavesUnicas = new Set();
+
+        linhas.forEach(linha => {
+            const turmaId = linha.querySelector('.select-destino-turma')?.value;
+            const data = linha.querySelector('.input-destino-data')?.value;
+            if (turmaId && data) {
+                const chave = `${data}_${turmaId}`;
+                if (!chavesUnicas.has(chave)) {
+                    chavesUnicas.add(chave);
+                    destinos.push({ turmaId, data });
+                }
+            }
+        });
+
+        if (destinos.length === 0) {
+            return Toast.show("Verifique os campos de turma e data dos destinos.", "warning");
+        }
+
+        const total = model.replicarPlanoDiario(turmaOrigemId, dataOrigem, destinos);
+        if (total > 0) {
+            window.controller.closeModal();
+            Toast.show(`Plano diário replicado para ${total} destino${total > 1 ? 's' : ''} com sucesso!`, "success");
+            
+            if (window.controller && window.controller.currentView === 'dia' && window.diarioView) {
+                window.diarioView.render('view-container');
+            }
+        } else {
+            Toast.show("Não foi possível replicar o plano.", "error");
+        }
     }
 };
+
 if (typeof window !== 'undefined') {
     window.planejamentoController = planejamentoController;
 }

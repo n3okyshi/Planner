@@ -4,13 +4,20 @@ import { turmaService } from '../services/turmaService.js';
 
 export const planejamentoMethods = {
     savePlanoDiario(data, turmaId, conteudo) {
+        if (!data || !turmaId) return;
         if (!this.state.planosDiarios) this.state.planosDiarios = {};
         if (!this.state.planosDiarios[data]) this.state.planosDiarios[data] = {};
-        this.state.planosDiarios[data][turmaId] = conteudo;
+        this.state.planosDiarios[data][String(turmaId)] = conteudo;
         this.saveLocal();
+        if (this.currentUser && typeof planejamentoService !== 'undefined' && planejamentoService?.savePlanoDiario) {
+            planejamentoService.savePlanoDiario(this.currentUser.uid, this.state.planosDiarios);
+        }
     },
     getPlanoDiario(data, turmaId) {
-        return this.state.planosDiarios?.[data]?.[turmaId] || null;
+        if (!this.state.planosDiarios || !data || !turmaId) return null;
+        const planosDoDia = this.state.planosDiarios[data];
+        if (!planosDoDia) return null;
+        return planosDoDia[String(turmaId)] || planosDoDia[turmaId] || null;
     },
     addHabilidadePlanejamento(turmaId, periodoIdx, habilidade) {
         const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
@@ -45,6 +52,27 @@ export const planejamentoMethods = {
             planejamentoService.saveTurma(this.currentUser.uid, turma);
         }
     },
+    editarHabilidadePlanejamento(turmaId, periodoIdx, codigoOriginal, novaHabilidade) {
+        const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
+        if (!turma || !turma.planejamento) return false;
+
+        const chavePeriodo = String(periodoIdx);
+        if (!Array.isArray(turma.planejamento[chavePeriodo])) return false;
+
+        const idx = turma.planejamento[chavePeriodo].findIndex(h => h.codigo === codigoOriginal);
+        if (idx !== -1) {
+            turma.planejamento[chavePeriodo][idx] = {
+                ...turma.planejamento[chavePeriodo][idx],
+                ...novaHabilidade
+            };
+            this.saveLocal();
+            if (this.currentUser && firebaseService?.saveTurma) {
+                planejamentoService.saveTurma(this.currentUser.uid, turma);
+            }
+            return true;
+        }
+        return false;
+    },
     addHabilidadeMensal(turmaId, mes, habilidade) {
         const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
         if (!turma) return;
@@ -77,6 +105,37 @@ export const planejamentoMethods = {
 
         const index = periodos.findIndex(p => dataIso >= p.inicio && dataIso <= p.fim);
         return index !== -1 ? String(index + 1) : "1";
+    },
+    getPeriodosDoMes(mesNome) {
+        const meses = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+        const mesIndex = meses.indexOf(mesNome);
+        if (mesIndex === -1) return ["1"];
+
+        const ano = new Date().getFullYear();
+        const diasNoMes = new Date(ano, mesIndex + 1, 0).getDate();
+        const periodosDatas = this.state.periodosDatas || {};
+        const tipo = this.state.userConfig?.periodType || 'bimestre';
+        const periodos = periodosDatas[tipo] || [];
+
+        const periodosEncontrados = new Set();
+        // Checa início, meio e fim do mês para identificar transições de bimestre
+        const datasTeste = [
+            `${ano}-${String(mesIndex + 1).padStart(2, '0')}-01`,
+            `${ano}-${String(mesIndex + 1).padStart(2, '0')}-10`,
+            `${ano}-${String(mesIndex + 1).padStart(2, '0')}-15`,
+            `${ano}-${String(mesIndex + 1).padStart(2, '0')}-20`,
+            `${ano}-${String(mesIndex + 1).padStart(2, '0')}-${String(diasNoMes).padStart(2, '0')}`
+        ];
+
+        datasTeste.forEach(d => {
+            const pIdx = periodos.findIndex(p => d >= p.inicio && d <= p.fim);
+            if (pIdx !== -1) {
+                periodosEncontrados.add(String(pIdx + 1));
+            }
+        });
+
+        if (periodosEncontrados.size === 0) return ["1"];
+        return Array.from(periodosEncontrados).sort((a, b) => Number(a) - Number(b));
     },
     getSugestoesDoMes(turmaId, dataIso) {
         const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
@@ -140,5 +199,73 @@ export const planejamentoMethods = {
             planejamentoService.saveTurma(this.currentUser.uid, destino);
         }
         return true;
+    },
+    exportarPlanejamentoTurma(turmaId) {
+        const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
+        if (!turma) return null;
+
+        const payload = {
+            versao: '1.0',
+            geradoEm: new Date().toISOString(),
+            tipoPeriodo: this.state.userConfig?.periodType || 'bimestre',
+            turmaInfo: {
+                nome: turma.nome,
+                nivel: turma.nivel,
+                serie: turma.serie,
+                identificador: turma.identificador
+            },
+            planejamento: turma.planejamento || {},
+            planejamentoMensal: turma.planejamentoMensal || {}
+        };
+
+        const jsonString = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(payload, null, 2));
+        const downloadAnchor = document.createElement('a');
+        const nomeArquivo = `planejamento_${(turma.nome || 'turma').replace(/\s+/g, '_').toLowerCase()}_${new Date().getFullYear()}.json`;
+        downloadAnchor.setAttribute("href", jsonString);
+        downloadAnchor.setAttribute("download", nomeArquivo);
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+        return true;
+    },
+    importarPlanejamentoTurma(turmaId, dadosImportados) {
+        const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
+        if (!turma || !dadosImportados || typeof dadosImportados !== 'object') return false;
+
+        if (dadosImportados.planejamento) {
+            turma.planejamento = JSON.parse(JSON.stringify(dadosImportados.planejamento));
+        }
+        if (dadosImportados.planejamentoMensal) {
+            turma.planejamentoMensal = JSON.parse(JSON.stringify(dadosImportados.planejamentoMensal));
+        }
+
+        this.saveLocal();
+        if (this.currentUser && firebaseService?.saveTurma) {
+            planejamentoService.saveTurma(this.currentUser.uid, turma);
+        }
+        return true;
+    },
+    replicarPlanoDiario(turmaOrigemId, dataOrigem, destinos, planoOverride = null) {
+        const planoOrigem = planoOverride || this.getPlanoDiario(dataOrigem, turmaOrigemId);
+        if (!planoOrigem || !Array.isArray(destinos) || destinos.length === 0) return 0;
+
+        let sucesso = 0;
+        if (!this.state.planosDiarios) this.state.planosDiarios = {};
+
+        destinos.forEach(({ turmaId, data }) => {
+            if (turmaId && data) {
+                if (!this.state.planosDiarios[data]) this.state.planosDiarios[data] = {};
+                this.state.planosDiarios[data][turmaId] = JSON.parse(JSON.stringify(planoOrigem));
+                sucesso++;
+            }
+        });
+
+        if (sucesso > 0) {
+            this.saveLocal();
+            if (this.currentUser && typeof planejamentoService !== 'undefined' && planejamentoService?.savePlanoDiario) {
+                planejamentoService.savePlanoDiario(this.currentUser.uid, this.state.planosDiarios);
+            }
+        }
+        return sucesso;
     }
 };

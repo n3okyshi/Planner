@@ -234,5 +234,143 @@ export const turmaMethods = {
                 }
             }
         }
+    },
+    trocarPosicoesAlunos(turmaId, posOrigem, posDestino) {
+        const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
+        if (!turma || posOrigem === posDestino) return;
+
+        const alunoOrigem = turma.alunos.find(a => a.posicao === posOrigem);
+        const alunoDestino = turma.alunos.find(a => a.posicao === posDestino);
+
+        if (alunoOrigem) alunoOrigem.posicao = posDestino;
+        if (alunoDestino) alunoDestino.posicao = posOrigem;
+
+        this.saveLocal();
+        if (this.currentUser && firebaseService?.saveAluno) {
+            if (alunoOrigem) turmaService.saveAluno(this.currentUser.uid, turmaId, alunoOrigem);
+            if (alunoDestino) turmaService.saveAluno(this.currentUser.uid, turmaId, alunoDestino);
+        }
+    },
+    setMapaConfig(turmaId, config) {
+        const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
+        if (!turma) return;
+        turma.mapaConfig = {
+            linhas: Math.max(2, Math.min(10, Number(config.linhas) || 6)),
+            colunas: Math.max(2, Math.min(10, Number(config.colunas) || 6)),
+            visaoCalor: !!config.visaoCalor
+        };
+        this.saveLocal();
+        if (this.currentUser && firebaseService?.saveTurma) {
+            turmaService.saveTurma(this.currentUser.uid, turma);
+        }
+    },
+    addOcorrenciaDossie(turmaId, alunoId, ocorrencia) {
+        const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
+        if (!turma) return false;
+        const aluno = turma.alunos.find(a => String(a.id) === String(alunoId));
+        if (!aluno) return false;
+
+        if (!Array.isArray(aluno.dossie)) {
+            aluno.dossie = [];
+        }
+
+        const novaOcorrencia = {
+            id: 'occ_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 4),
+            data: ocorrencia.data || new Date().toISOString().split('T')[0],
+            tipo: ocorrencia.tipo || 'positivo', // 'positivo', 'indisciplina', 'familia', 'coordenacao', 'observacao'
+            titulo: (ocorrencia.titulo || '').trim(),
+            descricao: (ocorrencia.descricao || '').trim(),
+            providencia: (ocorrencia.providencia || '').trim(),
+            autor: ocorrencia.autor || this.state.userConfig?.profName || 'Docente',
+            createdAt: Date.now()
+        };
+
+        aluno.dossie.unshift(novaOcorrencia);
+        this.saveLocal();
+        if (this.currentUser && firebaseService?.saveAluno) {
+            turmaService.saveAluno(this.currentUser.uid, turmaId, aluno);
+        }
+        return novaOcorrencia;
+    },
+    deleteOcorrenciaDossie(turmaId, alunoId, ocorrenciaId) {
+        const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
+        if (!turma) return false;
+        const aluno = turma.alunos.find(a => String(a.id) === String(alunoId));
+        if (!aluno || !Array.isArray(aluno.dossie)) return false;
+
+        aluno.dossie = aluno.dossie.filter(o => String(o.id) !== String(ocorrenciaId));
+        this.saveLocal();
+        if (this.currentUser && firebaseService?.saveAluno) {
+            turmaService.saveAluno(this.currentUser.uid, turmaId, aluno);
+        }
+        return true;
+    },
+    replicarAvaliacaoParaTurmas(turmaOrigemId, avaliacaoId, turmasDestinoIds) {
+        const turmaOrigem = this.state.turmas.find(t => String(t.id) === String(turmaOrigemId));
+        if (!turmaOrigem || !Array.isArray(turmaOrigem.avaliacoes)) return { sucesso: 0, falhas: 0 };
+        const av = turmaOrigem.avaliacoes.find(a => String(a.id) === String(avaliacaoId));
+        if (!av) return { sucesso: 0, falhas: 0 };
+
+        let sucesso = 0;
+        turmasDestinoIds.forEach(tDestId => {
+            const tDest = this.state.turmas.find(t => String(t.id) === String(tDestId));
+            if (tDest) {
+                if (!Array.isArray(tDest.avaliacoes)) tDest.avaliacoes = [];
+                // Cria uma nova avaliação idêntica com ID único para a turma destino
+                const novaAv = {
+                    id: String(Date.now()) + '_' + Math.random().toString(36).substr(2, 4),
+                    nome: av.nome,
+                    max: Number(av.max) || 10,
+                    periodo: Number(av.periodo) || 1
+                };
+                tDest.avaliacoes.push(novaAv);
+                sucesso++;
+                if (this.currentUser && firebaseService?.saveAvaliacao) {
+                    turmaService.saveAvaliacao(this.currentUser.uid, tDest.id, novaAv);
+                }
+            }
+        });
+
+        this.saveLocal();
+        return { sucesso, falhas: turmasDestinoIds.length - sucesso };
+    },
+    alocarAlunoAssento(turmaId, alunoId, posicao) {
+        const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
+        if (!turma) return false;
+        
+        // Se a posição já estiver ocupada por outro aluno, desocupa o anterior
+        const ocupanteAtual = (turma.alunos || []).find(a => a.posicao === posicao);
+        if (ocupanteAtual && String(ocupanteAtual.id) !== String(alunoId)) {
+            ocupanteAtual.posicao = null;
+            if (this.currentUser && firebaseService?.saveAluno) {
+                turmaService.saveAluno(this.currentUser.uid, turmaId, ocupanteAtual);
+            }
+        }
+
+        const aluno = (turma.alunos || []).find(a => String(a.id) === String(alunoId));
+        if (aluno) {
+            aluno.posicao = posicao;
+            this.saveLocal();
+            if (this.currentUser && firebaseService?.saveAluno) {
+                turmaService.saveAluno(this.currentUser.uid, turmaId, aluno);
+            }
+            return true;
+        }
+        return false;
+    },
+    desalocarAlunoAssento(turmaId, posicaoOuAlunoId) {
+        const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
+        if (!turma) return false;
+
+        const aluno = (turma.alunos || []).find(a => a.posicao === posicaoOuAlunoId || String(a.id) === String(posicaoOuAlunoId));
+        if (aluno) {
+            aluno.posicao = null;
+            this.saveLocal();
+            if (this.currentUser && firebaseService?.saveAluno) {
+                turmaService.saveAluno(this.currentUser.uid, turmaId, aluno);
+            }
+            return true;
+        }
+        return false;
     }
 };

@@ -91,10 +91,19 @@ export const bibliotecaView = {
                     <h4 style="font-weight: 700; color: #1e293b; font-size: 1.125rem; margin-bottom: 0.375rem; line-height: 1.3;" class="line-clamp-2">${tituloSafe}</h4>
                     <p style="font-size: 0.75rem; color: #94a3b8; font-weight: 500; margin-bottom: 1.25rem;" class="line-clamp-1">${serieSafe} • Gerado em ${dataFormatada}</p>
                     
-                    <div style="margin-top: auto; padding-top: 1rem; border-top: 1px solid #f8fafc; display: flex; gap: 0.75rem;">
+                    <div style="margin-top: auto; padding-top: 1rem; border-top: 1px solid #f8fafc; display: flex; gap: 0.5rem; align-items: center;">
                         <button type="button" onclick="bibliotecaView.abrirMaterial('${m.id}')" class="btn-primary interactive-element" style="flex: 1; padding: 0.75rem; font-size: 0.75rem; background-color: #4f46e5; border-radius: 0.75rem; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);">
                             <i class="fas fa-book-open"></i> Abrir material
                         </button>
+                        ${m.compartilhado ? `
+                            <button type="button" onclick="model.removerMaterialDaComunidade('${m.id}')" class="interactive-element" style="width: 2.75rem; height: 2.75rem; display: flex; align-items: center; justify-content: center; color: #7c3aed; background-color: #f3e8ff; border-radius: 0.75rem; border: 1px solid #ddd6fe; cursor: pointer; transition: all var(--transition-fast);" title="Material Público na Comunidade (Clique para retirar)">
+                                <i class="fas fa-globe"></i>
+                            </button>
+                        ` : `
+                            <button type="button" onclick="model.compartilharMaterial('${m.id}')" class="interactive-element" style="width: 2.75rem; height: 2.75rem; display: flex; align-items: center; justify-content: center; color: #94a3b8; border-radius: 0.75rem; border: 1px solid #f1f5f9; background: transparent; cursor: pointer; transition: all var(--transition-fast);" onmouseover="this.style.color='#7c3aed'; this.style.backgroundColor='#f3e8ff'; this.style.borderColor='#ddd6fe';" onmouseout="this.style.color='#94a3b8'; this.style.backgroundColor='transparent'; this.style.borderColor='#f1f5f9';" title="Tornar Público / Compartilhar com a Comunidade">
+                                <i class="fas fa-globe"></i>
+                            </button>
+                        `}
                         <button type="button" onclick="bibliotecaView.excluirMaterial('${m.id}')" class="interactive-element" style="width: 2.75rem; height: 2.75rem; display: flex; align-items: center; justify-content: center; color: #94a3b8; border-radius: 0.75rem; border: 1px solid #f1f5f9; background: transparent; cursor: pointer; transition: all var(--transition-fast);" onmouseover="this.style.color='#ef4444'; this.style.backgroundColor='#fef2f2'; this.style.borderColor='#fee2e2';" onmouseout="this.style.color='#94a3b8'; this.style.backgroundColor='transparent'; this.style.borderColor='#f1f5f9';" title="Excluir Material">
                             <i class="fas fa-trash-alt"></i>
                         </button>

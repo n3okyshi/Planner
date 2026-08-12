@@ -212,21 +212,50 @@ export const settingsView = {
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--spacing-6); align-items: start;">
                     
                     <div class="card" style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4);">
-                        <div style="border-bottom: 1px solid var(--color-slate-100); padding-bottom: var(--spacing-3);">
-                            <h3 style="font-size: 1rem; font-weight: 800; color: var(--color-slate-800); display: flex; align-items: center; gap: var(--spacing-2);">
-                                <i class="fas fa-palette" style="color: var(--color-primary);"></i> Cor de Destaque
-                            </h3>
-                            <p style="font-size: 0.75rem; color: var(--color-slate-500);">Personalize a paleta visual do Planner Pro.</p>
+                        <div style="border-bottom: 1px solid var(--color-slate-100); padding-bottom: var(--spacing-3); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                            <div>
+                                <h3 style="font-size: 1rem; font-weight: 800; color: var(--color-slate-800); display: flex; align-items: center; gap: var(--spacing-2);">
+                                    <i class="fas fa-palette" style="color: var(--color-primary);"></i> Personalização de Cor de Destaque
+                                </h3>
+                                <p style="font-size: 0.75rem; color: var(--color-slate-500);">Personalize a paleta visual do Planner Pro com qualquer cor ou código hexadecimal.</p>
+                            </div>
+                            <button type="button" onclick="controller.resetTheme()" class="btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.625rem;" title="Restaurar a cor padrão do sistema (Azul #3b82f6)">
+                                <i class="fas fa-undo" style="margin-right: 0.25rem;"></i> Retornar ao Padrão
+                            </button>
                         </div>
 
-                        <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-3);">
-                            ${this.renderColorOption('#4f46e5', 'Índigo', config.themeColor)}
-                            ${this.renderColorOption('#0891b2', 'Ciano', config.themeColor)}
-                            ${this.renderColorOption('#7c3aed', 'Roxo', config.themeColor)}
-                            ${this.renderColorOption('#db2777', 'Rosa', config.themeColor)}
-                            ${this.renderColorOption('#059669', 'Verde', config.themeColor)}
-                            ${this.renderColorOption('#ea580c', 'Laranja', config.themeColor)}
-                            ${this.renderColorOption('#1e293b', 'Slate', config.themeColor)}
+                        <!-- SELETOR INTERATIVO / HEXADECIMAL -->
+                        <div style="display: flex; align-items: center; gap: 1rem; padding: 0.875rem; background: var(--color-slate-50); border: 1px solid var(--color-slate-200); border-radius: var(--radius-xl);">
+                            <div style="position: relative; width: 3rem; height: 3rem; border-radius: var(--radius-lg); overflow: hidden; border: 2px solid var(--color-slate-300); box-shadow: var(--shadow-sm); flex-shrink: 0; cursor: pointer;">
+                                <input type="color" id="input-color-picker" value="${config.themeColor || '#3b82f6'}" 
+                                       oninput="document.getElementById('input-hex-color').value = this.value; controller.updateTheme(this.value);" 
+                                       style="position: absolute; top: -10px; left: -10px; width: 60px; height: 60px; border: none; cursor: pointer;">
+                            </div>
+                            <div style="flex: 1;">
+                                <label style="font-size: 0.6875rem; font-weight: 800; color: var(--color-slate-500); text-transform: uppercase;">Código Hexadecimal</label>
+                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
+                                    <input type="text" id="input-hex-color" value="${config.themeColor || '#3b82f6'}" maxlength="7"
+                                           placeholder="#3b82f6" 
+                                           class="form-input" style="font-family: monospace; font-weight: 800; text-transform: uppercase; padding: 0.375rem 0.75rem; max-width: 140px;"
+                                           onchange="if(/^#([0-9A-F]{3}){1,2}$/i.test(this.value)) { document.getElementById('input-color-picker').value = this.value; controller.updateTheme(this.value); }">
+                                    <span style="font-size: 0.75rem; color: var(--color-slate-400);">Clique no mapa ou digite a cor</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- PALETAS PRÉ-DEFINIDAS RÁPIDAS -->
+                        <div>
+                            <span style="font-size: 0.6875rem; font-weight: 800; color: var(--color-slate-400); text-transform: uppercase; display: block; margin-bottom: 0.5rem;">Paletas Rápidas</span>
+                            <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-3);">
+                                ${this.renderColorOption('#3b82f6', 'Azul Padrão', config.themeColor || '#3b82f6')}
+                                ${this.renderColorOption('#4f46e5', 'Índigo', config.themeColor)}
+                                ${this.renderColorOption('#0891b2', 'Ciano', config.themeColor)}
+                                ${this.renderColorOption('#7c3aed', 'Roxo', config.themeColor)}
+                                ${this.renderColorOption('#db2777', 'Rosa', config.themeColor)}
+                                ${this.renderColorOption('#059669', 'Verde', config.themeColor)}
+                                ${this.renderColorOption('#ea580c', 'Laranja', config.themeColor)}
+                                ${this.renderColorOption('#1e293b', 'Slate', config.themeColor)}
+                            </div>
                         </div>
                     </div>
 

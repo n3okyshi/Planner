@@ -432,8 +432,8 @@ export const quizPlayerView = {
         container.innerHTML = `
             <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 2rem 3rem; background-color: #0f172a; text-align: center;">
                 
-                <!-- TOPO COM TEMPORIZADOR E CONTADOR DE RESPOSTAS -->
-                <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; width: 100%;">
+                <!-- TOPO COM TEMPORIZADOR, BOTOES E CONTADOR DE RESPOSTAS -->
+                <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; width: 100%; gap: 1rem; flex-wrap: wrap;">
                     <div style="text-align: left;">
                         <span style="font-size: 1.125rem; font-weight: 800; color: #94a3b8;">
                             Questão ${this.indicePerguntaAtual + 1} de ${this.quiz.perguntas.length}
@@ -452,9 +452,14 @@ export const quizPlayerView = {
                         <span id="timer-text" style="position: absolute; font-size: 1.75rem; font-weight: 900; color: white;">${this.tempoRestante}</span>
                     </div>
 
-                    <button onclick="quizPlayerView.forcarPulo()" class="btn-secondary" style="background-color: rgba(255,255,255,0.1); border: none; color: white; padding: 0.75rem 1.5rem; font-weight: 800;">
-                        Pular Questão <i class="fas fa-forward ml-2"></i>
-                    </button>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <button onclick="quizPlayerView.forcarPulo()" class="btn-secondary" style="background-color: rgba(255,255,255,0.1); border: none; color: white; padding: 0.65rem 1.25rem; font-weight: 800; font-size: 0.875rem;">
+                            Pular <i class="fas fa-forward ml-1"></i>
+                        </button>
+                        <button onclick="quizPlayerView.confirmarEncerramentoAntecipado()" class="btn-secondary" style="background-color: rgba(239, 68, 68, 0.25); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; padding: 0.65rem 1.25rem; font-weight: 800; font-size: 0.875rem;" title="Encerrar jogo e mostrar pódio atual">
+                            <i class="fas fa-stop-circle mr-1"></i> Encerrar Jogo
+                        </button>
+                    </div>
                 </div>
 
                 <!-- ENUNCIADO GIGANTE -->
@@ -507,6 +512,23 @@ export const quizPlayerView = {
     async forcarPulo() {
         clearInterval(this.intervaloTimer);
         await this.concluirPergunta();
+    },
+
+    async confirmarEncerramentoAntecipado() {
+        clearInterval(this.intervaloTimer);
+        try {
+            await firebaseService.atualizarStatusSessao(this.pin, 'PODIUM');
+        } catch (e) {
+            console.warn("Aviso Firestore no encerramento antecipado:", e.message);
+        }
+        if (this.broadcastChannel) {
+            this.broadcastChannel.postMessage({
+                type: 'SESSION_UPDATE',
+                session: { ...this.sessaoData, status: 'PODIUM' }
+            });
+        }
+        Toast.show("Partida encerrada antecipadamente! Apresentando o Pódio.", "info");
+        this.avancarEstado('PODIUM');
     },
 
     async concluirPergunta() {
@@ -588,13 +610,18 @@ export const quizPlayerView = {
         container.innerHTML = `
             <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 2rem 3rem; background-color: #0f172a; text-align: center;">
                 
-                <div>
-                    <span style="font-size: 0.875rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.2em; color: #94a3b8;">
-                        Resultado da Turma
-                    </span>
-                    <h2 style="font-size: 1.75rem; font-weight: 900; color: #ffffff; margin-top: 0.5rem; max-width: 900px; margin: 0.5rem auto 0;">
-                        ${formatarTextoComLatex(sanitizeComLatex(pergunta.enunciado))}
-                    </h2>
+                <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto; width: 100%;">
+                    <div style="text-align: left;">
+                        <span style="font-size: 0.875rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.2em; color: #94a3b8;">
+                            Resultado da Turma
+                        </span>
+                        <h2 style="font-size: 1.5rem; font-weight: 900; color: #ffffff; margin-top: 0.25rem; max-width: 800px;">
+                            ${formatarTextoComLatex(sanitizeComLatex(pergunta.enunciado))}
+                        </h2>
+                    </div>
+                    <button onclick="quizPlayerView.confirmarEncerramentoAntecipado()" class="btn-secondary" style="background-color: rgba(239, 68, 68, 0.25); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; padding: 0.65rem 1.25rem; font-weight: 800; font-size: 0.875rem;">
+                        <i class="fas fa-stop-circle mr-1"></i> Encerrar Jogo
+                    </button>
                 </div>
 
                 <!-- GRÁFICO DE BARRAS DE RESPOSTAS DA TURMA -->
@@ -637,13 +664,18 @@ export const quizPlayerView = {
         container.innerHTML = `
             <div style="flex: 1; display: flex; flex-direction: column; justify-content: space-between; padding: 2.5rem 3rem; background: radial-gradient(circle at center, #1e1b4b, #0f172a); text-align: center;">
                 
-                <div>
-                    <span style="font-size: 0.875rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.2em; color: #fbbf24;">
-                        <i class="fas fa-crown mr-1"></i> Ranking Parcial
-                    </span>
-                    <h1 style="font-size: 3rem; font-weight: 900; color: #ffffff; margin-top: 0.25rem;">
-                        Placar de Líderes
-                    </h1>
+                <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1000px; margin: 0 auto; width: 100%;">
+                    <div style="text-align: left;">
+                        <span style="font-size: 0.875rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.2em; color: #fbbf24;">
+                            <i class="fas fa-crown mr-1"></i> Ranking Parcial
+                        </span>
+                        <h1 style="font-size: 2.5rem; font-weight: 900; color: #ffffff; margin-top: 0.25rem;">
+                            Placar de Líderes
+                        </h1>
+                    </div>
+                    <button onclick="quizPlayerView.confirmarEncerramentoAntecipado()" class="btn-secondary" style="background-color: rgba(239, 68, 68, 0.25); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; padding: 0.65rem 1.25rem; font-weight: 800; font-size: 0.875rem;">
+                        <i class="fas fa-stop-circle mr-1"></i> Encerrar Jogo
+                    </button>
                 </div>
 
                 <!-- LISTA TOP 5 -->

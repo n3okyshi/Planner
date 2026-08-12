@@ -243,12 +243,8 @@ export const uiController = {
         });
     },
     aplicarTema() {
-        if (model?.state?.userConfig?.themeColor) {
-            document.documentElement.style.setProperty('--primary-color', model.state.userConfig.themeColor);
-        }
-    },
-    aplicarTema() {
-        const configTheme = model.state.userConfig?.theme;
+        // 1. Aplica tema Claro/Escuro (data-theme)
+        const configTheme = model.state?.userConfig?.theme;
         const localTheme = localStorage.getItem('planner_theme');
         const temaAtual = configTheme || localTheme || 'light';
         document.documentElement.setAttribute('data-theme', temaAtual);
@@ -257,6 +253,30 @@ export const uiController = {
         if (icon) {
             icon.className = temaAtual === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
             icon.parentElement.title = temaAtual === 'dark' ? 'Mudar para Tema Claro' : 'Mudar para Tema Escuro';
+        }
+
+        // 2. Aplica paleta de cores personalizada dinamicamente nas variáveis CSS
+        const themeColor = model.state?.userConfig?.themeColor || localStorage.getItem('planner_theme_color') || '#3b82f6';
+        if (themeColor && /^#([0-9A-F]{3}){1,2}$/i.test(themeColor)) {
+            let hex = themeColor.replace('#', '');
+            if (hex.length === 3) {
+                hex = hex.split('').map(c => c + c).join('');
+            }
+            const num = parseInt(hex, 16);
+            const r = (num >> 16) & 255;
+            const g = (num >> 8) & 255;
+            const b = num & 255;
+
+            // Escurece ~15% para o estado hover
+            const rHover = Math.max(0, Math.floor(r * 0.85));
+            const gHover = Math.max(0, Math.floor(g * 0.85));
+            const bHover = Math.max(0, Math.floor(b * 0.85));
+            const hexHover = `#${((1 << 24) + (rHover << 16) + (gHover << 8) + bHover).toString(16).slice(1)}`;
+
+            document.documentElement.style.setProperty('--color-primary', `#${hex}`);
+            document.documentElement.style.setProperty('--color-primary-rgb', `${r}, ${g}, ${b}`);
+            document.documentElement.style.setProperty('--color-primary-hover', hexHover);
+            document.documentElement.style.setProperty('--color-primary-light', `rgba(${r}, ${g}, ${b}, 0.12)`);
         }
     },
 
@@ -599,6 +619,95 @@ export const uiController = {
                 }
             });
         });
+    },
+
+    async abrirCentroSincronizacao() {
+        const isOnline = navigator.onLine;
+        const filaDetalhada = window.syncService ? await window.syncService.obterDetalhesFilaOffline() : [];
+        const usuario = model.currentUser?.email || 'Professor(a) Conectado(a)';
+        const pendentesCount = filaDetalhada.length;
+
+        const htmlFila = pendentesCount > 0 ? filaDetalhada.map(item => `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; border: 1px solid var(--color-slate-200); border-radius: var(--radius-lg); background-color: var(--color-white); box-shadow: var(--shadow-sm);">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="width: 2rem; height: 2rem; border-radius: 50%; background-color: #fef3c7; color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 0.8125rem;">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div>
+                        <strong style="font-size: 0.8125rem; color: var(--color-slate-800); display: block;">${window.escapeHTML(item.label)}</strong>
+                        <span style="font-size: 0.75rem; color: var(--color-slate-500);">${window.escapeHTML(item.detalhe)}</span>
+                    </div>
+                </div>
+                <span style="font-size: 0.6875rem; font-weight: 700; color: var(--color-slate-400); background-color: var(--color-slate-100); padding: 0.25rem 0.5rem; border-radius: var(--radius-sm);">
+                    ${item.dataHora}
+                </span>
+            </div>
+        `).join('') : `
+            <div style="text-align: center; padding: 2rem 1rem; background-color: var(--color-slate-50); border-radius: var(--radius-xl); border: 1px dashed var(--color-slate-200);">
+                <div style="width: 3rem; height: 3rem; border-radius: 50%; background-color: #dcfce7; color: #15803d; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; margin: 0 auto 0.75rem;">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+                <h4 style="font-size: 0.9375rem; font-weight: 800; color: var(--color-slate-800); margin: 0 0 0.25rem 0;">Tudo 100% Sincronizado!</h4>
+                <p style="font-size: 0.8125rem; color: var(--color-slate-500); margin: 0;">Nenhuma alteração pendente na fila local do IndexedDB.</p>
+            </div>
+        `;
+
+        this.openModal(`Centro de Transparência de Sincronização`, `
+            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; max-width: 600px;">
+                
+                <!-- STATUS DA NUVEM BANNER -->
+                <div style="display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 1.5rem; border-radius: var(--radius-xl); background: ${isOnline ? 'linear-gradient(135deg, #059669, #10b981)' : 'linear-gradient(135deg, #475569, #334155)'}; color: white; box-shadow: var(--shadow-md);">
+                    <div>
+                        <span style="font-size: 0.6875rem; font-weight: 800; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.05em;">Status da Rede & PWA</span>
+                        <h3 style="font-size: 1.25rem; font-weight: 900; color: white; margin: 0.125rem 0 0 0; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas ${isOnline ? 'fa-wifi' : 'fa-plane'}"></i>
+                            ${isOnline ? 'Conexão Ativa com a Nuvem' : 'Modo Offline Ativo'}
+                        </h3>
+                        <p style="font-size: 0.75rem; color: rgba(255,255,255,0.85); margin-top: 0.25rem;">
+                            ${usuario}
+                        </p>
+                    </div>
+                    <div style="text-align: right; background: rgba(255,255,255,0.15); padding: 0.5rem 1rem; border-radius: var(--radius-lg); border: 1px solid rgba(255,255,255,0.25);">
+                        <span style="font-size: 0.625rem; font-weight: 800; text-transform: uppercase; display: block;">Fila Offline</span>
+                        <strong style="font-size: 1.25rem;">${pendentesCount} ${pendentesCount === 1 ? 'item' : 'itens'}</strong>
+                    </div>
+                </div>
+
+                <!-- FILA DE ALTERAÇÕES LOCAL (INDEXEDDB) -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <label class="form-label" style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase; margin: 0;">
+                            <i class="fas fa-database text-primary mr-1"></i> Fila de Operações Locais (IndexedDB)
+                        </label>
+                        <span style="font-size: 0.6875rem; color: var(--color-slate-400);">Garantia anti-perda offline</span>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; max-height: 220px; overflow-y: auto;" class="custom-scrollbar">
+                        ${htmlFila}
+                    </div>
+                </div>
+
+                <!-- AÇÕES -->
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--color-slate-100);">
+                    <button type="button" onclick="controller.exportData()" class="btn-secondary" style="font-size: 0.8125rem;">
+                        <i class="fas fa-download mr-1"></i> Fazer Backup JSON
+                    </button>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="button" onclick="uiController.closeModal()" class="btn-secondary">Fechar</button>
+                        <button type="button" onclick="uiController.executarForcarSincronizacao()" class="btn-primary" style="font-size: 0.8125rem;">
+                            <i class="fas fa-sync-alt mr-1"></i> Forçar Sincronização
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `, 'medium');
+    },
+
+    async executarForcarSincronizacao() {
+        if (window.syncService && window.syncService.forcarSincronizacao) {
+            await window.syncService.forcarSincronizacao();
+            this.abrirCentroSincronizacao();
+        }
     }
 };
 

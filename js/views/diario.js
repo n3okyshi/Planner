@@ -36,7 +36,10 @@ export const diarioView = {
                         </div>
                     </div>
 
-                    <div style="display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap;">
+                        <button type="button" onclick="planejamentoController.abrirModalReplicarPlanoDiario(diarioView.currentDate, diarioView.currentTurmaId)" class="btn-secondary interactive-element" title="Replicar este plano de aula para outras turmas da mesma série">
+                            <i class="fas fa-copy"></i> <span>Replicar Plano</span>
+                        </button>
+
                         <div class="custom-dropdown" style="min-width: 240px;">
                             <input type="hidden" id="select-turma-global" onchange="controller.mudarTurmaDiario(this.value)" value="${this.currentTurmaId || ''}">
                             <button type="button" class="dropdown-button">
@@ -61,7 +64,9 @@ export const diarioView = {
                         
                         <!-- LEFT COLUMN: MINI CALENDAR & TIPS (360px) -->
                         <div style="display: flex; flex-direction: column; gap: var(--spacing-4); width: 100%;">
-                            ${this.gerarMiniCalendario()}
+                            <div id="mini-calendario-container">
+                                ${this.gerarMiniCalendario()}
+                            </div>
                             
                             <div class="card" style="padding: var(--spacing-4); background-color: #eff6ff; border: 1px solid #dbeafe; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.8125rem; color: #1e40af; line-height: 1.5;">
                                 <div style="display: flex; align-items: center; gap: 0.5rem; font-weight: 800;">
@@ -76,7 +81,7 @@ export const diarioView = {
                         </div>
 
                         <!-- RIGHT COLUMN: LESSON PLAN EDITOR -->
-                        <div style="width: 100%; min-width: 0;">
+                        <div id="editor-diario-container" style="width: 100%; min-width: 0;">
                             ${this.renderEditor()}
                         </div>
                     </div>
@@ -112,10 +117,16 @@ export const diarioView = {
         for (let dia = 1; dia <= totalDias; dia++) {
             const dataIso = `${ano}-${String(mes + 1).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
             const isSelected = dataIso === this.currentDate;
-            const temPlano = model.getPlanoDiario(dataIso, this.currentTurmaId);
+            const planoExistente = model.getPlanoDiario(dataIso, this.currentTurmaId);
+            const temPlano = planoExistente && (
+                (planoExistente.tema && planoExistente.tema.trim()) ||
+                (planoExistente.bncc && planoExistente.bncc.trim()) ||
+                (planoExistente.objetivos && planoExistente.objetivos.trim()) ||
+                (planoExistente.metodologia && planoExistente.metodologia.trim())
+            );
 
             const indicadorHtml = temPlano
-                ? `<span style="position: absolute; bottom: 4px; width: 5px; height: 5px; border-radius: 50%; background-color: #10b981;"></span>`
+                ? `<span style="position: absolute; bottom: 4px; width: 6px; height: 6px; border-radius: 50%; background-color: #10b981; box-shadow: 0 0 4px rgba(16, 185, 129, 0.6);"></span>`
                 : '';
 
             const bgStyle = isSelected
@@ -123,7 +134,7 @@ export const diarioView = {
                 : 'background-color: var(--color-white); color: var(--color-slate-700); border: 1px solid var(--color-slate-100);';
 
             diasHtml += `
-                <button type="button" onclick="controller.mudarDataDiario('${dataIso}')" 
+                <button type="button" onclick="diarioView.selecionarData('${dataIso}')" 
                         class="interactive-element"
                         style="height: 2.5rem; width: 100%; border-radius: var(--radius-lg); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; font-size: 0.8125rem; font-weight: 700; cursor: pointer; ${bgStyle}"
                         onmouseover="if(!${isSelected}) this.style.backgroundColor='var(--color-slate-50)'"
@@ -137,20 +148,20 @@ export const diarioView = {
         return `
             <div class="card" style="padding: var(--spacing-4); display: flex; flex-direction: column; gap: var(--spacing-3);">
                 <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: var(--spacing-3); border-bottom: 1px solid var(--color-slate-100);">
-                    <button type="button" onclick="controller.mudarMesDiario(-1)" class="btn-icon" style="width: 2rem; height: 2rem;" title="Mês Anterior">
+                    <button type="button" onclick="diarioView.mudarMes(-1)" class="btn-icon" style="width: 2rem; height: 2rem;" title="Mês Anterior">
                         <i class="fas fa-chevron-left" style="font-size: 0.75rem;"></i>
                     </button>
                     
                     <div style="display: flex; align-items: center; gap: var(--spacing-2);">
                         <span style="font-size: 0.9375rem; font-weight: 800; color: var(--color-slate-800);">${nomesMeses[mes]} ${ano}</span>
-                        <button type="button" onclick="controller.mudarDataDiario(new Date().toISOString().split('T')[0])" 
+                        <button type="button" onclick="diarioView.selecionarData(new Date().toISOString().split('T')[0])" 
                                 class="badge" style="background-color: var(--color-primary-light); color: var(--color-primary); font-weight: 800; cursor: pointer; border: none;"
                                 title="Voltar para Hoje">
                             Hoje
                         </button>
                     </div>
 
-                    <button type="button" onclick="controller.mudarMesDiario(1)" class="btn-icon" style="width: 2rem; height: 2rem;" title="Próximo Mês">
+                    <button type="button" onclick="diarioView.mudarMes(1)" class="btn-icon" style="width: 2rem; height: 2rem;" title="Próximo Mês">
                         <i class="fas fa-chevron-right" style="font-size: 0.75rem;"></i>
                     </button>
                 </div>
@@ -170,6 +181,98 @@ export const diarioView = {
                 </div>
             </div>
         `;
+    },
+
+    selecionarData(novaData) {
+        if (!novaData) return;
+
+        // 1. Salva o plano que estava sendo editado na data anterior
+        if (window.planejamentoController?.salvarDiario) {
+            window.planejamentoController.salvarDiario(true);
+        }
+
+        // 2. Atualiza a data ativa
+        this.currentDate = novaData;
+        const [ano, mes] = novaData.split('-');
+        this.viewDate = new Date(parseInt(ano), parseInt(mes) - 1, 1);
+
+        // 3. Atualiza os campos do editor imediatamente com os dados do plano da nova data
+        this.preencherCampos();
+
+        // 4. Atualiza o badge de data no cabeçalho do editor e no input oculto
+        const [anoF, mesF, diaF] = novaData.split('-');
+        const dataFmt = `${diaF}/${mesF}/${anoF}`;
+        const inputDataEl = document.getElementById('diario-data');
+        if (inputDataEl) {
+            inputDataEl.value = novaData;
+            const badgeEl = inputDataEl.previousElementSibling;
+            if (badgeEl) {
+                badgeEl.innerHTML = `<i class="far fa-calendar" style="color: var(--color-primary); margin-right: 0.375rem;"></i> ${dataFmt}`;
+            }
+        }
+
+        // 5. Atualiza a marcação visual no mini-calendário
+        const containerMiniCal = document.getElementById('mini-calendario-container');
+        if (containerMiniCal) {
+            containerMiniCal.innerHTML = this.gerarMiniCalendario();
+        }
+
+        // 6. Atualiza sugestões BNCC do mês
+        const containerSugestoes = document.getElementById('sugestoes-mensal-container');
+        if (containerSugestoes) {
+            const sugestoes = model.getSugestoesDoMes(this.currentTurmaId, this.currentDate);
+            if (sugestoes.length > 0) {
+                containerSugestoes.style.display = 'flex';
+                containerSugestoes.innerHTML = `
+                    <h4 style="font-size: 0.8125rem; font-weight: 800; color: #854d0e; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-lightbulb"></i> Sugestões do Planejamento Mensal
+                    </h4>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        ${sugestoes.map(h => `
+                            <button type="button" onclick="diarioView.adicionarHabilidadeTexto('${window.escapeHTML(h.codigo)} - ${window.escapeHTML(h.descricao)}')"
+                                    class="pill-item" style="font-size: 0.75rem; background-color: white; border: 1px solid #fde047; color: #854d0e;">
+                                <i class="fas fa-plus-circle" style="margin-right: 0.25rem;"></i> ${window.escapeHTML(h.codigo)}
+                            </button>
+                        `).join('')}
+                    </div>
+                `;
+            } else {
+                containerSugestoes.style.display = 'none';
+                containerSugestoes.innerHTML = '';
+            }
+        }
+
+        const statusEl = document.getElementById('status-salvamento');
+        if (statusEl) statusEl.innerHTML = '';
+    },
+
+    selecionarTurma(novoId) {
+        if (window.planejamentoController?.salvarDiario) {
+            window.planejamentoController.salvarDiario(true);
+        }
+        this.currentTurmaId = novoId;
+        const containerMiniCal = document.getElementById('mini-calendario-container');
+        if (containerMiniCal) {
+            containerMiniCal.innerHTML = this.gerarMiniCalendario();
+        }
+        this.preencherCampos();
+        const dropdownLabel = document.querySelector('.custom-dropdown .dropdown-label');
+        if (dropdownLabel) {
+            const turmas = model.state?.turmas || [];
+            dropdownLabel.textContent = turmas.find(t => String(t.id) === String(novoId))?.nome || 'Selecionar Turma...';
+        }
+    },
+
+    mudarMes(delta) {
+        const novaData = new Date(this.viewDate);
+        novaData.setMonth(novaData.getMonth() + delta);
+        this.viewDate = novaData;
+        const containerMiniCal = document.getElementById('mini-calendario-container');
+        if (containerMiniCal) {
+            containerMiniCal.innerHTML = this.gerarMiniCalendario();
+        } else {
+            this.render('view-container');
+        }
     },
 
     renderEditor() {
@@ -204,7 +307,7 @@ export const diarioView = {
                     <div>
                         <label class="form-label">Tema da Aula</label>
                         <input type="text" id="plan-tema" placeholder="Qual o tema principal desta aula?" 
-                               class="autosave-input form-input" style="font-size: 1.125rem; font-weight: 700; color: var(--color-slate-800);">
+                                class="autosave-input form-input" style="font-size: 1.125rem; font-weight: 700; color: var(--color-slate-800);">
                     </div>
 
                     <div>
@@ -218,8 +321,8 @@ export const diarioView = {
                         <textarea id="plan-bncc" rows="2" class="autosave-input form-input custom-scrollbar" style="resize: vertical;" placeholder="Códigos e descrições das habilidades trabalhadas..."></textarea>
                     </div>
 
-                    ${sugestoes.length > 0 ? `
-                        <div style="padding: var(--spacing-4); background-color: #fefce8; border: 1px solid #fef08a; border-radius: var(--radius-xl); display: flex; flex-direction: column; gap: var(--spacing-2);">
+                    <div id="sugestoes-mensal-container" style="${sugestoes.length > 0 ? 'display: flex;' : 'display: none;'} padding: var(--spacing-4); background-color: #fefce8; border: 1px solid #fef08a; border-radius: var(--radius-xl); flex-direction: column; gap: var(--spacing-2);">
+                        ${sugestoes.length > 0 ? `
                             <h4 style="font-size: 0.8125rem; font-weight: 800; color: #854d0e; display: flex; align-items: center; gap: 0.5rem;">
                                 <i class="fas fa-lightbulb"></i> Sugestões do Planejamento Mensal
                             </h4>
@@ -231,8 +334,8 @@ export const diarioView = {
                                     </button>
                                 `).join('')}
                             </div>
-                        </div>
-                    ` : ''}
+                        ` : ''}
+                    </div>
 
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--spacing-4);">
                         <div>

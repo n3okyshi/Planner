@@ -93,6 +93,14 @@ export const conteudoGeradoView = {
                             <i class="far fa-file-word"></i> <span>Baixar Word (${isAluno ? 'Aluno' : 'Professor'})</span>
                         </button>
                         
+                        ${(material.tipo === 'rubrica-avaliacao' || (material.conteudo_html || '').includes('table')) ? `
+                            <button type="button" onclick="conteudoGeradoView.abrirAvaliadorRubrica()" 
+                                    class="btn-primary interactive-element" 
+                                    style="background: linear-gradient(135deg, #c026d3, #9333ea); box-shadow: 0 4px 10px rgba(192, 38, 211, 0.25);">
+                                <i class="fas fa-calculator"></i> <span>Avaliador de Rubrica Interativo</span>
+                            </button>
+                        ` : ''}
+
                         <button type="button" onclick="conteudoGeradoView.abrirOpcoesImpressao()" class="btn-secondary interactive-element">
                             <i class="fas fa-print"></i> <span>Imprimir / PDF</span>
                         </button>
@@ -104,6 +112,16 @@ export const conteudoGeradoView = {
                         <button type="button" onclick="conteudoGeradoView.abrirEditorModal()" class="btn-secondary interactive-element" style="color: var(--color-slate-700); font-weight: 700;">
                             <i class="fas fa-edit" style="color: var(--color-primary);"></i> <span>Editar Material</span>
                         </button>
+
+                        ${material.compartilhado ? `
+                            <button type="button" onclick="model.removerMaterialDaComunidade('${material.id}')" class="btn-secondary interactive-element" style="color: #7c3aed; background-color: #f3e8ff; border-color: #ddd6fe; font-weight: 700;" title="Material Público na Comunidade (Clique para retirar)">
+                                <i class="fas fa-globe"></i> <span>Público na Comunidade</span>
+                            </button>
+                        ` : `
+                            <button type="button" onclick="model.compartilharMaterial('${material.id}')" class="btn-secondary interactive-element" style="color: #7c3aed; font-weight: 700;" title="Compartilhar com a comunidade de professores">
+                                <i class="fas fa-share-nodes"></i> <span>Tornar Público / Comunidade</span>
+                            </button>
+                        `}
                     </div>
 
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -739,35 +757,161 @@ export const conteudoGeradoView = {
         }
     },
 
-    copiarTextoFormatado() {
-        const docContent = document.getElementById('documento-html-content');
-        if (!docContent) return;
+    abrirAvaliadorRubrica() {
+        const material = (model.state.materiaisGerados || []).find(m => m.id === this.materialIdAtual);
+        if (!material) return;
 
-        const texto = docContent.innerText;
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-            navigator.clipboard.writeText(texto)
-                .then(() => Toast.show("Texto copiado para a área de transferência!", "success"))
-                .catch(() => this._fallbackCopy(texto));
-        } else {
-            this._fallbackCopy(texto);
+        const turmas = model.state.turmas || [];
+
+        // Extrai linhas da tabela do HTML gerado ou monta critérios padrão inteligentes
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(material.conteudo_html || '', 'text/html');
+        const rows = Array.from(doc.querySelectorAll('table tbody tr'));
+
+        let criterios = [];
+        if (rows.length > 0) {
+            rows.forEach((tr, i) => {
+                const cols = Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim());
+                if (cols.length >= 4) {
+                    criterios.push({
+                        id: `crit_${i}`,
+                        nome: cols[0] || `Critério ${i + 1}`,
+                        insuficiente: cols[1] || 'Insuficiente',
+                        regular: cols[2] || 'Regular',
+                        bom: cols[3] || 'Bom',
+                        excelente: cols[4] || cols[3] || 'Excelente',
+                        max: 2.5
+                    });
+                }
+            });
+        }
+
+        if (criterios.length === 0) {
+            criterios = [
+                { id: 'crit_0', nome: 'Domínio do Conteúdo & Conceitos', insuficiente: 'Não demonstra domínio (0 pts)', regular: 'Compreensão parcial (1.0 pts)', bom: 'Bom domínio e clareza (2.0 pts)', excelente: 'Excelente domínio e profundidade (2.5 pts)', max: 2.5 },
+                { id: 'crit_1', nome: 'Clareza, Organização & Estrutura', insuficiente: 'Desorganizado e confuso (0 pts)', regular: 'Estrutura básica (1.0 pts)', bom: 'Bem organizado e fluido (2.0 pts)', excelente: 'Estrutura impecável (2.5 pts)', max: 2.5 },
+                { id: 'crit_2', nome: 'Aplicação Prática & Resolução', insuficiente: 'Não resolve os desafios (0 pts)', regular: 'Resolução incompleta (1.0 pts)', bom: 'Resolve com precisão (2.0 pts)', excelente: 'Resolução inovadora e precisa (2.5 pts)', max: 2.5 },
+                { id: 'crit_3', nome: 'Engajamento & Criatividade', insuficiente: 'Sem participação ativa (0 pts)', regular: 'Participação mínima (1.0 pts)', bom: 'Boa criatividade e entrega (2.0 pts)', excelente: 'Excepcional criatividade (2.5 pts)', max: 2.5 }
+            ];
+        }
+
+        this._rubricaCriterios = criterios;
+        this._rubricaNotas = {};
+
+        const htmlCriterios = criterios.map(c => `
+            <div style="background-color: var(--color-slate-50); border: 1px solid var(--color-slate-200); border-radius: var(--radius-xl); padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <h4 style="font-size: 0.875rem; font-weight: 800; color: var(--color-slate-800); margin: 0;">${window.escapeHTML(c.nome)}</h4>
+                    <span id="score-label-${c.id}" style="font-size: 0.8125rem; font-weight: 900; color: var(--color-primary); background: var(--color-primary-light); padding: 0.125rem 0.5rem; border-radius: var(--radius-sm);">0.0 / ${c.max.toFixed(1)}</span>
+                </div>
+                <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem;" class="rubrica-btn-grid" data-crit="${c.id}">
+                    <button type="button" onclick="conteudoGeradoView.selecionarNivelRubrica('${c.id}', 0.25 * ${c.max}, this)" 
+                            class="rubrica-quadrante-btn" style="padding: 0.625rem; border: 1.5px solid #fee2e2; background: #fff5f5; border-radius: var(--radius-lg); font-size: 0.75rem; text-align: left; cursor: pointer; transition: all 0.2s;">
+                        <strong style="color: #dc2626; display: block; font-size: 0.6875rem; text-transform: uppercase;">Insuficiente</strong>
+                        <span style="color: var(--color-slate-600); line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-top: 0.25rem;">${window.escapeHTML(c.insuficiente)}</span>
+                    </button>
+                    <button type="button" onclick="conteudoGeradoView.selecionarNivelRubrica('${c.id}', 0.5 * ${c.max}, this)" 
+                            class="rubrica-quadrante-btn" style="padding: 0.625rem; border: 1.5px solid #fef3c7; background: #fffdf5; border-radius: var(--radius-lg); font-size: 0.75rem; text-align: left; cursor: pointer; transition: all 0.2s;">
+                        <strong style="color: #d97706; display: block; font-size: 0.6875rem; text-transform: uppercase;">Regular</strong>
+                        <span style="color: var(--color-slate-600); line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-top: 0.25rem;">${window.escapeHTML(c.regular)}</span>
+                    </button>
+                    <button type="button" onclick="conteudoGeradoView.selecionarNivelRubrica('${c.id}', 0.75 * ${c.max}, this)" 
+                            class="rubrica-quadrante-btn" style="padding: 0.625rem; border: 1.5px solid #dbeafe; background: #f8faff; border-radius: var(--radius-lg); font-size: 0.75rem; text-align: left; cursor: pointer; transition: all 0.2s;">
+                        <strong style="color: #2563eb; display: block; font-size: 0.6875rem; text-transform: uppercase;">Bom</strong>
+                        <span style="color: var(--color-slate-600); line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-top: 0.25rem;">${window.escapeHTML(c.bom)}</span>
+                    </button>
+                    <button type="button" onclick="conteudoGeradoView.selecionarNivelRubrica('${c.id}', 1.0 * ${c.max}, this)" 
+                            class="rubrica-quadrante-btn" style="padding: 0.625rem; border: 1.5px solid #d1fae5; background: #f4fdf8; border-radius: var(--radius-lg); font-size: 0.75rem; text-align: left; cursor: pointer; transition: all 0.2s;">
+                        <strong style="color: #059669; display: block; font-size: 0.6875rem; text-transform: uppercase;">Excelente</strong>
+                        <span style="color: var(--color-slate-600); line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-top: 0.25rem;">${window.escapeHTML(c.excelente)}</span>
+                    </button>
+                </div>
+            </div>
+        `).join('');
+
+        window.controller.openModal(`Avaliador Interativo de Rubrica`, `
+            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; max-width: 820px; max-height: 80vh; overflow-y: auto;" class="custom-scrollbar">
+                
+                <!-- TOP HEADER COM PLACAR DE NOTA TOTAL -->
+                <div style="display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; padding: 1.25rem 1.5rem; border-radius: var(--radius-xl); box-shadow: var(--shadow-md);">
+                    <div>
+                        <span style="font-size: 0.6875rem; font-weight: 800; color: #c7d2fe; text-transform: uppercase; letter-spacing: 0.05em;">Matriz de Avaliação Dinâmica</span>
+                        <h3 style="font-size: 1.25rem; font-weight: 900; color: white; margin: 0.125rem 0 0 0;">${window.escapeHTML(material.titulo || 'Rubrica de Avaliação')}</h3>
+                        <p style="font-size: 0.8125rem; color: #e0e7ff; margin-top: 0.125rem;">Clique nos quadrantes para avaliar cada critério pedagógico.</p>
+                    </div>
+                    <div style="text-align: right; background: rgba(255,255,255,0.15); padding: 0.5rem 1.25rem; border-radius: var(--radius-xl); border: 1px solid rgba(255,255,255,0.25);">
+                        <span style="font-size: 0.6875rem; font-weight: 800; color: #e0e7ff; text-transform: uppercase;">Nota Final Calculada</span>
+                        <div id="rubrica-nota-final" style="font-size: 2.25rem; font-weight: 900; color: #fef08a; line-height: 1.1;">0.0</div>
+                    </div>
+                </div>
+
+                <!-- IDENTIFICAÇÃO DO ALUNO / GRUPO -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div>
+                        <label class="form-label" style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">Nome do Estudante ou Grupo</label>
+                        <input type="text" id="rubrica-nome-aluno" class="form-input" placeholder="Ex: Maria Clara ou Grupo 3" style="width: 100%; font-weight: 700;">
+                    </div>
+                    <div>
+                        <label class="form-label" style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">Comentário de Feedback Formativo</label>
+                        <input type="text" id="rubrica-feedback" class="form-input" placeholder="Ex: Excelente clareza na exposição oral..." style="width: 100%;">
+                    </div>
+                </div>
+
+                <!-- CRITÉRIOS INTERATIVOS -->
+                <div style="display: flex; flex-direction: column; gap: 0.875rem;">
+                    ${htmlCriterios}
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+                    <button type="button" onclick="window.controller.closeModal()" class="btn-secondary">Fechar</button>
+                    <button type="button" onclick="conteudoGeradoView.copiarResultadoRubrica()" class="btn-primary" style="background: #10b981;">
+                        <i class="fas fa-copy mr-1"></i> Copiar Parecer / Nota
+                    </button>
+                </div>
+            </div>
+        `, 'xl');
+    },
+
+    selecionarNivelRubrica(critId, valor, btnElement) {
+        if (!this._rubricaNotas) this._rubricaNotas = {};
+        this._rubricaNotas[critId] = valor;
+
+        const parent = btnElement.parentElement;
+        if (parent) {
+            parent.querySelectorAll('.rubrica-quadrante-btn').forEach(b => {
+                b.style.boxShadow = 'none';
+                b.style.transform = 'none';
+                b.style.outline = 'none';
+            });
+        }
+
+        btnElement.style.boxShadow = '0 0 0 2px var(--color-primary), 0 4px 12px rgba(99, 102, 241, 0.35)';
+        btnElement.style.transform = 'scale(1.02)';
+
+        const labelScore = document.getElementById(`score-label-${critId}`);
+        if (labelScore) {
+            const crit = (this._rubricaCriterios || []).find(c => c.id === critId);
+            const maxVal = crit ? crit.max.toFixed(1) : '2.5';
+            labelScore.innerText = `${valor.toFixed(1)} / ${maxVal}`;
+        }
+
+        const somaTotal = Object.values(this._rubricaNotas).reduce((a, b) => a + b, 0);
+        const displayTotal = document.getElementById('rubrica-nota-final');
+        if (displayTotal) {
+            displayTotal.innerText = somaTotal.toFixed(1);
         }
     },
 
-    _fallbackCopy(texto) {
-        const textArea = document.createElement("textarea");
-        textArea.value = texto;
-        textArea.style.position = "fixed";
-        textArea.style.left = "-999999px";
-        document.body.appendChild(textArea);
-        textArea.focus();
-        textArea.select();
-        try {
-            document.execCommand('copy');
-            Toast.show('Texto copiado com sucesso!', 'success');
-        } catch (err) {
-            Toast.show('Falha ao copiar texto.', 'error');
-        }
-        document.body.removeChild(textArea);
+    copiarResultadoRubrica() {
+        const nomeAluno = document.getElementById('rubrica-nome-aluno')?.value.trim() || 'Estudante';
+        const feedback = document.getElementById('rubrica-feedback')?.value.trim() || '';
+        const somaTotal = Object.values(this._rubricaNotas || {}).reduce((a, b) => a + b, 0);
+
+        const relatorio = `=== AVALIAÇÃO POR RUBRICA ===\nEstudante/Grupo: ${nomeAluno}\nNota Final: ${somaTotal.toFixed(1)} / 10.0\n${feedback ? `Feedback: ${feedback}\n` : ''}Data: ${new Date().toLocaleDateString('pt-BR')}`;
+        
+        navigator.clipboard.writeText(relatorio).then(() => {
+            Toast.show("Parecer da rubrica copiado para a área de transferência!", "success");
+        });
     }
 };
 

@@ -174,10 +174,28 @@ export const controller = {
         this.navigate(this.currentView === 'periodo' ? 'periodo' : 'config');
     },
     updateTheme(color) {
+        if (!color || !/^#([0-9A-F]{3}){1,2}$/i.test(color)) return;
+        if (!model.state.userConfig) model.state.userConfig = {};
         model.state.userConfig.themeColor = color;
+        localStorage.setItem('planner_theme_color', color);
         model.saveLocal();
         uiController.aplicarTema();
-        this.navigate('config');
+        Toast.show("Cor de destaque atualizada!", "success");
+        if (this.currentView === 'config' && window.settingsView) {
+            window.settingsView.render('view-container');
+        }
+    },
+    resetTheme() {
+        const defaultColor = '#3b82f6';
+        if (!model.state.userConfig) model.state.userConfig = {};
+        model.state.userConfig.themeColor = defaultColor;
+        localStorage.setItem('planner_theme_color', defaultColor);
+        model.saveLocal();
+        uiController.aplicarTema();
+        Toast.show("Paleta restaurada para o padrão!", "info");
+        if (this.currentView === 'config' && window.settingsView) {
+            window.settingsView.render('view-container');
+        }
     },
     updatePeriodDate(index, campo, valor) {
         const tipo = model.state.userConfig.periodType || 'bimestre';

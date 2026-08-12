@@ -47,8 +47,7 @@ export const mensalView = {
         const periodoSugestao = this.identificarPeriodo(this.currentMes);
 
         const habilidadesDoPeriodo = turmaAtual.planejamento && turmaAtual.planejamento[periodoSugestao]
-            ? [...turmaAtual.planejamento[periodoSugestao]]
-            : [];
+        const periodosDoMes = (model.getPeriodosDoMes ? model.getPeriodosDoMes(this.currentMes) : [periodoSugestao]) || [periodoSugestao];
         const habilidadesDoMes = turmaAtual.planejamentoMensal && turmaAtual.planejamentoMensal[this.currentMes]
             ? [...turmaAtual.planejamentoMensal[this.currentMes]]
             : [];
@@ -60,7 +59,19 @@ export const mensalView = {
         });
 
         const codigosNoMes = new Set(habilidadesDoMes.map(h => h.codigo));
-        const sugestoesFiltradas = habilidadesDoPeriodo.filter(h => !codigosNoMes.has(h.codigo));
+
+        // Agrupa sugestões por cada período que intersecta o mês atual
+        const blocosSugestoes = periodosDoMes.map(p => {
+            const habsPeriodo = (turmaAtual.planejamento && turmaAtual.planejamento[p]) ? [...turmaAtual.planejamento[p]] : [];
+            const filtradas = habsPeriodo.filter(h => !codigosNoMes.has(h.codigo));
+            return {
+                periodo: p,
+                total: habsPeriodo.length,
+                sugestoes: filtradas
+            };
+        });
+
+        const totalSugestoesDisponiveis = blocosSugestoes.reduce((acc, b) => acc + b.sugestoes.length, 0);
 
         const html = `
             <div class="animate-enter" style="display: flex; flex-direction: column; gap: var(--spacing-6); padding-bottom: var(--spacing-8);">
@@ -71,7 +82,7 @@ export const mensalView = {
                         <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--color-slate-800); letter-spacing: -0.025em; display: flex; align-items: center; gap: var(--spacing-2);">
                             <i class="far fa-calendar-alt" style="color: var(--color-primary);"></i> Planejamento Mensal
                         </h2>
-                        <p style="font-size: 0.875rem; color: var(--color-slate-500);">Habilidades programadas para <strong>${this.currentMes}</strong> (${periodoSugestao}º ${model.state.userConfig.periodType || 'Bimestre'}).</p>
+                        <p style="font-size: 0.875rem; color: var(--color-slate-500);">Habilidades programadas para <strong>${this.currentMes}</strong> (${periodosDoMes.map(p => `${p}º`).join(' e ')} ${model.state.userConfig?.periodType || 'Bimestre'}).</p>
                     </div>
 
                     <div style="display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap;">
@@ -147,38 +158,48 @@ export const mensalView = {
                                     <i class="fas fa-lightbulb"></i>
                                 </div>
                                 <div>
-                                    <h3 style="font-size: 0.9375rem; font-weight: 800; color: var(--color-slate-800);">Sugestões do Período</h3>
-                                    <p style="font-size: 0.6875rem; color: #b45309; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Importar do Planejamento Anual</p>
+                                    <h3 style="font-size: 0.9375rem; font-weight: 800; color: var(--color-slate-800);">Sugestões do Planejamento Periódico</h3>
+                                    <p style="font-size: 0.6875rem; color: #b45309; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">
+                                        ${periodosDoMes.map(p => `${p}º ${model.state.userConfig?.periodType || 'Bimestre'}`).join(' / ')}
+                                    </p>
                                 </div>
                             </div>
 
-                            ${sugestoesFiltradas.length > 0 ? `
-                                <div class="custom-scrollbar" style="display: flex; flex-direction: column; gap: var(--spacing-2); max-height: 55vh; overflow-y: auto; padding-right: 0.25rem;">
-                                    ${sugestoesFiltradas.map(h => `
-                                        <div class="card interactive-element" style="padding: var(--spacing-3); background-color: var(--color-white); border: 1px solid #fde68a; cursor: pointer; display: flex; flex-direction: column; gap: 0.375rem;"
-                                             onclick="mensalView.adicionarSugestao('${h.codigo}')"
-                                             title="Clique para adicionar a ${this.currentMes}">
-                                            <div style="display: flex; justify-content: space-between; align-items: center;">
-                                                <span style="font-size: 0.6875rem; font-weight: 800; color: #b45309; background-color: #fef3c7; padding: 0.125rem 0.375rem; border-radius: var(--radius-sm);">
-                                                    ${window.escapeHTML(h.codigo)}
-                                                </span>
-                                                <i class="fas fa-plus-circle" style="color: #f59e0b; font-size: 1rem;"></i>
+                            ${totalSugestoesDisponiveis > 0 ? `
+                                <div class="custom-scrollbar" style="display: flex; flex-direction: column; gap: var(--spacing-3); max-height: 55vh; overflow-y: auto; padding-right: 0.25rem;">
+                                    ${blocosSugestoes.map(bloco => bloco.sugestoes.length > 0 ? `
+                                        <div>
+                                            <div style="font-size: 0.6875rem; font-weight: 800; color: #92400e; text-transform: uppercase; margin-bottom: 0.35rem; display: flex; justify-content: space-between;">
+                                                <span>${bloco.periodo}º ${model.state.userConfig?.periodType || 'Bimestre'}</span>
+                                                <span>${bloco.sugestoes.length} disp.</span>
                                             </div>
-                                            <p style="font-size: 0.75rem; color: var(--color-slate-600); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                                                ${window.escapeHTML(h.descricao)}
-                                            </p>
+                                            <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                                                ${bloco.sugestoes.map(h => `
+                                                    <div class="card interactive-element" style="padding: var(--spacing-3); background-color: var(--color-white); border: 1px solid #fde68a; cursor: pointer; display: flex; flex-direction: column; gap: 0.375rem;"
+                                                         onclick="mensalView.adicionarSugestao('${h.codigo}')"
+                                                         title="Clique para adicionar a ${this.currentMes}">
+                                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                                            <span style="font-size: 0.6875rem; font-weight: 800; color: #b45309; background-color: #fef3c7; padding: 0.125rem 0.375rem; border-radius: var(--radius-sm);">
+                                                                ${window.escapeHTML(h.codigo)}
+                                                            </span>
+                                                            <i class="fas fa-plus-circle" style="color: #f59e0b; font-size: 1rem;"></i>
+                                                        </div>
+                                                        <p style="font-size: 0.75rem; color: var(--color-slate-600); line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                                                            ${window.escapeHTML(h.descricao)}
+                                                        </p>
+                                                    </div>
+                                                `).join('')}
+                                            </div>
                                         </div>
-                                    `).join('')}
+                                    ` : '').join('')}
                                 </div>
                                 <p style="font-size: 0.6875rem; text-align: center; color: var(--color-slate-400); font-weight: 600;">
-                                    <i class="fas fa-mouse-pointer" style="margin-right: 0.25rem;"></i> Clique na habilidade para adicioná-la
+                                    <i class="fas fa-mouse-pointer" style="margin-right: 0.25rem;"></i> Clique na habilidade para programá-la no mês
                                 </p>
                             ` : `
                                 <div style="text-align: center; padding: 2rem 1rem;">
                                     <p style="font-size: 0.8125rem; color: var(--color-slate-500); margin-bottom: 0.75rem;">
-                                        ${habilidadesDoPeriodo.length > 0
-                ? "Todas as habilidades do período já foram programadas!"
-                : "Nenhuma habilidade cadastrada no planejamento do período."}
+                                        Nenhuma habilidade pendente do período para sugerir.
                                     </p>
                                     <button onclick="controller.navigate('planejamento')" class="btn-secondary" style="padding: 0.375rem 0.875rem; font-size: 0.75rem;">
                                         Gerenciar Período

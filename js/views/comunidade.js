@@ -15,10 +15,13 @@ import { renderKatex, formatarTextoComLatex, sanitizeComLatex } from '../utils.j
  * @namespace comunidadeView
  */
 export const comunidadeView = {
+    abaAtiva: 'questoes', // 'questoes' | 'materiais'
     questoes: [],
+    materiais: [],
     filtroMateria: '',
     filtroBimestre: '',
     filtroEscola: '',
+    filtroTipoMaterial: '',
 
     // --- Estado da Paginação ---
     itensPorPagina: 20,     // Padrão: 20 itens
@@ -31,6 +34,20 @@ export const comunidadeView = {
     bimestresDisponiveis: [
         "1º Bimestre", "2º Bimestre", "3º Bimestre", "4º Bimestre"
     ],
+
+    tiposMateriaisDisponiveis: [
+        { valor: '', label: 'Todos os Tipos' },
+        { valor: 'planejamento', label: 'Planejamento / Sequência Didática' },
+        { valor: 'dinamica-jogo', label: 'Dinâmica / Jogo / RPG' },
+        { valor: 'atividade-imprimivel', label: 'Atividade Imprimível' },
+        { valor: 'avaliacao-prova', label: 'Avaliação / Prova' },
+        { valor: 'rubrica-avaliacao', label: 'Rubrica de Avaliação' }
+    ],
+
+    mudarAba(aba) {
+        this.abaAtiva = aba;
+        this.render('view-container');
+    },
 
     /**
      * Helper para renderizar estrelas de dificuldade (Visualização).
@@ -64,6 +81,8 @@ export const comunidadeView = {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
 
+        const isMateriais = this.abaAtiva === 'materiais';
+
         const html = `
             <div class="view-shell fade-in">
                 <header class="view-header">
@@ -71,108 +90,188 @@ export const comunidadeView = {
                         <h2 class="view-header__title">
                             <i class="fas fa-users" style="color: var(--color-primary);"></i> Banco da Comunidade
                         </h2>
-                        <p class="view-header__subtitle">Explore, filtre por escola e bimestre, e importe questões compartilhadas por outros professores.</p>
+                        <p class="view-header__subtitle">
+                            ${isMateriais 
+                                ? 'Explore, filtre e importe materiais pedagógicos e sequências didáticas compartilhados por professores.' 
+                                : 'Explore, filtre por escola e bimestre, e importe questões compartilhadas por outros professores.'}
+                        </p>
                     </div>
                 </header>
 
-                <section class="panel panel--fit" style="border-radius: var(--radius-2xl);">
-                    <div class="comunidade-filter-bar" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; align-items: center;">
-                        
-                        <!-- BUSCA DE TEXTO -->
-                        <div style="grid-column: 1 / -1;">
-                            <input type="text" id="search-comunidade" placeholder="Buscar por tema, enunciado, código BNCC ou escola..." class="form-input--search comunidade-search" style="width: 100%;">
-                        </div>
-
-                        <!-- FILTRO MATÉRIA -->
-                        <div id="dropdown-materia" class="custom-dropdown">
-                            <input type="hidden" id="filter-materia" value="${this.filtroMateria || ''}">
-                            <button class="dropdown-button w-full">
-                                <span class="dropdown-label truncate">${this.filtroMateria || 'Todas as matérias'}</span>
-                                <i class="fas fa-chevron-down" style="color: var(--color-slate-400); font-size: 0.75rem; margin-left: auto;"></i>
-                            </button>
-
-                            <ul class="dropdown-menu hidden custom-scrollbar">
-                                <li class="dropdown-item ${this.filtroMateria === '' ? 'dropdown-item--selected' : ''}" data-value="">
-                                    Todas as matérias
-                                </li>
-                                ${Object.keys(model.coresComponentes || {}).map(m => `
-                                    <li class="dropdown-item ${this.filtroMateria === m ? 'dropdown-item--selected' : ''}" data-value="${m}">
-                                        ${m}
-                                    </li>
-                                `).join('')}
-                            </ul>
-                        </div>
-
-                        <!-- FILTRO BIMESTRE -->
-                        <div>
-                            <select id="filter-bimestre" onchange="comunidadeView.setFiltroBimestre(this.value)" class="form-select" style="width: 100%; padding: 0.5rem 0.75rem; font-size: 0.8125rem;">
-                                <option value="">Todos os Bimestres</option>
-                                ${this.bimestresDisponiveis.map(b => `<option value="${b}" ${this.filtroBimestre === b ? 'selected' : ''}>${b}</option>`).join('')}
-                            </select>
-                        </div>
-
-                        <!-- FILTRO ESCOLA -->
-                        <div>
-                            <input type="text" id="filter-escola" placeholder="Filtrar por escola..." class="form-input" style="width: 100%; padding: 0.5rem 0.75rem; font-size: 0.8125rem;" value="${window.escapeHTML(this.filtroEscola || '')}" oninput="comunidadeView.setFiltroEscola(this.value)">
-                        </div>
-
-                        <!-- BOTÕES E QUANTIDADE -->
-                        <div style="display: flex; gap: 0.5rem; align-items: center;">
-                            <button onclick="comunidadeView.novaBusca()" class="btn-primary comunidade-search-button" style="flex: 1; justify-content: center;">
-                                <i class="fas fa-search"></i> Buscar
-                            </button>
-
-                            <div class="custom-dropdown" style="width: 5rem;">
-                                <input type="hidden" onchange="comunidadeView.mudarQtdPagina(this.value)" value="${this.itensPorPagina}">
-                                <button type="button" class="dropdown-button" style="padding: 0.5rem;">
-                                    <span class="dropdown-label">${this.itensPorPagina}</span>
-                                    <i class="fas fa-chevron-down" style="color: var(--color-slate-400); font-size: 0.75rem; margin-left: auto;"></i>
-                                </button>
-                                <ul class="dropdown-menu hidden custom-scrollbar">
-                                    <li class="dropdown-item" data-value="20">20</li>
-                                    <li class="dropdown-item" data-value="50">50</li>
-                                    <li class="dropdown-item" data-value="100">100</li>
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
-                </section>
-
-                <section id="comunidade-results" class="comunidade-results"></section>
-
-                <div id="pagination-controls" class="card-page-controls hidden">
-                    <button onclick="comunidadeView.paginaAnterior()" id="btn-prev-page" disabled class="btn-pager">
-                        <i class="fas fa-chevron-left"></i> Anterior
+                <!-- SELETOR DE ABAS DA COMUNIDADE -->
+                <div class="mode-toggle-group" style="width: fit-content; margin-bottom: 1.5rem;">
+                    <button type="button" onclick="comunidadeView.mudarAba('questoes')" 
+                            class="mode-toggle-btn interactive-element ${!isMateriais ? 'mode-toggle-btn--active' : ''}">
+                        <i class="fas fa-question-circle" style="color: ${!isMateriais ? 'var(--color-primary)' : 'inherit'}; margin-right: 0.35rem;"></i> Banco de Questões
                     </button>
-
-                    <span style="font-size: 0.6875rem; font-weight: 900; color: var(--color-slate-400); text-transform: uppercase; letter-spacing: 0.1em;">
-                        Página <span id="page-num" style="color: #4f46e5; font-size: 0.875rem; margin-left: 0.25rem;">${this.paginaAtual}</span>
-                    </span>
-
-                    <button onclick="comunidadeView.proximaPagina()" id="btn-next-page" disabled class="btn-pager btn-pager--active">
-                        Próxima <i class="fas fa-chevron-right"></i>
+                    <button type="button" onclick="comunidadeView.mudarAba('materiais')" 
+                            class="mode-toggle-btn interactive-element ${isMateriais ? 'mode-toggle-btn--active' : ''}">
+                        <i class="fas fa-book-open" style="color: ${isMateriais ? 'var(--color-primary)' : 'inherit'}; margin-right: 0.35rem;"></i> Materiais Pedagógicos
                     </button>
                 </div>
+
+                ${!isMateriais ? `
+                    <!-- PAINEL DE FILTROS: QUESTÕES -->
+                    <section class="panel panel--fit" style="border-radius: var(--radius-2xl);">
+                        <div class="comunidade-filter-bar" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; align-items: center;">
+                            
+                            <!-- BUSCA DE TEXTO -->
+                            <div style="grid-column: 1 / -1;">
+                                <input type="text" id="search-comunidade" placeholder="Buscar por tema, enunciado, código BNCC ou escola..." class="form-input--search comunidade-search" style="width: 100%;">
+                            </div>
+
+                            <!-- FILTRO MATÉRIA -->
+                            <div id="dropdown-materia" class="custom-dropdown">
+                                <input type="hidden" id="filter-materia" value="${this.filtroMateria || ''}">
+                                <button class="dropdown-button w-full">
+                                    <span class="dropdown-label truncate">${this.filtroMateria || 'Todas as matérias'}</span>
+                                    <i class="fas fa-chevron-down" style="color: var(--color-slate-400); font-size: 0.75rem; margin-left: auto;"></i>
+                                </button>
+
+                                <ul class="dropdown-menu hidden custom-scrollbar">
+                                    <li class="dropdown-item ${this.filtroMateria === '' ? 'dropdown-item--selected' : ''}" data-value="">
+                                        Todas as matérias
+                                    </li>
+                                    ${Object.keys(model.coresComponentes || {}).map(m => `
+                                        <li class="dropdown-item ${this.filtroMateria === m ? 'dropdown-item--selected' : ''}" data-value="${m}">
+                                            ${m}
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+
+                            <!-- FILTRO BIMESTRE -->
+                            <div>
+                                <select id="filter-bimestre" onchange="comunidadeView.setFiltroBimestre(this.value)" class="form-select" style="width: 100%; padding: 0.5rem 0.75rem; font-size: 0.8125rem;">
+                                    <option value="">Todos os Bimestres</option>
+                                    ${this.bimestresDisponiveis.map(b => `<option value="${b}" ${this.filtroBimestre === b ? 'selected' : ''}>${b}</option>`).join('')}
+                                </select>
+                            </div>
+
+                            <!-- FILTRO ESCOLA -->
+                            <div>
+                                <input type="text" id="filter-escola" placeholder="Filtrar por escola..." class="form-input" style="width: 100%; padding: 0.5rem 0.75rem; font-size: 0.8125rem;" value="${window.escapeHTML(this.filtroEscola || '')}" oninput="comunidadeView.setFiltroEscola(this.value)">
+                            </div>
+
+                            <!-- BOTÕES E QUANTIDADE -->
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <button onclick="comunidadeView.novaBusca()" class="btn-primary comunidade-search-button" style="flex: 1; justify-content: center;">
+                                    <i class="fas fa-search"></i> Buscar
+                                </button>
+
+                                <div class="custom-dropdown" style="width: 5rem;">
+                                    <input type="hidden" onchange="comunidadeView.mudarQtdPagina(this.value)" value="${this.itensPorPagina}">
+                                    <button type="button" class="dropdown-button" style="padding: 0.5rem;">
+                                        <span class="dropdown-label">${this.itensPorPagina}</span>
+                                        <i class="fas fa-chevron-down" style="color: var(--color-slate-400); font-size: 0.75rem; margin-left: auto;"></i>
+                                    </button>
+                                    <ul class="dropdown-menu hidden custom-scrollbar">
+                                        <li class="dropdown-item" data-value="20">20</li>
+                                        <li class="dropdown-item" data-value="50">50</li>
+                                        <li class="dropdown-item" data-value="100">100</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section id="comunidade-results" class="comunidade-results"></section>
+
+                    <div id="pagination-controls" class="card-page-controls hidden">
+                        <button onclick="comunidadeView.paginaAnterior()" id="btn-prev-page" disabled class="btn-pager">
+                            <i class="fas fa-chevron-left"></i> Anterior
+                        </button>
+
+                        <span style="font-size: 0.6875rem; font-weight: 900; color: var(--color-slate-400); text-transform: uppercase; letter-spacing: 0.1em;">
+                            Página <span id="page-num" style="color: #4f46e5; font-size: 0.875rem; margin-left: 0.25rem;">${this.paginaAtual}</span>
+                        </span>
+
+                        <button onclick="comunidadeView.proximaPagina()" id="btn-next-page" disabled class="btn-pager btn-pager--active">
+                            Próxima <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                ` : `
+                    <!-- PAINEL DE FILTROS: MATERIAIS PEDAGÓGICOS -->
+                    <section class="panel panel--fit" style="border-radius: var(--radius-2xl);">
+                        <div class="comunidade-filter-bar" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 0.75rem; align-items: center;">
+                            
+                            <!-- BUSCA DE TEXTO -->
+                            <div style="grid-column: 1 / -1;">
+                                <input type="text" id="search-comunidade-material" placeholder="Buscar materiais por tema, título, autor ou disciplina..." class="form-input--search comunidade-search" style="width: 100%;" onkeydown="if(event.key==='Enter') comunidadeView.buscarMateriais()">
+                            </div>
+
+                            <!-- FILTRO MATÉRIA / DISCIPLINA -->
+                            <div id="dropdown-materia-mat" class="custom-dropdown">
+                                <input type="hidden" id="filter-materia-mat" value="${this.filtroMateria || ''}">
+                                <button class="dropdown-button w-full">
+                                    <span class="dropdown-label truncate">${this.filtroMateria || 'Todas as disciplinas'}</span>
+                                    <i class="fas fa-chevron-down" style="color: var(--color-slate-400); font-size: 0.75rem; margin-left: auto;"></i>
+                                </button>
+
+                                <ul class="dropdown-menu hidden custom-scrollbar">
+                                    <li class="dropdown-item ${this.filtroMateria === '' ? 'dropdown-item--selected' : ''}" data-value="">
+                                        Todas as disciplinas
+                                    </li>
+                                    ${Object.keys(model.coresComponentes || {}).map(m => `
+                                        <li class="dropdown-item ${this.filtroMateria === m ? 'dropdown-item--selected' : ''}" data-value="${m}">
+                                            ${m}
+                                        </li>
+                                    `).join('')}
+                                </ul>
+                            </div>
+
+                            <!-- FILTRO TIPO DE MATERIAL -->
+                            <div>
+                                <select id="filter-tipo-material" onchange="comunidadeView.setFiltroTipoMaterial(this.value)" class="form-select" style="width: 100%; padding: 0.5rem 0.75rem; font-size: 0.8125rem;">
+                                    ${this.tiposMateriaisDisponiveis.map(t => `<option value="${t.valor}" ${this.filtroTipoMaterial === t.valor ? 'selected' : ''}>${t.label}</option>`).join('')}
+                                </select>
+                            </div>
+
+                            <!-- BOTÃO DE BUSCA -->
+                            <div>
+                                <button onclick="comunidadeView.buscarMateriais()" class="btn-primary comunidade-search-button" style="width: 100%; justify-content: center;">
+                                    <i class="fas fa-search mr-1"></i> Buscar Materiais
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section id="comunidade-materiais-results" class="stat-grid stat-grid--3" style="margin-top: 1.5rem;"></section>
+                `}
             </div>
         `;
 
         container.innerHTML = html;
 
-        // ATIVAÇÃO DO DROPDOWN CUSTOMIZADO
-        setTimeout(() => {
-            if (window.uiController && window.uiController.setupCustomDropdown) {
-                window.uiController.setupCustomDropdown('dropdown-materia', (valorSelecionado) => {
-                    comunidadeView.setFiltro(valorSelecionado);
-                });
-            }
-        }, 50);
+        if (!isMateriais) {
+            // ATIVAÇÃO DO DROPDOWN CUSTOMIZADO DE QUESTÕES
+            setTimeout(() => {
+                if (window.uiController && window.uiController.setupCustomDropdown) {
+                    window.uiController.setupCustomDropdown('dropdown-materia', (valorSelecionado) => {
+                        comunidadeView.setFiltro(valorSelecionado);
+                    });
+                }
+            }, 50);
 
-        // Dispara a busca inicial automaticamente para mostrar as últimas questões
-        if (this.questoes.length === 0) {
-            this.novaBusca();
+            // Dispara a busca inicial automaticamente para mostrar as últimas questões
+            if (this.questoes.length === 0) {
+                this.novaBusca();
+            } else {
+                this.renderLista();
+                this.atualizarBotoesPaginacao();
+            }
         } else {
-            this.renderLista();
-            this.atualizarBotoesPaginacao();
+            // ATIVAÇÃO DO DROPDOWN CUSTOMIZADO DE MATERIAIS
+            setTimeout(() => {
+                if (window.uiController && window.uiController.setupCustomDropdown) {
+                    window.uiController.setupCustomDropdown('dropdown-materia-mat', (valorSelecionado) => {
+                        comunidadeView.filtroMateria = valorSelecionado;
+                        comunidadeView.buscarMateriais();
+                    });
+                }
+            }, 50);
+
+            this.buscarMateriais();
         }
     },
 
@@ -502,6 +601,148 @@ export const comunidadeView = {
         this._timeoutEscola = setTimeout(() => {
             this.novaBusca();
         }, 350);
+    },
+
+    setFiltroTipoMaterial(val) {
+        this.filtroTipoMaterial = val;
+        this.buscarMateriais();
+    },
+
+    async buscarMateriais() {
+        const grid = document.getElementById('comunidade-materiais-results');
+        if (!grid) return;
+        grid.innerHTML = `
+            <div class="card" style="grid-column: 1 / -1; padding: 4rem 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
+                <div class="spinner spinner--primary" style="margin-bottom: 1rem;"></div>
+                <p style="color: var(--color-slate-600); font-weight: 700;">Consultando materiais pedagógicos da comunidade...</p>
+            </div>
+        `;
+
+        const busca = (document.getElementById('search-comunidade-material')?.value || '').trim().toLowerCase();
+        const disc = this.filtroMateria || '';
+        const tipo = this.filtroTipoMaterial || '';
+
+        try {
+            let mats = await firebaseService.getMateriaisComunidade(disc, tipo);
+            if (busca) {
+                mats = mats.filter(m => 
+                    (m.titulo || '').toLowerCase().includes(busca) || 
+                    (m.tema || '').toLowerCase().includes(busca) ||
+                    (m.disciplina || '').toLowerCase().includes(busca) ||
+                    (m.autor || '').toLowerCase().includes(busca)
+                );
+            }
+            this.materiais = mats;
+            this.renderListaMateriais();
+        } catch (e) {
+            console.error("Erro ao buscar materiais:", e);
+            grid.innerHTML = `
+                <div class="card" style="grid-column: 1 / -1; padding: 3rem 2rem; text-align: center; color: #ef4444;">
+                    <i class="fas fa-exclamation-circle text-2xl mb-2"></i>
+                    <p style="font-weight: 700;">Não foi possível carregar os materiais da comunidade.</p>
+                </div>
+            `;
+        }
+    },
+
+    renderListaMateriais() {
+        const grid = document.getElementById('comunidade-materiais-results');
+        if (!grid) return;
+
+        if (!this.materiais || this.materiais.length === 0) {
+            grid.innerHTML = `
+                <div class="card" style="grid-column: 1 / -1; padding: 4rem 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-radius: var(--radius-2xl);">
+                    <div style="width: 4rem; height: 4rem; border-radius: var(--radius-full); background: var(--color-slate-100); color: var(--color-slate-400); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1rem;">
+                        <i class="fas fa-folder-open"></i>
+                    </div>
+                    <h3 style="font-size: 1.125rem; font-weight: 800; color: var(--color-slate-700); margin-bottom: 0.25rem;">Nenhum material encontrado</h3>
+                    <p style="color: var(--color-slate-400); font-size: 0.8125rem; max-width: 340px;">Experimente buscar por outros termos ou limpar os filtros de disciplina e tipo.</p>
+                </div>
+            `;
+            return;
+        }
+
+        const colorMap = {
+            'planejamento': { i: 'far fa-calendar-alt', c: '#4f46e5', bg: '#eef2ff' },
+            'dinamica-jogo': { i: 'fas fa-users', c: '#2563eb', bg: '#eff6ff' },
+            'atividade-imprimivel': { i: 'fas fa-print', c: '#059669', bg: '#ecfdf5' },
+            'avaliacao-prova': { i: 'fas fa-clipboard-list', c: '#ea580c', bg: '#fff7ed' },
+            'rubrica-avaliacao': { i: 'fas fa-calculator', c: '#9333ea', bg: '#faf5ff' }
+        };
+
+        grid.innerHTML = this.materiais.map(m => {
+            const style = colorMap[m.tipo] || { i: 'fas fa-file-alt', c: '#64748b', bg: '#f8fafc' };
+            const tituloSafe = window.escapeHTML ? window.escapeHTML(m.titulo || m.tema || 'Material Pedagógico') : (m.titulo || 'Material Pedagógico');
+            const discSafe = window.escapeHTML ? window.escapeHTML(m.disciplina || 'Geral') : (m.disciplina || 'Geral');
+            const serieSafe = window.escapeHTML ? window.escapeHTML(m.serie || 'Série Livre') : (m.serie || 'Série Livre');
+            const autorSafe = window.escapeHTML ? window.escapeHTML(m.autor || 'Professor(a)') : (m.autor || 'Professor(a)');
+            const dataFmt = m.data_partilha ? new Date(m.data_partilha).toLocaleDateString('pt-BR') : '';
+
+            return `
+                <div class="material-card interactive-element animate-enter" style="border: 1px solid var(--color-slate-200); border-radius: var(--radius-2xl); background: var(--color-white); display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow-sm);">
+                    <div style="padding: 1.25rem; background-color: ${style.bg}; display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--color-slate-100);">
+                        <span class="badge" style="background-color: var(--color-white); color: ${style.c}; font-weight: 800; box-shadow: var(--shadow-sm);">
+                            ${discSafe}
+                        </span>
+                        <div style="width: 2.25rem; height: 2.25rem; border-radius: var(--radius-lg); background-color: var(--color-white); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm);">
+                            <i class="${style.i}" style="color: ${style.c};"></i>
+                        </div>
+                    </div>
+
+                    <div style="padding: 1.25rem; display: flex; flex-direction: column; flex: 1;">
+                        <h4 style="font-weight: 800; color: var(--color-slate-800); font-size: 1.05rem; line-height: 1.35; margin-bottom: 0.35rem;" class="line-clamp-2">${tituloSafe}</h4>
+                        <p style="font-size: 0.75rem; color: var(--color-slate-400); margin-bottom: 1rem;">${serieSafe} • Por <strong>${autorSafe}</strong> ${dataFmt ? 'em ' + dataFmt : ''}</p>
+
+                        <div style="margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--color-slate-100); display: flex; gap: 0.5rem;">
+                            <button type="button" onclick="comunidadeView.abrirPreviewMaterial('${m.id}')" class="btn-secondary interactive-element" style="flex: 1; padding: 0.625rem 0.75rem; font-size: 0.8125rem;">
+                                <i class="fas fa-eye"></i> <span>Visualizar</span>
+                            </button>
+                            <button type="button" onclick="comunidadeView.importarMaterialComunidade('${m.id}')" class="btn-primary interactive-element" style="flex: 1; padding: 0.625rem 0.75rem; font-size: 0.8125rem; background-color: #4f46e5;">
+                                <i class="fas fa-download"></i> <span>Importar</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    },
+
+    abrirPreviewMaterial(materialId) {
+        const mat = (this.materiais || []).find(m => String(m.id) === String(materialId));
+        if (!mat) return;
+
+        const tituloSafe = window.escapeHTML ? window.escapeHTML(mat.titulo || mat.tema || 'Material') : (mat.titulo || 'Material');
+        const conteudo = mat.conteudo_html || '<p>Conteúdo não disponível.</p>';
+
+        window.controller.openModal(tituloSafe, `
+            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; max-width: 800px; max-height: 80vh; overflow-y: auto;" class="custom-scrollbar">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.75rem; border-bottom: 1px solid var(--color-slate-100); flex-wrap: wrap; gap: 0.5rem;">
+                    <div>
+                        <span class="badge" style="background: #eef2ff; color: #4f46e5; font-weight: 800; margin-right: 0.5rem;">${window.escapeHTML(mat.disciplina || 'Geral')}</span>
+                        <span style="font-size: 0.8125rem; color: var(--color-slate-500);">${window.escapeHTML(mat.serie || 'Série Livre')} • Por <strong>${window.escapeHTML(mat.autor || 'Prof')}</strong></span>
+                    </div>
+                    <button type="button" onclick="comunidadeView.importarMaterialComunidade('${mat.id}')" class="btn-primary" style="background-color: #4f46e5;">
+                        <i class="fas fa-download mr-1"></i> Importar para Minha Biblioteca
+                    </button>
+                </div>
+                <div class="documento-visualizacao" style="background: #fff; padding: 1.5rem; border: 1px solid var(--color-slate-200); border-radius: var(--radius-xl); font-size: 0.9375rem; line-height: 1.6;">
+                    ${conteudo}
+                </div>
+            </div>
+        `, 'large');
+
+        setTimeout(() => {
+            if (window.renderKatex) {
+                window.renderKatex(document.querySelector('.documento-visualizacao'));
+            }
+        }, 50);
+    },
+
+    importarMaterialComunidade(materialId) {
+        const mat = (this.materiais || []).find(m => String(m.id) === String(materialId));
+        if (!mat) return;
+        model.importarMaterialComunidade(mat);
+        window.controller.closeModal();
     }
 };
 

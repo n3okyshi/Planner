@@ -152,6 +152,9 @@ export const turmasView = {
                          <button onclick="controller.navigate('notas-anuais')" class="btn-outline" style="height: 2.5rem; color: #4f46e5; background-color: #eef2ff; border-color: #e0e7ff;" onmouseover="this.style.backgroundColor='#e0e7ff'" onmouseout="this.style.backgroundColor='#eef2ff'">
                             <i class="fas fa-award" style="margin-right: 0.5rem;"></i> Notas Anuais
                         </button>
+                        <button onclick="turmaController.abrirModalReplicarAvaliacao('${turmaId}')" class="btn-outline" style="height: 2.5rem;" title="Copiar estrutura de avaliação para outras turmas">
+                            <i class="fas fa-copy" style="margin-right: 0.5rem;"></i> Replicar Avaliação
+                        </button>
                          <button onclick="controller.openAddAvaliacao('${turmaId}')" class="btn-outline" style="height: 2.5rem;">
                             <i class="fas fa-file-alt" style="margin-right: 0.5rem;"></i> Nova Avaliação
                         </button>
@@ -345,7 +348,10 @@ export const turmasView = {
                                                 
                                                 <td style="padding: var(--spacing-4); text-align: center;">
                                                     <div style="display: flex; align-items: center; justify-content: center; gap: var(--spacing-2);">
-                                                        <button onclick="uiController.gerarDossieAluno('${turmaId}', '${aluno.id}')" style="color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='#10b981'" onmouseout="this.style.color='var(--color-slate-300)'" title="Gerar Dossiê / Ficha Individual (PDF)">
+                                                        <button onclick="turmaController.abrirModalDossieComportamental('${turmaId}', '${aluno.id}')" style="color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='#8b5cf6'" onmouseout="this.style.color='var(--color-slate-300)'" title="Linha do Tempo / Dossiê Comportamental">
+                                                            <i class="fas fa-stream"></i>
+                                                        </button>
+                                                        <button onclick="uiController.gerarDossieAluno('${turmaId}', '${aluno.id}')" style="color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='#10b981'" onmouseout="this.style.color='var(--color-slate-300)'" title="Gerar Ficha Individual (PDF)">
                                                             <i class="fas fa-file-invoice"></i>
                                                         </button>
                                                         <button onclick="controller.openAddAluno('${turmaId}', '${aluno.id}')" style="color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='#3b82f6'" onmouseout="this.style.color='var(--color-slate-300)'" title="Editar Estudante">

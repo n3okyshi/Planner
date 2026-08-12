@@ -283,6 +283,89 @@ export const firebaseService = {
     },
 
     // =========================================================================
+    // BANCO DE MATERIAIS PEDAGÓGICOS DA COMUNIDADE (FIRESTORE)
+    // =========================================================================
+    async getMateriaisComunidade(disciplina = '', tipo = '') {
+        if (!this.db) return [];
+        try {
+            let ref = this.db.collection('comunidade_materiais');
+            if (disciplina) ref = ref.where('disciplina', '==', disciplina);
+            if (tipo) ref = ref.where('tipo', '==', tipo);
+            const snapshot = await ref.orderBy('data_partilha', 'desc').limit(50).get();
+            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (e) {
+            console.warn("Aviso ao buscar materiais da comunidade no Firestore:", e.message);
+            // Fallback 1: se índice composto ou ordenação falhar, busca simples e ordena em memória
+            try {
+                const snapshot = await this.db.collection('comunidade_materiais').limit(50).get();
+                let docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                if (disciplina) docs = docs.filter(d => d.disciplina === disciplina);
+                if (tipo) docs = docs.filter(d => d.tipo === tipo);
+                docs.sort((a, b) => new Date(b.data_partilha || 0) - new Date(a.data_partilha || 0));
+                return docs;
+            } catch (err2) {
+                if (err2?.code === 'permission-denied' || String(err2?.message).includes('permissions')) {
+                    console.warn("🔒 Coleção 'comunidade_materiais' sem regra de leitura pública no Firestore. Atualize o firestore.rules.");
+                } else {
+                    console.error("Erro no fallback de materiais da comunidade:", err2);
+                }
+                return [];
+            }
+        }
+    },
+
+    async verificarDuplicataMaterialComunidade(titulo) {
+        if (!this.db) return false;
+        try {
+            const snapshot = await this.db.collection('comunidade_materiais')
+                .where('titulo', '==', titulo)
+                .limit(1)
+                .get();
+            return !snapshot.empty;
+        } catch (e) {
+            if (e?.code === 'permission-denied' || String(e?.message).includes('permissions')) {
+                console.warn("🔒 Permissão de leitura da coleção 'comunidade_materiais' pendente de configuração no Firestore Console.");
+            } else {
+                console.error("Erro ao verificar duplicata de material:", e);
+            }
+            return false;
+        }
+    },
+
+    async publicarMaterialComunidade(dadosMaterial) {
+        if (!this.db) throw new Error("Firestore não inicializado.");
+        try {
+            return await this.db.collection('comunidade_materiais').add(dadosMaterial);
+        } catch (e) {
+            if (e?.code === 'permission-denied' || String(e?.message).includes('permissions')) {
+                console.error("🔒 Erro de Permissão no Firestore: A coleção 'comunidade_materiais' precisa de regra 'allow create: if request.auth != null' no firestore.rules.");
+            } else {
+                console.error("Erro no Firestore ao publicar material:", e);
+            }
+            throw e;
+        }
+    },
+
+    async removerMaterialComunidade(uid, materialIdLocal) {
+        if (!this.db || !uid) return;
+        try {
+            const snapshot = await this.db.collection('comunidade_materiais')
+                .where('uid_autor', '==', uid)
+                .where('id_local_origem', '==', String(materialIdLocal))
+                .get();
+            if (snapshot.empty) return;
+            const batch = this.db.batch();
+            snapshot.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+            return batch.commit();
+        } catch (e) {
+            console.error("Erro ao remover material da comunidade:", e);
+            throw e;
+        }
+    },
+
+    // =========================================================================
     // QUIZ AO VIVO - MÉTODOS EM TEMPO REAL (FIRESTORE)
     // =========================================================================
     async criarSessaoQuiz(quizData) {

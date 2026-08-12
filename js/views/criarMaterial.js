@@ -15,9 +15,10 @@ export const criarMaterialView = {
             ]
         },
         {
-            titulo: 'APLICAR EM SALA',
+            titulo: 'APLICAR EM SALA & METODOLOGIAS',
             itens: [
                 { id: 'dinamica-jogo', label: 'Dinâmica e Jogo', icone: 'fas fa-users', cor: 'text-blue-500' },
+                { id: 'jogos-rpg', label: 'Jogos, RPGs & Escape Rooms', icone: 'fas fa-dice-d20', cor: 'text-rose-500' },
                 { id: 'situacao-problema', label: 'Situação-Problema', icone: 'far fa-lightbulb', cor: 'text-amber-500' },
                 { id: 'atividade-imprimivel', label: 'Atividade Imprimível', icone: 'fas fa-print', cor: 'text-emerald-500' },
                 { id: 'apresentacao', label: 'Apresentação Animada', icone: 'fas fa-desktop', cor: 'text-slate-300', badge: 'EM BREVE', disabled: true }
@@ -26,6 +27,7 @@ export const criarMaterialView = {
         {
             titulo: 'CIÊNCIAS & EXPERIMENTAÇÃO',
             itens: [
+                { id: 'diario-laboratorio', label: 'Diário de Laboratório & Prática', icone: 'fas fa-vial', cor: 'text-teal-500' },
                 { id: 'pratica-laboratorio', label: 'Roteiro de Aula Prática', icone: 'fas fa-flask', cor: 'text-emerald-500' },
                 { id: 'atividade-investigativa', label: 'Atividade Investigativa', icone: 'fas fa-microscope', cor: 'text-purple-500' }
             ]
@@ -33,6 +35,7 @@ export const criarMaterialView = {
         {
             titulo: 'AVALIAR',
             itens: [
+                { id: 'rubrica-avaliacao', label: 'Rubrica com Matriz IA', icone: 'fas fa-table-cells', cor: 'text-fuchsia-600' },
                 { id: 'avaliacao-prova', label: 'Avaliação / Prova', icone: 'fas fa-clipboard-list', cor: 'text-orange-500' },
                 { id: 'lista-exercicios', label: 'Lista de Exercícios', icone: 'far fa-file-alt', cor: 'text-blue-600' },
                 { id: 'atividade-intervencao', label: 'Atividade de Intervenção', icone: 'fas fa-bullseye', cor: 'text-indigo-500' }
@@ -56,6 +59,41 @@ export const criarMaterialView = {
         }
     ],
     formConfig: {
+        'jogos-rpg': {
+            titulo: 'Templates de Jogos, RPGs & Escape Rooms',
+            descricao: 'Roteiros estruturados de jogos de tabuleiro, desafios de escape room e missões de RPG com cartas, enigmas e regras completas',
+            campos: [
+                { id: 'linha-1', tipo: 'row', colunas: [{ id: 'disciplina', tipo: 'select-disciplina' }, { id: 'serie', tipo: 'select-serie' }] },
+                { id: 'tema', tipo: 'text', label: 'Tema / Conteúdo do Jogo ou Missão', placeholder: 'Ex: A Conquista do Espaço, A Jornada da Célula, Frações em Ação, Revolução Industrial...' },
+                { id: 'estilo-jogo', tipo: 'pills', label: 'FORMATO DO JOGO', opcoes: ['Escape Room em Sala', 'RPG de Missões / Narrativa', 'Jogo de Tabuleiro com Cartas', 'Gincana Investigativa'], default: 'Escape Room em Sala' },
+                { id: 'tempo', tipo: 'pills', label: 'TEMPO ESTIMADO', opcoes: ['30 min', '50 min (1 aula)', '100 min (2 aulas)'], default: '50 min (1 aula)' },
+                { id: 'tamanho-grupo', tipo: 'pills', label: 'ORGANIZAÇÃO DOS ALUNOS', opcoes: ['Em Duplas', 'Equipes de 4 a 5', 'Turma Toda'], default: 'Equipes de 4 a 5' },
+                { id: 'bncc', tipo: 'text', label: 'Código BNCC (opcional)', placeholder: 'Ex: EF07CI01' }
+            ]
+        },
+        'diario-laboratorio': {
+            titulo: 'Diário de Laboratório & Aula Prática',
+            descricao: 'Roteiros estruturados para aulas práticas e experimentos investigativos com materiais acessíveis, tabela de coleta de dados e perguntas reflexivas',
+            campos: [
+                { id: 'linha-1', tipo: 'row', colunas: [{ id: 'disciplina', tipo: 'select-disciplina' }, { id: 'serie', tipo: 'select-serie' }] },
+                { id: 'tema', tipo: 'text', label: 'Fenômeno / Conceito a Investigar', placeholder: 'Ex: Densidade dos Líquidos, pH de substâncias, Extração de DNA, Circuitos Elétricos...' },
+                { id: 'tipo-materiais', tipo: 'pills', label: 'FOCO DOS MATERIAIS', opcoes: ['Materiais de Baixo Custo / Cotidiano', 'Vidrarias e Reagentes de Laboratório', 'Misto'], default: 'Materiais de Baixo Custo / Cotidiano' },
+                { id: 'tempo', tipo: 'pills', label: 'DURAÇÃO DA PRÁTICA', opcoes: ['30 min', '50 min (1 aula)', '100 min (2 aulas)'], default: '50 min (1 aula)' },
+                { id: 'seguranca', tipo: 'text', label: 'Orientações de Segurança Específicas (opcional)', placeholder: 'Ex: Uso de luvas, não ingerir amostras, cuidado com água quente...' },
+                { id: 'bncc', tipo: 'text', label: 'Código BNCC (opcional)', placeholder: 'Ex: EF08CI02' }
+            ]
+        },
+        'rubrica-avaliacao': {
+            titulo: 'Gerador de Rubricas de Avaliação com Matriz IA',
+            descricao: 'Matriz analítica cruzando critérios de aprendizagem com níveis de desempenho (Insuficiente, Regular, Bom, Excelente) e pesos para pontuação automática',
+            campos: [
+                { id: 'linha-1', tipo: 'row', colunas: [{ id: 'disciplina', tipo: 'select-disciplina' }, { id: 'serie', tipo: 'select-serie' }] },
+                { id: 'tema', tipo: 'text', label: 'Atividade / Produção a ser Avaliada', placeholder: 'Ex: Apresentação de Seminário, Redação Argumentativa, Projeto Maker, Experimento em Grupo...' },
+                { id: 'pontuacao-maxima', tipo: 'pills', label: 'PONTUAÇÃO MÁXIMA', opcoes: ['10 pontos', '20 pontos', '100 pontos'], default: '10 pontos' },
+                { id: 'criterios-foco', tipo: 'text', label: 'Critérios Especiais em Foco (opcional)', placeholder: 'Ex: Domínio Conceitual, Clareza na Comunicação, Trabalho em Equipe, Criatividade...' },
+                { id: 'bncc', tipo: 'text', label: 'Código BNCC (opcional)', placeholder: 'Ex: EM13LP01' }
+            ]
+        },
         'pratica-laboratorio': {
             titulo: 'Roteiro de Aula Prática & Laboratório',
             descricao: 'Roteiros de experimentação científica com materiais de baixo custo ou laboratório, tabelas de observação e normas de segurança',
