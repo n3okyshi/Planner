@@ -280,6 +280,28 @@ export const uiController = {
         }
     },
 
+    aplicarTemaPreview(hexColor) {
+        if (!hexColor || !/^#([0-9A-F]{3}){1,2}$/i.test(hexColor)) return;
+        let hex = hexColor.replace('#', '');
+        if (hex.length === 3) {
+            hex = hex.split('').map(c => c + c).join('');
+        }
+        const num = parseInt(hex, 16);
+        const r = (num >> 16) & 255;
+        const g = (num >> 8) & 255;
+        const b = num & 255;
+
+        const rHover = Math.max(0, Math.floor(r * 0.85));
+        const gHover = Math.max(0, Math.floor(g * 0.85));
+        const bHover = Math.max(0, Math.floor(b * 0.85));
+        const hexHover = `#${((1 << 24) + (rHover << 16) + (gHover << 8) + bHover).toString(16).slice(1)}`;
+
+        document.documentElement.style.setProperty('--color-primary', `#${hex}`);
+        document.documentElement.style.setProperty('--color-primary-rgb', `${r}, ${g}, ${b}`);
+        document.documentElement.style.setProperty('--color-primary-hover', hexHover);
+        document.documentElement.style.setProperty('--color-primary-light', `rgba(${r}, ${g}, ${b}, 0.12)`);
+    },
+
     toggleTema() {
         const atual = document.documentElement.getAttribute('data-theme') || 'light';
         const novoTema = atual === 'dark' ? 'light' : 'dark';

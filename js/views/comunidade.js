@@ -476,7 +476,7 @@ export const comunidadeView = {
         }
 
         grid.innerHTML = this.questoes.map(q => {
-            const corMateria = (model.coresComponentes && model.coresComponentes[q.materia]) || '#64748b';
+            const corMateria = (model.coresComponentes && model.coresComponentes[q.materia]) || '#4f46e5';
             const estrelasHtml = this._renderEstrelasDificuldade(q.dificuldade);
             const autorNome = q.autor ? q.autor.split(' ')[0] : 'Professor(a)';
 
@@ -486,42 +486,62 @@ export const comunidadeView = {
             const bimestreEscaped = q.bimestre ? window.escapeHTML(q.bimestre) : '';
             const autorEscaped = window.escapeHTML(autorNome);
             const idEscaped = window.escapeHTML(JSON.stringify(q.id));
+            const tipoLabel = (q.tipo === 'multipla' || q.tipo === 'multipla_escolha') ? 'Múltipla Escolha' : 'Dissertativa';
+            const tipoIcon = (q.tipo === 'multipla' || q.tipo === 'multipla_escolha') ? 'fa-list-ul' : 'fa-pen-nib';
+            const bgHeader = `${corMateria}12`;
 
             return `
-                <article class="comunidade-card" style="border-radius: var(--radius-2xl); border: 1px solid var(--color-slate-200); box-shadow: var(--shadow-sm);">
-                    <div class="comunidade-card__header">
-                        <div class="comunidade-card__chips" style="display: flex; flex-wrap: wrap; gap: 0.375rem;">
-                            <span class="badge" style="background-color: ${corMateria}15; color: ${corMateria}; border-color: ${corMateria}50; font-weight: 700;">
+                <div class="comunidade-card interactive-element animate-enter" style="border: 1px solid var(--color-slate-200); border-radius: var(--radius-2xl); background: var(--color-white); display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow-sm);">
+                    
+                    <!-- CABEÇALHO DO CARD COM COR SUAVE -->
+                    <div style="padding: 1rem 1.25rem; background-color: ${bgHeader}; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-slate-100);">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                            <span class="badge" style="background-color: var(--color-white); color: ${corMateria}; font-weight: 800; box-shadow: var(--shadow-sm);">
                                 ${materiaEscaped}
                             </span>
-                            <span class="badge" style="background-color: var(--color-slate-100); color: var(--color-slate-600); font-weight: 600;">
-                                ${q.tipo === 'multipla' || q.tipo === 'multipla_escolha' ? 'Múltipla Escolha' : 'Dissertativa'}
+                            <span class="badge" style="background-color: rgba(255, 255, 255, 0.85); color: var(--color-slate-600); font-weight: 600; font-size: 0.6875rem;">
+                                ${tipoLabel}
                             </span>
-                            ${bimestreEscaped ? `<span class="badge badge--bimestre" style="font-size: 0.6875rem;"><i class="fas fa-bookmark"></i> ${bimestreEscaped}</span>` : ''}
-                            ${escolaEscaped ? `<span class="badge badge--school" style="font-size: 0.6875rem;"><i class="fas fa-school"></i> ${escolaEscaped}</span>` : ''}
                         </div>
-                        <div class="comunidade-card__meta">
-                            <small>${anoEscaped}</small>
-                            <span><i class="fas fa-user-circle"></i> ${autorEscaped}</span>
-                        </div>
-                    </div>
-
-                    <div class="comunidade-card__content">
-                        ${estrelasHtml}
-                        <div class="comunidade-card__enunciado" style="max-height: 140px; overflow-y: auto; line-height: 1.5;">
-                            ${q.enunciado ? formatarTextoComLatex(sanitizeComLatex(q.enunciado).replace(/\n/g, '<br>')) : 'Sem texto.'}
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            ${estrelasHtml}
+                            <div style="width: 2rem; height: 2rem; border-radius: var(--radius-lg); background-color: var(--color-white); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm); color: ${corMateria};">
+                                <i class="fas ${tipoIcon}" style="font-size: 0.8125rem;"></i>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="comunidade-card__actions" style="display: flex; justify-content: space-between; align-items: center; gap: 0.5rem;">
-                        <button onclick="comunidadeView.copiarQuestao(${idEscaped})" class="btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;" title="Copiar texto da questão">
-                            <i class="far fa-copy"></i> Copiar
-                        </button>
-                        <button onclick="comunidadeView.importarQuestao(${idEscaped})" class="comunidade-card__button" style="flex: 1;">
-                            <i class="fas fa-file-import"></i> Importar para meu Banco
-                        </button>
+                    <!-- CORPO DO CARD COM ENUNCIADO E METADADOS -->
+                    <div style="padding: 1.25rem; display: flex; flex-direction: column; flex: 1;">
+                        
+                        <!-- ENUNCIADO COM SUPORTE A KATEX/LATEX -->
+                        <div class="comunidade-card__enunciado" style="color: var(--color-slate-800); font-size: 0.875rem; line-height: 1.55; font-weight: 500; margin-bottom: 0.75rem; max-height: 130px; overflow-y: auto;">
+                            ${q.enunciado ? formatarTextoComLatex(sanitizeComLatex(q.enunciado).replace(/\n/g, '<br>')) : '<span style="color: var(--color-slate-400); font-style: italic;">Sem enunciado cadastrado.</span>'}
+                        </div>
+
+                        <!-- METADADOS COMPACTOS -->
+                        <div style="margin-top: auto; padding-top: 0.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.375rem; font-size: 0.75rem; color: var(--color-slate-400);">
+                            <div style="display: flex; align-items: center; gap: 0.375rem; flex-wrap: wrap;">
+                                ${anoEscaped ? `<span style="font-weight: 700; color: var(--color-slate-500);">${anoEscaped}</span>` : ''}
+                                ${bimestreEscaped ? `<span>• ${bimestreEscaped}</span>` : ''}
+                                ${escolaEscaped ? `<span class="truncate" style="max-width: 140px;" title="${escolaEscaped}">• ${escolaEscaped}</span>` : ''}
+                            </div>
+                            <span style="display: flex; align-items: center; gap: 0.25rem; color: var(--color-slate-500); font-weight: 600;">
+                                <i class="fas fa-user-circle" style="color: var(--color-slate-400);"></i> ${autorEscaped}
+                            </span>
+                        </div>
+
+                        <!-- AÇÕES / BOTÕES -->
+                        <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--color-slate-100); display: flex; gap: 0.5rem; align-items: center;">
+                            <button type="button" onclick="comunidadeView.copiarQuestao(${idEscaped})" class="btn-secondary interactive-element" style="padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 700;" title="Copiar texto da questão">
+                                <i class="far fa-copy"></i> <span>Copiar</span>
+                            </button>
+                            <button type="button" onclick="comunidadeView.importarQuestao(${idEscaped})" class="btn-primary interactive-element" style="flex: 1; justify-content: center; padding: 0.5rem 0.875rem; font-size: 0.8125rem; font-weight: 700; background-color: #4f46e5;">
+                                <i class="fas fa-download"></i> <span>Importar para meu Banco</span>
+                            </button>
+                        </div>
                     </div>
-                </article>
+                </div>
             `;
         }).join('');
 

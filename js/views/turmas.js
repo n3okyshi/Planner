@@ -31,13 +31,15 @@ export const turmasView = {
         const turmas = model.state.turmas || [];
 
         const html = `
-            <div class="fade-in pb-20">
+            <div class="view-shell fade-in">
                 <div class="view-header animate-enter">
                     <div>
-                        <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Minhas Turmas</h2>
-                        <p class="text-slate-500 mt-1">Gerencie alunos, notas e avaliações.</p>
+                        <h2 class="view-header__title">
+                            <i class="fas fa-chalkboard-teacher" style="color: var(--color-primary);"></i> Minhas Turmas
+                        </h2>
+                        <p class="view-header__subtitle">Gerencie alunos, notas e avaliações.</p>
                     </div>
-                    <button type="button" onclick="controller.openAddTurma()" class="btn-primary interactive-element flex items-center gap-2" style="background-color: #4f46e5; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.25);">
+                    <button type="button" onclick="controller.openAddTurma()" class="btn-primary interactive-element" style="background-color: #4f46e5; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.25);">
                         <i class="fas fa-plus"></i> <span>Nova Turma</span>
                     </button>
                 </div>

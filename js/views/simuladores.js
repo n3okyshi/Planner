@@ -92,8 +92,8 @@ export const simuladoresView = {
                     ${this.simuladores.map((sim, index) => {
                         const colors = SIM_COLORS[sim.disc] || { bg: '#4f46e5', text: '#ffffff' };
                         return `
-                        <div class="card interactive-element"
-                             style="padding: var(--spacing-5); border-radius: var(--radius-2xl); border: 1px solid var(--color-slate-200); display: flex; flex-direction: column; justify-content: space-between; gap: var(--spacing-3); transition: all 0.2s ease;">
+                        <div class="card interactive-element animate-enter"
+                             style="padding: 1.25rem; border-radius: var(--radius-2xl); border: 1px solid var(--color-slate-200); display: flex; flex-direction: column; justify-content: space-between; gap: var(--spacing-4); box-sizing: border-box; background-color: var(--color-white); box-shadow: var(--shadow-sm); transition: all 0.2s ease;">
                             
                             <div>
                                 <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--spacing-3);">

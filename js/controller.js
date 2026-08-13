@@ -180,9 +180,9 @@ export const controller = {
         localStorage.setItem('planner_theme_color', color);
         model.saveLocal();
         uiController.aplicarTema();
-        Toast.show("Cor de destaque atualizada!", "success");
-        if (this.currentView === 'config' && window.settingsView) {
-            window.settingsView.render('view-container');
+        Toast.show("Cor de destaque aplicada com sucesso!", "success");
+        if (this.currentView === 'config' && window.settingsView && window.settingsView.sincronizarEstadoCores) {
+            window.settingsView.sincronizarEstadoCores(color);
         }
     },
     resetTheme() {
@@ -194,7 +194,11 @@ export const controller = {
         uiController.aplicarTema();
         Toast.show("Paleta restaurada para o padrão!", "info");
         if (this.currentView === 'config' && window.settingsView) {
-            window.settingsView.render('view-container');
+            if (window.settingsView.sincronizarEstadoCores) {
+                window.settingsView.sincronizarEstadoCores(defaultColor);
+            } else {
+                window.settingsView.render('view-container');
+            }
         }
     },
     updatePeriodDate(index, campo, valor) {

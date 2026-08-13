@@ -167,7 +167,7 @@ export const estudosVisuaisView = {
         const isSelected = this.baralhosSelecionados.has(deck.id);
 
         return `
-            <div class="card interactive-element" style="padding: var(--spacing-5); display: flex; flex-direction: column; justify-content: space-between; gap: var(--spacing-4); border: 2px solid ${isSelected ? 'var(--color-primary)' : 'var(--color-slate-200)'}; background-color: ${isSelected ? '#f8faff' : '#ffffff'};">
+            <div class="card interactive-element animate-enter" style="padding: 1.25rem; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; gap: var(--spacing-4); border: 2px solid ${isSelected ? 'var(--color-primary)' : 'var(--color-slate-200)'}; background-color: ${isSelected ? '#f8faff' : '#ffffff'}; box-shadow: var(--shadow-sm);">
                 <div>
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--spacing-2);">
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -939,7 +939,7 @@ export const estudosVisuaisView = {
     cardMindmapHTML(mapa) {
         const totalNos = this.contarNos(mapa.root);
         return `
-            <div class="card interactive-element" style="padding: var(--spacing-5); display: flex; flex-direction: column; justify-content: space-between; gap: var(--spacing-4);">
+            <div class="card interactive-element animate-enter" style="padding: 1.25rem; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; gap: var(--spacing-4); box-shadow: var(--shadow-sm); border: 1px solid var(--color-slate-200);">
                 <div>
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--spacing-2);">
                         <span class="badge" style="background-color: var(--color-primary-light); color: var(--color-primary); font-weight: 800; text-transform: uppercase;">

@@ -224,35 +224,48 @@ export const settingsView = {
                             </button>
                         </div>
 
-                        <!-- SELETOR INTERATIVO / HEXADECIMAL -->
-                        <div style="display: flex; align-items: center; gap: 1rem; padding: 0.875rem; background: var(--color-slate-50); border: 1px solid var(--color-slate-200); border-radius: var(--radius-xl);">
-                            <div style="position: relative; width: 3rem; height: 3rem; border-radius: var(--radius-lg); overflow: hidden; border: 2px solid var(--color-slate-300); box-shadow: var(--shadow-sm); flex-shrink: 0; cursor: pointer;">
-                                <input type="color" id="input-color-picker" value="${config.themeColor || '#3b82f6'}" 
-                                       oninput="document.getElementById('input-hex-color').value = this.value; controller.updateTheme(this.value);" 
-                                       style="position: absolute; top: -10px; left: -10px; width: 60px; height: 60px; border: none; cursor: pointer;">
-                            </div>
-                            <div style="flex: 1;">
-                                <label style="font-size: 0.6875rem; font-weight: 800; color: var(--color-slate-500); text-transform: uppercase;">Código Hexadecimal</label>
-                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
-                                    <input type="text" id="input-hex-color" value="${config.themeColor || '#3b82f6'}" maxlength="7"
-                                           placeholder="#3b82f6" 
-                                           class="form-input" style="font-family: monospace; font-weight: 800; text-transform: uppercase; padding: 0.375rem 0.75rem; max-width: 140px;"
-                                           onchange="if(/^#([0-9A-F]{3}){1,2}$/i.test(this.value)) { document.getElementById('input-color-picker').value = this.value; controller.updateTheme(this.value); }">
-                                    <span style="font-size: 0.75rem; color: var(--color-slate-400);">Clique no mapa ou digite a cor</span>
+                        <!-- SELETOR INTERATIVO / HEXADECIMAL COM BOTÃO APLICAR -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem; background: var(--color-slate-50); border: 1px solid var(--color-slate-200); border-radius: var(--radius-xl); flex-wrap: wrap;">
+                            
+                            <div style="display: flex; align-items: center; gap: 0.875rem; flex: 1; min-width: 220px;">
+                                <!-- SWATCH + INPUT COLOR -->
+                                <div style="position: relative; width: 3.25rem; height: 3.25rem; border-radius: var(--radius-xl); overflow: hidden; border: 2px solid var(--color-slate-300); box-shadow: var(--shadow-sm); flex-shrink: 0; cursor: pointer;" title="Clique e arraste para escolher a cor">
+                                    <input type="color" id="input-color-picker" value="${config.themeColor || '#3b82f6'}" 
+                                           oninput="settingsView.onColorPickerInput(this.value)" 
+                                           style="position: absolute; top: -10px; left: -10px; width: 80px; height: 80px; border: none; cursor: pointer;">
+                                </div>
+
+                                <!-- CAMPO HEXADECIMAL -->
+                                <div style="flex: 1;">
+                                    <label style="font-size: 0.6875rem; font-weight: 800; color: var(--color-slate-500); text-transform: uppercase; letter-spacing: 0.05em;">Código Hexadecimal</label>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem;">
+                                        <input type="text" id="input-hex-color" value="${config.themeColor || '#3b82f6'}" maxlength="7"
+                                               placeholder="#3b82f6" 
+                                               class="form-input" style="font-family: monospace; font-weight: 800; text-transform: uppercase; padding: 0.375rem 0.75rem; width: 115px;"
+                                               oninput="settingsView.onHexInput(this.value)"
+                                               onchange="settingsView.onHexInput(this.value)">
+                                        <span style="font-size: 0.75rem; color: var(--color-slate-400);">Arraste ou digite</span>
+                                    </div>
                                 </div>
                             </div>
+
+                            <!-- BOTÃO APLICAR COR -->
+                            <button type="button" id="btn-aplicar-cor" onclick="settingsView.aplicarCorPersonalizada()" class="btn-primary interactive-element" style="padding: 0.5rem 1.25rem; font-size: 0.8125rem; font-weight: 700; background-color: var(--color-primary); box-shadow: var(--shadow-sm);">
+                                <i class="fas fa-check"></i> <span>Aplicar Cor</span>
+                            </button>
                         </div>
 
                         <!-- PALETAS PRÉ-DEFINIDAS RÁPIDAS -->
                         <div>
-                            <span style="font-size: 0.6875rem; font-weight: 800; color: var(--color-slate-400); text-transform: uppercase; display: block; margin-bottom: 0.5rem;">Paletas Rápidas</span>
-                            <div style="display: flex; flex-wrap: wrap; gap: var(--spacing-3);">
+                            <span style="font-size: 0.6875rem; font-weight: 800; color: var(--color-slate-400); text-transform: uppercase; display: block; margin-bottom: 0.5rem;">Paletas Rápidas (Clique para aplicar imediatamente)</span>
+                            <div id="palette-options-container" style="display: flex; flex-wrap: wrap; gap: var(--spacing-3);">
                                 ${this.renderColorOption('#3b82f6', 'Azul Padrão', config.themeColor || '#3b82f6')}
                                 ${this.renderColorOption('#4f46e5', 'Índigo', config.themeColor)}
                                 ${this.renderColorOption('#0891b2', 'Ciano', config.themeColor)}
                                 ${this.renderColorOption('#7c3aed', 'Roxo', config.themeColor)}
                                 ${this.renderColorOption('#db2777', 'Rosa', config.themeColor)}
-                                ${this.renderColorOption('#059669', 'Verde', config.themeColor)}
+                                ${this.renderColorOption('#059669', 'Verde Esmeralda', config.themeColor)}
+                                ${this.renderColorOption('#2f6f33', 'Verde Musgo', config.themeColor)}
                                 ${this.renderColorOption('#ea580c', 'Laranja', config.themeColor)}
                                 ${this.renderColorOption('#1e293b', 'Slate', config.themeColor)}
                             </div>
@@ -458,6 +471,55 @@ export const settingsView = {
                 ${isSelected ? '<i class="fas fa-check" style="color: white; font-size: 0.75rem;"></i>' : ''}
             </button>
         `;
+    },
+
+    onColorPickerInput(hex) {
+        const inputHex = document.getElementById('input-hex-color');
+        if (inputHex) inputHex.value = hex.toUpperCase();
+        if (window.uiController && window.uiController.aplicarTemaPreview) {
+            window.uiController.aplicarTemaPreview(hex);
+        }
+    },
+
+    onHexInput(val) {
+        if (!val) return;
+        let hex = val.trim();
+        if (!hex.startsWith('#')) hex = '#' + hex;
+        if (/^#([0-9A-F]{3}){1,2}$/i.test(hex)) {
+            const picker = document.getElementById('input-color-picker');
+            if (picker) picker.value = hex;
+            if (window.uiController && window.uiController.aplicarTemaPreview) {
+                window.uiController.aplicarTemaPreview(hex);
+            }
+        }
+    },
+
+    aplicarCorPersonalizada() {
+        const hex = document.getElementById('input-hex-color')?.value || '#3b82f6';
+        controller.updateTheme(hex);
+    },
+
+    sincronizarEstadoCores(corAtiva) {
+        const inputHex = document.getElementById('input-hex-color');
+        const picker = document.getElementById('input-color-picker');
+        if (inputHex) inputHex.value = corAtiva.toUpperCase();
+        if (picker) picker.value = corAtiva;
+
+        const container = document.getElementById('palette-options-container');
+        if (container) {
+            const cores = [
+                { hex: '#3b82f6', nome: 'Azul Padrão' },
+                { hex: '#4f46e5', nome: 'Índigo' },
+                { hex: '#0891b2', nome: 'Ciano' },
+                { hex: '#7c3aed', nome: 'Roxo' },
+                { hex: '#db2777', nome: 'Rosa' },
+                { hex: '#059669', nome: 'Verde Esmeralda' },
+                { hex: '#2f6f33', nome: 'Verde Musgo' },
+                { hex: '#ea580c', nome: 'Laranja' },
+                { hex: '#1e293b', nome: 'Slate' }
+            ];
+            container.innerHTML = cores.map(c => this.renderColorOption(c.hex, c.nome, corAtiva)).join('');
+        }
     }
 };
 
