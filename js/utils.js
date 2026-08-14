@@ -553,6 +553,160 @@ export function ordenarEstudantes(estudantes, criterio = 'chamada_asc') {
     }
 }
 
+/**
+ * Comprime e redimensiona imagens client-side usando Canvas nativo (Zero dependências).
+ * Reduz arquivos pesados (ex: fotos de 10MB da câmera) para ~150KB - 300KB com fidelidade visual ótima,
+ * evitando estouro de memória RAM (OOM Crash) e timeouts de rede na comunicação com a IA.
+ * 
+ * @param {File|Blob|HTMLCanvasElement|HTMLImageElement|string} origem - Arquivo, Blob, Canvas, Image ou DataURL
+ * @param {Object} [opcoes={}] - Configurações de compressão
+ * @param {number} [opcoes.maxDimensao=1400] - Maior dimensão permitida (largura ou altura)
+ * @param {number} [opcoes.qualidade=0.82] - Qualidade do JPEG (0.1 a 1.0)
+ * @param {string} [opcoes.tipo='image/jpeg'] - Formato de saída ('image/jpeg', 'image/webp')
+ * @returns {Promise<{base64: string, base64Pura: string, mimeType: string, tamanhoOriginalKB: number, tamanhoFinalKB: number, percentualReducao: number, largura: number, altura: number}>}
+ */
+export async function comprimirERedimensionarImagem(origem, opcoes = {}) {
+    const maxDimensao = opcoes.maxDimensao || 1400;
+    const qualidade = typeof opcoes.qualidade === 'number' ? opcoes.qualidade : 0.82;
+    const tipo = opcoes.tipo || 'image/jpeg';
+
+    let tamanhoOriginalBytes = 0;
+    let imgElement = null;
+    let urlTemporaria = null;
+    let isBitmap = false;
+
+    try {
+        if (origem instanceof HTMLCanvasElement) {
+            tamanhoOriginalBytes = origem.width * origem.height * 4;
+            imgElement = origem;
+        } else if (origem instanceof HTMLImageElement) {
+            tamanhoOriginalBytes = (origem.naturalWidth || origem.width) * (origem.naturalHeight || origem.height) * 4;
+            imgElement = origem;
+        } else if (typeof ImageBitmap !== 'undefined' && origem instanceof ImageBitmap) {
+            tamanhoOriginalBytes = origem.width * origem.height * 4;
+            imgElement = origem;
+            isBitmap = true;
+        } else if (origem instanceof Blob || origem instanceof File) {
+            tamanhoOriginalBytes = origem.size;
+
+            // Camada 1: createImageBitmap nativo (mais rápido e assíncrono fora da main-thread)
+            if (typeof createImageBitmap === 'function') {
+                try {
+                    imgElement = await createImageBitmap(origem);
+                    isBitmap = true;
+                } catch (bitmapErr) {
+                    console.warn("createImageBitmap falhou, utilizando fallback FileReader DataURL:", bitmapErr);
+                    imgElement = null;
+                }
+            }
+
+            // Camada 2: Fallback via FileReader readAsDataURL (compatível com CSP data:)
+            if (!imgElement) {
+                try {
+                    const dataUrl = await new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onload = (e) => resolve(e.target.result);
+                        reader.onerror = () => reject(new Error("Falha ao ler arquivo com FileReader."));
+                        reader.readAsDataURL(origem);
+                    });
+
+                    imgElement = await new Promise((resolve, reject) => {
+                        const img = new Image();
+                        img.onload = () => resolve(img);
+                        img.onerror = () => reject(new Error("Falha ao decodificar DataURL da imagem."));
+                        img.src = dataUrl;
+                    });
+                } catch (dataUrlErr) {
+                    // Camada 3: Fallback via URL.createObjectURL (autorizado com blob: no CSP)
+                    urlTemporaria = URL.createObjectURL(origem);
+                    imgElement = await new Promise((resolve, reject) => {
+                        const img = new Image();
+                        img.onload = () => resolve(img);
+                        img.onerror = () => reject(new Error("Falha ao carregar arquivo de imagem."));
+                        img.src = urlTemporaria;
+                    });
+                }
+            }
+        } else if (typeof origem === 'string' && origem.startsWith('data:image/')) {
+            tamanhoOriginalBytes = Math.round((origem.length * 3) / 4);
+            imgElement = await new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = () => reject(new Error("Falha ao decodificar Base64 da imagem."));
+                img.src = origem;
+            });
+        } else {
+            throw new Error("Formato de origem inválido para compressão de imagem.");
+        }
+
+        const srcWidth = imgElement.naturalWidth || imgElement.videoWidth || imgElement.width || 800;
+        const srcHeight = imgElement.naturalHeight || imgElement.videoHeight || imgElement.height || 600;
+
+        let targetWidth = srcWidth;
+        let targetHeight = srcHeight;
+
+        if (srcWidth > maxDimensao || srcHeight > maxDimensao) {
+            if (srcWidth >= srcHeight) {
+                targetWidth = maxDimensao;
+                targetHeight = Math.round((srcHeight * maxDimensao) / srcWidth);
+            } else {
+                targetHeight = maxDimensao;
+                targetWidth = Math.round((srcWidth * maxDimensao) / srcHeight);
+            }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = targetWidth;
+        canvas.height = targetHeight;
+        const ctx = canvas.getContext('2d', { alpha: false, willReadFrequently: false });
+
+        if (!ctx) {
+            throw new Error("Não foi possível obter contexto 2D para processamento de imagem.");
+        }
+
+        // Fundo branco sólido para compatibilidade com JPEG
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, targetWidth, targetHeight);
+
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(imgElement, 0, 0, targetWidth, targetHeight);
+
+        const base64Data = canvas.toDataURL(tipo, qualidade);
+        const base64Pura = base64Data.split(',')[1] || base64Data;
+        const tamanhoFinalBytes = Math.round((base64Pura.length * 3) / 4);
+
+        const tamanhoOriginalKB = Math.round((tamanhoOriginalBytes / 1024) * 10) / 10 || (tamanhoFinalBytes / 1024);
+        const tamanhoFinalKB = Math.round((tamanhoFinalBytes / 1024) * 10) / 10;
+        const percentualReducao = tamanhoOriginalKB > tamanhoFinalKB
+            ? Math.round(((tamanhoOriginalKB - tamanhoFinalKB) / tamanhoOriginalKB) * 1000) / 10
+            : 0;
+
+        // Desalocação ativa de memória do canvas temporário
+        ctx.clearRect(0, 0, targetWidth, targetHeight);
+        canvas.width = 0;
+        canvas.height = 0;
+
+        return {
+            base64: base64Data,
+            base64Pura,
+            mimeType: tipo,
+            tamanhoOriginalKB,
+            tamanhoFinalKB,
+            percentualReducao,
+            largura: targetWidth,
+            altura: targetHeight
+        };
+    } finally {
+        if (urlTemporaria) {
+            URL.revokeObjectURL(urlTemporaria);
+        }
+        if (isBitmap && imgElement && typeof imgElement.close === 'function') {
+            imgElement.close();
+        }
+    }
+}
+
 if (typeof window !== 'undefined') {
     window.escapeHTML = escapeHTML;
     window.sanitizeComLatex = sanitizeComLatex;
@@ -568,6 +722,8 @@ if (typeof window !== 'undefined') {
     window.secureRandomInt = secureRandomInt;
     window.secureShuffle = secureShuffle;
     window.ordenarEstudantes = ordenarEstudantes;
+    window.comprimirERedimensionarImagem = comprimirERedimensionarImagem;
 }
+
 
 

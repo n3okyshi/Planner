@@ -2,6 +2,7 @@ import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
 import { aiService } from '../ai-service.js';
+import { comprimirERedimensionarImagem, escapeHTML } from '../utils.js';
 
 export const correcaoAutomaticaView = {
     abaAtiva: 'redacao',
@@ -41,15 +42,29 @@ export const correcaoAutomaticaView = {
         `;
 
         container.innerHTML = html;
+        if (this.abaAtiva === 'camera' && this.resultadoScanner) {
+            this.exibirResultadoOMR();
+        }
     },
 
     mudarAba(aba) {
+        this.limparRecursosMemoria();
+        this.abaAtiva = aba;
+        this.render('view-container');
+    },
+
+    limparRecursosMemoria() {
         if (this.videoStream) {
             this.videoStream.getTracks().forEach(track => track.stop());
             this.videoStream = null;
         }
-        this.abaAtiva = aba;
-        this.render('view-container');
+        const canvas = document.getElementById('omr-canvas-scanner');
+        if (canvas) {
+            const ctx = canvas.getContext('2d');
+            if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+            canvas.width = 0;
+            canvas.height = 0;
+        }
     },
 
     renderRedacao() {
@@ -156,7 +171,6 @@ export const correcaoAutomaticaView = {
     },
 
     renderCamera() {
-        const letras = ['A', 'B', 'C', 'D', 'E'];
         const totalQ = this.gabaritoOficial.length;
         return `
             <!-- GUIA RÁPIDO & AÇÕES DE SUPORTE -->
@@ -178,10 +192,10 @@ export const correcaoAutomaticaView = {
 
                 <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
                     <button type="button" onclick="correcaoAutomaticaView.imprimirCartaoResposta()" class="btn-secondary" style="padding: 0.625rem 1.25rem; font-size: 0.8125rem; font-weight: 800; background: white; border: 1px solid #c7d2fe; color: #4338ca; display: inline-flex; align-items: center; gap: 0.5rem;" title="Gerar e Imprimir Folhas de Cartão-Resposta A4 para os alunos">
-                        <i class="fas fa-print" style="color: #4f46e5;"></i> Imprimir Cartões-Resposta (${totalQ}Q)
+                        <i class="fas fa-print" style="color: #4f46e5;"></i> <span id="omr-print-btn-text">Imprimir Cartões-Resposta (${totalQ}Q)</span>
                     </button>
                     <button type="button" onclick="correcaoAutomaticaView.testarGabaritoExemplo()" class="btn-primary" style="padding: 0.625rem 1.25rem; font-size: 0.8125rem; font-weight: 800; background: linear-gradient(135deg, #059669, #047857); border: none; display: inline-flex; align-items: center; gap: 0.5rem;" title="Executar teste rápido com folha simulada">
-                        <i class="fas fa-vial"></i> Testar Exemplo (${totalQ}Q)
+                        <i class="fas fa-vial"></i> <span id="omr-test-btn-text">Testar Exemplo (${totalQ}Q)</span>
                     </button>
                 </div>
             </div>
@@ -207,10 +221,10 @@ export const correcaoAutomaticaView = {
                         </div>
 
                         <!-- ATALHOS RÁPIDOS DE VOLUME -->
-                        <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
+                        <div id="omr-atalhos-container" style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
                             <span style="font-size: 0.6875rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-right: 0.25rem;">Atalhos:</span>
                             ${[5, 10, 15, 20, 30, 45, 50, 90, 100].map(q => `
-                                <button type="button" onclick="correcaoAutomaticaView.alterarQuantidadeQuestoes(${q})" 
+                                <button type="button" data-qtd="${q}" onclick="correcaoAutomaticaView.alterarQuantidadeQuestoes(${q})" 
                                         style="padding: 0.2rem 0.5rem; font-size: 0.6875rem; font-weight: 800; border-radius: 0.375rem; cursor: pointer; border: 1px solid ${totalQ === q ? '#4f46e5' : '#cbd5e1'}; background: ${totalQ === q ? '#4f46e5' : 'white'}; color: ${totalQ === q ? 'white' : '#475569'}; transition: all 120ms ease;">
                                     ${q}Q ${q === 90 ? '(ENEM)' : ''}
                                 </button>
@@ -220,7 +234,7 @@ export const correcaoAutomaticaView = {
 
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
-                            <h3 style="font-size: 1.125rem; font-weight: 800; color: var(--color-slate-800); display: flex; align-items: center; gap: 0.5rem; margin: 0;">
+                            <h3 id="omr-gabarito-title-count" style="font-size: 1.125rem; font-weight: 800; color: var(--color-slate-800); display: flex; align-items: center; gap: 0.5rem; margin: 0;">
                                 <i class="fas fa-check-double text-indigo-600"></i> Gabarito Oficial (${totalQ} Questões)
                             </h3>
                             <p style="font-size: 0.75rem; color: var(--color-slate-500); margin: 0.25rem 0 0 0;">
@@ -232,21 +246,9 @@ export const correcaoAutomaticaView = {
                         </button>
                     </div>
 
-                    <!-- GRADE COM SCROLLBAR DINÂMICA -->
-                    <div class="custom-scrollbar" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.5rem; background: #f8fafc; padding: 0.875rem; border-radius: var(--radius-xl); border: 1px solid #e2e8f0; max-height: 380px; overflow-y: auto;">
-                        ${this.gabaritoOficial.map((gab, idx) => `
-                            <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.35rem 0.5rem; background: white; border-radius: 0.5rem; border: 1px solid #cbd5e1;">
-                                <span style="font-size: 0.75rem; font-weight: 800; color: #475569;">Q${(idx + 1).toString().padStart(2, '0')}</span>
-                                <div style="display: flex; gap: 0.15rem;">
-                                    ${letras.map(l => `
-                                        <button type="button" onclick="correcaoAutomaticaView.definirGabaritoItem(${idx}, '${l}')" 
-                                                style="width: 1.35rem; height: 1.35rem; border-radius: 0.25rem; font-size: 0.625rem; font-weight: 800; cursor: pointer; border: 1px solid ${gab === l ? '#4f46e5' : '#cbd5e1'}; background: ${gab === l ? '#4f46e5' : '#f8fafc'}; color: ${gab === l ? '#ffffff' : '#64748b'}; transition: all 100ms ease;">
-                                            ${l}
-                                        </button>
-                                    `).join('')}
-                                </div>
-                            </div>
-                        `).join('')}
+                    <!-- GRADE COM SCROLLBAR DINÂMICA (ATUALIZADA SEM FULL-PAGE RELOAD) -->
+                    <div id="omr-gabarito-oficial-grid" class="custom-scrollbar" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.5rem; background: #f8fafc; padding: 0.875rem; border-radius: var(--radius-xl); border: 1px solid #e2e8f0; max-height: 380px; overflow-y: auto;">
+                        ${this.obterHTMLGradeGabaritoOficial()}
                     </div>
 
                     <!-- MÉTODOS DE CAPTURA -->
@@ -293,6 +295,35 @@ export const correcaoAutomaticaView = {
         `;
     },
 
+    /**
+     * Retorna a string HTML para a grade do gabarito oficial
+     */
+    obterHTMLGradeGabaritoOficial() {
+        const letras = ['A', 'B', 'C', 'D', 'E'];
+        return this.gabaritoOficial.map((gab, idx) => `
+            <div id="omr-gab-item-${idx}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.35rem 0.5rem; background: white; border-radius: 0.5rem; border: 1px solid #cbd5e1;">
+                <span style="font-size: 0.75rem; font-weight: 800; color: #475569;">Q${(idx + 1).toString().padStart(2, '0')}</span>
+                <div style="display: flex; gap: 0.15rem;">
+                    ${letras.map(l => `
+                        <button type="button" onclick="correcaoAutomaticaView.definirGabaritoItem(${idx}, '${l}')" 
+                                style="width: 1.35rem; height: 1.35rem; border-radius: 0.25rem; font-size: 0.625rem; font-weight: 800; cursor: pointer; border: 1px solid ${gab === l ? '#4f46e5' : '#cbd5e1'}; background: ${gab === l ? '#4f46e5' : '#f8fafc'}; color: ${gab === l ? '#ffffff' : '#64748b'}; transition: all 100ms ease;">
+                            ${l}
+                        </button>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('');
+    },
+
+    /**
+     * Atualiza a grade do gabarito oficial no DOM sem re-renderizar a tela toda (zero scroll jump)
+     */
+    renderGradeGabaritoOficial() {
+        const grid = document.getElementById('omr-gabarito-oficial-grid');
+        if (!grid) return;
+        grid.innerHTML = this.obterHTMLGradeGabaritoOficial();
+    },
+
     alterarQuantidadeQuestoes(novaQtd) {
         const qtd = Math.max(1, Math.min(100, parseInt(novaQtd, 10) || 10));
         const letras = ['A', 'B', 'C', 'D', 'E'];
@@ -301,20 +332,103 @@ export const correcaoAutomaticaView = {
             novoGabarito.push(this.gabaritoOficial[i] || letras[i % letras.length]);
         }
         this.gabaritoOficial = novoGabarito;
-        this.render('view-container');
-        Toast.show(`Gabarito oficial atualizado para ${qtd} questões.`, "info");
+
+        // Atualização suave de elementos no DOM
+        const inputQtd = document.getElementById('omr-qtd-questoes');
+        if (inputQtd) inputQtd.value = qtd;
+
+        const titleCount = document.getElementById('omr-gabarito-title-count');
+        if (titleCount) titleCount.innerHTML = `<i class="fas fa-check-double text-indigo-600"></i> Gabarito Oficial (${qtd} Questões)`;
+
+        const printBtnText = document.getElementById('omr-print-btn-text');
+        if (printBtnText) printBtnText.innerText = `Imprimir Cartões-Resposta (${qtd}Q)`;
+
+        const testBtnText = document.getElementById('omr-test-btn-text');
+        if (testBtnText) testBtnText.innerText = `Testar Exemplo (${qtd}Q)`;
+
+        const atalhosContainer = document.getElementById('omr-atalhos-container');
+        if (atalhosContainer) {
+            atalhosContainer.querySelectorAll('button').forEach(btn => {
+                const btnQ = parseInt(btn.dataset.qtd, 10);
+                const isActive = (btnQ === qtd);
+                btn.style.borderColor = isActive ? '#4f46e5' : '#cbd5e1';
+                btn.style.background = isActive ? '#4f46e5' : 'white';
+                btn.style.color = isActive ? 'white' : '#475569';
+            });
+        }
+
+        this.renderGradeGabaritoOficial();
+
+        // Se houver scanner ativo, sincroniza os detalhes e recalcula métricas
+        if (this.resultadoScanner && Array.isArray(this.resultadoScanner.detalhes)) {
+            const novosDetalhes = [];
+            for (let i = 0; i < qtd; i++) {
+                const existing = this.resultadoScanner.detalhes[i];
+                if (existing) {
+                    existing.gabarito = this.gabaritoOficial[i];
+                    novosDetalhes.push(existing);
+                } else {
+                    novosDetalhes.push({
+                        questao: i + 1,
+                        gabarito: this.gabaritoOficial[i],
+                        resposta: 'EM_BRANCO',
+                        status: 'em_branco',
+                        isEmBranco: true,
+                        isAnulada: false,
+                        correta: false,
+                        confianca: 'baixa',
+                        editadoManualmente: false
+                    });
+                }
+            }
+            this.resultadoScanner.detalhes = novosDetalhes;
+            this.resultadoScanner.totalQ = qtd;
+            this.recalcularMetricasScanner();
+            this.exibirResultadoOMR();
+        }
+
+        Toast.show(`Gabarito ajustado para ${qtd} questões.`, "info", 1200);
     },
 
     definirGabaritoItem(index, letra) {
         this.gabaritoOficial[index] = letra;
-        this.render('view-container');
+
+        // Atualiza pontualmente os botões da linha no DOM sem recarregar a página
+        const row = document.getElementById(`omr-gab-item-${index}`);
+        if (row) {
+            const letras = ['A', 'B', 'C', 'D', 'E'];
+            const btns = row.querySelectorAll('button');
+            btns.forEach((btn, i) => {
+                const l = letras[i];
+                const isSelected = (l === letra);
+                btn.style.borderColor = isSelected ? '#4f46e5' : '#cbd5e1';
+                btn.style.background = isSelected ? '#4f46e5' : '#f8fafc';
+                btn.style.color = isSelected ? '#ffffff' : '#64748b';
+            });
+        } else {
+            this.renderGradeGabaritoOficial();
+        }
+
+        // Se já existir resultado escaneado, atualiza o gabarito da questão e recalcula instantaneamente
+        if (this.resultadoScanner && Array.isArray(this.resultadoScanner.detalhes)) {
+            if (this.resultadoScanner.detalhes[index]) {
+                this.resultadoScanner.detalhes[index].gabarito = letra;
+            }
+            this.recalcularMetricasScanner();
+            this.atualizarPainelResultadoOMR(index + 1);
+        }
     },
 
     preencherGabaritoRapido() {
         const letras = ['A', 'B', 'C', 'D', 'E'];
         this.gabaritoOficial = this.gabaritoOficial.map(() => letras[Math.floor(Math.random() * letras.length)]);
-        this.render('view-container');
-        Toast.show(`Gabarito oficial de ${this.gabaritoOficial.length} questões preenchido com sucesso!`, "info");
+        this.renderGradeGabaritoOficial();
+
+        if (this.resultadoScanner && Array.isArray(this.resultadoScanner.detalhes)) {
+            this.recalcularMetricasScanner();
+            this.exibirResultadoOMR();
+        }
+        Toast.show(`Gabarito de ${this.gabaritoOficial.length} questões preenchido com sucesso!`, "info", 1200);
     },
 
     async iniciarCamera() {
@@ -346,38 +460,43 @@ export const correcaoAutomaticaView = {
         }
     },
 
-    carregarFotoArquivo(input) {
+    async carregarFotoArquivo(input) {
         if (!input.files || !input.files[0]) return;
         const file = input.files[0];
-        const reader = new FileReader();
+        input.value = ''; // Libera o ponteiro do arquivo no DOM imediatamente para descarte do buffer original
 
-        reader.onload = (e) => {
-            const img = new Image();
-            img.onload = () => {
-                const canvas = document.getElementById('omr-canvas-scanner');
-                const video = document.getElementById('omr-video-feed');
-                const placeholder = document.getElementById('omr-placeholder-view');
-                const controls = document.getElementById('omr-camera-controls');
+        const video = document.getElementById('omr-video-feed');
+        const placeholder = document.getElementById('omr-placeholder-view');
+        const controls = document.getElementById('omr-camera-controls');
+        const canvas = document.getElementById('omr-canvas-scanner');
 
-                if (video) video.style.display = 'none';
-                if (placeholder) placeholder.style.display = 'none';
-                if (controls) controls.style.display = 'none';
+        if (video) video.style.display = 'none';
+        if (placeholder) placeholder.style.display = 'none';
+        if (controls) controls.style.display = 'none';
 
-                if (canvas) {
-                    canvas.style.display = 'block';
-                    canvas.width = img.width || 600;
-                    canvas.height = img.height || 800;
-                    const ctx = canvas.getContext('2d');
+        try {
+            Toast.show("Comprimindo e otimizando imagem...", "info", 1500);
+            const otimizada = await comprimirERedimensionarImagem(file, { maxDimensao: 1400, qualidade: 0.82 });
+
+            if (canvas) {
+                canvas.style.display = 'block';
+                canvas.width = otimizada.largura;
+                canvas.height = otimizada.altura;
+                const ctx = canvas.getContext('2d');
+                const img = new Image();
+                img.onload = () => {
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    this.processarImagemCanvas(canvas);
-                }
-            };
-            img.src = e.target.result;
-        };
-        reader.readAsDataURL(file);
+                    this.processarImagemCanvas(canvas, null, otimizada);
+                };
+                img.src = otimizada.base64;
+            }
+        } catch (err) {
+            console.error("Erro ao carregar e comprimir foto:", err);
+            Toast.show("Erro ao processar imagem. Tente novamente.", "error");
+        }
     },
 
-    capturarEAnalisar() {
+    async capturarEAnalisar() {
         const video = document.getElementById('omr-video-feed');
         const canvas = document.getElementById('omr-canvas-scanner');
         if (!video || !canvas) return;
@@ -397,7 +516,13 @@ export const correcaoAutomaticaView = {
         const controls = document.getElementById('omr-camera-controls');
         if (controls) controls.style.display = 'none';
 
-        this.processarImagemCanvas(canvas);
+        try {
+            const otimizada = await comprimirERedimensionarImagem(canvas, { maxDimensao: 1400, qualidade: 0.82 });
+            this.processarImagemCanvas(canvas, null, otimizada);
+        } catch (err) {
+            console.error("Erro na compressão da captura da câmera:", err);
+            this.processarImagemCanvas(canvas);
+        }
     },
 
     /**
@@ -438,12 +563,13 @@ export const correcaoAutomaticaView = {
             ctx.lineWidth = 2;
             ctx.strokeRect(20, 80, canvas.width - 40, canvas.height - 100);
 
-            // Respostas simuladas: acerta ~85% das questões
+            // Respostas simuladas: acerta ~80% das questões, erra algumas e deixa 1 em branco
             const letras = ['A', 'B', 'C', 'D', 'E'];
             const respostasAluno = [];
             for (let q = 0; q < totalQ; q++) {
-                if (q % 7 === 0 && q > 0) {
-                    // Simula um erro
+                if (q === 1) {
+                    respostasAluno.push('EM_BRANCO'); // Simula questão em branco
+                } else if (q % 6 === 0 && q > 0) {
                     const gab = this.gabaritoOficial[q];
                     const erradas = letras.filter(l => l !== gab);
                     respostasAluno.push(erradas[0]);
@@ -470,7 +596,7 @@ export const correcaoAutomaticaView = {
 
                 letras.forEach((l, idxLetra) => {
                     const x = startX + 50 + idxLetra * 36;
-                    const isMarcada = l === respAluno;
+                    const isMarcada = (respAluno !== 'EM_BRANCO' && l === respAluno);
 
                     ctx.beginPath();
                     ctx.arc(x, y, 10, 0, Math.PI * 2);
@@ -500,46 +626,311 @@ export const correcaoAutomaticaView = {
         }
     },
 
-    processarImagemCanvas(canvas, respostasForcadas = null) {
-        Toast.show("Processando leitura óptica e densidade das alternativas...", "info");
-        const ctx = canvas.getContext('2d');
-        const width = canvas.width;
-        const height = canvas.height;
-
+    async processarImagemCanvas(canvas, respostasForcadas = null, imagemOtimizada = null) {
+        const container = document.getElementById('omr-resultado-container');
         const totalQ = this.gabaritoOficial.length;
-        const respostasDetectadas = [];
 
-        // Análise de luminância e densidade de contraste
-        for (let q = 0; q < totalQ; q++) {
-            let letraEscolhida = respostasForcadas ? respostasForcadas[q] : this.gabaritoOficial[q];
-            respostasDetectadas.push(letraEscolhida || 'A');
+        // Se o container de resultados existir, exibe estado de carregamento profissional com badge de otimização
+        if (container) {
+            container.style.display = 'block';
+            container.innerHTML = `
+                <div class="card animate-enter" style="padding: 2.5rem 1.5rem; text-align: center; background: white; border: 1px solid var(--color-slate-200); box-shadow: var(--shadow-md);">
+                    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1rem;">
+                        <div style="width: 3.5rem; height: 3.5rem; border-radius: 50%; background: #eef2ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; box-shadow: 0 4px 12px rgba(79, 70, 229, 0.2);">
+                            <i class="fas fa-circle-notch fa-spin"></i>
+                        </div>
+                        <div>
+                            <h4 style="font-size: 1.125rem; font-weight: 800; color: #1e293b; margin: 0 0 0.25rem 0;">
+                                🤖 IA Vision Analisando Cartão-Resposta...
+                            </h4>
+                            <p style="font-size: 0.8125rem; color: #64748b; margin: 0; max-width: 420px; line-height: 1.5;">
+                                Identificando marcações das bolhas, verificando questões em branco e comparando com o gabarito oficial (${totalQ} questões)...
+                            </p>
+                            ${imagemOtimizada && imagemOtimizada.percentualReducao > 0 ? `
+                                <div style="display: flex; justify-content: center; margin-top: 0.75rem;">
+                                    <span class="badge" style="background: #ecfdf5; color: #059669; font-weight: 800; font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 9999px; border: 1px solid #a7f3d0;">
+                                        <i class="fas fa-bolt"></i> Imagem otimizada: ${imagemOtimizada.tamanhoOriginalKB.toFixed(0)} KB → ${imagemOtimizada.tamanhoFinalKB.toFixed(0)} KB (-${imagemOtimizada.percentualReducao}%)
+                                    </span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            `;
+            container.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         }
 
-        // Calcula resultado com auditoria
-        let acertos = 0;
-        const detalhes = this.gabaritoOficial.map((gab, idx) => {
-            const resp = respostasDetectadas[idx];
-            const isCorreta = resp === gab;
-            if (isCorreta) acertos++;
-            return {
-                questao: idx + 1,
-                gabarito: gab,
-                resposta: resp,
-                correta: isCorreta
+        try {
+            let mapaRespostasIA = null;
+            let observacoesIA = "";
+
+            if (respostasForcadas && Array.isArray(respostasForcadas)) {
+                // Fluxo de Teste Exemplo / Simulado instantâneo
+                mapaRespostasIA = {};
+                respostasForcadas.forEach((resp, idx) => {
+                    mapaRespostasIA[idx + 1] = {
+                        resposta: resp || 'EM_BRANCO',
+                        status: (resp === 'EM_BRANCO' || !resp) ? 'em_branco' : (resp === 'ANULADA' ? 'anulada' : 'marcada'),
+                        confianca: 'alta'
+                    };
+                });
+                observacoesIA = "Teste simulado executado com sucesso.";
+            } else {
+                // Fluxo Real com Foto da Câmera ou Arquivo: Otimiza imagem e invoca o Gemini Vision
+                Toast.show("Enviando imagem compactada para análise óptica com IA...", "info");
+
+                let base64Data;
+                if (imagemOtimizada && imagemOtimizada.base64) {
+                    base64Data = imagemOtimizada.base64;
+                } else {
+                    const otimizada = await comprimirERedimensionarImagem(canvas, { maxDimensao: 1400, qualidade: 0.82 });
+                    base64Data = otimizada.base64;
+                }
+
+                const resultadoIA = await aiService.analisarCartaoRespostaOMR({
+                    imagemBase64: base64Data,
+                    mimeType: 'image/jpeg',
+                    totalQuestoes: totalQ,
+                    gabaritoOficial: this.gabaritoOficial
+                });
+
+                if (resultadoIA && Array.isArray(resultadoIA.respostas)) {
+                    mapaRespostasIA = {};
+                    resultadoIA.respostas.forEach(r => {
+                        const num = parseInt(r.questao, 10);
+                        if (!isNaN(num)) {
+                            let respStr = String(r.resposta || '').toUpperCase().trim();
+                            mapaRespostasIA[num] = {
+                                resposta: respStr,
+                                status: r.status || (respStr === 'EM_BRANCO' ? 'em_branco' : respStr === 'ANULADA' ? 'anulada' : 'marcada'),
+                                confianca: r.confianca || 'alta'
+                            };
+                        }
+                    });
+                    observacoesIA = resultadoIA.observacoes || "";
+                } else {
+                    throw new Error("A IA não retornou a lista de respostas estruturada.");
+                }
+            }
+
+            // Constrói os detalhes iniciais
+            const detalhes = this.gabaritoOficial.map((gab, idx) => {
+                const questaoNum = idx + 1;
+                const itemDetectado = mapaRespostasIA && mapaRespostasIA[questaoNum]
+                    ? mapaRespostasIA[questaoNum]
+                    : { resposta: 'EM_BRANCO', status: 'em_branco', confianca: 'baixa' };
+
+                let resp = (itemDetectado.resposta || 'EM_BRANCO').toUpperCase().trim();
+                if (resp === '-' || resp === '' || resp === 'BLANK' || resp === 'VAZIO' || resp === 'NULO') {
+                    resp = 'EM_BRANCO';
+                }
+
+                return {
+                    questao: questaoNum,
+                    gabarito: gab,
+                    resposta: resp,
+                    status: 'marcada',
+                    isEmBranco: false,
+                    isAnulada: false,
+                    correta: false,
+                    confianca: itemDetectado.confianca || 'alta',
+                    editadoManualmente: false
+                };
+            });
+
+            this.resultadoScanner = {
+                totalQ,
+                acertos: 0,
+                erros: 0,
+                emBranco: 0,
+                anuladas: 0,
+                notaFinal: 0,
+                observacoes: observacoesIA,
+                detalhes
             };
+
+            // Recalcula métricas com rigor
+            this.recalcularMetricasScanner();
+            this.exibirResultadoOMR();
+            Toast.show(`Análise concluída: ${this.resultadoScanner.acertos}/${totalQ} acertos.`, "success", 3000);
+        } catch (error) {
+            console.error("Erro na leitura de gabarito com IA:", error);
+            if (container) {
+                container.style.display = 'block';
+                container.innerHTML = `
+                    <div class="card animate-enter" style="padding: 2rem; text-align: center; background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-xl);">
+                        <div style="width: 3.5rem; height: 3.5rem; border-radius: 50%; background: #fee2e2; color: #dc2626; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin: 0 auto 1rem auto;">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <h4 style="font-size: 1.125rem; font-weight: 800; color: #991b1b; margin: 0 0 0.5rem 0;">Falha na Leitura com IA</h4>
+                        <p style="font-size: 0.875rem; color: #b91c1c; margin: 0 0 1.25rem 0; max-width: 460px; margin-inline: auto;">
+                            ${window.escapeHTML(error.message || "Não foi possível processar a imagem do cartão. Verifique a iluminação, enquadramento ou sua conexão.")}
+                        </p>
+                        <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
+                            <button type="button" onclick="correcaoAutomaticaView.iniciarCamera()" class="btn-primary" style="background: #dc2626; border-color: #dc2626; font-size: 0.8125rem;">
+                                <i class="fas fa-redo"></i> Tentar Novamente
+                            </button>
+                            <button type="button" onclick="correcaoAutomaticaView.testarGabaritoExemplo()" class="btn-secondary" style="font-size: 0.8125rem;">
+                                <i class="fas fa-vial"></i> Testar Exemplo Simulado
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+            Toast.show("Erro ao analisar imagem com IA. Tente novamente.", "error");
+        }
+    },
+
+    /**
+     * Recalcula de forma centralizada e pura todas as métricas do gabarito escaneado
+     */
+    recalcularMetricasScanner() {
+        if (!this.resultadoScanner || !Array.isArray(this.resultadoScanner.detalhes)) return;
+        const totalQ = this.resultadoScanner.detalhes.length;
+        let acertos = 0;
+        let emBrancoCount = 0;
+        let anuladasCount = 0;
+
+        this.resultadoScanner.detalhes.forEach((d, idx) => {
+            // Sincroniza gabarito oficial atualizado
+            if (this.gabaritoOficial[idx]) {
+                d.gabarito = this.gabaritoOficial[idx];
+            }
+            const resp = String(d.resposta || 'EM_BRANCO').toUpperCase().trim();
+            d.isEmBranco = (resp === 'EM_BRANCO' || resp === '-' || resp === '' || resp === 'BLANK' || resp === 'VAZIO' || resp === 'NULO');
+            d.isAnulada = (resp === 'ANULADA' || resp === 'DUPLA' || resp === 'INVALIDA');
+            d.correta = (!d.isEmBranco && !d.isAnulada && resp === d.gabarito);
+            d.status = d.isEmBranco ? 'em_branco' : d.isAnulada ? 'anulada' : 'marcada';
+
+            if (d.correta) {
+                acertos++;
+            } else if (d.isEmBranco) {
+                emBrancoCount++;
+            } else if (d.isAnulada) {
+                anuladasCount++;
+            }
         });
 
+        const erros = totalQ - acertos;
         const notaFinal = Number(((acertos / totalQ) * 10).toFixed(1));
 
-        this.resultadoScanner = {
-            totalQ,
-            acertos,
-            erros: totalQ - acertos,
-            notaFinal,
-            detalhes
-        };
+        this.resultadoScanner.totalQ = totalQ;
+        this.resultadoScanner.acertos = acertos;
+        this.resultadoScanner.erros = erros;
+        this.resultadoScanner.emBranco = emBrancoCount;
+        this.resultadoScanner.anuladas = anuladasCount;
+        this.resultadoScanner.notaFinal = notaFinal;
+    },
 
+    /**
+     * Atualiza o painel de resultados de forma granular e fluida (sem scroll jump)
+     */
+    atualizarPainelResultadoOMR(questaoNumeroAlvo = null) {
+        if (!this.resultadoScanner) return;
+        const res = this.resultadoScanner;
+
+        // Atualiza contadores no Scoreboard Header
+        const notaEl = document.getElementById('omr-score-nota-val');
+        if (notaEl) {
+            notaEl.innerText = res.notaFinal.toFixed(1);
+            notaEl.style.color = res.notaFinal >= 6 ? '#059669' : '#dc2626';
+        }
+
+        const acertosEl = document.getElementById('omr-score-acertos-val');
+        if (acertosEl) acertosEl.innerText = `${res.acertos}/${res.totalQ}`;
+
+        const errosEl = document.getElementById('omr-score-erros-val');
+        if (errosEl) errosEl.innerText = `${res.erros - (res.emBranco || 0) - (res.anuladas || 0)}`;
+
+        const brancoEl = document.getElementById('omr-score-branco-val');
+        if (brancoEl) brancoEl.innerText = `${res.emBranco || 0}`;
+
+        const anuladasEl = document.getElementById('omr-score-anuladas-val');
+        if (anuladasEl) anuladasEl.innerText = `${res.anuladas || 0}`;
+
+        // Se uma questão específica foi informada, atualiza pontualmente o card dela no DOM
+        if (questaoNumeroAlvo !== null) {
+            const idx = questaoNumeroAlvo - 1;
+            const d = res.detalhes[idx];
+            const card = document.getElementById(`omr-card-q-${questaoNumeroAlvo}`);
+            if (d && card) {
+                let corBorda = d.correta ? '#a7f3d0' : d.isEmBranco ? '#fde68a' : d.isAnulada ? '#e9d5ff' : '#fecaca';
+                let corFundo = d.correta ? '#f0fdf4' : d.isEmBranco ? '#fffbeb' : d.isAnulada ? '#faf5ff' : '#fff5f5';
+                let badgeTexto = d.correta ? 'ACERTO' : d.isEmBranco ? 'EM BRANCO' : d.isAnulada ? 'ANULADA' : 'ERRO';
+                let badgeCor = d.correta ? '#059669' : d.isEmBranco ? '#d97706' : d.isAnulada ? '#7c3aed' : '#dc2626';
+                let badgeBg = d.correta ? '#d1fae5' : d.isEmBranco ? '#fef3c7' : d.isAnulada ? '#f3e8ff' : '#fee2e2';
+
+                card.style.borderColor = corBorda;
+                card.style.backgroundColor = corFundo;
+
+                const badgeEl = card.querySelector('.omr-q-badge');
+                if (badgeEl) {
+                    badgeEl.innerText = badgeTexto;
+                    badgeEl.style.color = badgeCor;
+                    badgeEl.style.backgroundColor = badgeBg;
+                }
+
+                const gabValEl = card.querySelector('.omr-q-gab-val');
+                if (gabValEl) gabValEl.innerText = d.gabarito;
+
+                const lidoValEl = card.querySelector('.omr-q-lido-val');
+                if (lidoValEl) {
+                    lidoValEl.innerText = d.isEmBranco ? '—' : d.isAnulada ? '⚠️' : d.resposta;
+                    lidoValEl.style.color = badgeCor;
+                }
+
+                const editIcon = card.querySelector('.omr-q-edit-icon');
+                if (editIcon) {
+                    editIcon.style.display = d.editadoManualmente ? 'inline-block' : 'none';
+                }
+
+                const opcoesLetras = ['A', 'B', 'C', 'D', 'E'];
+                opcoesLetras.forEach(l => {
+                    const btnL = card.querySelector(`.omr-btn-opt-${l}`);
+                    if (btnL) {
+                        const isSel = (d.resposta === l);
+                        btnL.style.borderColor = isSel ? '#4f46e5' : '#cbd5e1';
+                        btnL.style.backgroundColor = isSel ? '#4f46e5' : 'white';
+                        btnL.style.color = isSel ? 'white' : '#475569';
+                    }
+                });
+
+                const btnBranco = card.querySelector('.omr-btn-opt-branco');
+                if (btnBranco) {
+                    btnBranco.style.borderColor = d.isEmBranco ? '#d97706' : '#cbd5e1';
+                    btnBranco.style.backgroundColor = d.isEmBranco ? '#d97706' : 'white';
+                    btnBranco.style.color = d.isEmBranco ? 'white' : '#64748b';
+                }
+
+                const btnAnulada = card.querySelector('.omr-btn-opt-anulada');
+                if (btnAnulada) {
+                    btnAnulada.style.borderColor = d.isAnulada ? '#7c3aed' : '#cbd5e1';
+                    btnAnulada.style.backgroundColor = d.isAnulada ? '#7c3aed' : 'white';
+                    btnAnulada.style.color = d.isAnulada ? 'white' : '#64748b';
+                }
+                return;
+            }
+        }
+
+        // Se múltiplos cards mudaram ou o container ainda não existe, renderiza a tela de resultados
         this.exibirResultadoOMR();
+    },
+
+    /**
+     * Permite ao professor alterar manualmente a resposta detectada de uma questão na interface de auditoria
+     */
+    alterarRespostaQuestao(questaoNumero, novaResposta) {
+        if (!this.resultadoScanner || !this.resultadoScanner.detalhes) return;
+        const idx = questaoNumero - 1;
+        const d = this.resultadoScanner.detalhes[idx];
+        if (!d) return;
+
+        d.resposta = novaResposta;
+        d.editadoManualmente = true;
+        this.recalcularMetricasScanner();
+        this.atualizarPainelResultadoOMR(questaoNumero);
+
+        Toast.show(`Q${questaoNumero.toString().padStart(2, '0')} definida como: ${novaResposta === 'EM_BRANCO' ? 'Em Branco' : novaResposta === 'ANULADA' ? 'Anulada' : novaResposta}`, "info", 1000);
     },
 
     exibirResultadoOMR() {
@@ -548,47 +939,109 @@ export const correcaoAutomaticaView = {
 
         const res = this.resultadoScanner;
         const turmas = model.state.turmas || [];
+        const opcoesLetras = ['A', 'B', 'C', 'D', 'E'];
 
         container.style.display = 'block';
         container.innerHTML = `
             <div class="card" style="padding: var(--spacing-6); background: white; border: 1px solid var(--color-slate-200); box-shadow: var(--shadow-md);">
                 
+                <!-- CABEÇALHO DO RESULTADO COM NOTA E MÉTRICAS REATIVAS -->
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 1rem; margin-bottom: 1.25rem;">
                     <div>
-                        <span class="badge" style="background: #d1fae5; color: #059669; font-weight: 800; font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 9999px;">
-                            <i class="fas fa-check-circle"></i> Leitura Óptica Concluída (${res.totalQ} Questões)
-                        </span>
-                        <h3 style="font-size: 1.375rem; font-weight: 900; color: #0f172a; margin: 0.35rem 0 0 0;">
-                            Nota Calculada: ${res.notaFinal} / 10.0
+                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                            <span class="badge" style="background: #d1fae5; color: #059669; font-weight: 800; font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 9999px;">
+                                <i class="fas fa-check-circle"></i> Leitura Óptica Concluída (${res.totalQ} Questões)
+                            </span>
+                            ${res.observacoes ? `
+                                <span class="badge" style="background: #eff6ff; color: #3b82f6; font-size: 0.6875rem; font-weight: 700; padding: 0.25rem 0.5rem; border-radius: 0.375rem;">
+                                    <i class="fas fa-info-circle"></i> ${window.escapeHTML(res.observacoes)}
+                                </span>
+                            ` : ''}
+                        </div>
+                        <h3 style="font-size: 1.5rem; font-weight: 900; color: #0f172a; margin: 0.35rem 0 0 0;">
+                            Nota Calculada: <span id="omr-score-nota-val" style="color: ${res.notaFinal >= 6 ? '#059669' : '#dc2626'};">${res.notaFinal.toFixed(1)}</span> / 10.0
                         </h3>
+                        <p style="font-size: 0.75rem; color: #64748b; margin: 0.2rem 0 0 0;">
+                            <i class="fas fa-hand-pointer"></i> Clique nas opções de cada questão abaixo para auditar ou corrigir qualquer marcação.
+                        </p>
                     </div>
 
-                    <div style="display: flex; gap: 1rem;">
-                        <div style="text-align: center; padding: 0.5rem 1rem; background: #ecfdf5; border-radius: 0.75rem; border: 1px solid #a7f3d0;">
-                            <span style="font-size: 0.6875rem; font-weight: 800; color: #065f46; text-transform: uppercase;">Acertos</span>
-                            <div style="font-size: 1.25rem; font-weight: 900; color: #059669;">${res.acertos}/${res.totalQ}</div>
+                    <!-- CARDS DE RESUMO REATIVOS (ACERTOS, ERROS, EM BRANCO, ANULADAS) -->
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <div style="text-align: center; padding: 0.5rem 0.75rem; background: #ecfdf5; border-radius: 0.75rem; border: 1px solid #a7f3d0; min-width: 70px;">
+                            <span style="font-size: 0.625rem; font-weight: 800; color: #065f46; text-transform: uppercase;">Acertos</span>
+                            <div id="omr-score-acertos-val" style="font-size: 1.125rem; font-weight: 900; color: #059669;">${res.acertos}/${res.totalQ}</div>
                         </div>
-                        <div style="text-align: center; padding: 0.5rem 1rem; background: #fef2f2; border-radius: 0.75rem; border: 1px solid #fecaca;">
-                            <span style="font-size: 0.6875rem; font-weight: 800; color: #991b1b; text-transform: uppercase;">Erros</span>
-                            <div style="font-size: 1.25rem; font-weight: 900; color: #dc2626;">${res.erros}</div>
+                        <div style="text-align: center; padding: 0.5rem 0.75rem; background: #fef2f2; border-radius: 0.75rem; border: 1px solid #fecaca; min-width: 70px;">
+                            <span style="font-size: 0.625rem; font-weight: 800; color: #991b1b; text-transform: uppercase;">Erros</span>
+                            <div id="omr-score-erros-val" style="font-size: 1.125rem; font-weight: 900; color: #dc2626;">${res.erros - (res.emBranco || 0) - (res.anuladas || 0)}</div>
+                        </div>
+                        <div style="text-align: center; padding: 0.5rem 0.75rem; background: #fffbeb; border-radius: 0.75rem; border: 1px solid #fde68a; min-width: 70px;">
+                            <span style="font-size: 0.625rem; font-weight: 800; color: #92400e; text-transform: uppercase;">Em Branco</span>
+                            <div id="omr-score-branco-val" style="font-size: 1.125rem; font-weight: 900; color: #d97706;">${res.emBranco || 0}</div>
+                        </div>
+                        <div style="text-align: center; padding: 0.5rem 0.75rem; background: #faf5ff; border-radius: 0.75rem; border: 1px solid #e9d5ff; min-width: 70px;">
+                            <span style="font-size: 0.625rem; font-weight: 800; color: #6b21a8; text-transform: uppercase;">Anuladas</span>
+                            <div id="omr-score-anuladas-val" style="font-size: 1.125rem; font-weight: 900; color: #7c3aed;">${res.anuladas || 0}</div>
                         </div>
                     </div>
                 </div>
 
-                <!-- GRADE DE QUESTÕES CORRIGIDAS -->
-                <div class="custom-scrollbar" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 0.5rem; margin-bottom: 1.5rem; max-height: 340px; overflow-y: auto; padding: 0.25rem;">
-                    ${res.detalhes.map(d => `
-                        <div style="padding: 0.5rem; border-radius: 0.5rem; border: 1px solid ${d.correta ? '#a7f3d0' : '#fecaca'}; background: ${d.correta ? '#f0fdf4' : '#fff5f5'}; display: flex; align-items: center; justify-content: space-between;">
-                            <div>
-                                <span style="font-weight: 800; font-size: 0.75rem; color: #334155;">Q${d.questao}</span>
-                                <div style="font-size: 0.625rem; color: #64748b;">Gab: <b>${d.gabarito}</b></div>
+                <!-- GRADE INTERATIVA DE QUESTÕES CORRIGIDAS -->
+                <div class="custom-scrollbar" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 0.625rem; margin-bottom: 1.5rem; max-height: 380px; overflow-y: auto; padding: 0.25rem;">
+                    ${res.detalhes.map(d => {
+                        let corBorda = d.correta ? '#a7f3d0' : d.isEmBranco ? '#fde68a' : d.isAnulada ? '#e9d5ff' : '#fecaca';
+                        let corFundo = d.correta ? '#f0fdf4' : d.isEmBranco ? '#fffbeb' : d.isAnulada ? '#faf5ff' : '#fff5f5';
+                        let badgeTexto = d.correta ? 'ACERTO' : d.isEmBranco ? 'EM BRANCO' : d.isAnulada ? 'ANULADA' : 'ERRO';
+                        let badgeCor = d.correta ? '#059669' : d.isEmBranco ? '#d97706' : d.isAnulada ? '#7c3aed' : '#dc2626';
+                        let badgeBg = d.correta ? '#d1fae5' : d.isEmBranco ? '#fef3c7' : d.isAnulada ? '#f3e8ff' : '#fee2e2';
+
+                        return `
+                            <div id="omr-card-q-${d.questao}" style="padding: 0.625rem; border-radius: 0.625rem; border: 1.5px solid ${corBorda}; background: ${corFundo}; display: flex; flex-direction: column; gap: 0.4rem; transition: background-color 150ms ease, border-color 150ms ease;">
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <span style="font-weight: 900; font-size: 0.8125rem; color: #1e293b;">
+                                        Q${d.questao.toString().padStart(2, '0')}
+                                        <i class="fas fa-pen omr-q-edit-icon" style="font-size: 0.625rem; color: #4f46e5; margin-left: 0.25rem; display: ${d.editadoManualmente ? 'inline-block' : 'none'};" title="Editado manualmente pelo professor"></i>
+                                    </span>
+                                    <span class="omr-q-badge" style="font-size: 0.625rem; font-weight: 800; padding: 0.15rem 0.4rem; border-radius: 0.25rem; background: ${badgeBg}; color: ${badgeCor};">
+                                        ${badgeTexto}
+                                    </span>
+                                </div>
+
+                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem;">
+                                    <span style="color: #64748b;">Gab: <b class="omr-q-gab-val" style="color: #1e293b;">${d.gabarito}</b></span>
+                                    <span style="color: #64748b;">Lido: <b class="omr-q-lido-val" style="color: ${badgeCor}; font-size: 0.875rem;">${d.isEmBranco ? '—' : d.isAnulada ? '⚠️' : d.resposta}</b></span>
+                                </div>
+
+                                <!-- SELETOR RÁPIDO DE AUDITORIA MANUAL -->
+                                <div style="display: flex; gap: 0.2rem; align-items: center; justify-content: space-between; border-top: 1px dashed rgba(0,0,0,0.08); padding-top: 0.35rem; margin-top: 0.2rem;">
+                                    ${opcoesLetras.map(l => `
+                                        <button type="button" 
+                                                class="omr-btn-opt-${l}"
+                                                onclick="correcaoAutomaticaView.alterarRespostaQuestao(${d.questao}, '${l}')"
+                                                style="width: 1.35rem; height: 1.35rem; border-radius: 0.25rem; font-size: 0.625rem; font-weight: 800; cursor: pointer; border: 1px solid ${d.resposta === l ? '#4f46e5' : '#cbd5e1'}; background: ${d.resposta === l ? '#4f46e5' : 'white'}; color: ${d.resposta === l ? 'white' : '#475569'}; padding: 0; transition: all 100ms ease;"
+                                                title="Definir Q${d.questao} como ${l}">
+                                            ${l}
+                                        </button>
+                                    `).join('')}
+                                    <button type="button" 
+                                            class="omr-btn-opt-branco"
+                                            onclick="correcaoAutomaticaView.alterarRespostaQuestao(${d.questao}, 'EM_BRANCO')"
+                                            style="padding: 0 0.3rem; height: 1.35rem; border-radius: 0.25rem; font-size: 0.5625rem; font-weight: 800; cursor: pointer; border: 1px solid ${d.isEmBranco ? '#d97706' : '#cbd5e1'}; background: ${d.isEmBranco ? '#d97706' : 'white'}; color: ${d.isEmBranco ? 'white' : '#64748b'}; transition: all 100ms ease;"
+                                            title="Definir como Em Branco">
+                                        ⚪
+                                    </button>
+                                    <button type="button" 
+                                            class="omr-btn-opt-anulada"
+                                            onclick="correcaoAutomaticaView.alterarRespostaQuestao(${d.questao}, 'ANULADA')"
+                                            style="padding: 0 0.3rem; height: 1.35rem; border-radius: 0.25rem; font-size: 0.5625rem; font-weight: 800; cursor: pointer; border: 1px solid ${d.isAnulada ? '#7c3aed' : '#cbd5e1'}; background: ${d.isAnulada ? '#7c3aed' : 'white'}; color: ${d.isAnulada ? 'white' : '#64748b'}; transition: all 100ms ease;"
+                                            title="Definir como Anulada/Dupla">
+                                        ⚠️
+                                    </button>
+                                </div>
                             </div>
-                            <div style="display: flex; align-items: center; gap: 0.25rem;">
-                                <span style="font-weight: 900; font-size: 0.875rem; color: ${d.correta ? '#059669' : '#dc2626'};">${d.resposta}</span>
-                                <i class="fas ${d.correta ? 'fa-check-circle text-emerald-600' : 'fa-times-circle text-red-600'}" style="font-size: 0.8125rem;"></i>
-                            </div>
-                        </div>
-                    `).join('')}
+                        `;
+                    }).join('')}
                 </div>
 
                 <!-- LANÇAMENTO DIRETO NA TURMA -->
