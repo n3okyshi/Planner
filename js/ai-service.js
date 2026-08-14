@@ -169,7 +169,7 @@ export const aiService = {
      */
     async analisarCartaoRespostaOMR({ imagemBase64, mimeType = 'image/jpeg', totalQuestoes = 10, gabaritoOficial = [] }) {
         const total = parseInt(totalQuestoes, 10) || (gabaritoOficial ? gabaritoOficial.length : 10);
-        
+
         const prompt = `
             Você é um leitor óptico de altíssima precisão especializado em OMR (Optical Mark Recognition) e visão computacional de avaliações escolares.
             Analise a imagem da folha de respostas/cartão-resposta ou prova em anexo.
@@ -211,8 +211,83 @@ export const aiService = {
                 "observacoes": "Breve comentário sobre nitidez, alinhamento e legibilidade do cartão"
             }
         `;
+    },
 
-        return await this._executarPromptMultimodalGemini(prompt, imagemBase64, mimeType, 4000);
+    /**
+     * Avalia rigorosamente uma redação dissertativa-argumentativa de acordo com os critérios oficiais das 5 competências do ENEM (0 a 1000 pontos).
+     * @param {Object} params - { tema, texto }
+     * @returns {Promise<Object>} - { notaTotal, competencias: [{ numero, nome, nota, comentario }], feedbackGeral }
+     */
+    async avaliarRedacaoEnem({ tema = "Tema Livre", texto }) {
+        if (!texto || texto.trim().length < 50) {
+            throw new Error("O texto da redação é muito curto para uma avaliação do ENEM.");
+        }
+
+        const prompt = `
+            Atue como um corretor sênior de redações do ENEM (Exame Nacional do Ensino Médio) do INEP.
+            Avalie criteriosamente o texto enviado de acordo com os padrões oficiais de correção do ENEM.
+
+            PROPOSTA / TEMA DA REDAÇÃO:
+            "${tema}"
+
+            TEXTO DA REDAÇÃO DO ESTUDANTE:
+            """
+            ${texto}
+            """
+
+            DIRETRIZES DE AVALIAÇÃO DAS 5 COMPETÊNCIAS DO ENEM (0 a 200 pontos por competência):
+            - Competência 1: Domínio da modalidade escrita formal da língua portuguesa (gramática, ortografia, pontuação, sintaxe, concordância, regência). Notas possíveis: 0, 40, 80, 120, 160, 200.
+            - Competência 2: Compreensão da proposta de redação e aplicação de conceitos das várias áreas do conhecimento (respeito à estrutura dissertativo-argumentativa, presença de repertório sociocultural legitimado e produtivo). Notas possíveis: 0, 40, 80, 120, 160, 200.
+            - Competência 3: Seleção, relação, organização e interpretação de informações, fatos, opiniões e argumentos em defesa de um ponto de vista (projeto de texto estratégico e coerência). Notas possíveis: 0, 40, 80, 120, 160, 200.
+            - Competência 4: Conhecimento dos mecanismos linguísticos para construção da argumentação (coesão textual, conectivos inter e intraparágrafos, variedade de conectores sem repetições). Notas possíveis: 0, 40, 80, 120, 160, 200.
+            - Competência 5: Elaboração de proposta de intervenção para o problema abordado, respeitando os direitos humanos. Avalie os 5 elementos essenciais: Agente, Ação, Meio/Modo, Efeito e Detalhamento. Se contiver os 5 elementos e respeitar direitos humanos = 200 pontos. Notas possíveis: 0, 40, 80, 120, 160, 200.
+
+            REGRA DE NOTA TOTAL:
+            notaTotal = (Nota C1) + (Nota C2) + (Nota C3) + (Nota C4) + (Nota C5).
+            Se o texto for excelente (nota 1000), atribua 200 em todas as competências.
+
+            REGRAS OBRIGATÓRIAS DE FORMATO:
+            1. Responda EXCLUSIVAMENTE um objeto JSON puro. Sem markdown, sem blocos \`\`\`json.
+            2. Estrutura exata do JSON de retorno:
+            {
+                "notaTotal": 1000,
+                "competencias": [
+                    {
+                        "numero": 1,
+                        "nome": "Domínio da Norma Culta",
+                        "nota": 200,
+                        "comentario": "Análise crítica detalhada da norma culta, gramática e sintaxe."
+                    },
+                    {
+                        "numero": 2,
+                        "nome": "Compreensão do Tema e Repertório",
+                        "nota": 200,
+                        "comentario": "Análise da adequação ao tema, tipo textual e repertório sociocultural."
+                    },
+                    {
+                        "numero": 3,
+                        "nome": "Projeto de Texto e Argumentação",
+                        "nota": 200,
+                        "comentario": "Análise da organização de argumentos e defesa do ponto de vista."
+                    },
+                    {
+                        "numero": 4,
+                        "nome": "Mecanismos de Coesão Textual",
+                        "nota": 200,
+                        "comentario": "Análise do uso de conectivos inter e intraparágrafos."
+                    },
+                    {
+                        "numero": 5,
+                        "nome": "Proposta de Intervenção Detalhada",
+                        "nota": 200,
+                        "comentario": "Análise dos 5 elementos (Agente, Ação, Modo/Meio, Efeito, Detalhamento) e Direitos Humanos."
+                    }
+                ],
+                "feedbackGeral": "Síntese geral pedagógica com elogios aos pontos fortes e recomendações específicas de aprimoramento."
+            }
+        `;
+
+        return await this._executarPromptGemini(prompt, 3000);
     },
     async gerarQuestao({ materia, habilidade, dificuldade, tipo = 'multipla', contextoDocumento = '' }) {
         const diffLabels = ["Aleatória", "Fácil", "Média", "Difícil"];

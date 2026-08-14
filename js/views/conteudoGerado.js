@@ -297,34 +297,42 @@ export const conteudoGeradoView = {
                     </div>
                     <div>
                         <label class="form-label">Tema / Conteúdo</label>
-                        <input type="text" id="editor-mat-tema" class="form-input" value="${window.escapeHTML(temaAtual)}" placeholder="Ex: Fotossíntese e Células">
+                        <input type="text" id="editor-mat-tema" class="form-input" value="${window.escapeHTML(temaAtual)}" placeholder="Ex: Fotossí                <!-- SELETOR DE MODO DE EDIÇÃO: VISUAL VS CÓDIGO HTML -->
+                <div style="display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; padding: 0.35rem 0.5rem; border-radius: var(--radius-xl); border: 1px solid #cbd5e1;">
+                    <div style="display: flex; gap: 0.35rem;">
+                        <button type="button" id="btn-mode-mat-visual" onclick="conteudoGeradoView.alternarModoEdicaoVisual('visual')" class="btn-primary" style="padding: 0.35rem 0.85rem; font-size: 0.8125rem; font-weight: 800;" title="Editor Visual intuitivo sem necessidade de digitar código HTML">
+                            <i class="fas fa-magic"></i> Modo Visual (Sem Código)
+                        </button>
+                        <button type="button" id="btn-mode-mat-code" onclick="conteudoGeradoView.alternarModoEdicaoVisual('code')" class="btn-secondary" style="padding: 0.35rem 0.85rem; font-size: 0.8125rem; font-weight: 800;" title="Editar código HTML cru diretamente (Para usuários avançados)">
+                            <i class="fas fa-code"></i> Modo HTML (Avançado)
+                        </button>
                     </div>
+                    <span style="font-size: 0.75rem; color: #64748b; font-weight: 600; padding-right: 0.5rem;">
+                        <i class="fas fa-sparkles text-indigo-500"></i> Edição Amigável para Professores
+                    </span>
                 </div>
 
                 <!-- BARRA DE FERRAMENTAS DO EDITOR -->
-                <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.5rem 0.75rem; background-color: var(--color-slate-50); border: 1px solid var(--color-slate-200); border-radius: var(--radius-xl);">
+                <div id="editor-mat-toolbar-visual" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.5rem 0.75rem; background-color: var(--color-slate-50); border: 1px solid var(--color-slate-200); border-radius: var(--radius-xl);">
                     <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem;">
-                        <button type="button" onclick="conteudoGeradoView.inserirTagEditor('strong')" class="btn-secondary" style="padding: 0.25rem 0.625rem; font-size: 0.75rem;" title="Negrito">
-                            <i class="fas fa-bold"></i>
+                        <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('bold')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem;" title="Negrito">
+                            <i class="fas fa-bold"></i> <strong>B</strong>
                         </button>
-                        <button type="button" onclick="conteudoGeradoView.inserirTagEditor('em')" class="btn-secondary" style="padding: 0.25rem 0.625rem; font-size: 0.75rem;" title="Itálico">
-                            <i class="fas fa-italic"></i>
+                        <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('italic')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem;" title="Itálico">
+                            <i class="fas fa-italic"></i> <em>I</em>
                         </button>
-                        <button type="button" onclick="conteudoGeradoView.inserirTagEditor('h3')" class="btn-secondary" style="padding: 0.25rem 0.625rem; font-size: 0.75rem;" title="Título Seção">
-                            <i class="fas fa-heading"></i>
+                        <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('formatBlock', 'H3')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem;" title="Título Seção (H3)">
+                            <i class="fas fa-heading"></i> Título
                         </button>
-                        <button type="button" onclick="conteudoGeradoView.inserirTagEditor('li')" class="btn-secondary" style="padding: 0.25rem 0.625rem; font-size: 0.75rem;" title="Item de Lista">
-                            <i class="fas fa-list-ul"></i>
+                        <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('insertUnorderedList')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem;" title="Lista com Marcadores">
+                            <i class="fas fa-list-ul"></i> Lista
                         </button>
-                        <button type="button" onclick="conteudoGeradoView.inserirTagEditor('p')" class="btn-secondary" style="padding: 0.25rem 0.625rem; font-size: 0.75rem;" title="Parágrafo">
-                            <i class="fas fa-paragraph"></i>
+                        <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('formatBlock', 'P')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem;" title="Parágrafo Normal">
+                            <i class="fas fa-paragraph"></i> Texto
                         </button>
                     </div>
 
                     <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;">
-                        <button type="button" onclick="alternarModoEdicaoPreview('editor-mat-conteudo', 'editor-mat-preview', 'btn-prev-editor-mat')" id="btn-prev-editor-mat" class="btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.75rem;" title="Alternar entre edição de código e pré-visualização formatada">
-                            <i class="fas fa-eye"></i> <span>Visualizar Formatação (TeX)</span>
-                        </button>
                         <button type="button" onclick="conteudoGeradoView.inserirBlocoGabarito()" class="btn-primary" style="background-color: #059669; font-size: 0.75rem; padding: 0.375rem 0.75rem; box-shadow: var(--shadow-sm);" title="Inserir bloco de respostas que fica visível apenas para o professor">
                             <i class="fas fa-check-circle"></i> + Gabarito (Oculto no Aluno)
                         </button>
@@ -334,10 +342,17 @@ export const conteudoGeradoView = {
                     </div>
                 </div>
 
-                <!-- ÁREA DO EDITOR DE TEXTO / HTML -->
+                <!-- ÁREA DO EDITOR DE TEXTO / WYSIWYG VISUAL & HTML -->
                 <div>
-                    <label class="form-label">Conteúdo do Material (HTML Mestre)</label>
-                    <textarea id="editor-mat-conteudo" rows="14" class="form-input custom-scrollbar" style="width: 100%; font-family: monospace; font-size: 0.875rem; line-height: 1.6;">${window.escapeHTML(conteudoAtual)}</textarea>
+                    <label class="form-label" id="editor-mat-label-modo">Conteúdo do Material (Edição Visual Formatada)</label>
+
+                    <!-- CONTAINER VISUAL (WYSIWYG) -->
+                    <div id="editor-mat-wysiwyg" contenteditable="true" class="form-input custom-scrollbar" style="min-height: 320px; max-height: 480px; overflow-y: auto; background: #ffffff; padding: 1rem; border: 1px solid var(--color-slate-300); border-radius: var(--radius-xl); line-height: 1.6; font-size: 0.9375rem;">
+                        ${conteudoAtual}
+                    </div>
+
+                    <!-- TEXTAREA DE CÓDIGO HTML (MODO AVANÇADO) -->
+                    <textarea id="editor-mat-conteudo" rows="14" class="form-input custom-scrollbar" style="display: none; width: 100%; font-family: monospace; font-size: 0.875rem; line-height: 1.6;">${window.escapeHTML(conteudoAtual)}</textarea>
                     <div id="editor-mat-preview" style="display: none; margin-top: 0.5rem;"></div>
                 </div>
 
@@ -360,10 +375,67 @@ export const conteudoGeradoView = {
         controller.openModal('Editar Material Pedagógico', modalHtml, 'xl');
     },
 
-    inserirTagEditor(tag) {
-        const textarea = document.getElementById('editor-mat-conteudo');
-        if (!textarea) return;
+    modosEdicaoMatAtual: 'visual',
 
+    alternarModoEdicaoVisual(modo) {
+        this.modosEdicaoMatAtual = modo;
+        const wysiwyg = document.getElementById('editor-mat-wysiwyg');
+        const textarea = document.getElementById('editor-mat-conteudo');
+        const btnVisual = document.getElementById('btn-mode-mat-visual');
+        const btnCode = document.getElementById('btn-mode-mat-code');
+        const labelModo = document.getElementById('editor-mat-label-modo');
+
+        if (!wysiwyg || !textarea) return;
+
+        if (modo === 'visual') {
+            // Sincroniza do código HTML para o Visual
+            wysiwyg.innerHTML = textarea.value;
+            wysiwyg.style.display = 'block';
+            textarea.style.display = 'none';
+
+            if (labelModo) labelModo.innerText = 'Conteúdo do Material (Edição Visual Formatada)';
+            if (btnVisual) {
+                btnVisual.className = 'btn-primary';
+                btnVisual.style.background = 'var(--color-primary)';
+            }
+            if (btnCode) {
+                btnCode.className = 'btn-secondary';
+                btnCode.style.background = 'transparent';
+            }
+        } else {
+            // Sincroniza do Visual para o Código HTML
+            textarea.value = wysiwyg.innerHTML;
+            wysiwyg.style.display = 'none';
+            textarea.style.display = 'block';
+
+            if (labelModo) labelModo.innerText = 'Conteúdo do Material (Código HTML Mestre Avançado)';
+            if (btnCode) {
+                btnCode.className = 'btn-primary';
+                btnCode.style.background = 'var(--color-primary)';
+            }
+            if (btnVisual) {
+                btnVisual.className = 'btn-secondary';
+                btnVisual.style.background = 'transparent';
+            }
+        }
+    },
+
+    formatarTextoVisual(comando, valor = null) {
+        const wysiwyg = document.getElementById('editor-mat-wysiwyg');
+        if (wysiwyg) wysiwyg.focus();
+        document.execCommand(comando, false, valor);
+    },
+
+    inserirTagEditor(tag) {
+        const wysiwyg = document.getElementById('editor-mat-wysiwyg');
+        const textarea = document.getElementById('editor-mat-conteudo');
+
+        if (wysiwyg && wysiwyg.style.display !== 'none') {
+            this.formatarTextoVisual(tag === 'strong' ? 'bold' : tag === 'em' ? 'italic' : 'formatBlock', tag.toUpperCase());
+            return;
+        }
+
+        if (!textarea) return;
         const start = textarea.selectionStart;
         const end = textarea.selectionEnd;
         const selectedText = textarea.value.substring(start, end) || 'Texto aqui';
@@ -374,9 +446,18 @@ export const conteudoGeradoView = {
     },
 
     inserirBlocoGabarito() {
+        const wysiwyg = document.getElementById('editor-mat-wysiwyg');
         const textarea = document.getElementById('editor-mat-conteudo');
-        if (!textarea) return;
 
+        const blocoHTML = `<div class="gabarito-bloco" data-gabarito="true"><h3>Gabarito e Expectativa de Resposta</h3><p>Digite a resposta esperada ou resolução detalhada aqui...</p></div><p></p>`;
+
+        if (wysiwyg && wysiwyg.style.display !== 'none') {
+            wysiwyg.focus();
+            document.execCommand('insertHTML', false, blocoHTML);
+            return;
+        }
+
+        if (!textarea) return;
         const start = textarea.selectionStart;
         const end = textarea.selectionEnd;
         const selectedText = textarea.value.substring(start, end) || 'Digite a resposta esperada ou resolução detalhada aqui...';
@@ -388,9 +469,18 @@ export const conteudoGeradoView = {
     },
 
     inserirComentarioProfessor() {
+        const wysiwyg = document.getElementById('editor-mat-wysiwyg');
         const textarea = document.getElementById('editor-mat-conteudo');
-        if (!textarea) return;
 
+        const blocoHTML = `<div class="comentario-professor"><strong>Observação para o Professor:</strong> Digite orientações pedagógicas, critérios de avaliação ou observações aqui...</div><p></p>`;
+
+        if (wysiwyg && wysiwyg.style.display !== 'none') {
+            wysiwyg.focus();
+            document.execCommand('insertHTML', false, blocoHTML);
+            return;
+        }
+
+        if (!textarea) return;
         const start = textarea.selectionStart;
         const end = textarea.selectionEnd;
         const selectedText = textarea.value.substring(start, end) || 'Digite orientações pedagógicas, critérios de avaliação ou observações aqui...';
@@ -404,15 +494,23 @@ export const conteudoGeradoView = {
     async salvarEdicaoMaterial() {
         const inputTitulo = document.getElementById('editor-mat-titulo');
         const inputTema = document.getElementById('editor-mat-tema');
+        const wysiwyg = document.getElementById('editor-mat-wysiwyg');
         const textareaConteudo = document.getElementById('editor-mat-conteudo');
 
-        if (!textareaConteudo || !textareaConteudo.value.trim()) {
+        let novoConteudo = '';
+
+        if (wysiwyg && wysiwyg.style.display !== 'none') {
+            novoConteudo = wysiwyg.innerHTML;
+        } else if (textareaConteudo) {
+            novoConteudo = textareaConteudo.value;
+        }
+
+        if (!novoConteudo || !novoConteudo.trim()) {
             return Toast.show("O conteúdo do material não pode ficar vazio.", "warning");
         }
 
         const novoTitulo = inputTitulo ? inputTitulo.value.trim() : '';
         const novoTema = inputTema ? inputTema.value.trim() : '';
-        const novoConteudo = textareaConteudo.value;
 
         try {
             await model.updateMaterial(this.materialIdAtual, {

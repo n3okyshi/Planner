@@ -61,6 +61,9 @@ export const firebaseService = {
             }
         }
     },
+    async loginGoogle() {
+        return await this.loginWithGoogle();
+    },
     async logout() {
         if (this.auth) await this.auth.signOut();
         window.location.reload();

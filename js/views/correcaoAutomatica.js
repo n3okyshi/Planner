@@ -121,11 +121,7 @@ export const correcaoAutomaticaView = {
         `;
 
         try {
-            const resultado = await aiService.gerarMaterial('correcao_enem', {
-                tema,
-                texto,
-                formato: "Retorne um JSON exato contendo { 'notaTotal': numero, 'competencias': [{ 'numero': 1 a 5, 'nota': numero, 'comentario': 'texto' }], 'feedbackGeral': 'texto' }"
-            });
+            const resultado = await aiService.avaliarRedacaoEnem({ tema, texto });
 
             resultadoContainer.className = "card animate-enter";
             resultadoContainer.style.border = "1px solid var(--color-slate-200)";
@@ -144,7 +140,7 @@ export const correcaoAutomaticaView = {
 
                     <div style="text-align: right;">
                         <span style="font-size: 0.6875rem; font-weight: 800; color: var(--color-slate-400); text-transform: uppercase;">Nota Total</span>
-                        <div style="font-size: 2rem; font-weight: 900; color: var(--color-primary);">${resultado.notaTotal || 0}</div>
+                        <div style="font-size: 2rem; font-weight: 900; color: var(--color-primary);">${resultado.notaTotal !== undefined ? resultado.notaTotal : 0} pts</div>
                     </div>
                 </div>
 
@@ -152,17 +148,19 @@ export const correcaoAutomaticaView = {
                     ${(resultado.competencias || []).map(c => `
                         <div style="padding: var(--spacing-3); background-color: var(--color-slate-50); border: 1px solid var(--color-slate-100); border-radius: var(--radius-xl);">
                             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
-                                <span style="font-size: 0.75rem; font-weight: 800; color: var(--color-slate-600); text-transform: uppercase;">Competência ${c.numero}</span>
-                                <span class="badge" style="background-color: var(--color-primary-light); color: var(--color-primary); font-weight: 800;">${c.nota} pts</span>
+                                <span style="font-size: 0.75rem; font-weight: 800; color: var(--color-slate-700); text-transform: uppercase;">
+                                    Competência ${c.numero}${c.nome ? `: ${c.nome}` : ''}
+                                </span>
+                                <span class="badge" style="background-color: var(--color-primary-light); color: var(--color-primary); font-weight: 800;">${c.nota || 0} pts</span>
                             </div>
-                            <p style="font-size: 0.8125rem; color: var(--color-slate-700); line-height: 1.4; margin: 0;">${c.comentario}</p>
+                            <p style="font-size: 0.8125rem; color: var(--color-slate-700); line-height: 1.4; margin: 0;">${c.comentario || 'Sem observações.'}</p>
                         </div>
                     `).join('')}
                 </div>
 
                 <div style="padding: var(--spacing-4); background-color: #eff6ff; border: 1px solid #dbeafe; border-radius: var(--radius-xl);">
                     <h4 style="font-size: 0.8125rem; font-weight: 800; color: #1e40af; margin-bottom: 0.25rem;">Comentário Geral & Dicas de Melhoria</h4>
-                    <p style="font-size: 0.8125rem; color: #1e3a8a; line-height: 1.5; margin: 0;">${resultado.feedbackGeral}</p>
+                    <p style="font-size: 0.8125rem; color: #1e3a8a; line-height: 1.5; margin: 0;">${resultado.feedbackGeral || 'Avaliação concluída.'}</p>
                 </div>
             `;
 
@@ -270,10 +268,10 @@ export const correcaoAutomaticaView = {
                 <!-- SCANNER VIEWPORT / PREVIEW -->
                 <div class="card" style="padding: var(--spacing-6); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 420px; background-color: var(--color-slate-900); border-radius: var(--radius-2xl); position: relative; overflow: hidden; box-shadow: var(--shadow-lg);">
                     
-                    <div style="position: relative; width: 100%; display: flex; justify-content: center; align-items: center;">
-                        <video id="omr-video-feed" playsinline autoplay style="width: 100%; max-height: 360px; object-fit: contain; border-radius: var(--radius-xl); display: none;"></video>
+                    <div style="position: relative; width: 100%; display: flex; justify-content: center; align-items: center; min-height: 300px; background: #000; border-radius: var(--radius-xl); overflow: hidden;">
+                        <video id="omr-video-feed" playsinline autoplay style="width: 100%; height: auto; max-height: 70vh; object-fit: contain; border-radius: var(--radius-xl); display: none; background: #000;"></video>
                         
-                        <!-- MOLDURA DE MIRA E ENQUADRAMENTO DA CÂMERA -->
+                        <!-- MOLDURA DE MIRA E ENQUADRAMENTO DA CÂMERA DE ALTA PRECISÃO -->
                         <div id="omr-camera-viewfinder" class="omr-viewfinder-overlay" style="display: none;">
                             <div class="omr-viewfinder-corner omr-viewfinder-tl"></div>
                             <div class="omr-viewfinder-corner omr-viewfinder-tr"></div>
@@ -284,7 +282,7 @@ export const correcaoAutomaticaView = {
                             </div>
                         </div>
 
-                        <canvas id="omr-canvas-scanner" style="width: 100%; max-height: 360px; object-fit: contain; border-radius: var(--radius-xl); display: none; background: #000;"></canvas>
+                        <canvas id="omr-canvas-scanner" style="width: 100%; height: auto; max-height: 70vh; object-fit: contain; border-radius: var(--radius-xl); display: none; background: #000;"></canvas>
                     </div>
 
                     <div id="omr-placeholder-view" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: #94a3b8; padding: 2rem;">
@@ -486,7 +484,7 @@ export const correcaoAutomaticaView = {
                 this.videoStream.getTracks().forEach(t => t.stop());
             }
             this.videoStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: { ideal: "environment" }, width: { ideal: 1280 }, height: { ideal: 720 } }
+                video: { facingMode: { ideal: "environment" }, width: { ideal: 1920, max: 3840 }, height: { ideal: 1080, max: 2160 } }
             });
 
             video.srcObject = this.videoStream;
