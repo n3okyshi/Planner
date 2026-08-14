@@ -163,7 +163,7 @@ export const aiService = {
         }
     },
     /**
-     * Analisa visualmente uma foto de cartão-resposta/gabarito e extrai as alternativas marcadas.
+     * Analisa visualmente uma foto ou digitalização de cartão-resposta/gabarito e extrai as alternativas marcadas com alta precisão.
      * @param {Object} params - { imagemBase64, mimeType, totalQuestoes, gabaritoOficial }
      * @returns {Promise<Object>}
      */
@@ -171,32 +171,44 @@ export const aiService = {
         const total = parseInt(totalQuestoes, 10) || (gabaritoOficial ? gabaritoOficial.length : 10);
         
         const prompt = `
-            Você é um leitor óptico especializado em OMR (Optical Mark Recognition) e visão computacional de avaliações escolares.
+            Você é um leitor óptico de altíssima precisão especializado em OMR (Optical Mark Recognition) e visão computacional de avaliações escolares.
             Analise a imagem da folha de respostas/cartão-resposta ou prova em anexo.
 
-            OBJETIVO:
+            MISSÃO:
             Identificar as marcações preenchidas pelo estudante para EXATAMENTE ${total} questões (da Questão 1 até a Questão ${total}).
 
-            REGRAS OBRIGATÓRIAS DE LEITURA ÓPTICA:
-            1. Para cada questão (1 a ${total}):
-               - Se houver UMA alternativa claramente preenchida/marcada a caneta ou lápis (entre A, B, C, D ou E), retorne a letra em maiúsculo (ex: "A", "B", "C", "D", "E").
-               - Se a linha da questão estiver totalmente sem preenchimento (em branco/não respondida), retorne OBRIGATORIAMENTE a string "EM_BRANCO".
-               - Se houver mais de uma bolha preenchida, rasura forte ou anulação evidente na mesma questão, retorne OBRIGATORIAMENTE a string "ANULADA".
-            2. Não invente marcações onde as bolhas estão limpas/em branco.
-            3. Responda APENAS um objeto JSON puro, sem formatação markdown e sem blocos \`\`\`json.
-            
+            DIRETRIZES DE INSPEÇÃO ÓPTICA PASSO A PASSO:
+            1. LOCALIZAÇÃO E ANCORAGEM:
+               - Localize a tabela ou colunas de respostas (observe os marcadores de ancoragem ⬛ nos cantos, cabeçalho e números de questão).
+               - Varra sequencialmente as linhas da Questão 1 até a Questão ${total}.
+
+            2. CRITÉRIOS DE DIFERENCIAÇÃO DE PREENCHIMENTO:
+               - BOLHA VAZIA / NÃO MARCADA: O contorno circular está visível e o interior do círculo está claro/branco, mostrando a letra impressa (A, B, C, D ou E) sem preenchimento de caneta.
+               - BOLHA PREENCHIDA / MARCADA: O interior do círculo está escurecido/pintado com caneta (azul ou preta) ou grafite de lápis, cobrindo a letra interna ou apresentando traço firme/X evidente.
+               - QUESTÃO EM BRANCO: Se nenhuma das 5 bolhas da linha (A, B, C, D, E) estiver preenchida, retorne OBRIGATORIAMENTE "EM_BRANCO" no campo "resposta" e status "em_branco".
+               - QUESTÃO ANULADA / DUPLA: Se houver 2 ou mais bolhas preenchidas na mesma questão sem clara distinção de correção, retorne OBRIGATORIAMENTE "ANULADA" no campo "resposta" e status "anulada".
+               - RASURA COM CORREÇÃO EVIDENTE: Se uma bolha foi claramente riscada/rabiscada para anular e outra bolha foi preenchida com firmeza, considere a bolha preenchida como a resposta intencional.
+
+            3. RIGOR:
+               - NÃO deduza respostas com base em suposição de acertos.
+               - Responda EXATAMENTE ${total} itens no array "respostas", sem pular nenhum número de questão (de 1 a ${total}).
+
+            4. FORMATO DA RESPOSTA:
+               - Responda EXCLUSIVAMENTE um objeto JSON puro, sem blocos de código markdown (\`\`\`json).
+
             ESTRUTURA DO JSON DE RETORNO:
             {
                 "totalQuestoesIdentificadas": ${total},
                 "respostas": [
                     {
                         "questao": 1,
-                        "resposta": "A",
-                        "status": "marcada",
-                        "confianca": "alta"
+                        "resposta": "A", // "A", "B", "C", "D", "E", "EM_BRANCO" ou "ANULADA"
+                        "status": "marcada", // "marcada", "em_branco" ou "anulada"
+                        "confianca": "alta", // "alta", "media" ou "baixa"
+                        "motivo": "" // Opcional, detalha caso a confiança seja média/baixa
                     }
                 ],
-                "observacoes": "Breve comentário sobre legibilidade do cartão"
+                "observacoes": "Breve comentário sobre nitidez, alinhamento e legibilidade do cartão"
             }
         `;
 

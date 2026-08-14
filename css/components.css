@@ -3655,15 +3655,16 @@
     color: #000000 !important;
     padding: 0 !important;
   }
-  .modal__header, .modal__close, .btn-print-hide {
+  .modal__header, .modal__footer, .modal__close, .btn-print-hide {
     display: none !important;
   }
-  .modal__content {
+  .modal__content, .modal {
     box-shadow: none !important;
     border: none !important;
     width: 100% !important;
     max-width: 100% !important;
     padding: 0 !important;
+    background: transparent !important;
   }
   .dossie-modal-container {
     color: #000000 !important;
@@ -3672,7 +3673,12 @@
     border-color: #cbd5e1 !important;
     color: #000000 !important;
   }
+  .omr-card-printable {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
 }
+
 
 /* ==========================================================================
    PILAR 4: MODO FOCO / APRESENTAÇÃO EM SALA (ZEN MODE)
@@ -3776,4 +3782,139 @@ body.zen-presentation-mode .zen-exit-btn {
   outline: 3px dashed var(--color-primary) !important;
   background-color: var(--color-primary-light) !important;
   transform: scale(1.05);
+}
+
+/* ==========================================================================
+   SCANNER OMR & VISOR DE CÂMERA INTELIGENTE
+   ========================================================================== */
+.omr-viewfinder-overlay {
+  position: absolute;
+  inset: 1rem;
+  border: 1.5px dashed rgba(56, 189, 248, 0.45);
+  border-radius: var(--radius-xl);
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem;
+  box-sizing: border-box;
+}
+
+.omr-viewfinder-corner {
+  position: absolute;
+  width: 24px;
+  height: 24px;
+  border-color: #38bdf8;
+  border-style: solid;
+  border-width: 0;
+  pointer-events: none;
+}
+
+.omr-viewfinder-tl {
+  top: -2px;
+  left: -2px;
+  border-top-width: 3px;
+  border-left-width: 3px;
+  border-top-left-radius: 6px;
+}
+
+.omr-viewfinder-tr {
+  top: -2px;
+  right: -2px;
+  border-top-width: 3px;
+  border-right-width: 3px;
+  border-top-right-radius: 6px;
+}
+
+.omr-viewfinder-bl {
+  bottom: -2px;
+  left: -2px;
+  border-bottom-width: 3px;
+  border-left-width: 3px;
+  border-bottom-left-radius: 6px;
+}
+
+.omr-viewfinder-br {
+  bottom: -2px;
+  right: -2px;
+  border-bottom-width: 3px;
+  border-right-width: 3px;
+  border-bottom-right-radius: 6px;
+}
+
+.omr-viewfinder-tip {
+  background: rgba(15, 23, 42, 0.75);
+  color: #e2e8f0;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  backdrop-filter: blur(4px);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.omr-filter-toolbar {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: rgba(15, 23, 42, 0.85);
+  border-radius: 0.75rem;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  backdrop-filter: blur(8px);
+  margin-top: 0.75rem;
+}
+
+.omr-filter-btn {
+  padding: 0.3rem 0.65rem;
+  font-size: 0.6875rem;
+  font-weight: 800;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: rgba(30, 41, 59, 0.8);
+  color: #94a3b8;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  transition: all 120ms ease;
+}
+
+.omr-filter-btn:hover {
+  background: rgba(51, 65, 85, 0.9);
+  color: #f8fafc;
+  border-color: rgba(148, 163, 184, 0.6);
+}
+
+.omr-filter-btn.active {
+  background: var(--color-primary, #4f46e5);
+  color: #ffffff;
+  border-color: #818cf8;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.4);
+}
+
+.omr-confidence-badge--alta {
+  background: #d1fae5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.omr-confidence-badge--media {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  animation: pulse 2s infinite;
+}
+
+.omr-confidence-badge--baixa {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  font-weight: 900;
 }

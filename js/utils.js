@@ -672,6 +672,11 @@ export async function comprimirERedimensionarImagem(origem, opcoes = {}) {
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(imgElement, 0, 0, targetWidth, targetHeight);
 
+        // Aplica filtro de scanner de documentos caso especificado
+        if (opcoes.filtroScanner && opcoes.filtroScanner !== 'original') {
+            processarFiltroDocumentScanner(canvas, opcoes.filtroScanner, opcoes);
+        }
+
         const base64Data = canvas.toDataURL(tipo, qualidade);
         const base64Pura = base64Data.split(',')[1] || base64Data;
         const tamanhoFinalBytes = Math.round((base64Pura.length * 3) / 4);
@@ -707,6 +712,153 @@ export async function comprimirERedimensionarImagem(origem, opcoes = {}) {
     }
 }
 
+/**
+ * Aplica filtros de digitalização de alta fidelidade (Scanner de Documentos) em um Canvas
+ * em puro Vanilla JS, nivelando sombras desiguais, eliminando o fundo escuro/bege do papel
+ * e maximizando o contraste óptico para leitura OMR e visão computacional.
+ *
+ * Modos suportados:
+ * - 'scan_otimizado': Scanner Inteligente com remoção de sombras, fundo branco limpo e realce de tinta.
+ * - 'scan_pb': Scanner Preto & Branco de alto contraste (estilo fotocopiadora/scanner de mesa).
+ * - 'scan_binario': Limiarização adaptativa pura (binarização OMR estrita).
+ * - 'original': Mantém a imagem original sem modificações.
+ *
+ * @param {HTMLCanvasElement} canvas - Elemento canvas a ser processado
+ * @param {string} [modo='scan_otimizado'] - Modo de filtro desejado
+ * @param {Object} [opcoes={}] - Configurações opcionais
+ * @returns {HTMLCanvasElement} O próprio canvas modificado
+ */
+export function processarFiltroDocumentScanner(canvas, modo = 'scan_otimizado', opcoes = {}) {
+    if (!canvas || !(canvas instanceof HTMLCanvasElement)) return canvas;
+    if (modo === 'original') return canvas;
+
+    const width = canvas.width;
+    const height = canvas.height;
+    if (width === 0 || height === 0) return canvas;
+
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx) return canvas;
+
+    const imgData = ctx.getImageData(0, 0, width, height);
+    const data = imgData.data;
+
+    // 1. Matriz de amostragem em grade para estimativa do fundo da folha (eliminação de sombras de celular)
+    const gridSize = Math.max(24, Math.min(48, Math.round(Math.min(width, height) / 25)));
+    const gridCols = Math.ceil(width / gridSize);
+    const gridRows = Math.ceil(height / gridSize);
+    const bgMap = new Float32Array(gridCols * gridRows);
+
+    // Amostra a luminância média/percentil alto em cada bloco para estimar a superfície do papel
+    for (let gy = 0; gy < gridRows; gy++) {
+        for (let gx = 0; gx < gridCols; gx++) {
+            const startX = gx * gridSize;
+            const startY = gy * gridSize;
+            const endX = Math.min(width, startX + gridSize);
+            const endY = Math.min(height, startY + gridSize);
+
+            const samples = [];
+
+            // Amostragem com passo 2 para processamento ultrarrápido (<10ms)
+            for (let y = startY; y < endY; y += 2) {
+                for (let x = startX; x < endX; x += 2) {
+                    const idx = (y * width + x) * 4;
+                    const lum = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+                    samples.push(lum);
+                }
+            }
+
+            // Seleciona o percentil ~80 da célula (superfície iluminada do papel, descartando traços escuros de caneta)
+            if (samples.length > 0) {
+                samples.sort((a, b) => a - b);
+                const p80 = samples[Math.min(samples.length - 1, Math.floor(samples.length * 0.82))];
+                bgMap[gy * gridCols + gx] = Math.max(60, p80);
+            } else {
+                bgMap[gy * gridCols + gx] = 200;
+            }
+        }
+    }
+
+    // Interpolação bilinear suave da iluminação de fundo local
+    const getBgLum = (x, y) => {
+        const gx = (x / gridSize) - 0.5;
+        const gy = (y / gridSize) - 0.5;
+        const x0 = Math.max(0, Math.min(gridCols - 1, Math.floor(gx)));
+        const y0 = Math.max(0, Math.min(gridRows - 1, Math.floor(gy)));
+        const x1 = Math.min(gridCols - 1, x0 + 1);
+        const y1 = Math.min(gridRows - 1, y0 + 1);
+        const fx = Math.max(0, Math.min(1, gx - x0));
+        const fy = Math.max(0, Math.min(1, gy - y0));
+
+        const top = bgMap[y0 * gridCols + x0] * (1 - fx) + bgMap[y0 * gridCols + x1] * fx;
+        const bottom = bgMap[y1 * gridCols + x0] * (1 - fx) + bgMap[y1 * gridCols + x1] * fx;
+        return top * (1 - fy) + bottom * fy;
+    };
+
+    // 2. Aplicação da transformação de pixel
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const idx = (y * width + x) * 4;
+            const r = data[idx];
+            const g = data[idx + 1];
+            const b = data[idx + 2];
+            const origLum = 0.299 * r + 0.587 * g + 0.114 * b;
+            const localBg = getBgLum(x, y);
+
+            // Nivelamento do fundo: normaliza a intensidade dividindo pela iluminação local
+            const normLum = Math.min(255, (origLum / Math.max(40, localBg)) * 245);
+
+            if (modo === 'scan_binario') {
+                // Binarização estrita: marcas escuras tornam-se 0 (preto), papel vira 255 (branco)
+                const isInk = normLum < 185;
+                const val = isInk ? 0 : 255;
+                data[idx] = val;
+                data[idx + 1] = val;
+                data[idx + 2] = val;
+            } else if (modo === 'scan_pb') {
+                // Scanner Preto & Branco com curva de alto contraste
+                let finalVal;
+                if (normLum >= 210) {
+                    finalVal = 255;
+                } else if (normLum <= 120) {
+                    finalVal = Math.max(0, Math.round(normLum * 0.7));
+                } else {
+                    const t = (normLum - 120) / (210 - 120);
+                    finalVal = Math.round(84 + t * (255 - 84));
+                }
+                data[idx] = finalVal;
+                data[idx + 1] = finalVal;
+                data[idx + 2] = finalVal;
+            } else {
+                // 'scan_otimizado' (Scanner Inteligente / Magic Color):
+                // Limpa o fundo do papel para branco e intensifica caneta preta/azul
+                let boostLum;
+                if (normLum >= 205) {
+                    boostLum = 255;
+                } else if (normLum <= 130) {
+                    boostLum = Math.max(0, Math.round(normLum * 0.75));
+                } else {
+                    const t = (normLum - 130) / (205 - 130);
+                    boostLum = Math.round(97 + t * (255 - 97));
+                }
+
+                if (boostLum === 255) {
+                    data[idx] = 255;
+                    data[idx + 1] = 255;
+                    data[idx + 2] = 255;
+                } else {
+                    const scale = origLum > 0 ? boostLum / origLum : 1;
+                    data[idx] = Math.min(255, Math.max(0, Math.round(r * scale)));
+                    data[idx + 1] = Math.min(255, Math.max(0, Math.round(g * scale)));
+                    data[idx + 2] = Math.min(255, Math.max(0, Math.round(b * scale)));
+                }
+            }
+        }
+    }
+
+    ctx.putImageData(imgData, 0, 0);
+    return canvas;
+}
+
 if (typeof window !== 'undefined') {
     window.escapeHTML = escapeHTML;
     window.sanitizeComLatex = sanitizeComLatex;
@@ -723,7 +875,9 @@ if (typeof window !== 'undefined') {
     window.secureShuffle = secureShuffle;
     window.ordenarEstudantes = ordenarEstudantes;
     window.comprimirERedimensionarImagem = comprimirERedimensionarImagem;
+    window.processarFiltroDocumentScanner = processarFiltroDocumentScanner;
 }
+
 
 
 

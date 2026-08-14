@@ -2,13 +2,16 @@ import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
 import { aiService } from '../ai-service.js';
-import { comprimirERedimensionarImagem, escapeHTML } from '../utils.js';
+import { comprimirERedimensionarImagem, processarFiltroDocumentScanner, escapeHTML } from '../utils.js';
 
 export const correcaoAutomaticaView = {
     abaAtiva: 'redacao',
     videoStream: null,
     gabaritoOficial: ['A', 'B', 'C', 'D', 'E', 'A', 'B', 'C', 'D', 'E'],
     resultadoScanner: null,
+    filtroScanner: 'scan_otimizado', // 'scan_otimizado' | 'scan_pb' | 'scan_binario' | 'original'
+    canvasOriginal: null, // Canvas de backup da imagem original capturada/carregada
+    imagemOtimizadaOriginal: null,
 
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
@@ -58,6 +61,7 @@ export const correcaoAutomaticaView = {
             this.videoStream.getTracks().forEach(track => track.stop());
             this.videoStream = null;
         }
+        this.canvasOriginal = null;
         const canvas = document.getElementById('omr-canvas-scanner');
         if (canvas) {
             const ctx = canvas.getContext('2d');
@@ -266,8 +270,22 @@ export const correcaoAutomaticaView = {
                 <!-- SCANNER VIEWPORT / PREVIEW -->
                 <div class="card" style="padding: var(--spacing-6); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 420px; background-color: var(--color-slate-900); border-radius: var(--radius-2xl); position: relative; overflow: hidden; box-shadow: var(--shadow-lg);">
                     
-                    <video id="omr-video-feed" playsinline autoplay style="width: 100%; max-height: 360px; object-fit: contain; border-radius: var(--radius-xl); display: none;"></video>
-                    <canvas id="omr-canvas-scanner" style="width: 100%; max-height: 360px; object-fit: contain; border-radius: var(--radius-xl); display: none; background: #000;"></canvas>
+                    <div style="position: relative; width: 100%; display: flex; justify-content: center; align-items: center;">
+                        <video id="omr-video-feed" playsinline autoplay style="width: 100%; max-height: 360px; object-fit: contain; border-radius: var(--radius-xl); display: none;"></video>
+                        
+                        <!-- MOLDURA DE MIRA E ENQUADRAMENTO DA CÂMERA -->
+                        <div id="omr-camera-viewfinder" class="omr-viewfinder-overlay" style="display: none;">
+                            <div class="omr-viewfinder-corner omr-viewfinder-tl"></div>
+                            <div class="omr-viewfinder-corner omr-viewfinder-tr"></div>
+                            <div class="omr-viewfinder-corner omr-viewfinder-bl"></div>
+                            <div class="omr-viewfinder-corner omr-viewfinder-br"></div>
+                            <div class="omr-viewfinder-tip">
+                                <i class="fas fa-expand-arrows-alt"></i> Enquadre os 4 cantos ⬛ do cartão aqui
+                            </div>
+                        </div>
+
+                        <canvas id="omr-canvas-scanner" style="width: 100%; max-height: 360px; object-fit: contain; border-radius: var(--radius-xl); display: none; background: #000;"></canvas>
+                    </div>
 
                     <div id="omr-placeholder-view" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: #94a3b8; padding: 2rem;">
                         <div style="width: 4.5rem; height: 4.5rem; border-radius: 50%; background: rgba(56, 189, 248, 0.15); display: flex; align-items: center; justify-content: center; font-size: 2rem; color: #38bdf8; margin-bottom: 1rem; border: 1px solid rgba(56, 189, 248, 0.3);">
@@ -282,6 +300,28 @@ export const correcaoAutomaticaView = {
                     <div id="omr-camera-controls" style="display: none; margin-top: 1rem; width: 100%; justify-content: center; gap: 0.75rem;">
                         <button type="button" onclick="correcaoAutomaticaView.capturarEAnalisar()" class="btn-primary" style="background: #10b981; border-color: #10b981; font-weight: 800; padding: 0.75rem 1.5rem;">
                             <i class="fas fa-camera"></i> Capturar & Corrigir Agora
+                        </button>
+                    </div>
+
+                    <!-- BARRA DE SELEÇÃO DE FILTROS DE SCANNER (ATIVADA APÓS CAPTURA/FOTO) -->
+                    <div id="omr-filter-toolbar" class="omr-filter-toolbar" style="display: none;">
+                        <span style="font-size: 0.75rem; font-weight: 800; color: #94a3b8; margin-right: 0.25rem;">
+                            <i class="fas fa-sliders-h text-indigo-400"></i> Filtro:
+                        </span>
+                        <button type="button" onclick="correcaoAutomaticaView.trocarFiltroScanner('scan_otimizado')" id="omr-btn-filtro-scan_otimizado" class="omr-filter-btn ${this.filtroScanner === 'scan_otimizado' ? 'active' : ''}" title="Scanner Inteligente (Remove sombras e limpa fundo)">
+                            ✨ Inteligente
+                        </button>
+                        <button type="button" onclick="correcaoAutomaticaView.trocarFiltroScanner('scan_pb')" id="omr-btn-filtro-scan_pb" class="omr-filter-btn ${this.filtroScanner === 'scan_pb' ? 'active' : ''}" title="Scanner P&B (Alto contraste documental)">
+                            📄 Scanner P&B
+                        </button>
+                        <button type="button" onclick="correcaoAutomaticaView.trocarFiltroScanner('scan_binario')" id="omr-btn-filtro-scan_binario" class="omr-filter-btn ${this.filtroScanner === 'scan_binario' ? 'active' : ''}" title="Binarizado OMR (Preto no branco estrito)">
+                            🔲 Binarizado
+                        </button>
+                        <button type="button" onclick="correcaoAutomaticaView.trocarFiltroScanner('original')" id="omr-btn-filtro-original" class="omr-filter-btn ${this.filtroScanner === 'original' ? 'active' : ''}" title="Foto Original sem filtro">
+                            📷 Original
+                        </button>
+                        <button type="button" onclick="correcaoAutomaticaView.reanalisarComFiltroAtual()" class="omr-filter-btn" style="background: rgba(16, 185, 129, 0.25); color: #34d399; border-color: rgba(16, 185, 129, 0.5); margin-left: 0.25rem;" title="Reprocessar e reanalisar com o filtro selecionado">
+                            <i class="fas fa-sync-alt"></i> Reanalisar
                         </button>
                     </div>
                 </div>
@@ -436,6 +476,8 @@ export const correcaoAutomaticaView = {
         const placeholder = document.getElementById('omr-placeholder-view');
         const controls = document.getElementById('omr-camera-controls');
         const canvas = document.getElementById('omr-canvas-scanner');
+        const viewfinder = document.getElementById('omr-camera-viewfinder');
+        const filterBar = document.getElementById('omr-filter-toolbar');
 
         if (!video || !placeholder) return;
 
@@ -451,7 +493,9 @@ export const correcaoAutomaticaView = {
             video.style.display = 'block';
             placeholder.style.display = 'none';
             if (canvas) canvas.style.display = 'none';
+            if (viewfinder) viewfinder.style.display = 'flex';
             if (controls) controls.style.display = 'flex';
+            if (filterBar) filterBar.style.display = 'none';
 
             Toast.show("Câmera ativada. Enquadre o cartão-resposta.", "info");
         } catch (err) {
@@ -469,14 +513,18 @@ export const correcaoAutomaticaView = {
         const placeholder = document.getElementById('omr-placeholder-view');
         const controls = document.getElementById('omr-camera-controls');
         const canvas = document.getElementById('omr-canvas-scanner');
+        const viewfinder = document.getElementById('omr-camera-viewfinder');
+        const filterBar = document.getElementById('omr-filter-toolbar');
 
         if (video) video.style.display = 'none';
         if (placeholder) placeholder.style.display = 'none';
         if (controls) controls.style.display = 'none';
+        if (viewfinder) viewfinder.style.display = 'none';
+        if (filterBar) filterBar.style.display = 'flex';
 
         try {
-            Toast.show("Comprimindo e otimizando imagem...", "info", 1500);
-            const otimizada = await comprimirERedimensionarImagem(file, { maxDimensao: 1400, qualidade: 0.82 });
+            Toast.show("Otimizando e preparando imagem...", "info", 1500);
+            const otimizada = await comprimirERedimensionarImagem(file, { maxDimensao: 1400, qualidade: 0.85 });
 
             if (canvas) {
                 canvas.style.display = 'block';
@@ -486,7 +534,21 @@ export const correcaoAutomaticaView = {
                 const img = new Image();
                 img.onload = () => {
                     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-                    this.processarImagemCanvas(canvas, null, otimizada);
+
+                    // Cria cópia de backup da imagem pura para alternância fluida de filtros
+                    const backupCanvas = document.createElement('canvas');
+                    backupCanvas.width = canvas.width;
+                    backupCanvas.height = canvas.height;
+                    const bCtx = backupCanvas.getContext('2d');
+                    bCtx.drawImage(canvas, 0, 0);
+                    this.canvasOriginal = backupCanvas;
+
+                    // Aplica o filtro de scanner ativo
+                    if (this.filtroScanner !== 'original') {
+                        processarFiltroDocumentScanner(canvas, this.filtroScanner);
+                    }
+
+                    this.processarImagemCanvas(canvas);
                 };
                 img.src = otimizada.base64;
             }
@@ -499,6 +561,8 @@ export const correcaoAutomaticaView = {
     async capturarEAnalisar() {
         const video = document.getElementById('omr-video-feed');
         const canvas = document.getElementById('omr-canvas-scanner');
+        const viewfinder = document.getElementById('omr-camera-viewfinder');
+        const filterBar = document.getElementById('omr-filter-toolbar');
         if (!video || !canvas) return;
 
         canvas.width = video.videoWidth || 640;
@@ -508,6 +572,8 @@ export const correcaoAutomaticaView = {
 
         video.style.display = 'none';
         canvas.style.display = 'block';
+        if (viewfinder) viewfinder.style.display = 'none';
+        if (filterBar) filterBar.style.display = 'flex';
 
         if (this.videoStream) {
             this.videoStream.getTracks().forEach(t => t.stop());
@@ -517,51 +583,167 @@ export const correcaoAutomaticaView = {
         if (controls) controls.style.display = 'none';
 
         try {
-            const otimizada = await comprimirERedimensionarImagem(canvas, { maxDimensao: 1400, qualidade: 0.82 });
-            this.processarImagemCanvas(canvas, null, otimizada);
+            // Cria cópia de backup não filtrada para troca instantânea de filtros
+            const backupCanvas = document.createElement('canvas');
+            backupCanvas.width = canvas.width;
+            backupCanvas.height = canvas.height;
+            const bCtx = backupCanvas.getContext('2d');
+            bCtx.drawImage(canvas, 0, 0);
+            this.canvasOriginal = backupCanvas;
+
+            // Aplica o filtro de scanner ativo
+            if (this.filtroScanner !== 'original') {
+                processarFiltroDocumentScanner(canvas, this.filtroScanner);
+            }
+
+            this.processarImagemCanvas(canvas);
         } catch (err) {
-            console.error("Erro na compressão da captura da câmera:", err);
+            console.error("Erro no processamento da captura da câmera:", err);
             this.processarImagemCanvas(canvas);
         }
     },
 
+    trocarFiltroScanner(modo) {
+        this.filtroScanner = modo;
+
+        // Atualiza botões no DOM
+        ['scan_otimizado', 'scan_pb', 'scan_binario', 'original'].forEach(f => {
+            const btn = document.getElementById(`omr-btn-filtro-${f}`);
+            if (btn) {
+                if (f === modo) btn.classList.add('active');
+                else btn.classList.remove('active');
+            }
+        });
+
+        const canvas = document.getElementById('omr-canvas-scanner');
+        if (canvas && this.canvasOriginal) {
+            canvas.width = this.canvasOriginal.width;
+            canvas.height = this.canvasOriginal.height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(this.canvasOriginal, 0, 0);
+
+            if (modo !== 'original') {
+                processarFiltroDocumentScanner(canvas, modo);
+            }
+            Toast.show(`Filtro "${this.obterNomeFiltro(modo)}" aplicado na imagem.`, "info", 1000);
+        }
+    },
+
+    obterNomeFiltro(modo) {
+        switch (modo) {
+            case 'scan_otimizado': return 'Scanner Inteligente';
+            case 'scan_pb': return 'Scanner P&B';
+            case 'scan_binario': return 'Binarizado OMR';
+            default: return 'Foto Original';
+        }
+    },
+
+    reanalisarComFiltroAtual() {
+        const canvas = document.getElementById('omr-canvas-scanner');
+        if (!canvas || canvas.width === 0) return Toast.show("Nenhuma imagem disponível para reanalisar.", "warning");
+        this.processarImagemCanvas(canvas);
+    },
+
     /**
-     * Executa teste simulado instantâneo com geração de folha preenchida no Canvas
+     * Executa teste simulado instantâneo com geração de folha preenchida no Canvas seguindo o padrão oficial OMR
      */
     testarGabaritoExemplo() {
         const canvas = document.getElementById('omr-canvas-scanner');
         const video = document.getElementById('omr-video-feed');
         const placeholder = document.getElementById('omr-placeholder-view');
         const controls = document.getElementById('omr-camera-controls');
+        const filterBar = document.getElementById('omr-filter-toolbar');
+        const viewfinder = document.getElementById('omr-camera-viewfinder');
 
         if (video) video.style.display = 'none';
         if (placeholder) placeholder.style.display = 'none';
         if (controls) controls.style.display = 'none';
+        if (viewfinder) viewfinder.style.display = 'none';
+        if (filterBar) filterBar.style.display = 'flex';
 
         if (canvas) {
             const totalQ = this.gabaritoOficial.length;
             canvas.style.display = 'block';
-            canvas.width = 650;
-            canvas.height = Math.max(500, Math.min(1200, 150 + totalQ * 25));
+
+            // Determina a quantidade de colunas (máximo 4 colunas em todas as situações)
+            let colunas = 1;
+            if (totalQ > 50) colunas = 4;
+            else if (totalQ > 30) colunas = 3;
+            else if (totalQ > 15) colunas = 2;
+            else colunas = totalQ > 8 ? 2 : 1;
+
+            const porColuna = Math.ceil(totalQ / colunas);
+
+            // Calibra dimensões HD do Canvas
+            canvas.width = Math.max(680, colunas * 195 + 60);
+            canvas.height = Math.max(480, 150 + porColuna * 28 + 35);
             const ctx = canvas.getContext('2d');
 
-            // Fundo da folha
+            // Fundo da folha (branco puro)
             ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+            // Borda externa preta grossa
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(6, 6, canvas.width - 12, canvas.height - 12);
+
+            // Função para desenhar marcador fiduciário idêntico ao padrão OMR (⬛ com anel concêntrico)
+            const desenharMarcadorFiduciario = (x, y) => {
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(x, y, 20, 20);
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(x + 4, y + 4, 12, 12);
+                ctx.fillStyle = '#000000';
+                ctx.fillRect(x + 7, y + 7, 6, 6);
+            };
+
+            desenharMarcadorFiduciario(12, 12); // TL
+            desenharMarcadorFiduciario(canvas.width - 32, 12); // TR
+            desenharMarcadorFiduciario(12, canvas.height - 32); // BL
+            desenharMarcadorFiduciario(canvas.width - 32, canvas.height - 32); // BR
+
             // Cabeçalho da folha
-            ctx.fillStyle = '#1e293b';
-            ctx.font = 'bold 18px sans-serif';
-            ctx.fillText(`PLANNER PRO - CARTÃO OMR (${totalQ} QUESTÕES)`, 30, 40);
+            ctx.fillStyle = '#000000';
+            ctx.font = '900 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            ctx.textAlign = 'left';
+            ctx.fillText(`PLANNER PRO - CARTÃO-RESPOSTA OMR (${totalQ}Q)`, 42, 30);
 
-            ctx.font = '12px sans-serif';
-            ctx.fillStyle = '#64748b';
-            ctx.fillText('Aluno de Teste | Turma: 9º Ano A | Data: ' + new Date().toLocaleDateString('pt-BR'), 30, 65);
+            ctx.font = '700 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            ctx.fillStyle = '#333333';
+            ctx.fillText('Preencha totalmente a bolha com caneta preta ou azul escura (ex: ●)', 42, 45);
 
-            // Moldura
+            // Badge no topo direito
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(canvas.width - 145, 18, 105, 24);
+            ctx.fillStyle = '#000000';
+            ctx.font = '900 10px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('LEITURA ÓTICA', canvas.width - 92, 34);
+            ctx.textAlign = 'left';
+
+            // Linha divisória do cabeçalho
             ctx.strokeStyle = '#000000';
             ctx.lineWidth = 2;
-            ctx.strokeRect(20, 80, canvas.width - 40, canvas.height - 100);
+            ctx.beginPath();
+            ctx.moveTo(38, 54);
+            ctx.lineTo(canvas.width - 38, 54);
+            ctx.stroke();
+
+            // Metadados do Estudante
+            ctx.font = '700 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            ctx.fillStyle = '#000000';
+            ctx.fillText('Estudante: __________________________________________________', 42, 72);
+            ctx.fillText('Turma: 9º Ano A    Data: ' + new Date().toLocaleDateString('pt-BR'), canvas.width - 250, 72);
+
+            // Linha fina separando metadados
+            ctx.strokeStyle = '#cccccc';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(38, 84);
+            ctx.lineTo(canvas.width - 38, 84);
+            ctx.stroke();
 
             // Respostas simuladas: acerta ~80% das questões, erra algumas e deixa 1 em branco
             const letras = ['A', 'B', 'C', 'D', 'E'];
@@ -578,51 +760,103 @@ export const correcaoAutomaticaView = {
                 }
             }
 
-            // Desenha bolhas organizadas em 1 ou 2 colunas no Canvas
-            const colunas = totalQ > 25 ? 2 : 1;
-            const porColuna = Math.ceil(totalQ / colunas);
+            // Renderiza as colunas de questões (máximo 4 colunas)
+            const margemEsq = 40;
+            const espacoUtilX = canvas.width - 80;
+            const larguraCol = espacoUtilX / colunas;
+            const topGrid = 98;
+            const alturaLinha = 26;
 
             for (let q = 0; q < totalQ; q++) {
                 const colIdx = Math.floor(q / porColuna);
                 const rowIdx = q % porColuna;
-                const startX = colIdx === 0 ? 40 : 340;
-                const y = 115 + rowIdx * 32;
+                const colX = margemEsq + colIdx * larguraCol;
+                const rowY = topGrid + rowIdx * alturaLinha;
+                const colW = larguraCol - 12;
 
-                ctx.fillStyle = '#0f172a';
-                ctx.font = 'bold 12px sans-serif';
-                ctx.fillText(`Q${(q + 1).toString().padStart(2, '0')}`, startX, y + 4);
+                // Caixa da linha da questão
+                ctx.fillStyle = '#ffffff';
+                ctx.fillRect(colX, rowY - 14, colW, 23);
+                ctx.strokeStyle = '#999999';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(colX, rowY - 14, colW, 23);
+
+                // Número da questão (Q01, Q02, ...)
+                ctx.fillStyle = '#000000';
+                ctx.font = '900 11px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+                ctx.textAlign = 'left';
+                ctx.fillText(`Q${(q + 1).toString().padStart(2, '0')}`, colX + 6, rowY + 2);
 
                 const respAluno = respostasAluno[q];
+                const startBolhas = colX + 38;
+                const espacoBolhas = (colW - 44) / 5;
 
                 letras.forEach((l, idxLetra) => {
-                    const x = startX + 50 + idxLetra * 36;
+                    const bx = startBolhas + idxLetra * espacoBolhas + espacoBolhas / 2;
+                    const by = rowY - 2.5;
                     const isMarcada = (respAluno !== 'EM_BRANCO' && l === respAluno);
 
                     ctx.beginPath();
-                    ctx.arc(x, y, 10, 0, Math.PI * 2);
+                    ctx.arc(bx, by, 8.5, 0, Math.PI * 2);
 
                     if (isMarcada) {
-                        ctx.fillStyle = '#1e293b'; // Preenchida com caneta
+                        ctx.fillStyle = '#0f172a'; // Tinta escura de caneta
                         ctx.fill();
+                        ctx.strokeStyle = '#000000';
+                        ctx.lineWidth = 1.4;
+                        ctx.stroke();
                         ctx.fillStyle = '#ffffff';
                     } else {
-                        ctx.strokeStyle = '#64748b';
-                        ctx.lineWidth = 1.5;
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fill();
+                        ctx.strokeStyle = '#000000';
+                        ctx.lineWidth = 1.3;
                         ctx.stroke();
-                        ctx.fillStyle = '#64748b';
+                        ctx.fillStyle = '#000000';
                     }
 
-                    ctx.font = 'bold 9px sans-serif';
+                    ctx.font = '900 8.5px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
                     ctx.textAlign = 'center';
                     ctx.textBaseline = 'middle';
-                    ctx.fillText(l, x, y);
-                    ctx.textAlign = 'start';
+                    ctx.fillText(l, bx, by);
+                    ctx.textAlign = 'left';
                     ctx.textBaseline = 'alphabetic';
                 });
             }
 
+            // Linha inferior de sincronismo OMR
+            const ySinc = canvas.height - 22;
+            ctx.setLineDash([4, 4]);
+            ctx.strokeStyle = '#666666';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(38, ySinc - 10);
+            ctx.lineTo(canvas.width - 38, ySinc - 10);
+            ctx.stroke();
+            ctx.setLineDash([]); // Restaura linha sólida
+
+            ctx.font = '700 9px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+            ctx.fillStyle = '#444444';
+            ctx.fillText('■ ■ ■ ■ ■ (Marca de Sincronismo OMR)', 42, ySinc);
+            ctx.textAlign = 'right';
+            ctx.fillText(`CÓDIGO: OMR-Q${totalQ}-PPRO`, canvas.width - 42, ySinc);
+            ctx.textAlign = 'left';
+
+            // Cria cópia de backup do canvas não filtrado para o seletor de filtros
+            const backupCanvas = document.createElement('canvas');
+            backupCanvas.width = canvas.width;
+            backupCanvas.height = canvas.height;
+            const bCtx = backupCanvas.getContext('2d');
+            bCtx.drawImage(canvas, 0, 0);
+            this.canvasOriginal = backupCanvas;
+
+            // Aplica o filtro de scanner ativo caso não seja original
+            if (this.filtroScanner !== 'original') {
+                processarFiltroDocumentScanner(canvas, this.filtroScanner);
+            }
+
             this.processarImagemCanvas(canvas, respostasAluno);
-            Toast.show(`Gabarito de ${totalQ} questões renderizado e testado!`, "success");
+            Toast.show(`Gabarito oficial de ${totalQ} questões renderizado com marcadores de ancoragem!`, "success");
         }
     },
 
@@ -644,7 +878,7 @@ export const correcaoAutomaticaView = {
                                 🤖 IA Vision Analisando Cartão-Resposta...
                             </h4>
                             <p style="font-size: 0.8125rem; color: #64748b; margin: 0; max-width: 420px; line-height: 1.5;">
-                                Identificando marcações das bolhas, verificando questões em branco e comparando com o gabarito oficial (${totalQ} questões)...
+                                Identificando marcações das bolhas com filtro "${this.obterNomeFiltro(this.filtroScanner)}", verificando questões em branco e comparando com o gabarito oficial (${totalQ} questões)...
                             </p>
                             ${imagemOtimizada && imagemOtimizada.percentualReducao > 0 ? `
                                 <div style="display: flex; justify-content: center; margin-top: 0.75rem;">
@@ -677,13 +911,13 @@ export const correcaoAutomaticaView = {
                 observacoesIA = "Teste simulado executado com sucesso.";
             } else {
                 // Fluxo Real com Foto da Câmera ou Arquivo: Otimiza imagem e invoca o Gemini Vision
-                Toast.show("Enviando imagem compactada para análise óptica com IA...", "info");
+                Toast.show("Enviando imagem tratada pelo scanner para análise óptica com IA...", "info");
 
                 let base64Data;
                 if (imagemOtimizada && imagemOtimizada.base64) {
                     base64Data = imagemOtimizada.base64;
                 } else {
-                    const otimizada = await comprimirERedimensionarImagem(canvas, { maxDimensao: 1400, qualidade: 0.82 });
+                    const otimizada = await comprimirERedimensionarImagem(canvas, { maxDimensao: 1400, qualidade: 0.85 });
                     base64Data = otimizada.base64;
                 }
 
@@ -703,7 +937,8 @@ export const correcaoAutomaticaView = {
                             mapaRespostasIA[num] = {
                                 resposta: respStr,
                                 status: r.status || (respStr === 'EM_BRANCO' ? 'em_branco' : respStr === 'ANULADA' ? 'anulada' : 'marcada'),
-                                confianca: r.confianca || 'alta'
+                                confianca: r.confianca || 'alta',
+                                motivo: r.motivo || ''
                             };
                         }
                     });
@@ -718,7 +953,7 @@ export const correcaoAutomaticaView = {
                 const questaoNum = idx + 1;
                 const itemDetectado = mapaRespostasIA && mapaRespostasIA[questaoNum]
                     ? mapaRespostasIA[questaoNum]
-                    : { resposta: 'EM_BRANCO', status: 'em_branco', confianca: 'baixa' };
+                    : { resposta: 'EM_BRANCO', status: 'em_branco', confianca: 'baixa', motivo: '' };
 
                 let resp = (itemDetectado.resposta || 'EM_BRANCO').toUpperCase().trim();
                 if (resp === '-' || resp === '' || resp === 'BLANK' || resp === 'VAZIO' || resp === 'NULO') {
@@ -734,6 +969,7 @@ export const correcaoAutomaticaView = {
                     isAnulada: false,
                     correta: false,
                     confianca: itemDetectado.confianca || 'alta',
+                    motivo: itemDetectado.motivo || '',
                     editadoManualmente: false
                 };
             });
@@ -870,6 +1106,16 @@ export const correcaoAutomaticaView = {
                     badgeEl.style.backgroundColor = badgeBg;
                 }
 
+                const confBadge = card.querySelector('.omr-q-conf-badge');
+                if (confBadge) {
+                    if (d.confianca === 'media' || d.confianca === 'baixa') {
+                        confBadge.style.display = 'inline-flex';
+                        confBadge.innerText = '⚠️ Revisar';
+                    } else {
+                        confBadge.style.display = 'none';
+                    }
+                }
+
                 const gabValEl = card.querySelector('.omr-q-gab-val');
                 if (gabValEl) gabValEl.innerText = d.gabarito;
 
@@ -927,6 +1173,7 @@ export const correcaoAutomaticaView = {
 
         d.resposta = novaResposta;
         d.editadoManualmente = true;
+        d.confianca = 'alta'; // Após intervenção do professor, a confiança é absoluta
         this.recalcularMetricasScanner();
         this.atualizarPainelResultadoOMR(questaoNumero);
 
@@ -951,6 +1198,9 @@ export const correcaoAutomaticaView = {
                         <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
                             <span class="badge" style="background: #d1fae5; color: #059669; font-weight: 800; font-size: 0.75rem; padding: 0.25rem 0.75rem; border-radius: 9999px;">
                                 <i class="fas fa-check-circle"></i> Leitura Óptica Concluída (${res.totalQ} Questões)
+                            </span>
+                            <span class="badge" style="background: #e0e7ff; color: #4338ca; font-size: 0.6875rem; font-weight: 800; padding: 0.25rem 0.6rem; border-radius: 0.375rem;">
+                                <i class="fas fa-filter"></i> ${this.obterNomeFiltro(this.filtroScanner)}
                             </span>
                             ${res.observacoes ? `
                                 <span class="badge" style="background: #eff6ff; color: #3b82f6; font-size: 0.6875rem; font-weight: 700; padding: 0.25rem 0.5rem; border-radius: 0.375rem;">
@@ -995,17 +1245,23 @@ export const correcaoAutomaticaView = {
                         let badgeTexto = d.correta ? 'ACERTO' : d.isEmBranco ? 'EM BRANCO' : d.isAnulada ? 'ANULADA' : 'ERRO';
                         let badgeCor = d.correta ? '#059669' : d.isEmBranco ? '#d97706' : d.isAnulada ? '#7c3aed' : '#dc2626';
                         let badgeBg = d.correta ? '#d1fae5' : d.isEmBranco ? '#fef3c7' : d.isAnulada ? '#f3e8ff' : '#fee2e2';
+                        let precisaRevisao = (d.confianca === 'media' || d.confianca === 'baixa');
 
                         return `
                             <div id="omr-card-q-${d.questao}" style="padding: 0.625rem; border-radius: 0.625rem; border: 1.5px solid ${corBorda}; background: ${corFundo}; display: flex; flex-direction: column; gap: 0.4rem; transition: background-color 150ms ease, border-color 150ms ease;">
-                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.25rem;">
                                     <span style="font-weight: 900; font-size: 0.8125rem; color: #1e293b;">
                                         Q${d.questao.toString().padStart(2, '0')}
                                         <i class="fas fa-pen omr-q-edit-icon" style="font-size: 0.625rem; color: #4f46e5; margin-left: 0.25rem; display: ${d.editadoManualmente ? 'inline-block' : 'none'};" title="Editado manualmente pelo professor"></i>
                                     </span>
-                                    <span class="omr-q-badge" style="font-size: 0.625rem; font-weight: 800; padding: 0.15rem 0.4rem; border-radius: 0.25rem; background: ${badgeBg}; color: ${badgeCor};">
-                                        ${badgeTexto}
-                                    </span>
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                        <span class="omr-q-conf-badge badge ${d.confianca === 'baixa' ? 'omr-confidence-badge--baixa' : 'omr-confidence-badge--media'}" style="display: ${precisaRevisao ? 'inline-flex' : 'none'}; font-size: 0.5625rem; font-weight: 800; padding: 0.1rem 0.35rem; border-radius: 0.25rem;" title="${window.escapeHTML(d.motivo || 'Verifique a marcação no cartão')}">
+                                            ⚠️ Revisar
+                                        </span>
+                                        <span class="omr-q-badge" style="font-size: 0.625rem; font-weight: 800; padding: 0.15rem 0.4rem; border-radius: 0.25rem; background: ${badgeBg}; color: ${badgeCor};">
+                                            ${badgeTexto}
+                                        </span>
+                                    </div>
                                 </div>
 
                                 <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem;">
@@ -1118,51 +1374,90 @@ export const correcaoAutomaticaView = {
     },
 
     /**
-     * Gera e abre a visualização para impressão dos Cartões-Resposta OMR adaptativos para 1 até 100 questões
+     * Gera o marcador fiduciário vetorial SVG para ancoragem precisa nos 4 cantos do cartão
      */
-    imprimirCartaoResposta(totalQuestoes = this.gabaritoOficial.length) {
-        const modal = document.getElementById('global-modal');
-        if (!modal) return;
+    obterSVGCantoFiduciario(posicao = 'tl', tamanho = 18) {
+        const styleMap = {
+            'tl': 'top: 5px; left: 5px;',
+            'tr': 'top: 5px; right: 5px;',
+            'bl': 'bottom: 5px; left: 5px;',
+            'br': 'bottom: 5px; right: 5px;'
+        };
+        return `
+            <svg width="${tamanho}" height="${tamanho}" viewBox="0 0 20 20" style="position: absolute; ${styleMap[posicao] || ''} display: block; z-index: 10;" xmlns="http://www.w3.org/2000/svg">
+                <rect width="20" height="20" fill="#000000" />
+                <rect x="4" y="4" width="12" height="12" fill="#ffffff" />
+                <rect x="7" y="7" width="6" height="6" fill="#000000" />
+            </svg>
+        `;
+    },
 
+    /**
+     * Gera o HTML de um cartão-resposta individual com proporção e densidade óptica calibradas
+     */
+    obterHTMLCartaoIndividual({ numVia = 1, totalQuestoes = 10, colunasInternas = 2, porColuna = 5, compacto = false, totalVias = 1 }) {
         const letras = ['A', 'B', 'C', 'D', 'E'];
-        
-        // Determina a quantidade de colunas dentro de cada cartão
-        let colunasInternas = 1;
-        if (totalQuestoes > 50) colunasInternas = 4;
-        else if (totalQuestoes > 25) colunasInternas = 3;
-        else if (totalQuestoes > 10) colunasInternas = 2;
+        const isGrandeVolume = totalQuestoes >= 45;
+        const fontTitle = compacto ? '0.75rem' : isGrandeVolume ? '0.875rem' : '0.9375rem';
+        const paddingCard = compacto ? '0.65rem 0.65rem 0.5rem 0.65rem' : '0.875rem 0.875rem 0.65rem 0.875rem';
+        const bubbleSize = compacto ? '0.95rem' : isGrandeVolume ? '1.05rem' : '1.15rem';
+        const fontSizeBubble = compacto ? '0.5rem' : isGrandeVolume ? '0.5625rem' : '0.625rem';
+        const rowPadding = compacto ? '0.08rem 0.25rem' : '0.12rem 0.35rem';
+        const qNumWidth = compacto ? '1.25rem' : '1.5rem';
 
-        const porColuna = Math.ceil(totalQuestoes / colunasInternas);
+        return `
+            <div class="omr-card-printable" style="position: relative; border: 2.5px solid #000000; padding: ${paddingCard}; border-radius: 4px; background: #ffffff; color: #000000; page-break-inside: avoid; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; width: 100%; height: 100%; box-shadow: none;">
+                
+                <!-- MARCADORES DE ANCORAGEM FIDUCIÁRIOS VETORIAIS ⬛ NOS 4 CANTOS -->
+                ${this.obterSVGCantoFiduciario('tl')}
+                ${this.obterSVGCantoFiduciario('tr')}
+                ${this.obterSVGCantoFiduciario('bl')}
+                ${this.obterSVGCantoFiduciario('br')}
 
-        const renderCardIndividual = (num) => `
-            <div style="border: 2px dashed #94a3b8; padding: 1rem 1.25rem; border-radius: 0.5rem; background: white; page-break-inside: avoid; margin-bottom: 1rem;">
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #0f172a; padding-bottom: 0.4rem; margin-bottom: 0.5rem;">
+                <!-- CABEÇALHO DO CARTÃO -->
+                <div style="border-bottom: 2px solid #000000; padding-bottom: 0.3rem; margin-bottom: 0.35rem; padding-left: 1.5rem; padding-right: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
                     <div>
-                        <h4 style="margin: 0; font-size: 0.9375rem; font-weight: 900; color: #0f172a; text-transform: uppercase;">PLANNER PRO - CARTÃO-RESPOSTA (${totalQuestoes} QUESTÕES)</h4>
-                        <div style="font-size: 0.625rem; color: #64748b; font-weight: 700;">Preencha totalmente a bolha com caneta preta ou azul escura</div>
+                        <h4 style="margin: 0; font-size: ${fontTitle}; font-weight: 900; color: #000000; text-transform: uppercase; letter-spacing: -0.01em;">
+                            PLANNER PRO - CARTÃO-RESPOSTA OMR (${totalQuestoes}Q)
+                        </h4>
+                        <div style="font-size: 0.5625rem; color: #333333; font-weight: 700; margin-top: 1px;">
+                            Preencha totalmente a bolha com caneta preta ou azul escura (ex: ●)
+                        </div>
                     </div>
-                    <div style="font-size: 0.6875rem; font-weight: 900; color: #0f172a; border: 1.5px solid #000; padding: 0.1rem 0.4rem; border-radius: 0.25rem;">
-                        VIA #${num}
+                    ${totalVias > 1 ? `
+                        <div style="font-size: 0.625rem; font-weight: 900; color: #000000; border: 1.5px solid #000000; padding: 0.1rem 0.35rem; border-radius: 2px;">
+                            VIA #${numVia}
+                        </div>
+                    ` : `
+                        <div style="font-size: 0.5625rem; font-weight: 800; color: #000000; border: 1px solid #000000; padding: 0.1rem 0.35rem; border-radius: 2px; text-transform: uppercase;">
+                            LEITURA ÓTICA
+                        </div>
+                    `}
+                </div>
+
+                <!-- DADOS DO ESTUDANTE -->
+                <div style="display: grid; grid-template-columns: ${compacto ? '1fr' : '2fr 1fr'}; gap: 0.35rem; font-size: ${compacto ? '0.625rem' : '0.6875rem'}; margin-bottom: 0.4rem; padding-left: 1.5rem; padding-right: 1.5rem;">
+                    <div style="border-bottom: 1px solid #666666; padding-bottom: 0.15rem; white-space: nowrap; overflow: hidden;">
+                        <b>Estudante:</b> ____________________________________
+                    </div>
+                    <div style="border-bottom: 1px solid #666666; padding-bottom: 0.15rem; white-space: nowrap;">
+                        <b>Turma:</b> _______ <b>Data:</b> ___/___/___
                     </div>
                 </div>
 
-                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 0.5rem; font-size: 0.75rem; margin-bottom: 0.625rem;">
-                    <div style="border-bottom: 1px solid #cbd5e1; padding-bottom: 0.2rem;"><b>Estudante:</b> ____________________________________</div>
-                    <div style="border-bottom: 1px solid #cbd5e1; padding-bottom: 0.2rem;"><b>Turma:</b> _________ <b>Data:</b> ___/___/___</div>
-                </div>
-
-                <div style="display: grid; grid-template-columns: repeat(${colunasInternas}, 1fr); gap: 0.5rem; background: #f8fafc; padding: 0.5rem; border-radius: 0.375rem; border: 1px solid #e2e8f0;">
+                <!-- GRADE DE QUESTÕES MULTICOLUNAS -->
+                <div style="display: grid; grid-template-columns: repeat(${colunasInternas}, 1fr); gap: 0.4rem; background: #ffffff; padding: 0.25rem 1.25rem; border-radius: 2px; flex: 1; align-content: start;">
                     ${Array.from({ length: colunasInternas }, (_, colIdx) => {
                         const inicio = colIdx * porColuna;
                         const fim = Math.min(totalQuestoes, inicio + porColuna);
-                        let htmlCol = '<div style="display: flex; flex-direction: column; gap: 0.25rem;">';
+                        let htmlCol = '<div style="display: flex; flex-direction: column; gap: 0.15rem;">';
                         for (let q = inicio; q < fim; q++) {
                             htmlCol += `
-                                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.125rem 0.35rem; background: white; border: 1px solid #cbd5e1; border-radius: 0.25rem;">
-                                    <span style="font-weight: 900; font-size: 0.6875rem; color: #0f172a; min-width: 1.5rem;">Q${(q + 1).toString().padStart(2, '0')}</span>
-                                    <div style="display: flex; gap: 0.2rem;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; padding: ${rowPadding}; background: #ffffff; border: 1px solid #999999; border-radius: 2px;">
+                                    <span style="font-weight: 900; font-size: ${fontSizeBubble}; color: #000000; min-width: ${qNumWidth};">Q${(q + 1).toString().padStart(2, '0')}</span>
+                                    <div style="display: flex; gap: 0.18rem;">
                                         ${letras.map(l => `
-                                            <span style="width: 1.125rem; height: 1.125rem; border-radius: 50%; border: 1.2px solid #0f172a; display: inline-flex; align-items: center; justify-content: center; font-size: 0.5625rem; font-weight: 900; color: #0f172a;">
+                                            <span style="width: ${bubbleSize}; height: ${bubbleSize}; border-radius: 50%; border: 1.3px solid #000000; display: inline-flex; align-items: center; justify-content: center; font-size: ${fontSizeBubble}; font-weight: 900; color: #000000; background: #ffffff;">
                                                 ${l}
                                             </span>
                                         `).join('')}
@@ -1174,45 +1469,231 @@ export const correcaoAutomaticaView = {
                         return htmlCol;
                     }).join('')}
                 </div>
+
+                <!-- LINHA INFERIOR DE SINCRONISMO -->
+                <div style="border-top: 1px dashed #666666; margin-top: 0.3rem; padding-top: 0.15rem; display: flex; justify-content: space-between; align-items: center; padding-left: 1.5rem; padding-right: 1.5rem; font-size: 0.5rem; color: #444444;">
+                    <span>■ ■ ■ ■ ■ (Marca de Sincronismo OMR)</span>
+                    <span>CÓDIGO: OMR-Q${totalQuestoes}-PPRO</span>
+                </div>
             </div>
         `;
+    },
 
-        // Quantidade de vias por folha baseada no total de questões
+    /**
+     * Monta o documento HTML completo e isolado para impressão em A4 exata (sem qualquer elemento do App ou Modal)
+     */
+    obterDocumentoImpressaoCompleto(totalQuestoes = this.gabaritoOficial.length) {
         let numVias = 4;
-        let explicacao = 'A folha abaixo foi formatada para renderizar <strong>4 cartões por página A4</strong>.';
-        if (totalQuestoes > 30) {
+        let colunasInternas = 1;
+        let layoutClasse = 'grid-4-vias';
+        let compacto = false;
+
+        if (totalQuestoes > 50) {
             numVias = 1;
-            explicacao = 'Para provas extensas (acima de 30 questões), a folha foi formatada como <strong>1 prova completa em página A4 inteira</strong>.';
-        } else if (totalQuestoes > 10) {
+            colunasInternas = 4;
+            layoutClasse = 'via-unica';
+            compacto = true;
+        } else if (totalQuestoes > 30) {
+            numVias = 1;
+            colunasInternas = 3;
+            layoutClasse = 'via-unica';
+            compacto = false;
+        } else if (totalQuestoes > 15) {
             numVias = 2;
-            explicacao = 'Para provas médias (11 a 30 questões), a folha foi formatada para renderizar <strong>2 cartões por página A4</strong>.';
+            colunasInternas = 2;
+            layoutClasse = 'grid-2-vias';
+            compacto = false;
+        } else {
+            numVias = 4;
+            colunasInternas = totalQuestoes > 8 ? 2 : 1;
+            layoutClasse = 'grid-4-vias';
+            compacto = true;
         }
+
+        const porColuna = Math.ceil(totalQuestoes / colunasInternas);
+
+        return `
+            <!DOCTYPE html>
+            <html lang="pt-BR">
+            <head>
+                <meta charset="utf-8">
+                <title>Cartão-Resposta OMR (${totalQuestoes}Q) - Planner Pro</title>
+                <style>
+                    @page {
+                        size: A4 portrait;
+                        margin: 6mm 8mm;
+                    }
+                    * {
+                        box-sizing: border-box;
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                        color-adjust: exact !important;
+                    }
+                    html, body {
+                        margin: 0;
+                        padding: 0;
+                        background: #ffffff;
+                        color: #000000;
+                        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+                        width: 100%;
+                        height: 100%;
+                    }
+                    .folha-a4 {
+                        width: 100%;
+                        height: 100%;
+                        max-height: 275mm;
+                        box-sizing: border-box;
+                        page-break-inside: avoid;
+                        page-break-after: avoid;
+                        overflow: hidden;
+                    }
+                    .grid-4-vias {
+                        display: grid;
+                        grid-template-columns: 1fr 1fr;
+                        grid-template-rows: 1fr 1fr;
+                        gap: 6mm;
+                        height: 100%;
+                    }
+                    .grid-2-vias {
+                        display: flex;
+                        flex-direction: column;
+                        gap: 8mm;
+                        height: 100%;
+                    }
+                    .via-unica {
+                        display: flex;
+                        flex-direction: column;
+                        height: 100%;
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="folha-a4 ${layoutClasse}">
+                    ${Array.from({ length: numVias }, (_, idx) => 
+                        this.obterHTMLCartaoIndividual({ 
+                            numVia: idx + 1, 
+                            totalQuestoes, 
+                            colunasInternas, 
+                            porColuna, 
+                            compacto, 
+                            totalVias: numVias 
+                        })
+                    ).join('')}
+                </div>
+            </body>
+            </html>
+        `;
+    },
+
+    /**
+     * Executa a impressão direta e limpa através de iframe isolado (sem botões ou cabeçalhos do modal)
+     */
+    executarImpressaoCartao(totalQuestoes = this.gabaritoOficial.length) {
+        const htmlDoc = this.obterDocumentoImpressaoCompleto(totalQuestoes);
+
+        let iframe = document.getElementById('omr-print-iframe');
+        if (!iframe) {
+            iframe = document.createElement('iframe');
+            iframe.id = 'omr-print-iframe';
+            iframe.style.position = 'fixed';
+            iframe.style.right = '0';
+            iframe.style.bottom = '0';
+            iframe.style.width = '0';
+            iframe.style.height = '0';
+            iframe.style.border = '0';
+            iframe.style.visibility = 'hidden';
+            document.body.appendChild(iframe);
+        }
+
+        const doc = iframe.contentWindow.document;
+        doc.open();
+        doc.write(htmlDoc);
+        doc.close();
+
+        iframe.contentWindow.focus();
+        setTimeout(() => {
+            try {
+                iframe.contentWindow.print();
+            } catch (e) {
+                console.warn("Fallback de impressão por janela popup:", e);
+                const win = window.open('', '_blank');
+                win.document.open();
+                win.document.write(htmlDoc);
+                win.document.close();
+                win.focus();
+                win.print();
+            }
+        }, 300);
+    },
+
+    /**
+     * Abre a visualização modal para conferência prévia dos Cartões-Resposta OMR
+     */
+    imprimirCartaoResposta(totalQuestoes = this.gabaritoOficial.length) {
+        const modal = document.getElementById('global-modal');
+        if (!modal) return;
+
+        let numVias = 4;
+        let explicacao = 'A folha foi otimizada para renderizar <strong>4 cartões econômicos por página A4 (Grade 2x2)</strong> com marcadores vetoriais ⬛.';
+        if (totalQuestoes > 50) {
+            numVias = 1;
+            explicacao = 'Para provas extensas (51 a 100 questões), o layout de alta densidade óptica foi calibrado para caber <strong>100% em EXATAMENTE 1 folha A4</strong>, sem cortes ou páginas extras.';
+        } else if (totalQuestoes > 30) {
+            numVias = 1;
+            explicacao = 'Para provas de 31 a 50 questões, a folha foi formatada como <strong>1 prova completa em página A4 inteira (3 colunas)</strong>.';
+        } else if (totalQuestoes > 15) {
+            numVias = 2;
+            explicacao = 'Para provas médias (16 a 30 questões), a folha foi formatada para renderizar <strong>2 cartões por página A4</strong>.';
+        }
+
+        let colunasInternas = 1;
+        let compacto = false;
+        if (totalQuestoes > 50) { colunasInternas = 4; compacto = true; }
+        else if (totalQuestoes > 30) { colunasInternas = 3; compacto = false; }
+        else if (totalQuestoes > 15) { colunasInternas = 2; compacto = false; }
+        else { colunasInternas = totalQuestoes > 8 ? 2 : 1; compacto = true; }
+
+        const porColuna = Math.ceil(totalQuestoes / colunasInternas);
 
         modal.innerHTML = `
             <div class="modal animate-scale" style="max-width: 900px; max-height: 90vh; display: flex; flex-direction: column;">
                 <div class="modal__header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding: 1rem 1.5rem;">
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
                         <i class="fas fa-print" style="color: var(--color-primary); font-size: 1.25rem;"></i>
-                        <h3 class="modal__title" style="margin: 0; font-size: 1.125rem; font-weight: 800;">Folha de Cartão-Resposta OMR (${totalQuestoes} Questões)</h3>
+                        <h3 class="modal__title" style="margin: 0; font-size: 1.125rem; font-weight: 800;">Folha de Cartão-Resposta OMR com Ancoragem (${totalQuestoes} Questões)</h3>
                     </div>
                     <button type="button" onclick="controller.closeModal()" class="btn-icon" style="border: none; background: none; cursor: pointer; font-size: 1.125rem;">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
 
-                <div class="modal__body custom-scrollbar" style="overflow-y: auto; padding: 1.5rem; flex: 1;">
-                    <p style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: 1rem;">
-                        ${explicacao} Imprima em formato A4 para distribuir aos estudantes.
-                    </p>
+                <div class="modal__body custom-scrollbar" style="overflow-y: auto; padding: 1.5rem; flex: 1; background: #f8fafc;">
+                    <div style="background: #eef2ff; border: 1px solid #c7d2fe; border-radius: 0.5rem; padding: 0.75rem 1rem; margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                        <span style="font-size: 0.8125rem; color: #3730a3;">
+                            <i class="fas fa-info-circle"></i> ${explicacao}
+                        </span>
+                        <span class="badge" style="background: #ffffff; color: #4338ca; font-weight: 800; border: 1px solid #c7d2fe;">
+                            ${numVias} via(s) por página A4
+                        </span>
+                    </div>
                     
-                    <div id="cartao-resposta-print-area">
-                        ${Array.from({ length: numVias }, (_, idx) => renderCardIndividual(idx + 1)).join('')}
+                    <div id="cartao-resposta-preview-area" style="background: white; padding: 1rem; border-radius: 0.5rem; border: 1px solid #cbd5e1; box-shadow: var(--shadow-sm); display: ${numVias === 4 ? 'grid' : 'flex'}; grid-template-columns: ${numVias === 4 ? '1fr 1fr' : 'none'}; flex-direction: ${numVias !== 4 ? 'column' : 'none'}; gap: 1rem;">
+                        ${Array.from({ length: numVias }, (_, idx) => 
+                            this.obterHTMLCartaoIndividual({ 
+                                numVia: idx + 1, 
+                                totalQuestoes, 
+                                colunasInternas, 
+                                porColuna, 
+                                compacto, 
+                                totalVias: numVias 
+                            })
+                        ).join('')}
                     </div>
                 </div>
 
-                <div class="modal__footer" style="display: flex; justify-content: flex-end; gap: 0.75rem; padding: 1rem 1.5rem; border-top: 1px solid var(--border-color);">
+                <div class="modal__footer" style="display: flex; justify-content: flex-end; gap: 0.75rem; padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); background: white;">
                     <button type="button" onclick="controller.closeModal()" class="btn-secondary">Fechar</button>
-                    <button type="button" onclick="window.print()" class="btn-primary" style="background: #4f46e5;">
+                    <button type="button" onclick="correcaoAutomaticaView.executarImpressaoCartao(${totalQuestoes})" class="btn-primary" style="background: #4f46e5; font-weight: 800; padding: 0.625rem 1.5rem;">
                         <i class="fas fa-print"></i> Imprimir Folha A4
                     </button>
                 </div>
