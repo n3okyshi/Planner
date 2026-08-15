@@ -278,6 +278,19 @@
                 }
                 if (pinUrl) this.pin = pinUrl;
 
+                // Tentar restaurar sessão ativa de sessionStorage se reconectando
+                try {
+                    const savedPin = sessionStorage.getItem('quiz_aluno_pin');
+                    const savedId = sessionStorage.getItem('quiz_aluno_player_id');
+                    const savedNome = sessionStorage.getItem('quiz_aluno_nome');
+                    const savedAvatar = sessionStorage.getItem('quiz_aluno_avatar');
+
+                    if (!this.pin && savedPin) this.pin = savedPin;
+                    if (savedId) this.playerId = savedId;
+                    if (savedNome) this.nomeJogador = savedNome;
+                    if (savedAvatar) this.avatar = savedAvatar;
+                } catch (e) {}
+
                 // 2. Camuflagem / Higienização da URL na barra de endereços (remove ?pin=... sem recarregar)
                 if (window.history && window.history.replaceState) {
                     const cleanPath = window.location.pathname.split('/').pop() || 'aluno.html';
@@ -287,7 +300,60 @@
                 // 3. Inicializar travas de segurança do navegador (Anti-Inspeção e Anti-Cheat)
                 this.inicializarTravasSeguranca();
 
-                this.renderTelaEntrada();
+                // Se já possui dados salvos e PIN, reconecta automaticamente
+                if (this.pin && this.playerId && this.nomeJogador) {
+                    this.reconectarAutomatico();
+                } else {
+                    this.renderTelaEntrada();
+                }
+            },
+
+            async reconectarAutomatico() {
+                this.solicitarModoFoco();
+                this.iniciarBroadcastChannel();
+                await this.ouvirFirestore();
+                this.resincronizarSessao();
+            },
+
+            async resincronizarSessao() {
+                if (!this.pin || typeof db === 'undefined') return;
+                try {
+                    const docRef = db.collection('quiz_sessions').doc(String(this.pin));
+                    const snap = await docRef.get();
+                    if (snap.exists) {
+                        this.atualizarSessao(snap.data());
+                    }
+                    if (!this.unsubscribe) {
+                        this.ouvirFirestore();
+                    }
+                } catch (e) {
+                    console.warn("Aviso ao resincronizar sessão:", e);
+                }
+            },
+
+            iniciarBroadcastChannel() {
+                if (typeof BroadcastChannel !== 'undefined' && this.pin) {
+                    if (this.broadcastChannel) this.broadcastChannel.close();
+                    this.broadcastChannel = new BroadcastChannel('quiz_sync_' + this.pin);
+                    this.broadcastChannel.onmessage = (event) => {
+                        if (event.data && event.data.type === 'SESSION_UPDATE') {
+                            this.atualizarSessao(event.data.session);
+                        }
+                    };
+                }
+            },
+
+            async ouvirFirestore() {
+                if (!this.pin || typeof db === 'undefined') return;
+                const docRef = db.collection('quiz_sessions').doc(String(this.pin));
+                if (this.unsubscribe) this.unsubscribe();
+                this.unsubscribe = docRef.onSnapshot((doc) => {
+                    if (doc.exists) {
+                        this.atualizarSessao(doc.data());
+                    }
+                }, (err) => {
+                    console.warn("Aviso Firestore snapshot:", err);
+                });
             },
 
             inicializarTravasSeguranca() {
@@ -309,7 +375,7 @@
                     }
                 });
 
-                // Detecção de troca de abas / perda de foco (Anti-Cheat)
+                // Detecção de troca de abas / perda de foco (Anti-Cheat) e Resincronização ao Voltar Foco
                 document.addEventListener('visibilitychange', () => {
                     if (document.hidden && this.sessaoData && this.sessaoData.status === 'QUESTION') {
                         this.desfocosContagem = (this.desfocosContagem || 0) + 1;
@@ -318,9 +384,18 @@
                                 [`players.${this.playerId}.focusLossCount`]: this.desfocosContagem
                             }).catch(() => {});
                         }
-                    } else if (!document.hidden && this.desfocosContagem > 0 && this.sessaoData && this.sessaoData.status === 'QUESTION') {
-                        this.exibirAvisoFoco();
+                    } else if (!document.hidden) {
+                        if (this.desfocosContagem > 0 && this.sessaoData && this.sessaoData.status === 'QUESTION') {
+                            this.exibirAvisoFoco();
+                        }
+                        // Efetua resincronização forçada imediata ao desbloquear tela
+                        this.resincronizarSessao();
                     }
+                });
+
+                // Ouvir retorno de conexão online
+                window.addEventListener('online', () => {
+                    this.resincronizarSessao();
                 });
 
                 // Proteção contra fechamento acidental de aba durante a partida
@@ -459,6 +534,14 @@
                     this.playerId = generateId('aluno');
                 }
 
+                // Salva sessão localmente para recuperar se celular bloquear
+                try {
+                    sessionStorage.setItem('quiz_aluno_pin', this.pin);
+                    sessionStorage.setItem('quiz_aluno_player_id', this.playerId);
+                    sessionStorage.setItem('quiz_aluno_nome', this.nomeJogador);
+                    sessionStorage.setItem('quiz_aluno_avatar', this.avatar);
+                } catch (e) {}
+
                 // Solicita modo foco / tela cheia no clique do aluno
                 this.solicitarModoFoco();
 
@@ -468,27 +551,7 @@
                     btn.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Conectando...`;
                 }
 
-                // Iniciar canal local de fallback
-                if (typeof BroadcastChannel !== 'undefined') {
-                    if (this.broadcastChannel) this.broadcastChannel.close();
-                    this.broadcastChannel = new BroadcastChannel('quiz_sync_' + this.pin);
-                    this.broadcastChannel.onmessage = (event) => {
-                        if (event.data && event.data.type === 'SESSION_UPDATE') {
-                            this.atualizarSessao(event.data.session);
-                        }
-                    };
-                    this.broadcastChannel.postMessage({
-                        type: 'PLAYER_JOIN',
-                        player: {
-                            id: this.playerId,
-                            nome: this.nomeJogador,
-                            avatar: this.avatar,
-                            score: 0,
-                            streak: 0,
-                            totalCorrect: 0
-                        }
-                    });
-                }
+                this.iniciarBroadcastChannel();
 
                 try {
                     const docRef = db.collection('quiz_sessions').doc(String(this.pin));
@@ -507,14 +570,7 @@
                         }
                     });
 
-                    if (this.unsubscribe) this.unsubscribe();
-                    this.unsubscribe = docRef.onSnapshot((doc) => {
-                        if (doc.exists) {
-                            this.atualizarSessao(doc.data());
-                        }
-                    }, (err) => {
-                        console.warn("Aviso Firestore snapshot:", err);
-                    });
+                    await this.ouvirFirestore();
                 } catch (e) {
                     console.warn("Aviso Firestore entrar:", e);
                 }
@@ -527,6 +583,7 @@
 
                 // Se o professor encerrou o quiz de verdade, fechar a aba de todos os alunos!
                 if (dados.status === 'CLOSED') {
+                    try { sessionStorage.removeItem('quiz_aluno_pin'); } catch (e) {}
                     const root = document.getElementById('app-root');
                     root.innerHTML = `
                         <div class="card" style="text-align: center; padding: 3rem 1.5rem;">
@@ -543,6 +600,13 @@
                 }
 
                 this.sessaoData = dados;
+
+                // Sincronizar lastAnswerQuestionIndex do jogador com Firestore se existir
+                const player = this.obterPlayerData();
+                if (player && typeof player.lastAnswerQuestionIndex === 'number') {
+                    this.lastAnswerQuestionIndex = player.lastAnswerQuestionIndex;
+                }
+
                 this.renderEstado();
             },
 

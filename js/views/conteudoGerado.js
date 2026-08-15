@@ -289,85 +289,126 @@ export const conteudoGeradoView = {
         const conteudoAtual = material.conteudo_html || '';
 
         const modalHtml = `
-            <div style="display: flex; flex-direction: column; gap: 1.25rem;">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 1rem;">
+            <div style="display: flex; flex-direction: column; gap: 1rem; width: 100%;">
+                
+                <!-- BLOCO SUPERIOR: METADADOS E SELETOR DE VISÃO -->
+                <div style="display: grid; grid-template-columns: 2fr 2fr 1.5fr; gap: 1rem; align-items: end; background: #ffffff; padding: 1rem 1.25rem; border-radius: var(--radius-xl); border: 1px solid var(--color-slate-200); box-shadow: var(--shadow-sm);">
                     <div>
-                        <label class="form-label">Título do Material</label>
-                        <input type="text" id="editor-mat-titulo" class="form-input" value="${window.escapeHTML(tituloAtual)}" placeholder="Ex: Avaliação Bimestral de Ciências">
+                        <label class="form-label" style="font-weight: 800; font-size: 0.8125rem; color: var(--color-slate-700);">Título do Material</label>
+                        <input type="text" id="editor-mat-titulo" class="form-input" value="${window.escapeHTML(tituloAtual)}" placeholder="Ex: Avaliação Bimestral de Ciências" style="font-weight: 700;">
                     </div>
                     <div>
-                        <label class="form-label">Tema / Conteúdo</label>
-                        <input type="text" id="editor-mat-tema" class="form-input" value="${window.escapeHTML(temaAtual)}" placeholder="Ex: Fotossí                <!-- SELETOR DE MODO DE EDIÇÃO: VISUAL VS CÓDIGO HTML -->
-                <div style="display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; padding: 0.35rem 0.5rem; border-radius: var(--radius-xl); border: 1px solid #cbd5e1;">
-                    <div style="display: flex; gap: 0.35rem;">
-                        <button type="button" id="btn-mode-mat-visual" onclick="conteudoGeradoView.alternarModoEdicaoVisual('visual')" class="btn-primary" style="padding: 0.35rem 0.85rem; font-size: 0.8125rem; font-weight: 800;" title="Editor Visual intuitivo sem necessidade de digitar código HTML">
-                            <i class="fas fa-magic"></i> Modo Visual (Sem Código)
-                        </button>
-                        <button type="button" id="btn-mode-mat-code" onclick="conteudoGeradoView.alternarModoEdicaoVisual('code')" class="btn-secondary" style="padding: 0.35rem 0.85rem; font-size: 0.8125rem; font-weight: 800;" title="Editar código HTML cru diretamente (Para usuários avançados)">
-                            <i class="fas fa-code"></i> Modo HTML (Avançado)
-                        </button>
+                        <label class="form-label" style="font-weight: 800; font-size: 0.8125rem; color: var(--color-slate-700);">Tema / Conteúdo</label>
+                        <input type="text" id="editor-mat-tema" class="form-input" value="${window.escapeHTML(temaAtual)}" placeholder="Ex: Fotossíntese e Cadeia Alimentar" style="font-weight: 700;">
                     </div>
-                    <span style="font-size: 0.75rem; color: #64748b; font-weight: 600; padding-right: 0.5rem;">
-                        <i class="fas fa-sparkles text-indigo-500"></i> Edição Amigável para Professores
-                    </span>
-                </div>
-
-                <!-- BARRA DE FERRAMENTAS DO EDITOR -->
-                <div id="editor-mat-toolbar-visual" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.5rem; padding: 0.5rem 0.75rem; background-color: var(--color-slate-50); border: 1px solid var(--color-slate-200); border-radius: var(--radius-xl);">
-                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem;">
-                        <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('bold')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem;" title="Negrito">
-                            <i class="fas fa-bold"></i> <strong>B</strong>
-                        </button>
-                        <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('italic')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem;" title="Itálico">
-                            <i class="fas fa-italic"></i> <em>I</em>
-                        </button>
-                        <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('formatBlock', 'H3')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem;" title="Título Seção (H3)">
-                            <i class="fas fa-heading"></i> Título
-                        </button>
-                        <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('insertUnorderedList')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem;" title="Lista com Marcadores">
-                            <i class="fas fa-list-ul"></i> Lista
-                        </button>
-                        <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('formatBlock', 'P')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem;" title="Parágrafo Normal">
-                            <i class="fas fa-paragraph"></i> Texto
-                        </button>
-                    </div>
-
-                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;">
-                        <button type="button" onclick="conteudoGeradoView.inserirBlocoGabarito()" class="btn-primary" style="background-color: #059669; font-size: 0.75rem; padding: 0.375rem 0.75rem; box-shadow: var(--shadow-sm);" title="Inserir bloco de respostas que fica visível apenas para o professor">
-                            <i class="fas fa-check-circle"></i> + Gabarito (Oculto no Aluno)
-                        </button>
-                        <button type="button" onclick="conteudoGeradoView.inserirComentarioProfessor()" class="btn-secondary" style="background-color: #fefce8; border-color: #fef08a; color: #a16207; font-size: 0.75rem; padding: 0.375rem 0.75rem;" title="Inserir dica ou anotação pedagógica do professor">
-                            <i class="fas fa-comment-dots"></i> + Comentário Pedagógico
-                        </button>
+                    <div>
+                        <label class="form-label" style="font-weight: 800; font-size: 0.8125rem; color: var(--color-slate-700);">Modo de Edição</label>
+                        <div style="display: flex; gap: 0.25rem; background: var(--color-slate-100); padding: 0.25rem; border-radius: var(--radius-xl); border: 1px solid var(--color-slate-200);">
+                            <button type="button" id="btn-mode-mat-visual" onclick="conteudoGeradoView.alternarModoEdicaoVisual('visual')" class="btn-primary" style="flex: 1; padding: 0.45rem 0.5rem; font-size: 0.75rem; font-weight: 800; justify-content: center;" title="Editor Visual em Folha Mestre">
+                                <i class="fas fa-file-alt"></i> Folha Mestre
+                            </button>
+                            <button type="button" id="btn-mode-mat-code" onclick="conteudoGeradoView.alternarModoEdicaoVisual('code')" class="btn-secondary" style="flex: 1; padding: 0.45rem 0.5rem; font-size: 0.75rem; font-weight: 800; justify-content: center; background: transparent;" title="Editar Código HTML Avançado">
+                                <i class="fas fa-code"></i> Código HTML
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- ÁREA DO EDITOR DE TEXTO / WYSIWYG VISUAL & HTML -->
-                <div>
-                    <label class="form-label" id="editor-mat-label-modo">Conteúdo do Material (Edição Visual Formatada)</label>
+                <!-- MESA DE TRABALHO STUDIO (BACKGROUND NEUTRO + BARRA RIBBON + FOLHA A4) -->
+                <div style="background-color: #f1f5f9; border-radius: var(--radius-2xl); border: 1px solid var(--color-slate-200); padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem;">
+                    
+                    <!-- BARRA DE FERRAMENTAS RIBBON CLÁSSICA E MODERNA -->
+                    <div id="editor-mat-toolbar-visual" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.625rem 1rem; background-color: #ffffff; border: 1px solid var(--color-slate-200); border-radius: var(--radius-xl); box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
+                        
+                        <!-- GRUPO FORMATAÇÃO E TIPOGRAFIA -->
+                        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem;">
+                            <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('bold')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem; font-weight: 800;" title="Negrito (Ctrl+B)">
+                                <i class="fas fa-bold"></i> <span>N</span>
+                            </button>
+                            <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('italic')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem; font-style: italic;" title="Itálico (Ctrl+I)">
+                                <i class="fas fa-italic"></i> <span>I</span>
+                            </button>
+                            <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('subscript')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem;" title="Subscrito (ex: H₂O)">
+                                <i class="fas fa-subscript"></i> <span>S₂</span>
+                            </button>
+                            <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('superscript')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem;" title="Sobrescrito (ex: X²)">
+                                <i class="fas fa-superscript"></i> <span>S²</span>
+                            </button>
+                            <div style="width: 1px; height: 1.5rem; background-color: var(--color-slate-200); margin: 0 0.25rem;"></div>
+                            <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('formatBlock', 'H3')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem; font-weight: 800;" title="Título de Seção (H3)">
+                                <i class="fas fa-heading"></i> <span>H3 Título</span>
+                            </button>
+                            <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('formatBlock', 'H4')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem; font-weight: 700;" title="Subtítulo (H4)">
+                                <i class="fas fa-heading" style="font-size: 0.7rem;"></i> <span>H4 Sub</span>
+                            </button>
+                            <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('formatBlock', 'P')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem;" title="Parágrafo Normal">
+                                <i class="fas fa-paragraph"></i> <span>Texto</span>
+                            </button>
+                        </div>
 
-                    <!-- CONTAINER VISUAL (WYSIWYG) -->
-                    <div id="editor-mat-wysiwyg" contenteditable="true" class="form-input custom-scrollbar" style="min-height: 320px; max-height: 480px; overflow-y: auto; background: #ffffff; padding: 1rem; border: 1px solid var(--color-slate-300); border-radius: var(--radius-xl); line-height: 1.6; font-size: 0.9375rem;">
-                        ${conteudoAtual}
+                        <!-- GRUPO ALINHAMENTO E LISTAS -->
+                        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem;">
+                            <div style="width: 1px; height: 1.5rem; background-color: var(--color-slate-200); margin: 0 0.25rem;"></div>
+                            <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('justifyLeft')" class="btn-secondary" style="padding: 0.35rem 0.55rem; font-size: 0.8125rem;" title="Alinhar à Esquerda">
+                                <i class="fas fa-align-left"></i>
+                            </button>
+                            <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('justifyCenter')" class="btn-secondary" style="padding: 0.35rem 0.55rem; font-size: 0.8125rem;" title="Centralizar">
+                                <i class="fas fa-align-center"></i>
+                            </button>
+                            <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('insertUnorderedList')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem;" title="Lista com Marcadores (•)">
+                                <i class="fas fa-list-ul"></i>
+                            </button>
+                            <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('insertOrderedList')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem;" title="Lista Numerada (1.)">
+                                <i class="fas fa-list-ol"></i>
+                            </button>
+                        </div>
+
+                        <!-- GRUPO RECURSOS PEDAGÓGICOS -->
+                        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;">
+                            <button type="button" onclick="conteudoGeradoView.inserirBlocoGabarito()" class="btn-primary" style="background-color: #059669; font-size: 0.78125rem; padding: 0.4rem 0.75rem; font-weight: 800; box-shadow: var(--shadow-sm);" title="Inserir gabarito que fica oculto na versão do aluno">
+                                <i class="fas fa-check-circle"></i> + Gabarito
+                            </button>
+                            <button type="button" onclick="conteudoGeradoView.inserirComentarioProfessor()" class="btn-secondary" style="background-color: #fefce8; border-color: #fef08a; color: #a16207; font-size: 0.78125rem; padding: 0.4rem 0.75rem; font-weight: 800;" title="Inserir orientação pedagógica para o professor">
+                                <i class="fas fa-comment-dots"></i> + Comentário
+                            </button>
+                            <button type="button" onclick="conteudoGeradoView.inserirLinhasResposta()" class="btn-secondary" style="font-size: 0.78125rem; padding: 0.4rem 0.65rem; font-weight: 700;" title="Inserir pauta de linhas para resposta do aluno">
+                                <i class="fas fa-align-justify"></i> + Linhas
+                            </button>
+                            <button type="button" onclick="conteudoGeradoView.inserirTabelaPedagogica()" class="btn-secondary" style="font-size: 0.78125rem; padding: 0.4rem 0.65rem; font-weight: 700;" title="Inserir grade/tabela pedagógica">
+                                <i class="fas fa-table"></i> + Tabela
+                            </button>
+                        </div>
                     </div>
 
-                    <!-- TEXTAREA DE CÓDIGO HTML (MODO AVANÇADO) -->
-                    <textarea id="editor-mat-conteudo" rows="14" class="form-input custom-scrollbar" style="display: none; width: 100%; font-family: monospace; font-size: 0.875rem; line-height: 1.6;">${window.escapeHTML(conteudoAtual)}</textarea>
-                    <div id="editor-mat-preview" style="display: none; margin-top: 0.5rem;"></div>
+                    <!-- CANVAS CENTRALIZADO DA FOLHA A4 DA MESA -->
+                    <div style="width: 100%; display: flex; justify-content: center; position: relative;">
+                        
+                        <!-- CONTAINER VISUAL (WYSIWYG FOLHA MESTRE A4) -->
+                        <div id="editor-mat-wysiwyg" contenteditable="true" class="custom-scrollbar" 
+                             style="width: 100%; max-width: 820px; min-height: 480px; max-height: 60vh; overflow-y: auto; background: #ffffff; padding: 2.5rem; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04); line-height: 1.75; font-size: 1rem; color: #1e293b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+                            ${conteudoAtual}
+                        </div>
+
+                        <!-- TEXTAREA DE CÓDIGO HTML (MODO AVANÇADO CÓDIGO) -->
+                        <textarea id="editor-mat-conteudo" class="custom-scrollbar" 
+                                  style="display: none; width: 100%; max-width: 820px; min-height: 480px; max-height: 60vh; font-family: 'Fira Code', 'Courier New', monospace; font-size: 0.875rem; line-height: 1.6; background-color: #0f172a; color: #f8fafc; padding: 1.75rem; border-radius: 8px; border: 1px solid #334155; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">${window.escapeHTML(conteudoAtual)}</textarea>
+                        <div id="editor-mat-preview" style="display: none; margin-top: 0.5rem;"></div>
+                    </div>
                 </div>
 
-                <!-- ALERTA INFORMATIVO -->
-                <div style="padding: 0.75rem 1rem; background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-xl); font-size: 0.8125rem; color: #1e40af; display: flex; align-items: center; gap: 0.75rem;">
-                    <i class="fas fa-info-circle" style="font-size: 1.125rem; color: #3b82f6; flex-shrink: 0;"></i>
-                    <span><strong>Edição Unificada:</strong> Ao salvar, este documento mestre atualizará simultaneamente a <strong>Versão do Aluno</strong> (que omitirá automaticamente os blocos de gabarito/comentários) e a <strong>Versão do Professor</strong>.</span>
-                </div>
+                <!-- RODAPÉ E ALERTA DE SINCRONIZAÇÃO MESTRE -->
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.5rem; flex-wrap: wrap; gap: 1rem;">
+                    <div style="padding: 0.5rem 0.875rem; background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-lg); font-size: 0.8125rem; color: #1e40af; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-sync-alt" style="color: #3b82f6;"></i>
+                        <span><strong>Edição Mestre:</strong> Atualiza simultaneamente a <strong>Versão do Aluno</strong> e do <strong>Professor</strong>.</span>
+                    </div>
 
-                <!-- BOTÕES DE SALVAMENTO -->
-                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; padding-top: 0.5rem;">
-                    <button type="button" onclick="controller.closeModal()" class="btn-secondary">Cancelar</button>
-                    <button type="button" onclick="conteudoGeradoView.salvarEdicaoMaterial()" class="btn-primary" style="padding: 0.625rem 2rem;">
-                        <i class="fas fa-save"></i> <span>Salvar Alterações</span>
-                    </button>
+                    <div style="display: flex; gap: 0.75rem;">
+                        <button type="button" onclick="controller.closeModal()" class="btn-secondary" style="padding: 0.625rem 1.5rem; font-weight: 700;">Cancelar</button>
+                        <button type="button" onclick="conteudoGeradoView.salvarEdicaoMaterial()" class="btn-primary" style="padding: 0.625rem 2.25rem; font-weight: 800; background: linear-gradient(135deg, #4f46e5, #4338ca); border-radius: var(--radius-xl); box-shadow: 0 4px 14px rgba(79,70,229,0.35);">
+                            <i class="fas fa-save" style="margin-right: 0.375rem;"></i> <span>Salvar Alterações</span>
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
@@ -383,17 +424,14 @@ export const conteudoGeradoView = {
         const textarea = document.getElementById('editor-mat-conteudo');
         const btnVisual = document.getElementById('btn-mode-mat-visual');
         const btnCode = document.getElementById('btn-mode-mat-code');
-        const labelModo = document.getElementById('editor-mat-label-modo');
 
         if (!wysiwyg || !textarea) return;
 
         if (modo === 'visual') {
-            // Sincroniza do código HTML para o Visual
             wysiwyg.innerHTML = textarea.value;
             wysiwyg.style.display = 'block';
             textarea.style.display = 'none';
 
-            if (labelModo) labelModo.innerText = 'Conteúdo do Material (Edição Visual Formatada)';
             if (btnVisual) {
                 btnVisual.className = 'btn-primary';
                 btnVisual.style.background = 'var(--color-primary)';
@@ -403,12 +441,10 @@ export const conteudoGeradoView = {
                 btnCode.style.background = 'transparent';
             }
         } else {
-            // Sincroniza do Visual para o Código HTML
             textarea.value = wysiwyg.innerHTML;
             wysiwyg.style.display = 'none';
             textarea.style.display = 'block';
 
-            if (labelModo) labelModo.innerText = 'Conteúdo do Material (Código HTML Mestre Avançado)';
             if (btnCode) {
                 btnCode.className = 'btn-primary';
                 btnCode.style.background = 'var(--color-primary)';
@@ -431,7 +467,13 @@ export const conteudoGeradoView = {
         const textarea = document.getElementById('editor-mat-conteudo');
 
         if (wysiwyg && wysiwyg.style.display !== 'none') {
-            this.formatarTextoVisual(tag === 'strong' ? 'bold' : tag === 'em' ? 'italic' : 'formatBlock', tag.toUpperCase());
+            if (tag === 'sub') {
+                this.formatarTextoVisual('subscript');
+            } else if (tag === 'sup') {
+                this.formatarTextoVisual('superscript');
+            } else {
+                this.formatarTextoVisual(tag === 'strong' ? 'bold' : tag === 'em' ? 'italic' : 'formatBlock', tag.toUpperCase());
+            }
             return;
         }
 
@@ -442,6 +484,44 @@ export const conteudoGeradoView = {
         const replacement = `<${tag}>${selectedText}</${tag}>`;
 
         textarea.setRangeText(replacement, start, end, 'select');
+        textarea.focus();
+    },
+
+    inserirLinhasResposta() {
+        const wysiwyg = document.getElementById('editor-mat-wysiwyg');
+        const textarea = document.getElementById('editor-mat-conteudo');
+
+        const blocoHTML = `<div class="linhas-resposta" style="margin: 1.25rem 0; font-family: monospace; color: #94a3b8;"><p style="border-bottom: 1px dashed #cbd5e1; height: 1.8rem; margin: 0;"></p><p style="border-bottom: 1px dashed #cbd5e1; height: 1.8rem; margin: 0;"></p><p style="border-bottom: 1px dashed #cbd5e1; height: 1.8rem; margin: 0;"></p></div><p></p>`;
+
+        if (wysiwyg && wysiwyg.style.display !== 'none') {
+            wysiwyg.focus();
+            document.execCommand('insertHTML', false, blocoHTML);
+            return;
+        }
+
+        if (!textarea) return;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        textarea.setRangeText(`\n${blocoHTML}\n`, start, end, 'end');
+        textarea.focus();
+    },
+
+    inserirTabelaPedagogica() {
+        const wysiwyg = document.getElementById('editor-mat-wysiwyg');
+        const textarea = document.getElementById('editor-mat-conteudo');
+
+        const blocoHTML = `<table style="width: 100%; border-collapse: collapse; margin: 1.25rem 0; border: 1px solid #cbd5e1;"><thead><tr style="background: #f8fafc;"><th style="border: 1px solid #cbd5e1; padding: 0.625rem; text-align: left; font-weight: 800;">Item / Critério</th><th style="border: 1px solid #cbd5e1; padding: 0.625rem; text-align: left; font-weight: 800;">Descrição / Resposta Esperada</th></tr></thead><tbody><tr><td style="border: 1px solid #cbd5e1; padding: 0.625rem;">01</td><td style="border: 1px solid #cbd5e1; padding: 0.625rem;">...</td></tr><tr><td style="border: 1px solid #cbd5e1; padding: 0.625rem;">02</td><td style="border: 1px solid #cbd5e1; padding: 0.625rem;">...</td></tr></tbody></table><p></p>`;
+
+        if (wysiwyg && wysiwyg.style.display !== 'none') {
+            wysiwyg.focus();
+            document.execCommand('insertHTML', false, blocoHTML);
+            return;
+        }
+
+        if (!textarea) return;
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        textarea.setRangeText(`\n${blocoHTML}\n`, start, end, 'end');
         textarea.focus();
     },
 

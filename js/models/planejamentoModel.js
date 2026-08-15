@@ -145,6 +145,18 @@ export const planejamentoMethods = {
 
         return turma.planejamentoMensal[meses[mesIndex]] || [];
     },
+    getHabilidadesDoPeriodo(turmaId, dataIso) {
+        const turma = (this.state.turmas || []).find(t => String(t.id) === String(turmaId));
+        if (!turma || !turma.planejamento) return { periodoNum: "1", habilidades: [] };
+
+        const periodoNum = this.getPeriodoPorData(dataIso) || "1";
+        const habilidades = turma.planejamento[periodoNum] || turma.planejamento[Number(periodoNum)] || [];
+
+        return {
+            periodoNum,
+            habilidades
+        };
+    },
     saveHorarioConfig(turno, slots) {
         if (!this.state.horario) this.state.horario = { config: {}, grade: {} };
         this.state.horario.config[turno] = slots;

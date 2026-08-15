@@ -217,7 +217,7 @@ export const diarioView = {
             containerMiniCal.innerHTML = this.gerarMiniCalendario();
         }
 
-        // 6. Atualiza sugestões BNCC do mês
+        // 6. Atualiza sugestões BNCC do mês e do Período
         const containerSugestoes = document.getElementById('sugestoes-mensal-container');
         if (containerSugestoes) {
             const sugestoes = model.getSugestoesDoMes(this.currentTurmaId, this.currentDate);
@@ -242,6 +242,36 @@ export const diarioView = {
             }
         }
 
+        const containerPeriodo = document.getElementById('habilidades-periodo-container');
+        if (containerPeriodo) {
+            const periodInfo = model.getHabilidadesDoPeriodo ? model.getHabilidadesDoPeriodo(this.currentTurmaId, this.currentDate) : { periodoNum: "1", habilidades: [] };
+            if (periodInfo.habilidades && periodInfo.habilidades.length > 0) {
+                containerPeriodo.style.display = 'flex';
+                containerPeriodo.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                        <h4 style="font-size: 0.8125rem; font-weight: 800; color: #166534; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-bullseye" style="color: #16a34a;"></i> Habilidades Recomendadas do Período (${periodInfo.periodoNum}º Período)
+                        </h4>
+                        <span style="font-size: 0.75rem; color: #15803d; font-weight: 700;">${periodInfo.habilidades.length} hab. cadastradas</span>
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                        ${periodInfo.habilidades.map(h => `
+                            <button type="button" onclick="diarioView.adicionarHabilidadeTexto('${window.escapeHTML(h.codigo)} - ${window.escapeHTML(h.descricao)}')"
+                                    class="pill-item interactive-element" 
+                                    style="font-size: 0.75rem; background-color: #ffffff; border: 1px solid #86efac; color: #14532d; font-weight: 700; padding: 0.35rem 0.65rem; border-radius: var(--radius-lg); text-align: left; cursor: pointer;"
+                                    title="${window.escapeHTML(h.descricao)}">
+                                <i class="fas fa-plus-circle" style="color: #16a34a; margin-right: 0.25rem;"></i>
+                                <strong>${window.escapeHTML(h.codigo)}</strong>
+                            </button>
+                        `).join('')}
+                    </div>
+                `;
+            } else {
+                containerPeriodo.style.display = 'none';
+                containerPeriodo.innerHTML = '';
+            }
+        }
+
         const statusEl = document.getElementById('status-salvamento');
         if (statusEl) statusEl.innerHTML = '';
     },
@@ -261,6 +291,7 @@ export const diarioView = {
             const turmas = model.state?.turmas || [];
             dropdownLabel.textContent = turmas.find(t => String(t.id) === String(novoId))?.nome || 'Selecionar Turma...';
         }
+        this.selecionarData(this.currentDate);
     },
 
     mudarMes(delta) {
@@ -279,6 +310,7 @@ export const diarioView = {
         const [ano, mes, dia] = this.currentDate.split('-');
         const dataFormatada = `${dia}/${mes}/${ano}`;
         const sugestoes = model.getSugestoesDoMes(this.currentTurmaId, this.currentDate);
+        const periodInfo = model.getHabilidadesDoPeriodo ? model.getHabilidadesDoPeriodo(this.currentTurmaId, this.currentDate) : { periodoNum: "1", habilidades: [] };
 
         return `
             <div class="card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column;">
@@ -321,6 +353,30 @@ export const diarioView = {
                         <textarea id="plan-bncc" rows="2" class="autosave-input form-input custom-scrollbar" style="resize: vertical;" placeholder="Códigos e descrições das habilidades trabalhadas..."></textarea>
                     </div>
 
+                    <!-- CARD DE HABILIDADES RECOMENDADAS DO PERÍODO -->
+                    <div id="habilidades-periodo-container" style="${periodInfo.habilidades.length > 0 ? 'display: flex;' : 'display: none;'} padding: var(--spacing-4); background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-xl); flex-direction: column; gap: var(--spacing-2);">
+                        ${periodInfo.habilidades.length > 0 ? `
+                            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                                <h4 style="font-size: 0.8125rem; font-weight: 800; color: #166534; display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="fas fa-bullseye" style="color: #16a34a;"></i> Habilidades Recomendadas do Período (${periodInfo.periodoNum}º Período)
+                                </h4>
+                                <span style="font-size: 0.75rem; color: #15803d; font-weight: 700;">${periodInfo.habilidades.length} hab. cadastradas</span>
+                            </div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                                ${periodInfo.habilidades.map(h => `
+                                    <button type="button" onclick="diarioView.adicionarHabilidadeTexto('${window.escapeHTML(h.codigo)} - ${window.escapeHTML(h.descricao)}')"
+                                            class="pill-item interactive-element" 
+                                            style="font-size: 0.75rem; background-color: #ffffff; border: 1px solid #86efac; color: #14532d; font-weight: 700; padding: 0.35rem 0.65rem; border-radius: var(--radius-lg); text-align: left; cursor: pointer;"
+                                            title="${window.escapeHTML(h.descricao)}">
+                                        <i class="fas fa-plus-circle" style="color: #16a34a; margin-right: 0.25rem;"></i>
+                                        <strong>${window.escapeHTML(h.codigo)}</strong>
+                                    </button>
+                                `).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+
+                    <!-- CARD DE SUGESTÕES MENSAIS -->
                     <div id="sugestoes-mensal-container" style="${sugestoes.length > 0 ? 'display: flex;' : 'display: none;'} padding: var(--spacing-4); background-color: #fefce8; border: 1px solid #fef08a; border-radius: var(--radius-xl); flex-direction: column; gap: var(--spacing-2);">
                         ${sugestoes.length > 0 ? `
                             <h4 style="font-size: 0.8125rem; font-weight: 800; color: #854d0e; display: flex; align-items: center; gap: 0.5rem;">

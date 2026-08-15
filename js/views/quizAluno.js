@@ -133,11 +133,20 @@ export const quizAlunoView = {
             this.playerId = generateId('aluno');
         }
 
+        try {
+            sessionStorage.setItem('quiz_aluno_pin', this.pin);
+            sessionStorage.setItem('quiz_aluno_player_id', this.playerId);
+            sessionStorage.setItem('quiz_aluno_nome', this.nomeJogador);
+            sessionStorage.setItem('quiz_aluno_avatar', this.avatar);
+        } catch (e) {}
+
         const btn = document.getElementById('btn-conectar-aluno');
         if (btn) {
             btn.disabled = true;
             btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> Conectando...`;
         }
+
+        this.inicializarListeners();
 
         try {
             await firebaseService.entrarSessaoQuiz(this.pin, this.playerId, this.nomeJogador, this.avatar);
@@ -180,11 +189,39 @@ export const quizAlunoView = {
         }
     },
 
+    inicializarListeners() {
+        if (this._listenersIniciados) return;
+        this._listenersIniciados = true;
+
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden && this.pin) {
+                this.resincronizarSessao();
+            }
+        });
+
+        window.addEventListener('online', () => {
+            if (this.pin) this.resincronizarSessao();
+        });
+    },
+
+    async resincronizarSessao() {
+        if (!this.pin) return;
+        try {
+            const dados = await firebaseService.buscarSessaoQuiz(this.pin);
+            if (dados) {
+                this.processarAtualizacaoSessao(dados);
+            }
+        } catch (e) {
+            console.warn("Aviso ao resincronizar sessão do aluno:", e);
+        }
+    },
+
     processarAtualizacaoSessao(dados) {
         if (!dados) return;
 
         // Se o professor encerrou a partida de verdade, fechar a janela
         if (dados.status === 'CLOSED') {
+            try { sessionStorage.removeItem('quiz_aluno_pin'); } catch (e) {}
             const container = document.getElementById('view-container');
             if (container) {
                 container.innerHTML = `
@@ -203,6 +240,13 @@ export const quizAlunoView = {
         }
 
         this.sessaoData = dados;
+
+        // Sincronizar lastAnswerQuestionIndex do jogador com Firestore se existir
+        const player = this.obterPlayerData();
+        if (player && typeof player.lastAnswerQuestionIndex === 'number') {
+            this.lastAnswerQuestionIndex = player.lastAnswerQuestionIndex;
+        }
+
         this.render('view-container');
     },
 
