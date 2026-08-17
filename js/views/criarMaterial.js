@@ -412,19 +412,25 @@ export const criarMaterialView = {
         const nomeProf = config.profName ? config.profName : 'Professor(a)';
         const nomeEscola = config.escolaName ? config.escolaName : 'Nome da Escola';
         const dataHoje = new Date().toLocaleDateString('pt-BR');
+
+        const conteudoLimpo = window.prepararHTMLParaExportacao 
+            ? window.prepararHTMLParaExportacao(material.conteudo_html || '', 'professor')
+            : formatarTextoComLatex(material.conteudo_html || '');
+
         const conteudo = `
             <!DOCTYPE html>
             <html lang="pt-BR">
             <head>
                 <meta charset="UTF-8">
                 <title>${window.escapeHTML(material.titulo)} - PDF</title>
+                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
                 <style>
                     /* Reset básico e tipografia de impressão */
                     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
                     
                     body { 
                         font-family: 'Inter', sans-serif; 
-                        color: #000; 
+                        color: #1e293b; 
                         background: #fff; 
                         line-height: 1.6;
                         margin: 0;
@@ -454,11 +460,13 @@ export const criarMaterialView = {
                         font-weight: 700;
                     }
                     /* Estilização do Conteúdo da IA */
-                    .content h3 { font-size: 18px; margin-top: 20px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
-                    .content p { font-size: 14px; text-align: justify; margin-bottom: 10px; }
-                    .content ul, .content ol { font-size: 14px; margin-bottom: 10px; padding-left: 20px; }
-                    .content li { margin-bottom: 5px; }
+                    .content h3 { font-size: 18px; margin-top: 20px; border-bottom: 1px solid #eee; padding-bottom: 4px; color: #0f172a; }
+                    .content p { font-size: 14px; text-align: justify; margin-bottom: 10px; color: #334155; }
+                    .content ul, .content ol { font-size: 14px; margin-bottom: 10px; padding-left: 24px; }
+                    .content li { margin-bottom: 6px; color: #334155; }
                     .content strong { color: #000; }
+                    .gabarito-bloco, .gabarito { background-color: #ecfdf5; border: 1px solid #a7f3d0; border-left: 5px solid #059669; padding: 14px 18px; margin: 15px 0; border-radius: 8px; page-break-inside: avoid; }
+                    .gabarito-bloco h3, .gabarito-bloco h4 { color: #065f46; margin-top: 0; }
                     /* Garante que tabelas ou blocos não quebrem na metade entre duas páginas */
                     .content h3, .content ul, .content table {
                         page-break-inside: avoid;
@@ -481,7 +489,7 @@ export const criarMaterialView = {
                     <h2 style="text-align: center; text-transform: uppercase; margin-bottom: 30px;">
                         ${window.escapeHTML(material.titulo)}
                     </h2>
-                    ${material.conteudo_html}
+                    ${conteudoLimpo}
                 </div>
                 <script>
                     // Dispara a impressão automaticamente assim que a página carregar

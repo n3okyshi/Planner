@@ -25,6 +25,8 @@ export const routeRegistry = {
     'quiz-player': { label: 'Apresentação de Quiz', navId: 'nav-quiz-gestor' },
     'quiz-aluno': { label: 'Participar de Quiz', navId: 'nav-quiz-gestor' },
     'estudos-visuais': { label: 'Flashcards & Mapas Mentais', navId: 'nav-estudos-visuais' },
+    apresentacoes: { label: 'Apresentações Animadas', navId: 'nav-apresentacoes' },
+    'apresentador-player': { label: 'Player de Apresentação', navId: 'nav-apresentacoes' },
     config: { label: 'Configurações', navId: 'nav-config' }
 };
 
@@ -44,7 +46,10 @@ export const routeAliases = {
     'quiz-participar': 'quiz-aluno',
     flashcards: 'estudos-visuais',
     mindmaps: 'estudos-visuais',
-    'mapas-mentais': 'estudos-visuais'
+    'mapas-mentais': 'estudos-visuais',
+    slides: 'apresentacoes',
+    powerpoint: 'apresentacoes',
+    pptx: 'apresentacoes'
 };
 
 export const router = {

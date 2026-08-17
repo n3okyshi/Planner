@@ -5,6 +5,29 @@ export const firebaseService = {
     db: null,
     functions: null,
     initialized: false,
+    _activeListeners: new Set(),
+
+    registerListener(unsub) {
+        if (typeof unsub === 'function') {
+            this._activeListeners.add(unsub);
+        }
+        return unsub;
+    },
+
+    clearActiveListeners() {
+        if (this._activeListeners && this._activeListeners.size > 0) {
+            this._activeListeners.forEach(unsub => {
+                try {
+                    if (typeof unsub === 'function') unsub();
+                } catch (e) {
+                    console.warn("Erro ao desassinar listener Firestore:", e);
+                }
+            });
+            this._activeListeners.clear();
+            console.log("🧹 Listeners Firestore em tempo real desassinados com sucesso.");
+        }
+    },
+
     init() {
         if (this.initialized) return;
         this.initialized = true;
@@ -65,6 +88,7 @@ export const firebaseService = {
         return await this.loginWithGoogle();
     },
     async logout() {
+        this.clearActiveListeners();
         if (this.auth) await this.auth.signOut();
         window.location.reload();
     },
@@ -95,6 +119,7 @@ export const firebaseService = {
                 fullState.horario = data.horario || { config: {}, grade: {} };
                 fullState.materiaisGerados = data.materiaisGerados || [];
                 fullState.quizzes = data.quizzes || [];
+                fullState.apresentacoes = data.apresentacoes || [];
             }
             const turmasSnap = await docRef.collection('turmas').get();
             const turmasPromises = turmasSnap.docs.map(async (turmaDoc) => {
@@ -137,9 +162,43 @@ export const firebaseService = {
             lastUpdate: new Date().toISOString()
         });
     },
+    async saveApresentacao(uid, apres) {
+        if (!uid || !this.db || !apres) return;
+        try {
+            const apresRef = this.db.collection('professores').doc(uid);
+            const docSnap = await apresRef.get();
+            let apresList = [];
+            if (docSnap.exists) {
+                apresList = docSnap.data().apresentacoes || [];
+            }
+            const idx = apresList.findIndex(a => String(a.id) === String(apres.id));
+            if (idx >= 0) {
+                apresList[idx] = apres;
+            } else {
+                apresList.unshift(apres);
+            }
+            await apresRef.set({ apresentacoes: apresList, lastUpdate: new Date().toISOString() }, { merge: true });
+        } catch (e) {
+            console.error("Erro ao salvar apresentação no Firestore:", e);
+        }
+    },
+    async deleteApresentacao(uid, id) {
+        if (!uid || !this.db || !id) return;
+        try {
+            const apresRef = this.db.collection('professores').doc(uid);
+            const docSnap = await apresRef.get();
+            if (docSnap.exists) {
+                let apresList = docSnap.data().apresentacoes || [];
+                apresList = apresList.filter(a => String(a.id) !== String(id));
+                await apresRef.set({ apresentacoes: apresList, lastUpdate: new Date().toISOString() }, { merge: true });
+            }
+        } catch (e) {
+            console.error("Erro ao deletar apresentação no Firestore:", e);
+        }
+    },
     subscribeToUserChanges(uid, callback) {
         if (!uid || !this.db) return;
-        return this.db.collection('professores').doc(uid)
+        const unsub = this.db.collection('professores').doc(uid)
             .onSnapshot((doc) => {
                 if (doc.exists) {
                     callback(doc.data());
@@ -147,6 +206,7 @@ export const firebaseService = {
             }, (error) => {
                 console.error("Erro no listener em tempo real:", error);
             });
+        return this.registerListener(unsub);
     },
 
     async saveTurma(uid, turma) {
@@ -402,7 +462,7 @@ export const firebaseService = {
     ouvirSessaoQuiz(pin, callback) {
         if (!this.db || !pin) return () => {};
         try {
-            return this.db.collection('quiz_sessions').doc(String(pin)).onSnapshot((doc) => {
+            const unsub = this.db.collection('quiz_sessions').doc(String(pin)).onSnapshot((doc) => {
                 if (doc.exists) {
                     callback(doc.data());
                 } else {
@@ -411,6 +471,7 @@ export const firebaseService = {
             }, (error) => {
                 console.warn("Aviso onSnapshot Firestore no Quiz:", error.message);
             });
+            return this.registerListener(unsub);
         } catch (e) {
             console.warn("Aviso ao subscrever snapshot:", e.message);
             return () => {};

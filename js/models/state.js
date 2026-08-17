@@ -53,6 +53,7 @@ export const initialState = {
     quizzes: [],
     flashcards: [],
     mindmaps: [],
+    apresentacoes: [],
     periodosDatas: {
         'bimestre': [
             { nome: '1º Bimestre', inicio: '2026-01-16', fim: '2026-04-01' },

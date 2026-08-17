@@ -112,6 +112,19 @@ export function sanitizeComLatex(rawHtml) {
     if (!rawHtml) return '';
     let str = String(rawHtml);
 
+    // 0. Normaliza moedas com escape TeX (ex: R\$1.200, 00 ou R\$ 480 -> R$ 1.200,00)
+    str = str.replace(/R\\?\$ /gi, 'R$ ');
+    str = str.replace(/R\\?\$/gi, 'R$ ');
+    str = str.replace(/(R\$\s*\d+(?:[\.,]\d+)?)\s*,\s*(\d{2})/g, '$1,$2');
+
+    // 0.1 Proteção de valores monetários R$ e cifrão
+    const currencyTokens = [];
+    str = str.replace(/R\$\s*\d+(?:[\.,]\d+)?/g, (match) => {
+        const idx = currencyTokens.length;
+        currencyTokens.push(match.replace(/R\$\s*/, 'R$ '));
+        return `___CURRENCY_TOKEN_${idx}___`;
+    });
+
     // 1. Extração e proteção de expressões matemáticas em PASSO ÚNICO (elimina tokens aninhados)
     const tokens = [];
     const UNIFIED_MATH_REGEX = /(?:\$\$([\s\S]*?)\$\$|\\\[([\s\S]*?)\\\]|(?:\$)?\\begin\{([a-zA-Z*]+)\}([\s\S]*?)\\end\{\3\}(?:\$)?|\\\(([\s\S]*?)\\\)|\$([^\$\n\r]+?)\$)/g;
@@ -137,7 +150,13 @@ export function sanitizeComLatex(rawHtml) {
         return tokens[idx] !== undefined ? tokens[idx] : match;
     });
 
-    // 4. Se o KaTeX estiver disponível, compila as fórmulas diretamente
+    // 4. Restauração dos valores monetários
+    str = str.replace(/___CURRENCY_TOKEN_(\d+)___/g, (match, idxStr) => {
+        const idx = parseInt(idxStr, 10);
+        return currencyTokens[idx] !== undefined ? currencyTokens[idx] : match;
+    });
+
+    // 5. Se o KaTeX estiver disponível, compila as fórmulas diretamente
     if (window.katex && typeof window.katex.renderToString === 'function') {
         return formatarTextoComLatex(str);
     }
@@ -294,6 +313,14 @@ export function formatarTextoComLatex(texto) {
     try {
         let resultado = String(texto);
 
+        // Proteção de valores monetários
+        const currencyTokens = [];
+        resultado = resultado.replace(/\$\s*(\d+(?:[\.,]\d+)?)/g, (match, val) => {
+            const idx = currencyTokens.length;
+            currencyTokens.push(`$ ${val}`);
+            return `___CURRENCY_TOKEN_${idx}___`;
+        });
+
         const normalizarFormula = (formula) => {
             return String(formula)
                 .replace(/&amp;/g, '&')
@@ -350,10 +377,108 @@ export function formatarTextoComLatex(texto) {
             }
         });
 
+        // Restaura valores monetários
+        resultado = resultado.replace(/___CURRENCY_TOKEN_(\d+)___/g, (match, idxStr) => {
+            const idx = parseInt(idxStr, 10);
+            return currencyTokens[idx] !== undefined ? currencyTokens[idx] : match;
+        });
+
         return resultado;
     } catch (err) {
         return texto;
     }
+}
+
+/**
+ * Desescapa entidades HTML, normaliza delimitadores de fórmulas e pré-compila a matemática
+ * em HTML estático fiel para garantir exportação perfeita em PDF/Impressão e Word (.doc).
+ * @param {string} rawHtml - HTML bruto do material
+ * @param {string} [modo='professor'] - 'professor' ou 'aluno'
+ * @returns {string} HTML limpo, pré-compilado e estilizado para exportação
+ */
+export function prepararHTMLParaExportacao(rawHtml, modo = 'professor') {
+    if (!rawHtml) return '';
+    let str = String(rawHtml);
+
+    // 1. Desescapa entidades HTML se a string vier escapada como &lt;div...
+    if (str.includes('&lt;') && str.includes('&gt;')) {
+        str = str
+            .replace(/&lt;/g, '<')
+            .replace(/&gt;/g, '>')
+            .replace(/&quot;/g, '"')
+            .replace(/&#39;/g, "'")
+            .replace(/&amp;/g, '&');
+    }
+
+    // 2. Normaliza moedas com escape TeX (ex: R\$1.200, 00 ou R\$ 480 -> R$ 1.200,00)
+    str = str.replace(/R\\?\$ /gi, 'R$ ');
+    str = str.replace(/R\\?\$/gi, 'R$ ');
+    str = str.replace(/(R\$\s*\d+(?:[\.,]\d+)?)\s*,\s*(\d{2})/g, '$1,$2');
+
+    // 3. Remove tags orfãs de fechamento soltas como </p> no início de listas ou antes de <ul> / <ol> / <div
+    str = str.replace(/<\/p>\s*<ul>/gi, '<ul>');
+    str = str.replace(/<\/p>\s*<ol>/gi, '<ol>');
+    str = str.replace(/<\/p>\s*<div/gi, '<div');
+    str = str.replace(/<\/p>\s*<p>/gi, '<p>');
+
+    // 4. Proteção e preservação de R$ e cifrão monetário
+    const currencyTokens = [];
+    str = str.replace(/(?:R\$\s*|\$\s*)(\d+(?:[\.,]\d+)?)/g, (match, val) => {
+        const idx = currencyTokens.length;
+        const isReais = match.startsWith('R');
+        currencyTokens.push(isReais ? `R$ ${val}` : `$ ${val}`);
+        return `___REAL_CURRENCY_TOKEN_${idx}___`;
+    });
+
+    // 5. Restauração de moedas com função replacer segura
+    str = str.replace(/___REAL_CURRENCY_TOKEN_(\d+)___/g, (match, idxStr) => {
+        const idx = parseInt(idxStr, 10);
+        return currencyTokens[idx] !== undefined ? currencyTokens[idx] : match;
+    });
+
+    // 6. Processamento para modo Aluno vs Professor (remover/estilizar gabarito)
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = str;
+
+    if (modo === 'aluno') {
+        const seletoresRemover = [
+            '.gabarito',
+            '.respostas',
+            '.gabarito-bloco',
+            '.respostas-bloco',
+            '.comentario-professor',
+            '.resolucao-professor',
+            '[data-gabarito="true"]'
+        ];
+        tempDiv.querySelectorAll(seletoresRemover.join(', ')).forEach(el => el.remove());
+
+        const headers = tempDiv.querySelectorAll('h1, h2, h3, h4, h5, strong, p');
+        headers.forEach(h => {
+            const text = (h.textContent || '').trim().toLowerCase();
+            if (text.startsWith('gabarito') || 
+                text.startsWith('respostas esperadas') || 
+                text.startsWith('critérios de correção') || 
+                text.startsWith('resolução comentada') || 
+                text.startsWith('gabarito comentado')) {
+                
+                let next = h.nextElementSibling;
+                while (next && !['H1','H2','H3','H4'].includes(next.tagName)) {
+                    const toRemove = next;
+                    next = next.nextElementSibling;
+                    toRemove.remove();
+                }
+                h.remove();
+            }
+        });
+    } else {
+        const gabaritos = tempDiv.querySelectorAll('.gabarito, .respostas, .gabarito-bloco, [data-gabarito="true"]');
+        gabaritos.forEach(g => {
+            g.classList.add('gabarito-bloco');
+        });
+    }
+
+    let htmlLimpo = tempDiv.innerHTML;
+    return htmlLimpo;
 }
 
 /**
@@ -865,6 +990,7 @@ if (typeof window !== 'undefined') {
     window.renderMath = renderMath;
     window.renderKatex = renderKatex;
     window.formatarTextoComLatex = formatarTextoComLatex;
+    window.prepararHTMLParaExportacao = prepararHTMLParaExportacao;
     window.anexarPreviewLatex = anexarPreviewLatex;
     window.alternarModoEdicaoPreview = alternarModoEdicaoPreview;
     window.lerArquivoTexto = lerArquivoTexto;

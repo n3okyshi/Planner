@@ -877,10 +877,22 @@ export const provasView = {
         this.render('view-container');
     },
     excluirQuestao(id) {
-        if (confirm("Tem certeza que deseja excluir esta questão?")) {
+        if (window.controller && typeof window.controller.confirmarAcao === 'function') {
+            window.controller.confirmarAcao(
+                "Excluir Questão",
+                "Tem certeza que deseja excluir esta questão? Esta ação não pode ser desfeita.",
+                () => {
+                    model.deleteQuestao(id);
+                    this.selecionadas.delete(String(id));
+                    this.render('view-container');
+                    Toast.show("Questão excluída com sucesso.", "info");
+                }
+            );
+        } else {
             model.deleteQuestao(id);
+            this.selecionadas.delete(String(id));
             this.render('view-container');
-            Toast.show("Questão excluída.", "info");
+            Toast.show("Questão excluída com sucesso.", "info");
         }
     },
     toggleSelecao(id) {
@@ -890,9 +902,21 @@ export const provasView = {
         this.render('view-container');
     },
     limparSelecao() {
-        if (confirm("Limpar todas as questões da prova atual?")) {
+        if (!this.selecionadas || this.selecionadas.size === 0) return;
+        if (window.controller && typeof window.controller.confirmarAcao === 'function') {
+            window.controller.confirmarAcao(
+                "Limpar Seleção",
+                "Deseja remover todas as questões selecionadas da lista da prova?",
+                () => {
+                    this.selecionadas.clear();
+                    this.render('view-container');
+                    Toast.show("Seleção de questões limpa com sucesso.", "info");
+                }
+            );
+        } else {
             this.selecionadas.clear();
             this.render('view-container');
+            Toast.show("Seleção de questões limpa com sucesso.", "info");
         }
     },
     estadoVazio() {

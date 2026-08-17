@@ -20,6 +20,21 @@ export function createReactiveState(target, callback, path = "") {
         get(obj, prop, receiver) {
             const res = Reflect.get(obj, prop, receiver);
 
+            // Interceptação de métodos de mutação em Arrays (push, pop, shift, unshift, splice, sort, reverse)
+            if (Array.isArray(obj) && typeof res === 'function') {
+                const arrayMutationMethods = ['push', 'pop', 'shift', 'unshift', 'splice', 'sort', 'reverse'];
+                if (arrayMutationMethods.includes(String(prop))) {
+                    return function (...args) {
+                        const result = Array.prototype[prop].apply(obj, args);
+                        const currentPath = path ? `${path}.${String(prop)}` : String(prop);
+                        if (typeof callback === 'function') {
+                            callback(currentPath, obj, undefined);
+                        }
+                        return result;
+                    };
+                }
+            }
+
             // Lazy proxying sob demanda apenas quando uma propriedade objeto é acessada
             if (typeof res === 'object' && res !== null && !(res instanceof Date) && !(res instanceof RegExp)) {
                 const currentPath = path ? `${path}.${String(prop)}` : String(prop);

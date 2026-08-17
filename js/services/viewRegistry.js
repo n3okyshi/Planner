@@ -24,6 +24,8 @@ import { simuladoresView } from '../views/simuladores.js';
 import { bimestralizacaoView } from '../views/bimestralizacao.js';
 import { estudosVisuaisView } from '../views/estudosVisuais.js';
 import { ataConselhoView } from '../views/ataConselho.js';
+import { apresentacoesView } from '../views/apresentacoes.js';
+import { apresentadorPlayerView } from '../views/apresentadorPlayer.js';
 
 export const viewRegistry = {
     dashboard: dashboardView,
@@ -56,7 +58,12 @@ export const viewRegistry = {
     'estudos-visuais': estudosVisuaisView,
     flashcards: estudosVisuaisView,
     mindmaps: estudosVisuaisView,
-    'mapas-mentais': estudosVisuaisView
+    'mapas-mentais': estudosVisuaisView,
+    apresentacoes: apresentacoesView,
+    slides: apresentacoesView,
+    powerpoint: apresentacoesView,
+    pptx: apresentacoesView,
+    'apresentador-player': apresentadorPlayerView
 };
 
 export const publicViewAliases = {
@@ -85,7 +92,9 @@ export const publicViewAliases = {
     bibliotecaView,
     conteudoGeradoView,
     correcaoAutomaticaView,
-    simuladoresView
+    simuladoresView,
+    apresentacoesView,
+    apresentadorPlayerView
 };
 
 if (typeof window !== 'undefined') {

@@ -414,6 +414,11 @@ export const aiService = {
             `;
         }
 
+        const qtdRequerida = Number(dados.quantidade || dados.qtd || 0);
+        const instrucaoQuantidade = qtdRequerida > 0 
+            ? `\n\nGARANTIA DE QUANTIDADE EXATA (OBRIGATÓRIO):\nO professor solicitou EXATAMENTE ${qtdRequerida} questões/exercícios. Você DEVE obrigatoriamente criar e numerar ${qtdRequerida} itens completos (Questão 1, Questão 2, ..., Questão ${qtdRequerida}). É estritamente proibido retornar apenas 5 ou truncar a quantidade solicitada.` 
+            : '';
+
         const prompt = `
             Atue como um professor especialista e coordenador pedagógico.
             Crie um material do tipo: ${idFerramenta.toUpperCase()}.
@@ -422,10 +427,13 @@ export const aiService = {
             ${parametros}
             ${secaoContexto}
             ${instrucaoEspecifica}
+            ${instrucaoQuantidade}
             
             REGRAS OBRIGATÓRIAS:
             1. Responda APENAS um objeto JSON puro. Sem formatação markdown, sem blocos \`\`\`json.
-            2. O JSON DEVE ter a seguinte estrutura exata:
+            2. NUNCA insira cifrões soltos ou desacompanhados de fechamento antes de números e unidades (EXEMPLO PROIBIDO: "$ 320 \text{ kg}"). Para números com unidades, escreva texto simples "320 kg" ou notação LaTeX fechada "$320\\text{ kg}$". Para moedas reais, use sempre "R$ 320,00".
+            3. Garanta que todas as tags HTML sejam puras, bem formadas e abertas/fechadas corretamente (<p>, <ul>, <li>, <div>). NUNCA inicie blocos com </p> solto ou entidades escapadas (&lt;p&gt;).
+            4. O JSON DEVE ter a seguinte estrutura exata:
             {
                 "titulo": "Um título criativo e direto para o material",
                 "disciplina": "A disciplina informada",
@@ -435,7 +443,7 @@ export const aiService = {
             }
         `;
 
-        return await this._executarPromptGemini(prompt, 3500);
+        return await this._executarPromptGemini(prompt, 8192);
     },
     async gerarFlashcards({ disciplina, serie, assunto, quantidade = 8, nivel = 'Médio', contextoDocumento = '' }) {
         const secaoContexto = contextoDocumento && contextoDocumento.trim() !== ''
@@ -661,5 +669,105 @@ export const aiService = {
         `;
 
         return await this._executarPromptGemini(prompt, 3800);
+    },
+
+    /**
+     * Gera uma Apresentação Pedagógica completa de Slides usando a API do Gemini.
+     * Suporta enriquecimento por Habilidade BNCC e arquivo de contexto anexado.
+     */
+    async gerarApresentacaoSlides(tema, disciplina = 'Geral', quantidadeSlides = 5, habilidadeBncc = null, textoContextoArquivo = '') {
+        let bnccContext = '';
+        if (habilidadeBncc) {
+            const codigo = habilidadeBncc.codigo || habilidadeBncc.code || '';
+            const desc = habilidadeBncc.descricao || habilidadeBncc.description || habilidadeBncc.nome || '';
+            bnccContext = `\nHabilidade BNCC Relacionada: ${codigo} - ${desc}`;
+        }
+
+        let fileContext = '';
+        if (textoContextoArquivo && textoContextoArquivo.trim()) {
+            fileContext = `\n\nMaterial do Professor / Conteúdo Base Fornecido:\n"""\n${textoContextoArquivo.substring(0, 10000)}\n"""`;
+        }
+
+        const prompt = `
+            Você é um especialista pedagógico em criação de apresentações escolares interativas para professores da Educação Básica.
+            Gere uma apresentação didática, estruturada e engajante com exatamente ${quantidadeSlides} slides sobre o tema abaixo.
+
+            DADOS DA AULA:
+            - Tema / Assunto: ${tema}
+            - Disciplina: ${disciplina}${bnccContext}${fileContext}
+
+            INSTRUÇÕES PARA OS SLIDES:
+            1. O primeiro slide (index 0) DEVE ser do tipo "capa".
+            2. Inclua pelo menos um slide do tipo "topicos-animados" com 3 a 5 pontos marcantes de revelação passo a passo.
+            3. Se a disciplina for Exatas, Ciências ou Matemática, inclua um slide do tipo "katex" com uma fórmula em sintaxe KaTeX (ex: \\frac{a}{b} = c).
+            4. Inclua um slide do tipo "quiz" com uma pergunta desafiadora de fixação, 3 opções e o índice da resposta correta (0, 1 ou 2).
+            5. Cada slide DEVE ter "notasProfessor" com roteiro didático de orientação para o docente falar em sala.
+
+            FORMATO DE RESPOSTA (Exclusivamente JSON válido sem texto adicional antes ou depois):
+            {
+                "titulo": "Título Curto da Apresentação",
+                "subtitulo": "Subtítulo explicativo pedagógico",
+                "disciplina": "${disciplina}",
+                "slides": [
+                    {
+                        "id": "slide_1",
+                        "tipoLayout": "capa",
+                        "titulo": "Título Principal da Capa",
+                        "subtitulo": "Subtítulo da Capa",
+                        "conteudo": "Descrição introdutória da aula...",
+                        "topicos": [],
+                        "notasProfessor": "Boas-vindas aos alunos...",
+                        "animacaoEntrada": "zoom-in"
+                    },
+                    {
+                        "id": "slide_2",
+                        "tipoLayout": "topicos-animados",
+                        "titulo": "Pontos Chave de Aprendizagem",
+                        "subtitulo": "Tópicos de reflexão",
+                        "conteudo": "",
+                        "topicos": [
+                            "Primeiro conceito fundamental",
+                            "Segundo conceito com aplicação prática",
+                            "Terceiro ponto de síntese"
+                        ],
+                        "notasProfessor": "Explicar cada ponto à medida que for revelando...",
+                        "animacaoEntrada": "fade-up"
+                    },
+                    {
+                        "id": "slide_3",
+                        "tipoLayout": "titulo-texto",
+                        "titulo": "Aprofundamento",
+                        "subtitulo": "Conceito Central",
+                        "conteudo": "Explicação detalhada em texto...",
+                        "topicos": [],
+                        "notasProfessor": "Conectar este conceito com os assuntos vistos na aula anterior...",
+                        "animacaoEntrada": "slide-right"
+                    },
+                    {
+                        "id": "slide_4",
+                        "tipoLayout": "quiz",
+                        "titulo": "Desafio de Fixação",
+                        "subtitulo": "Pergunta Rápida",
+                        "conteudo": "Qual das opções descreve corretamente...",
+                        "opcoesQuiz": [
+                            "Opção A com explicação...",
+                            "Opção B com explicação...",
+                            "Opção C com explicação..."
+                        ],
+                        "respostaCorreta": 1,
+                        "topicos": [],
+                        "notasProfessor": "Dar 1 minuto para pensarem antes de revelar a resposta...",
+                        "animacaoEntrada": "fade-up"
+                    }
+                ]
+            }
+        `;
+
+        return await this._executarPromptGemini(prompt, 4000);
     }
 };
+
+if (typeof window !== 'undefined') {
+    window.aiService = aiService;
+}
+

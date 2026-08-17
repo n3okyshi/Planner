@@ -5,6 +5,7 @@ import { initialState, coresComponentes, tiposEventos } from './models/state.js'
 import { turmaMethods } from './models/turmaModel.js';
 import { provaMethods } from './models/provaModel.js';
 import { planejamentoMethods } from './models/planejamentoModel.js';
+import { apresentacaoMethods } from './models/apresentacaoModel.js';
 import { debounce } from './utils.js';
 import { createReactiveState } from './reactive.js';
 export const model = {
@@ -129,6 +130,7 @@ export const model = {
         merged.quizzes = mergeColecaoPorId(local.quizzes || [], cloud.quizzes || []);
         merged.flashcards = mergeColecaoPorId(local.flashcards || [], cloud.flashcards || []);
         merged.mindmaps = mergeColecaoPorId(local.mindmaps || [], cloud.mindmaps || []);
+        merged.apresentacoes = mergeColecaoPorId(local.apresentacoes || [], cloud.apresentacoes || []);
 
         return merged;
     },
@@ -440,6 +442,7 @@ export const model = {
     ...turmaMethods,
     ...provaMethods,
     ...planejamentoMethods,
+    ...apresentacaoMethods,
 };
 if (typeof window !== 'undefined') {
     window.model = model;

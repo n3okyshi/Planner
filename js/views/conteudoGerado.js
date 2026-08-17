@@ -47,7 +47,9 @@ export const conteudoGeradoView = {
         const ferramentaSafe = window.escapeHTML ? window.escapeHTML(material.tipo || 'Gerador IA') : (material.tipo || 'Gerador IA');
 
         const isAluno = this.modoVisualizacao === 'aluno';
-        const conteudoProcessado = this.processarHTMLParaModo(material.conteudo_html || '', this.modoVisualizacao);
+        const conteudoProcessado = window.prepararHTMLParaExportacao 
+            ? window.prepararHTMLParaExportacao(material.conteudo_html || '', this.modoVisualizacao)
+            : this.processarHTMLParaModo(material.conteudo_html || '', this.modoVisualizacao);
 
         const html = `
             <div class="fade-in pb-24 max-w-6xl mx-auto" style="display: flex; flex-direction: column; gap: var(--spacing-6);">
@@ -613,13 +615,16 @@ export const conteudoGeradoView = {
         if (!material) return Toast.show("Material não encontrado para exportação.", "error");
 
         const modo = comGabarito ? 'professor' : 'aluno';
-        const htmlProcessado = this.processarHTMLParaModo(material.conteudo_html || '', modo);
+        const htmlLimpo = prepararHTMLParaExportacao(material.conteudo_html || '', modo);
 
         Toast.show(`Baixando Versão ${comGabarito ? 'do Professor (Com Gabarito)' : 'do Aluno (Sem Gabarito)'}...`, "info");
 
         const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = formatarTextoComLatex(htmlProcessado);
+        tempDiv.innerHTML = htmlLimpo;
         renderKatex(tempDiv);
+        
+        // Remove elementos ocultos MathML do KaTeX que o MS Word renderiza duplicados em texto
+        tempDiv.querySelectorAll('.katex-mathml').forEach(el => el.remove());
 
         const sufixo = comGabarito ? '_professor_gabarito' : '_aluno';
         const nomeArquivo = ((material.titulo || material.tema || 'Atividade').replace(/[^a-z0-9]/gi, '_').toLowerCase()) + sufixo;
@@ -636,7 +641,10 @@ export const conteudoGeradoView = {
                     h2 { color: #334155; font-size: 16pt; margin-top: 20px; }
                     h3 { color: #475569; font-size: 13pt; }
                     p, li { line-height: 1.6; color: #334155; font-size: 11pt; }
-                    .gabarito-bloco, .gabarito { background-color: #ecfdf5; border: 1px solid #a7f3d0; border-left: 4px solid #059669; padding: 12px; margin: 15px 0; }
+                    ul, ol { padding-left: 24px; margin-bottom: 14px; }
+                    li { margin-bottom: 6px; }
+                    .gabarito-bloco, .gabarito { background-color: #ecfdf5; border: 1px solid #a7f3d0; border-left: 5px solid #059669; padding: 14px 18px; margin: 15px 0; border-radius: 8px; }
+                    .gabarito-bloco h3, .gabarito-bloco h4 { color: #065f46; margin-top: 0; }
                     .comentario-professor { background-color: #fefce8; border-left: 4px solid #ca8a04; padding: 10px; }
                     .laboratorio-seguranca { background-color: #fef2f2; border: 1.5px solid #fecaca; border-left: 4px solid #ef4444; padding: 12px; margin: 15px 0; color: #991b1b; }
                     .laboratorio-seguranca h3 { color: #b91c1c; }
@@ -656,7 +664,7 @@ export const conteudoGeradoView = {
         const fileDownload = document.createElement("a");
         document.body.appendChild(fileDownload);
         fileDownload.href = source;
-        fileDownload.download = nomeArquivo + '.doc';
+        fileDownload.download = `${nomeArquivo}.doc`;
         fileDownload.click();
         document.body.removeChild(fileDownload);
     },
@@ -727,7 +735,7 @@ export const conteudoGeradoView = {
         const nomeEscola = model.state.userConfig?.schoolName || '________________________________________________';
 
         const htmlProcessado = this.processarHTMLParaModo(material.conteudo_html || '', isProf ? 'professor' : 'aluno');
-        const conteudoFinalHTML = formatarTextoComLatex(htmlProcessado);
+        const conteudoFinalHTML = htmlProcessado;
 
         const tituloDocumento = isProf 
             ? `GUIA DO PROFESSOR: ${material.titulo || material.tema || 'Material Pedagógico'}`

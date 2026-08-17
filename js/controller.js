@@ -58,6 +58,21 @@ export const controller = {
         const routeName = router.resolve(viewName);
         const target = routeName;
         if (!this.views[target]) this.bindViews();
+
+        // Hook de Ciclo de Vida: Invoca destroy() ou onLeave() na view anterior para limpeza de timers/listeners
+        if (this.currentView && this.views[this.currentView]) {
+            const prevViewObj = this.views[this.currentView];
+            try {
+                if (typeof prevViewObj.destroy === 'function') {
+                    prevViewObj.destroy();
+                } else if (typeof prevViewObj.onLeave === 'function') {
+                    prevViewObj.onLeave();
+                }
+            } catch (err) {
+                console.warn(`Erro no hook destroy/onLeave da view '${this.currentView}':`, err);
+            }
+        }
+
         const container = document.getElementById('view-container');
         const view = this.views[target];
         this.currentView = target;
