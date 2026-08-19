@@ -50,6 +50,7 @@ export const initialState = {
         grade: { matutino: {}, vespertino: {}, noturno: {} }
     },
     materiaisGerados: [],
+    pastasMateriais: [],
     quizzes: [],
     flashcards: [],
     mindmaps: [],

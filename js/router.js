@@ -2,8 +2,9 @@ import { uiController } from './controllers/uiController.js';
 
 export const routeRegistry = {
     dashboard: { label: 'Visão Geral', navId: 'nav-dashboard' },
-    biblioteca: { label: 'Meus materiais', navId: 'nav-biblioteca' },
-    'criar-material': { label: 'Criar Material', navId: 'nav-criar-material' },
+    'materiais-comunidade': { label: 'Materiais & Comunidade', navId: 'nav-materiais-comunidade' },
+    biblioteca: { label: 'Meus materiais', navId: 'nav-materiais-comunidade' },
+    'criar-material': { label: 'Criar Material', navId: 'nav-materiais-comunidade' },
     turmas: { label: 'Turmas', navId: 'nav-turmas' },
     'quiz-gestor': { label: 'Quiz ao vivo', navId: 'nav-quiz-gestor' },
     correcao: { label: 'Correção IA', navId: 'nav-correcao' },
@@ -15,13 +16,13 @@ export const routeRegistry = {
     'stats-provas': { label: 'Estatísticas de Avaliações', navId: 'nav-provas' },
     bncc: { label: 'Acadêmico / BNCC', navId: 'nav-bncc' },
     bimestralizacao: { label: 'Bimestralizações (Formosa)', navId: 'nav-bimestralizacao' },
-    comunidade: { label: 'Comunidade / Banco de Questões', navId: 'nav-comunidade' },
+    comunidade: { label: 'Comunidade / Banco de Questões', navId: 'nav-materiais-comunidade' },
     frequencia: { label: 'Acadêmico / Frequência', navId: 'nav-frequencia' },
     horario: { label: 'Grade Horária', navId: 'nav-horario' },
     mapa: { label: 'Acadêmico / Mapa de Sala', navId: 'nav-mapa' },
     'notas-anuais': { label: 'Notas Anuais', navId: 'nav-notas-anuais' },
     'ata-conselho': { label: 'Ata do Conselho de Classe', navId: 'nav-ata-conselho' },
-    'conteudo-gerado': { label: 'Material Pedagógico', navId: 'nav-biblioteca' },
+    'conteudo-gerado': { label: 'Material Pedagógico', navId: 'nav-materiais-comunidade' },
     'quiz-player': { label: 'Apresentação de Quiz', navId: 'nav-quiz-gestor' },
     'quiz-aluno': { label: 'Participar de Quiz', navId: 'nav-quiz-gestor' },
     'estudos-visuais': { label: 'Flashcards & Mapas Mentais', navId: 'nav-estudos-visuais' },
@@ -41,6 +42,7 @@ export const routeAliases = {
     bimestralizacoes: 'bimestralizacao',
     'bimestralizacao-formosa': 'bimestralizacao',
     'material-gerado': 'conteudo-gerado',
+    'meus-materiais': 'materiais-comunidade',
     'quiz-game': 'quiz-player',
     'quiz-entrar': 'quiz-aluno',
     'quiz-participar': 'quiz-aluno',
@@ -52,14 +54,50 @@ export const routeAliases = {
     pptx: 'apresentacoes'
 };
 
+export const viewModuleMap = {
+    dashboard: () => import('./views/dashboard.js'),
+    'materiais-comunidade': () => import('./views/criarMaterial.js'),
+    biblioteca: () => import('./views/criarMaterial.js'),
+    'criar-material': () => import('./views/criarMaterial.js'),
+    turmas: () => import('./views/turmas.js'),
+    provas: () => import('./views/provas.js'),
+    comunidade: () => import('./views/comunidade.js'),
+    correcao: () => import('./views/correcaoAutomatica.js'),
+    bncc: () => import('./views/bncc.js'),
+    config: () => import('./views/config.js')
+};
+
 export const router = {
     routes: routeRegistry,
     aliases: routeAliases,
+    modules: viewModuleMap,
+    
     resolve(viewName = 'dashboard') {
         const alias = this.aliases[viewName];
         const target = alias || viewName;
         return this.routes[target] ? target : 'dashboard';
     },
+
+    /**
+     * Carrega dinamicamente o módulo JS da View sob demanda (Lazy-Loading)
+     * @param {string} viewName 
+     * @returns {Promise<Object|null>}
+     */
+    async loadViewModule(viewName) {
+        const resolved = this.resolve(viewName);
+        const loader = this.modules[resolved];
+        if (typeof loader === 'function') {
+            try {
+                const module = await loader();
+                return module;
+            } catch (err) {
+                console.warn(`[router] Erro no lazy-loading da view "${resolved}":`, err);
+                return null;
+            }
+        }
+        return null;
+    },
+
     getLabel(viewName) {
         const resolved = this.resolve(viewName);
         return this.routes[resolved]?.label || 'Página';

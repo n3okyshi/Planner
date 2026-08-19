@@ -110,12 +110,21 @@ export function normalizarDelimitadoresLatex(texto) {
     if (!texto) return '';
     let str = String(texto);
 
-    // PASSO 1: Limpeza imediata de todas as variações de R$ envolvidas em TeX/LaTeX (Casos 1 e 5)
+    // PASSO 0: Normalização de espaçamentos em delimitadores TeX (ex: "\ (" -> "\(" e "\ )" -> "\)")
+    str = str
+        .replace(/\\\s+\(/g, '\\(')
+        .replace(/\\\s+\)/g, '\\)')
+        .replace(/\\\s+\[/g, '\\[')
+        .replace(/\\\s+\]/g, '\\]');
+
+    // PASSO 1: Limpeza imediata de todas as variações de R$ / US$ envolvidas em TeX/LaTeX (Casos 1 e 5)
     // Exemplos: "\(\text{R\$}\)", "\( \text{R$} \)", "$ \text{R$} $", "\text{R\$}", "\text{R$}"
     str = str
-        .replace(/\\\(\s*\\text\{\s*R\\?\$?\s*\}\s*\\\)/gi, 'R$')
-        .replace(/\$\s*\\text\{\s*R\\?\$?\s*\}\s*\$/gi, 'R$')
-        .replace(/\\text\{\s*R\\?\$?\s*\}/gi, 'R$');
+        .replace(/\\\(\s*\\text\{\s*(?:R|US)\\?\$?\s*\}\s*\\\)/gi, 'R$')
+        .replace(/\$\s*\\text\{\s*(?:R|US)\\?\$?\s*\}\s*\$/gi, 'R$')
+        .replace(/\\text\{\s*(?:R|US)\\?\$?\s*\}/gi, 'R$')
+        .replace(/\\\(\s*\\text\{\s*(?:R|US)\s*\}\s*\\?\$?\s*\\\)/gi, 'R$')
+        .replace(/\\\(\s*(?:R|US)\\?\$?\s*\\\)/gi, 'R$');
 
     // PASSO 2: Proteção de valores monetários legítimos com R$ ou US$ (Caso 4)
     // Substitui "R$" ou "R$ " por token seguro para que o cifrão de R$ NUNCA seja confundido com delimitador TeX
@@ -218,7 +227,6 @@ export function renderMath(element, customOptions = {}) {
             { left: '\\[', right: '\\]', display: true },
             { left: '\\(', right: '\\)', display: false },
             { left: '$$', right: '$$', display: true },
-            { left: '$', right: '$', display: false },
             { left: '\\begin{equation}', right: '\\end{equation}', display: true },
             { left: '\\begin{align}', right: '\\end{align}', display: true },
             { left: '\\begin{alignat}', right: '\\end{alignat}', display: true },
@@ -462,9 +470,32 @@ export function prepararHTMLParaExportacao(rawHtml, modo = 'professor') {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = str;
 
+    // Limpa atributos parasitas de MathJax colados de sites externos (role="presentation", etc.)
+    tempDiv.querySelectorAll('[role="presentation"], .MathJax_Preview, .mjx-chtml').forEach(el => {
+        if (el.hasAttribute('role')) el.removeAttribute('role');
+        const style = el.getAttribute('style') || '';
+        if (style.includes('scroll-behavior') || style.includes('max-width: none')) {
+            el.removeAttribute('style');
+        }
+    });
+
+    // Limpa fundo branco estático de filhos do gabarito para não tampar o destaque verde (#f0fdf4)
+    tempDiv.querySelectorAll('.gabarito-bloco, [data-gabarito="true"]').forEach(gab => {
+        gab.querySelectorAll('*').forEach(child => {
+            if (child.style) {
+                const bg = (child.style.backgroundColor || child.style.background || '').toLowerCase().replace(/\s/g, '');
+                if (bg === '#fff' || bg === '#ffffff' || bg === 'rgb(255,255,255)' || bg === 'white' || bg === 'transparent') {
+                    child.style.backgroundColor = '';
+                    child.style.background = '';
+                }
+            }
+        });
+    });
+
     if (modo === 'aluno') {
         const seletoresRemover = [
             '.gabarito',
+            '.gabarito-block',
             '.respostas',
             '.gabarito-bloco',
             '.respostas-bloco',
@@ -504,6 +535,42 @@ export function prepararHTMLParaExportacao(rawHtml, modo = 'professor') {
 }
 
 /**
+ * Sanitiza e limpa HTML colado de sites externos (Brasil Escola, Toda Matéria, SuperPro, etc.)
+ * Remove MathJax parasita (role="presentation"), backgrounds brancos sobrepostos e tags quebradas.
+ */
+export function sanitizarEFormatadorHTMLColado(html) {
+    if (!html) return '';
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+
+    // Remove MathJax/KaTeX DOM residual externo
+    tempDiv.querySelectorAll('[role="presentation"], .MathJax, .MathJax_Display, .mjx-chtml').forEach(node => {
+        node.removeAttribute('role');
+        node.removeAttribute('tabindex');
+        const styleAttr = node.getAttribute('style') || '';
+        if (styleAttr.includes('scroll-behavior') || styleAttr.includes('max-width: none')) {
+            node.removeAttribute('style');
+        }
+    });
+
+    // Remove fundos brancos brutos que anulam a cor verde do Gabarito ou amarela do Destaque
+    tempDiv.querySelectorAll('*').forEach(el => {
+        if (el.style) {
+            const bg = (el.style.backgroundColor || el.style.background || '').toLowerCase().replace(/\s/g, '');
+            if (bg === '#fff' || bg === '#ffffff' || bg === 'rgb(255,255,255)' || bg === 'white' || bg === 'transparent') {
+                el.style.backgroundColor = '';
+                el.style.background = '';
+            }
+        }
+        if (!el.getAttribute('style') || el.getAttribute('style').trim() === '') {
+            el.removeAttribute('style');
+        }
+    });
+
+    return tempDiv.innerHTML;
+}
+
+/**
  * Vincula um campo de texto/textarea a uma caixa de preview que renderiza KaTeX em tempo real enquanto o professor digita.
  * @param {HTMLInputElement|HTMLTextAreaElement|string} input 
  * @param {HTMLElement|string} previewContainer 
@@ -521,14 +588,24 @@ export function anexarPreviewLatex(input, previewContainer) {
             return;
         }
 
-        if (val.includes('$') || val.includes('\\')) {
+        if (val.trim()) {
             previewEl.style.display = 'block';
+
+            // Processa linha a linha antes da compilação KaTeX para evitar injetar <br> em atributos SVG d de raiz quadrada
+            const linhasProcessadas = val.split('\n').map(linha => {
+                let txt = window.escapeHTML ? window.escapeHTML(linha) : linha;
+                if (window.criarMaterialView && typeof window.criarMaterialView.formatarFormatacaoInLine === 'function') {
+                    txt = window.criarMaterialView.formatarFormatacaoInLine(txt);
+                }
+                return formatarTextoComLatex(txt);
+            }).join('<br>');
+
             previewEl.innerHTML = `
                 <div style="font-size: 0.6875rem; font-weight: 800; color: #4f46e5; text-transform: uppercase; margin-bottom: 0.375rem; display: flex; align-items: center; gap: 0.25rem;">
-                    <i class="fas fa-eye"></i> Pré-visualização Matemática (KaTeX)
+                    <i class="fas fa-eye"></i> Pré-visualização Pedagógica ao Vivo (KaTeX)
                 </div>
-                <div style="padding: 0.5rem 0.75rem; background-color: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 8px; font-size: 0.9375rem; color: #0f172a; line-height: 1.6;">
-                    ${formatarTextoComLatex(window.escapeHTML(val).replace(/\n/g, '<br>'))}
+                <div style="padding: 0.875rem 1rem; background-color: #ffffff; border: 1px dashed #cbd5e1; border-radius: 8px; font-size: 0.9375rem; color: #0f172a; line-height: 1.6; min-height: 60px;">
+                    ${linhasProcessadas}
                 </div>
             `;
             renderKatex(previewEl);

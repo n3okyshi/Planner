@@ -19,6 +19,11 @@ const ASSETS_TO_CACHE = [
     './js/reactive.js',
 
     './js/components/toast.js',
+    './js/components/modal.js',
+    './js/components/paginator.js',
+    './js/components/filterBar.js',
+    './js/components/card.js',
+    './js/utils/eventDelegator.js',
 
     './js/models/planejamentoModel.js',
     './js/models/provaModel.js',

@@ -3,14 +3,74 @@ import { controller } from '../controller.js';
 import { planejamentoController } from '../controllers/planejamentoController.js';
 import { uiController } from '../controllers/uiController.js';
 import { renderKatex, formatarTextoComLatex } from '../utils.js';
+import { mensalView } from './mensal.js';
+import { diarioView } from './diario.js';
 
 export const planejamentoView = {
     currentTurmaId: null,
+    abaAtiva: 'periodo',
+
+    mudarAba(aba) {
+        this.abaAtiva = aba;
+        this.render('view-container');
+    },
 
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
 
+        const html = `
+            <div class="animate-enter" style="display: flex; flex-direction: column; gap: var(--spacing-6); padding-bottom: var(--spacing-8);">
+                
+                <!-- UNIFIED PLANNING TOP BAR WITH SUBTABS -->
+                <div class="card" style="padding: var(--spacing-4) var(--spacing-6); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-4);">
+                    <div>
+                        <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--color-slate-800); letter-spacing: -0.025em; display: flex; align-items: center; gap: var(--spacing-2); margin: 0;">
+                            <i class="far fa-calendar-alt" style="color: var(--color-primary);"></i> Planejamento Pedagógico
+                        </h2>
+                        <p style="font-size: 0.875rem; color: var(--color-slate-500); margin-top: 0.25rem;">Gerencie o planejamento por período letivo, registros mensais e diário de classe.</p>
+                    </div>
+
+                    <!-- SUBTABS NAVIGATION -->
+                    <div style="display: flex; gap: 0.375rem; background-color: var(--color-slate-100); padding: 0.35rem; border-radius: var(--radius-xl);">
+                        <button type="button" onclick="planejamentoView.mudarAba('periodo')" class="interactive-element"
+                                style="padding: 0.45rem 1rem; font-size: 0.8125rem; font-weight: 800; border-radius: var(--radius-lg); border: none; cursor: pointer; transition: all 0.2s; ${this.abaAtiva === 'periodo' ? 'background-color: #ffffff; color: var(--color-primary); box-shadow: var(--shadow-sm);' : 'background: transparent; color: var(--color-slate-600);'}">
+                            <i class="fas fa-layer-group"></i> Por Período
+                        </button>
+                        <button type="button" onclick="planejamentoView.mudarAba('mensal')" class="interactive-element"
+                                style="padding: 0.45rem 1rem; font-size: 0.8125rem; font-weight: 800; border-radius: var(--radius-lg); border: none; cursor: pointer; transition: all 0.2s; ${this.abaAtiva === 'mensal' ? 'background-color: #ffffff; color: var(--color-primary); box-shadow: var(--shadow-sm);' : 'background: transparent; color: var(--color-slate-600);'}">
+                            <i class="far fa-calendar-alt"></i> Mensal
+                        </button>
+                        <button type="button" onclick="planejamentoView.mudarAba('diario')" class="interactive-element"
+                                style="padding: 0.45rem 1rem; font-size: 0.8125rem; font-weight: 800; border-radius: var(--radius-lg); border: none; cursor: pointer; transition: all 0.2s; ${this.abaAtiva === 'diario' ? 'background-color: #ffffff; color: var(--color-primary); box-shadow: var(--shadow-sm);' : 'background: transparent; color: var(--color-slate-600);'}">
+                            <i class="fas fa-edit"></i> Diário
+                        </button>
+                    </div>
+                </div>
+
+                <div id="subarea-planejamento-content" class="animate-enter"></div>
+            </div>
+        `;
+
+        container.innerHTML = html;
+
+        const subarea = document.getElementById('subarea-planejamento-content');
+        if (!subarea) return;
+
+        if (this.abaAtiva === 'mensal') {
+            if (mensalView && typeof mensalView.render === 'function') {
+                mensalView.render(subarea);
+            }
+        } else if (this.abaAtiva === 'diario') {
+            if (diarioView && typeof diarioView.render === 'function') {
+                diarioView.render(subarea);
+            }
+        } else {
+            this.renderPorPeriodo(subarea);
+        }
+    },
+
+    renderPorPeriodo(container) {
         const turmas = (model.state && model.state.turmas) ? model.state.turmas : [];
         const tipoPeriodo = (model.state?.userConfig?.periodType) || 'bimestre';
 
@@ -29,18 +89,9 @@ export const planejamentoView = {
         const config = configPeriodos[tipoPeriodo] || configPeriodos['bimestre'];
         const turmaSelecionada = turmas.find(t => String(t.id) === String(this.currentTurmaId));
 
-        const html = `
-            <div class="animate-enter" style="display: flex; flex-direction: column; gap: var(--spacing-6); padding-bottom: var(--spacing-8);">
-                
-                <!-- TOP HEADER & CONTROLS TOOLBAR -->
+        const htmlPeriodo = `
+            <div style="display: flex; flex-direction: column; gap: var(--spacing-6);">
                 <div class="card" style="padding: var(--spacing-4) var(--spacing-6); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-4);">
-                    <div>
-                        <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--color-slate-800); letter-spacing: -0.025em; display: flex; align-items: center; gap: var(--spacing-2);">
-                            <i class="fas fa-layer-group" style="color: var(--color-primary);"></i> Planejamento por ${config.label}
-                        </h2>
-                        <p style="font-size: 0.875rem; color: var(--color-slate-500);">Distribuição pedagógica de habilidades BNCC e personalizadas por período letivo.</p>
-                    </div>
-                    
                     <div style="display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap;">
                         ${turmaSelecionada ? `
                             <button onclick="planejamentoController.exportarBimestralizacao('${turmaSelecionada.id}')" class="btn-secondary interactive-element" title="Baixar arquivo JSON com a bimestralização desta turma">
@@ -73,7 +124,6 @@ export const planejamentoView = {
                     </div>
                 </div>
 
-                <!-- PERIODOS GRID -->
                 <div>
                     ${turmas.length > 0 && turmaSelecionada
                         ? this.gerarCardTurma(turmaSelecionada, config)
@@ -83,7 +133,7 @@ export const planejamentoView = {
             </div>
         `;
 
-        container.innerHTML = html;
+        container.innerHTML = htmlPeriodo;
         uiController.initAllDropdowns(container);
         renderKatex(container);
     },

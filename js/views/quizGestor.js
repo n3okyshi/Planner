@@ -344,10 +344,19 @@ export const quizGestorView = {
     },
 
     async excluirQuiz(quizId) {
-        if (confirm("Deseja realmente excluir este Quiz?")) {
+        const acao = async () => {
             await model.deleteQuiz(quizId);
             Toast.show("Quiz removido.", "info");
             this.render('view-container');
+        };
+        if (window.controller && typeof window.controller.confirmarAcao === 'function') {
+            window.controller.confirmarAcao(
+                "Excluir Quiz",
+                "Deseja realmente excluir este Quiz?",
+                acao
+            );
+        } else if (confirm("Deseja realmente excluir este Quiz?")) {
+            acao();
         }
     },
 
@@ -482,10 +491,19 @@ export const quizGestorView = {
     },
 
     async excluirPergunta(index) {
-        if (confirm("Excluir esta questão do quiz?")) {
+        const acao = async () => {
             this.currentQuiz.perguntas.splice(index, 1);
             await model.saveQuiz(this.currentQuiz);
             this.renderEditor();
+        };
+        if (window.controller && typeof window.controller.confirmarAcao === 'function') {
+            window.controller.confirmarAcao(
+                "Excluir Pergunta",
+                "Excluir esta questão do quiz?",
+                acao
+            );
+        } else if (confirm("Excluir esta questão do quiz?")) {
+            acao();
         }
     },
 

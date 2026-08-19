@@ -2,10 +2,15 @@ import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { aiService } from '../ai-service.js';
 import { Toast } from '../components/toast.js';
+import { ModalComponent } from '../components/modal.js';
+import { PaginatorComponent } from '../components/paginator.js';
+import { FilterBarComponent } from '../components/filterBar.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 import { lerArquivoTexto, renderKatex, formatarTextoComLatex, sanitizeComLatex } from '../utils.js';
 
 export const criarMaterialView = {
-    abaAtiva: 'meus', // 'meus', 'templates', 'comunidade'
+    abaAtiva: 'meus', // 'meus', 'templates', 'comunidade', 'lixeira'
+    modoGeracaoForm: 'ia', // 'ia' | 'manual'
     selecionadas: new Set(),
     termoBusca: '',
     filtros: {
@@ -23,7 +28,7 @@ export const criarMaterialView = {
         "Biologia", "Filosofia", "Sociologia"
     ],
     seriesDisponiveis: [
-        "Educação Infantil", "1º Ano EF", "2º Ano EF", "3º Ano EF", "4º Ano EF", 
+        "Educação Infantil", "1º Ano EF", "2º Ano EF", "3º Ano EF", "4º Ano EF",
         "5º Ano EF", "6º Ano EF", "7º Ano EF", "8º Ano EF", "9º Ano EF", "Ensino Médio"
     ],
     categoriasMenu: [
@@ -216,6 +221,16 @@ export const criarMaterialView = {
                 { id: 'bncc', tipo: 'text', label: 'Código BNCC (opcional)', placeholder: 'Ex: EF09MA06' }
             ]
         },
+        'atividade-intervencao': {
+            titulo: 'Atividade de Intervenção Pedagógica',
+            descricao: 'Atividades focadas na recomposição de aprendizagens, remediar defasagens e reforçar conceitos chave.',
+            campos: [
+                { id: 'linha-1', tipo: 'row', colunas: [{ id: 'disciplina', tipo: 'select-disciplina' }, { id: 'serie', tipo: 'select-serie' }] },
+                { id: 'tema', tipo: 'text', label: 'Dificuldade / Habilidade a Intervir', placeholder: 'Ex: Operações fundamentais, Leitura de gráficos, Concordância verbal...' },
+                { id: 'tipo-intervencao', tipo: 'pills', label: 'FOCO DA INTERVENÇÃO', opcoes: ['Reforço de Conceito', 'Resolução Guiada', 'Atividade Remediativa', 'Leitura e Interpretação'], default: 'Reforço de Conceito' },
+                { id: 'bncc', tipo: 'text', label: 'Código BNCC (opcional)', placeholder: 'Ex: EF04MA05' }
+            ]
+        },
         'adaptacao-tea': {
             titulo: 'Adaptação TEA',
             descricao: 'Adapte atividades para alunos com autismo (TEA) focando em apoios visuais e linguagem literal.',
@@ -314,7 +329,12 @@ export const criarMaterialView = {
     },
 
     filtrarMateriais(todas) {
+        const isLixeiraTab = this.abaAtiva === 'lixeira';
         return (todas || []).filter(m => {
+            const naLixeira = Boolean(m.naLixeira);
+            if (isLixeiraTab && !naLixeira) return false;
+            if (!isLixeiraTab && naLixeira) return false;
+
             const termo = (this.termoBusca || '').toLowerCase();
             const matchBusca = !termo ||
                 (m.titulo && m.titulo.toLowerCase().includes(termo)) ||
@@ -323,7 +343,7 @@ export const criarMaterialView = {
                 (m.serie && m.serie.toLowerCase().includes(termo)) ||
                 (m.bncc && m.bncc.toLowerCase().includes(termo)) ||
                 (m.conteudo_html && m.conteudo_html.toLowerCase().includes(termo));
-            
+
             const matchDisciplina = !this.filtros.disciplina || m.disciplina === this.filtros.disciplina;
             const matchSerie = !this.filtros.serie || (m.serie && m.serie.includes(this.filtros.serie));
             const matchTipo = !this.filtros.tipo || m.tipo === this.filtros.tipo;
@@ -428,10 +448,10 @@ export const criarMaterialView = {
 
         let corpoImpressao = '';
         selecionadosList.forEach((m, idx) => {
-            const conteudoLimpo = window.prepararHTMLParaExportacao 
+            const conteudoLimpo = window.prepararHTMLParaExportacao
                 ? window.prepararHTMLParaExportacao(m.conteudo_html || '', 'professor')
                 : (m.conteudo_html || '');
-            
+
             corpoImpressao += `
                 <div class="secao-impressao-item" style="page-break-before: ${idx > 0 ? 'always' : 'auto'}; margin-bottom: 30px;">
                     <div style="border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
@@ -489,22 +509,136 @@ export const criarMaterialView = {
         model.compartilharMateriaisEmMassa(Array.from(this.selecionadas));
     },
 
+    excluirMaterial(id) {
+        if (window.controller && typeof window.controller.confirmarAcao === 'function') {
+            window.controller.confirmarAcao(
+                "Mover para a Lixeira",
+                "Tem certeza que deseja deletar esse material? Ele será enviado para a lixeira.",
+                async () => {
+                    await model.moverMaterialParaLixeira(id);
+                    this.selecionadas.delete(String(id));
+                    this.render('view-container');
+                }
+            );
+        } else {
+            model.moverMaterialParaLixeira(id);
+            this.selecionadas.delete(String(id));
+            this.render('view-container');
+        }
+    },
+
+    async restaurarMaterial(id) {
+        await model.restaurarMaterialDaLixeira(id);
+        this.selecionadas.delete(String(id));
+        this.render('view-container');
+    },
+
+    excluirPermanente(id) {
+        if (window.controller && typeof window.controller.confirmarAcao === 'function') {
+            window.controller.confirmarAcao(
+                "Excluir Definitivamente",
+                "Tem certeza que deseja excluir permanentemente este material? Esta ação não pode ser desfeita.",
+                async () => {
+                    await model.deleteMaterialPermanente(id);
+                    this.selecionadas.delete(String(id));
+                    this.render('view-container');
+                }
+            );
+        } else {
+            model.deleteMaterialPermanente(id);
+            this.selecionadas.delete(String(id));
+            this.render('view-container');
+        }
+    },
+
+    pastaAtualId: null,
+
+    setPastaAtual(id) {
+        this.pastaAtualId = id || null;
+        this.render('view-container');
+    },
+
+    modalCriarPasta() {
+        const nome = prompt("Digite o nome da nova pasta (ex: Matemática 9º Ano, Avaliações):");
+        if (nome && nome.trim()) {
+            model.criarPastaMaterial(nome.trim(), this.pastaAtualId);
+            this.render('view-container');
+        }
+    },
+
+    moverMaterialModal(materialId) {
+        const pastas = model.state.pastasMateriais || [];
+        let optionsHtml = `<option value="">📁 Raiz (Nenhuma Pasta)</option>`;
+        pastas.forEach(p => {
+            optionsHtml += `<option value="${p.id}">📁 ${window.escapeHTML(p.nome)}</option>`;
+        });
+
+        const modalHtml = `
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <p style="font-size: 0.9375rem; color: #475569; font-weight: 600;">Selecione a pasta de destino para organizar este material:</p>
+                <select id="select-dest-pasta" class="form-select" style="font-size: 0.9375rem; padding: 0.6rem;">
+                    ${optionsHtml}
+                </select>
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem;">
+                    <button type="button" onclick="controller.closeModal()" class="btn-secondary">Cancelar</button>
+                    <button type="button" onclick="const pId = document.getElementById('select-dest-pasta').value; model.moverMaterialParaPasta('${materialId}', pId); controller.closeModal(); criarMaterialView.render('view-container');" class="btn-primary" style="background-color: #4f46e5;">
+                        <i class="fas fa-folder-open"></i> Mover Material
+                    </button>
+                </div>
+            </div>
+        `;
+        controller.openModal('Organizar em Pasta', modalHtml, 'md');
+    },
+
+    esvaziarLixeira() {
+        if (window.controller && typeof window.controller.confirmarAcao === 'function') {
+            window.controller.confirmarAcao(
+                "Esvaziar Lixeira",
+                "Tem certeza que deseja apagar permanentemente todos os materiais da lixeira?",
+                async () => {
+                    await model.esvaziarLixeira();
+                    this.selecionadas.clear();
+                    this.render('view-container');
+                }
+            );
+        }
+    },
+
     excluirSelecionados() {
         if (this.selecionadas.size === 0) return;
         const qtd = this.selecionadas.size;
-        const acao = () => {
-            model.deleteMateriaisEmMassa(Array.from(this.selecionadas));
-            this.selecionadas.clear();
-        };
+        const isLixeira = this.abaAtiva === 'lixeira';
 
-        if (window.uiController && window.uiController.confirmarAcao) {
-            window.uiController.confirmarAcao(
-                "Excluir Materiais Selecionados",
-                `Tem certeza que deseja apagar ${qtd} materiais da sua biblioteca? Esta ação é irreversível.`,
-                acao
-            );
-        } else if (confirm(`Tem certeza que deseja apagar ${qtd} materiais?`)) {
-            acao();
+        if (isLixeira) {
+            const acao = async () => {
+                await model.deleteMateriaisPermanentesEmMassa(Array.from(this.selecionadas));
+                this.selecionadas.clear();
+                this.render('view-container');
+            };
+            if (window.controller && window.controller.confirmarAcao) {
+                window.controller.confirmarAcao(
+                    "Excluir Definitivamente",
+                    `Tem certeza que deseja apagar permanentemente ${qtd} materiais da lixeira? Esta ação não pode ser desfeita.`,
+                    acao
+                );
+            } else if (confirm(`Deseja apagar permanentemente ${qtd} materiais?`)) {
+                acao();
+            }
+        } else {
+            const acao = async () => {
+                await model.moverMateriaisParaLixeiraEmMassa(Array.from(this.selecionadas));
+                this.selecionadas.clear();
+                this.render('view-container');
+            };
+            if (window.controller && window.controller.confirmarAcao) {
+                window.controller.confirmarAcao(
+                    "Mover para a Lixeira",
+                    `Tem certeza que deseja enviar ${qtd} materiais para a lixeira?`,
+                    acao
+                );
+            } else if (confirm(`Enviar ${qtd} materiais para a lixeira?`)) {
+                acao();
+            }
         }
     },
 
@@ -524,6 +658,7 @@ export const criarMaterialView = {
             'avaliacao-prova': { i: 'fas fa-clipboard-list', c: '#ea580c', bg: '#fff7ed' },
             'rubrica-avaliacao': { i: 'fas fa-table-cells', c: '#c026d3', bg: '#fdf4ff' },
             'diario-laboratorio': { i: 'fas fa-vial', c: '#0d9488', bg: '#f0fdfa' },
+            'atividade-intervencao': { i: 'fas fa-bullseye', c: '#4f46e5', bg: '#eef2ff' },
             'pacote-compilado': { i: 'fas fa-layer-group', c: '#7c3aed', bg: '#f3e8ff' }
         };
         const style = colorMap[m.tipo] || { i: 'fas fa-file-alt', c: '#64748b', bg: '#f8fafc' };
@@ -544,8 +679,17 @@ export const criarMaterialView = {
                         <div style="width: 2.25rem; height: 2.25rem; border-radius: 0.75rem; background-color: ${style.bg}; color: ${style.c}; display: flex; align-items: center; justify-content: center; font-size: 1rem;">
                             <i class="${style.i}"></i>
                         </div>
-                        <div>
+                        <div style="display: flex; gap: 0.25rem; align-items: center; flex-wrap: wrap;">
                             <span class="badge" style="background-color: ${style.bg}; color: ${style.c}; font-size: 0.6875rem; font-weight: 800;">${tipoLabel}</span>
+                            ${m.criadoManualmente ? `
+                                <span class="badge" style="background-color: #ecfdf5; color: #059669; font-size: 0.625rem; font-weight: 800;" title="Criado Manualmente">
+                                    <i class="fas fa-pen-to-square"></i> Manual
+                                </span>
+                            ` : `
+                                <span class="badge" style="background-color: #eef2ff; color: #4338ca; font-size: 0.625rem; font-weight: 800;" title="Gerado com IA">
+                                    <i class="fas fa-robot"></i> IA
+                                </span>
+                            `}
                         </div>
                     </div>
                     ${m.compartilhado ? `
@@ -578,36 +722,66 @@ export const criarMaterialView = {
                                 style="padding: 0.45rem 0.875rem; font-size: 0.75rem; background-color: #4f46e5; border-radius: 0.625rem; box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);">
                             <i class="fas fa-eye"></i> Abrir
                         </button>
-                        
-                        <button type="button" onclick="model.duplicarMaterial('${m.id}')" 
-                                class="interactive-element" 
-                                style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; background: #fff; color: #64748b; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
-                                title="Duplicar Material">
-                            <i class="far fa-clone" style="font-size: 0.75rem;"></i>
-                        </button>
 
-                        ${m.compartilhado ? `
-                            <button type="button" onclick="model.removerMaterialDaComunidade('${m.id}')" 
+                        ${m.naLixeira ? `
+                            <button type="button" onclick="criarMaterialView.restaurarMaterial('${m.id}')" 
                                     class="interactive-element" 
-                                    style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #ddd6fe; background: #f3e8ff; color: #7c3aed; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
-                                    title="Público (Clique para retirar da comunidade)">
-                                <i class="fas fa-globe" style="font-size: 0.75rem;"></i>
+                                    style="padding: 0.45rem 0.75rem; font-size: 0.75rem; font-weight: 700; background-color: #10b981; color: #ffffff; border-radius: 0.625rem; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.25rem;" 
+                                    title="Restaurar da Lixeira">
+                                <i class="fas fa-rotate-left"></i> Restaurar
+                            </button>
+
+                            <button type="button" onclick="criarMaterialView.excluirPermanente('${m.id}')" 
+                                    class="interactive-element" 
+                                    style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #fee2e2; background: #fef2f2; color: #ef4444; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
+                                    title="Excluir Definitivamente">
+                                <i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>
                             </button>
                         ` : `
-                            <button type="button" onclick="model.compartilharMaterial('${m.id}')" 
+                            <button type="button" onclick="criarMaterialView.editarMaterialManual('${m.id}')" 
                                     class="interactive-element" 
-                                    style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; background: #fff; color: #94a3b8; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
-                                    title="Compartilhar com a Comunidade">
-                                <i class="fas fa-globe" style="font-size: 0.75rem;"></i>
+                                    style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #c7d2fe; background: #eef2ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
+                                    title="Editar Material Manualmente">
+                                <i class="fas fa-pen-to-square" style="font-size: 0.75rem;"></i>
+                            </button>
+
+                            <button type="button" onclick="criarMaterialView.moverMaterialModal('${m.id}')" 
+                                    class="interactive-element" 
+                                    style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #fed7aa; background: #fff7ed; color: #ea580c; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
+                                    title="Mover / Organizar em Pasta">
+                                <i class="fas fa-folder-open" style="font-size: 0.75rem;"></i>
+                            </button>
+
+                            <button type="button" onclick="model.duplicarMaterial('${m.id}')" 
+                                    class="interactive-element" 
+                                    style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; background: #fff; color: #64748b; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
+                                    title="Duplicar Material">
+                                <i class="far fa-clone" style="font-size: 0.75rem;"></i>
+                            </button>
+
+                            ${m.compartilhado ? `
+                                <button type="button" onclick="model.removerMaterialDaComunidade('${m.id}')" 
+                                        class="interactive-element" 
+                                        style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #ddd6fe; background: #f3e8ff; color: #7c3aed; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
+                                        title="Público (Clique para retirar da comunidade)">
+                                    <i class="fas fa-globe" style="font-size: 0.75rem;"></i>
+                                </button>
+                            ` : `
+                                <button type="button" onclick="model.compartilharMaterial('${m.id}')" 
+                                        class="interactive-element" 
+                                        style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; background: #fff; color: #94a3b8; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
+                                        title="Compartilhar com a Comunidade">
+                                    <i class="fas fa-globe" style="font-size: 0.75rem;"></i>
+                                </button>
+                            `}
+
+                            <button type="button" onclick="criarMaterialView.excluirMaterial('${m.id}')" 
+                                    class="interactive-element" 
+                                    style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #fee2e2; background: #fef2f2; color: #ef4444; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
+                                    title="Mover para a Lixeira">
+                                <i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>
                             </button>
                         `}
-
-                        <button type="button" onclick="model.deleteMaterial('${m.id}')" 
-                                class="interactive-element" 
-                                style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #fee2e2; background: #fef2f2; color: #ef4444; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
-                                title="Excluir Material">
-                            <i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>
-                        </button>
                     </div>
                 </div>
             </div>
@@ -652,8 +826,59 @@ export const criarMaterialView = {
     renderMeusMateriais(materiaisPaginados, totalItens, totalPaginas) {
         const todosMarcados = materiaisPaginados.length > 0 && materiaisPaginados.every(m => this.selecionadas.has(String(m.id)));
 
+        const todasPastas = model.state.pastasMateriais || [];
+        const pastaAtual = todasPastas.find(p => String(p.id) === String(this.pastaAtualId));
+        const pastasNoNivel = todasPastas.filter(p => String(p.parentId || '') === String(this.pastaAtualId || ''));
+
         return `
             <div class="animate-enter">
+                <!-- BARRA DE GERENCIAMENTO DE PASTAS & BREADCRUMB -->
+                <div class="card" style="padding: 1rem 1.25rem; margin-bottom: 1.25rem; background: #ffffff; border-radius: var(--radius-xl); border: 1px solid var(--color-slate-200); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                    <!-- BREADCRUMB -->
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; font-size: 0.9375rem; font-weight: 700; color: #334155;">
+                        <button type="button" onclick="criarMaterialView.setPastaAtual(null)" class="btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.8125rem; font-weight: 800; background-color: #f1f5f9; color: #475569;" title="Ir para a Raiz">
+                            <i class="fas fa-folder"></i> Meus Materiais (Raiz)
+                        </button>
+                        ${pastaAtual ? `
+                            <i class="fas fa-chevron-right" style="font-size: 0.75rem; color: #94a3b8;"></i>
+                            <span style="color: #4f46e5; font-weight: 800; background: #eef2ff; padding: 0.35rem 0.75rem; border-radius: var(--radius-lg); border: 1px solid #c7d2fe;">
+                                <i class="fas fa-folder-open"></i> ${window.escapeHTML(pastaAtual.nome)}
+                            </span>
+                        ` : ''}
+                    </div>
+
+                    <!-- BOTÃO NOVA PASTA -->
+                    <button type="button" onclick="criarMaterialView.modalCriarPasta()" class="btn-primary interactive-element" style="padding: 0.45rem 1rem; font-size: 0.8125rem; background: linear-gradient(135deg, #059669, #047857); box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);">
+                        <i class="fas fa-folder-plus"></i> + Nova Pasta
+                    </button>
+                </div>
+
+                <!-- GRID DE PASTAS LOCAIS -->
+                ${pastasNoNivel.length > 0 ? `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                        ${pastasNoNivel.map(p => {
+                            const qtdItens = (model.state.materiaisGerados || []).filter(m => String(m.pastaId) === String(p.id) && !m.naLixeira).length;
+                            return `
+                                <div class="interactive-element" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius-xl); padding: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; transition: all 0.2s;"
+                                     onclick="criarMaterialView.setPastaAtual('${p.id}')">
+                                    <div style="display: flex; align-items: center; gap: 0.75rem; overflow: hidden;">
+                                        <div style="width: 2.5rem; height: 2.5rem; border-radius: 0.75rem; background-color: #fef3c7; color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 1.125rem; flex-shrink: 0;">
+                                            <i class="fas fa-folder"></i>
+                                        </div>
+                                        <div style="overflow: hidden;">
+                                            <h5 style="font-size: 0.875rem; font-weight: 800; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0;">${window.escapeHTML(p.nome)}</h5>
+                                            <span style="font-size: 0.75rem; color: #64748b; font-weight: 600;">${qtdItens} itens</span>
+                                        </div>
+                                    </div>
+                                    <button type="button" onclick="event.stopPropagation(); model.excluirPastaMaterial('${p.id}'); criarMaterialView.render('view-container');" class="interactive-element" style="border: none; background: transparent; color: #94a3b8; padding: 0.25rem; cursor: pointer;" title="Excluir Pasta">
+                                        <i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>
+                                    </button>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                ` : ''}
+
                 <!-- BARRA DE FILTROS & BUSCA (PADRÃO BANCO DE QUESTÕES) -->
                 <div class="dynamic-box" style="padding: 1.25rem; margin-bottom: 1.5rem;">
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
@@ -762,13 +987,17 @@ export const criarMaterialView = {
     },
 
     renderTemplatesIA() {
+        if (!this.ferramentaAtiva) {
+            this.ferramentaAtiva = 'avaliacao';
+        }
+
         return `
             <div class="animate-enter" style="display: flex; flex-direction: row; gap: 1.5rem; align-items: flex-start; position: relative; min-height: 550px;">
                 <aside class="tool-sidebar custom-scrollbar" style="width: 280px; flex-shrink: 0;">
                     ${this.gerarMenuLateral()}
                 </aside>
                 <main id="form-area" class="tool-main-panel animate-enter" style="flex: 1;">
-                    ${this.ferramentaAtiva ? this.renderizarFormularioDaFerramenta() : this.gerarHTMLEmptyState()}
+                    ${this.renderizarFormularioDaFerramenta()}
                 </main>
             </div>
         `;
@@ -795,38 +1024,995 @@ export const criarMaterialView = {
 
     abrirModalCriarMaterial() {
         const modalContent = `
-            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; max-height: 70vh; overflow-y: auto; padding: 0.5rem;" class="custom-scrollbar">
+            <div style="margin-bottom: 1rem; padding: 0.75rem 1rem; background-color: #f8fafc; border-radius: 0.875rem; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.5rem;">
+                <span style="font-size: 0.8125rem; font-weight: 800; color: #475569;">
+                    <i class="fas fa-magic" style="color: #4f46e5;"></i> Como você deseja criar este material?
+                </span>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="button" onclick="criarMaterialView.setModoGeracao('ia')" class="btn-secondary interactive-element" style="padding: 0.3rem 0.75rem; font-size: 0.75rem; font-weight: 800; ${this.modoGeracaoForm === 'ia' ? 'background: #4f46e5; color: #fff;' : ''}">
+                        <i class="fas fa-robot"></i> Gerar com IA
+                    </button>
+                    <button type="button" onclick="criarMaterialView.setModoGeracao('manual')" class="btn-secondary interactive-element" style="padding: 0.3rem 0.75rem; font-size: 0.75rem; font-weight: 800; ${this.modoGeracaoForm === 'manual' ? 'background: #10b981; color: #fff;' : ''}">
+                        <i class="fas fa-pen"></i> Escrever Manualmente
+                    </button>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem; max-height: 65vh; overflow-y: auto; padding: 0.5rem;" class="custom-scrollbar">
                 ${this.categoriasMenu.map(cat => `
                     <div style="grid-column: 1 / -1; margin-top: 0.5rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.25rem;">
                         <h4 style="font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">${cat.titulo}</h4>
                     </div>
                     ${cat.itens.map(item => `
-                        <button type="button" 
-                                onclick="controller.closeModal(); criarMaterialView.mudarAba('templates'); criarMaterialView.selecionarFerramenta('${item.id}', null);"
-                                class="interactive-element" 
-                                ${item.disabled ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}
-                                style="display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.875rem; text-align: left; transition: all var(--transition-fast);"
-                                onmouseover="this.style.borderColor='#818cf8'; this.style.backgroundColor='#ffffff';" onmouseout="this.style.borderColor='#e2e8f0'; this.style.backgroundColor='#f8fafc';">
-                            <div style="width: 2.25rem; height: 2.25rem; border-radius: 0.625rem; background-color: #ffffff; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
-                                <i class="${item.icone} ${item.cor}"></i>
+                        <div style="display: flex; flex-direction: column; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.875rem; padding: 0.75rem; gap: 0.5rem;">
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <div style="width: 2.25rem; height: 2.25rem; border-radius: 0.625rem; background-color: #ffffff; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                    <i class="${item.icone} ${item.cor}"></i>
+                                </div>
+                                <div style="flex: 1;">
+                                    <h5 style="font-weight: 700; font-size: 0.875rem; color: #1e293b; line-height: 1.2;">${item.label}</h5>
+                                </div>
                             </div>
-                            <div>
-                                <h5 style="font-weight: 700; font-size: 0.875rem; color: #1e293b; line-height: 1.2;">${item.label}</h5>
+                            <div style="display: flex; gap: 0.375rem; margin-top: 0.25rem;">
+                                <button type="button" 
+                                        onclick="controller.closeModal(); criarMaterialView.setModoGeracao('ia'); criarMaterialView.mudarAba('templates'); criarMaterialView.selecionarFerramenta('${item.id}', null);"
+                                        class="interactive-element" 
+                                        ${item.disabled ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}
+                                        style="flex: 1; padding: 0.35rem 0.5rem; font-size: 0.75rem; font-weight: 700; background: #ffffff; border: 1px solid #c7d2fe; color: #4f46e5; border-radius: 0.5rem; cursor: pointer; text-align: center;">
+                                    <i class="fas fa-robot"></i> Com IA
+                                </button>
+                                <button type="button" 
+                                        onclick="controller.closeModal(); criarMaterialView.setModoGeracao('manual'); criarMaterialView.mudarAba('templates'); criarMaterialView.selecionarFerramenta('${item.id}', null);"
+                                        class="interactive-element" 
+                                        ${item.disabled ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}
+                                        style="flex: 1; padding: 0.35rem 0.5rem; font-size: 0.75rem; font-weight: 700; background: #ffffff; border: 1px solid #a7f3d0; color: #059669; border-radius: 0.5rem; cursor: pointer; text-align: center;">
+                                    <i class="fas fa-pen"></i> Escrever
+                                </button>
                             </div>
-                        </button>
+                        </div>
                     `).join('')}
                 `).join('')}
             </div>
         `;
-        controller.openModal('Selecionar Ferramenta de Geração por IA', modalContent, 'xl');
+        controller.openModal('Selecionar Ferramenta de Criação de Material', modalContent, 'xl');
+    },
+
+    cardFlashcardLixeira(deck) {
+        return `
+            <div class="card interactive-element animate-enter" style="padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid #fecdd3; background: #fff1f2;">
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <span class="badge" style="background: #ffe4e6; color: #e11d48; font-weight: 800;">Flashcard</span>
+                        <span style="font-size: 0.75rem; color: #9f1239;">${deck.cards?.length || 0} cartas</span>
+                    </div>
+                    <h3 style="font-size: 1rem; font-weight: 800; color: #881337; margin-bottom: 0.25rem;">${window.escapeHTML(deck.titulo)}</h3>
+                    <p style="font-size: 0.75rem; color: #9f1239;">${window.escapeHTML(deck.disciplina || 'Geral')} ${deck.serie ? `• ${window.escapeHTML(deck.serie)}` : ''}</p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                    <button type="button" onclick="model.restaurarFlashcardDaLixeira('${deck.id}')" class="btn-secondary interactive-element" style="flex: 1; padding: 0.4rem; font-size: 0.75rem; font-weight: 700; color: #15803d; border-color: #bbf7d0; background: #f0fdf4;">
+                        <i class="fas fa-undo"></i> Restaurar
+                    </button>
+                    <button type="button" onclick="criarMaterialView.excluirFlashcardPermanente('${deck.id}')" class="btn-danger interactive-element" style="padding: 0.4rem 0.75rem; font-size: 0.75rem; font-weight: 700; background: #e11d48; color: #fff; border: none; border-radius: 0.5rem;">
+                        <i class="fas fa-times"></i> Excluir
+                    </button>
+                </div>
+            </div>
+        `;
+    },
+
+    cardMindmapLixeira(mapa) {
+        return `
+            <div class="card interactive-element animate-enter" style="padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid #fecdd3; background: #fff1f2;">
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                        <span class="badge" style="background: #ffe4e6; color: #e11d48; font-weight: 800;">Mapa Mental</span>
+                        <span style="font-size: 0.75rem; color: #9f1239;">Árvore Conceitual</span>
+                    </div>
+                    <h3 style="font-size: 1rem; font-weight: 800; color: #881337; margin-bottom: 0.25rem;">${window.escapeHTML(mapa.titulo)}</h3>
+                    <p style="font-size: 0.75rem; color: #9f1239;">${window.escapeHTML(mapa.disciplina || 'Geral')} ${mapa.serie ? `• ${window.escapeHTML(mapa.serie)}` : ''}</p>
+                </div>
+                <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
+                    <button type="button" onclick="model.restaurarMindmapDaLixeira('${mapa.id}')" class="btn-secondary interactive-element" style="flex: 1; padding: 0.4rem; font-size: 0.75rem; font-weight: 700; color: #15803d; border-color: #bbf7d0; background: #f0fdf4;">
+                        <i class="fas fa-undo"></i> Restaurar
+                    </button>
+                    <button type="button" onclick="criarMaterialView.excluirMindmapPermanente('${mapa.id}')" class="btn-danger interactive-element" style="padding: 0.4rem 0.75rem; font-size: 0.75rem; font-weight: 700; background: #e11d48; color: #fff; border: none; border-radius: 0.5rem;">
+                        <i class="fas fa-times"></i> Excluir
+                    </button>
+                </div>
+            </div>
+        `;
+    },
+
+    excluirFlashcardPermanente(id) {
+        if (window.controller && typeof window.controller.confirmarAcao === 'function') {
+            window.controller.confirmarAcao(
+                "Excluir Baralho",
+                "Tem certeza que deseja excluir permanentemente este baralho de flashcards?",
+                async () => {
+                    await model.deleteFlashcardDeckPermanente(id);
+                    this.render('view-container');
+                }
+            );
+        } else {
+            model.deleteFlashcardDeckPermanente(id);
+            this.render('view-container');
+        }
+    },
+
+    excluirMindmapPermanente(id) {
+        if (window.controller && typeof window.controller.confirmarAcao === 'function') {
+            window.controller.confirmarAcao(
+                "Excluir Mapa Mental",
+                "Tem certeza que deseja excluir permanentemente este mapa mental?",
+                async () => {
+                    await model.deleteMindmapPermanente(id);
+                    this.render('view-container');
+                }
+            );
+        } else {
+            model.deleteMindmapPermanente(id);
+            this.render('view-container');
+        }
+    },
+
+    renderLixeira(materiaisPaginados, totalItens, totalPaginas) {
+        const todosMarcados = materiaisPaginados.length > 0 && materiaisPaginados.every(m => this.selecionadas.has(String(m.id)));
+        const lixeiraFlashcards = (model.state.flashcards || []).filter(d => d.naLixeira);
+        const lixeiraMindmaps = (model.state.mindmaps || []).filter(m => m.naLixeira);
+        const temAlgumItem = totalItens > 0 || lixeiraFlashcards.length > 0 || lixeiraMindmaps.length > 0;
+
+        return `
+            <div class="animate-enter">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; background: #fff1f2; border: 1px solid #fecdd3; padding: 1rem 1.25rem; border-radius: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <div style="width: 2.5rem; height: 2.5rem; border-radius: 0.75rem; background-color: #ffe4e6; color: #e11d48; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                            <i class="fas fa-trash-alt"></i>
+                        </div>
+                        <div>
+                            <h3 style="font-size: 1rem; font-weight: 800; color: #9f1239; margin: 0;">Lixeira de Materiais</h3>
+                            <p style="font-size: 0.75rem; color: #be123c; margin: 0;">Materiais pedagógicos, flashcards e mapas mentais salvos na lixeira podem ser restaurados ou excluídos definitivamente.</p>
+                        </div>
+                    </div>
+                    ${temAlgumItem ? `
+                        <button type="button" onclick="criarMaterialView.esvaziarLixeira()" 
+                                class="btn-danger interactive-element" style="padding: 0.5rem 1rem; font-size: 0.75rem; font-weight: 800; border-radius: 0.75rem; background-color: #e11d48; color: #fff; border: none; cursor: pointer;">
+                            <i class="fas fa-dumpster"></i> Esvaziar Lixeira
+                        </button>
+                    ` : ''}
+                </div>
+
+                ${temAlgumItem ? `
+                    <div class="materials-workspace-grid">
+                        ${materiaisPaginados.map(m => this.cardMaterial(m)).join('')}
+                        ${lixeiraFlashcards.map(d => this.cardFlashcardLixeira(d)).join('')}
+                        ${lixeiraMindmaps.map(m => this.cardMindmapLixeira(m)).join('')}
+                    </div>
+                ` : `
+                    <div class="tool-empty-state animate-enter" style="max-width: 32rem; padding: 4rem 2rem; background-color: var(--color-white); border-radius: 1.5rem; border: 1px solid #f1f5f9; box-shadow: var(--shadow-sm); margin: 2rem auto; text-align: center;">
+                        <div class="tool-empty-state__icon-wrap" style="width: 5rem; height: 5rem; margin: 0 auto 1.25rem; background-color: #f1f5f9; color: #94a3b8; display: flex; align-items: center; justify-content: center; border-radius: 1rem;">
+                            <i class="fas fa-trash" style="font-size: 2rem;"></i>
+                        </div>
+                        <h3 class="text-xl font-bold text-slate-800 mb-2">Sua Lixeira está vazia</h3>
+                        <p class="text-slate-500 text-sm">Materiais que você excluir da biblioteca serão mantidos aqui para você restaurar quando quiser.</p>
+                    </div>
+                `}
+
+                ${totalPaginas > 1 ? `
+                    <div style="display: flex; margin-top: 2rem; justify-content: space-between; align-items: center; background-color: var(--color-white); padding: 1rem; border-radius: var(--radius-2xl); border: 1px solid var(--color-slate-200); box-shadow: var(--shadow-sm);">
+                        <button onclick="criarMaterialView.paginaAnterior()" ${this.paginaAtual === 1 ? 'disabled' : ''}
+                                class="btn-secondary interactive-element" style="padding: 0.5rem 1rem; font-size: 0.8125rem;">
+                            <i class="fas fa-chevron-left"></i> Anterior
+                        </button>
+                        
+                        <span style="font-size: 0.75rem; font-weight: 700; color: var(--color-slate-400); text-transform: uppercase;">
+                            Página <span style="color: #4f46e5; font-size: 0.875rem; font-weight: 900;">${this.paginaAtual}</span> de ${totalPaginas}
+                        </span>
+                        
+                        <button onclick="criarMaterialView.proximaPagina()" ${this.paginaAtual === totalPaginas ? 'disabled' : ''}
+                                class="btn-primary interactive-element" style="padding: 0.5rem 1rem; font-size: 0.8125rem; background-color: #4f46e5;">
+                            Próxima <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    },
+
+    setModoGeracao(modo) {
+        // Preservar dados preenchidos no formulário manual antes de alternar
+        const inputTitulo = document.getElementById('manual-titulo')?.value;
+        const selectDisc = document.getElementById('manual-disciplina')?.value;
+        const selectSerie = document.getElementById('manual-serie')?.value;
+        const inputBncc = document.getElementById('manual-bncc')?.value;
+        const areaConteudo = document.getElementById('manual-conteudo-html')?.value;
+
+        if (inputTitulo || areaConteudo) {
+            this.rascunhoFormManual = {
+                titulo: inputTitulo || '',
+                disciplina: selectDisc || '',
+                serie: selectSerie || '',
+                bncc: inputBncc || '',
+                conteudo: areaConteudo || ''
+            };
+        }
+
+        this.modoGeracaoForm = modo;
+        if (!this.ferramentaAtiva) {
+            this.ferramentaAtiva = 'avaliacao';
+        }
+        const formArea = document.getElementById('form-area');
+        if (formArea) {
+            formArea.innerHTML = this.renderizarFormularioDaFerramenta();
+            if (window.uiController && typeof window.uiController.initAllDropdowns === 'function') {
+                window.uiController.initAllDropdowns();
+            }
+
+            // Restaurar rascunho se voltando ao modo manual
+            if (modo === 'manual' && this.rascunhoFormManual) {
+                const elTitulo = document.getElementById('manual-titulo');
+                const elDisc = document.getElementById('manual-disciplina');
+                const elSerie = document.getElementById('manual-serie');
+                const elBncc = document.getElementById('manual-bncc');
+                const elConteudo = document.getElementById('manual-conteudo-html');
+
+                if (elTitulo && this.rascunhoFormManual.titulo) elTitulo.value = this.rascunhoFormManual.titulo;
+                if (elDisc && this.rascunhoFormManual.disciplina) elDisc.value = this.rascunhoFormManual.disciplina;
+                if (elSerie && this.rascunhoFormManual.serie) elSerie.value = this.rascunhoFormManual.serie;
+                if (elBncc && this.rascunhoFormManual.bncc) elBncc.value = this.rascunhoFormManual.bncc;
+                if (elConteudo && this.rascunhoFormManual.conteudo) elConteudo.value = this.rascunhoFormManual.conteudo;
+            }
+        }
+    },
+
+    modelosEstruturadosManuais: {
+        'avaliacao-prova': `## AVALIAÇÃO / PROVA DE DESEMPENHO
+Escola: ___________________________________________________
+Professor(a): ______________________ Data: ___/___/______
+Aluno(a): ___________________________________ Turma: _________
+
+### INSTRUÇÕES GERAIS:
+- Leia atentamente todas as questões antes de responder.
+- Respostas objetivas devem ser marcadas com clareza.
+- Utilize caneta azul ou preta.
+
+### PARTE 1 — QUESTÕES OBJETIVAS:
+1. Digite aqui o enunciado da primeira questão objetiva...
+  a) Alternativa A
+  b) Alternativa B
+  c) Alternativa C
+  d) Alternativa D
+
+### PARTE 2 — QUESTÕES DISCURSIVAS:
+2. Considere a equação \({x^2 + y^2 = r^2}\). Explique o significado geométrico dos termos...
+_____
+_____
+_____
+
+GABARITO:
+1. Alternativa A
+2. A equação representa uma circunferência de raio r centrada na origem.`,
+
+        'rubrica-avaliacao': `## RUBRICA ANALÍTICA DE AVALIAÇÃO DE DESEMPENHO
+Atividade Avaliada: ________________________________________
+Pontuação Máxima: 10.0 pontos
+
+### CRITÉRIOS DE AVALIAÇÃO:
+- **1. Domínio Conceitual (Peso 4.0):**
+  - Excelente (100%): Demonstra domínio completo dos conceitos.
+  - Bom (75%): Compreende a maioria dos conceitos com falhas pontuais.
+  - Regular (50%): Compreensão parcial; erros em conceitos básicos.
+  - Insuficiente (25%): Não demonstra compreensão do tema.
+
+- **2. Organização e Clareza (Peso 3.0):**
+  - Excelente (100%): Apresentação lógica, organizada e altamente fluida.
+  - Bom (75%): Estrutura clara com pequenos desvios de organização.
+  - Regular (50%): Apresentação confusa em partes do desenvolvimento.
+  - Insuficiente (25%): Desorganizado e de difícil compreensão.`,
+
+        'lista-exercicios': `## LISTA DE EXERCÍCIOS & RESOLUÇÕES
+Disciplina / Assunto: ________________________________________
+
+### EXERCÍCIOS DE FIXAÇÃO:
+1. Escreva aqui o enunciado do primeiro exercício de fixação...
+_____
+_____
+
+2. Calcule a raiz da função linear dada por \({f(x) = ax + b}\), sabendo que \({a = 2}\) e \({b = -4}\).
+_____
+_____
+
+GABARITO:
+1. Passo a passo da solução do exercício 1...
+2. Para \({f(x) = 0}\), temos \({2x - 4 = 0 \\Rightarrow 2x = 4 \\Rightarrow x = 2}\).`,
+
+        'planejamento': `## PLANO DE AULA SEMANAL / PEDAGÓGICO
+Tema Central: ________________________________________
+Duração Estimada: 50 minutos (1 aula)
+
+### 1. OBJETIVOS DE APRENDIZAGEM
+- Compreender o conceito principal abordado na aula.
+- Identificar relações e aplicações práticas no cotidiano.
+
+### 2. BNCC & HABILIDADES
+- Código / Descrição: EF08MA07 - Analisar e resolver problemas...
+
+### 3. DESENVOLVIMENTO DAS ETAPAS
+- **Introdução / Acolhimento (10 min):** Apresentação do tema e problematização inicial.
+- **Desenvolvimento Prático (30 min):** Exposição dialogada e realização de atividades.
+- **Fechamento & Síntese (10 min):** Sistematização coletiva dos aprendizados.
+
+### 4. AVALIAÇÃO
+- Observação contínua da participação e registro nas atividades propostas.`,
+
+        'diario-laboratorio': `## ROTEIRO DE AULA PRÁTICA DE LABORATÓRIO
+Título do Experimento: ________________________________________
+Equipe / Integrantes: ________________________________________
+
+### 1. OBJETIVOS
+- Observar e analisar experimentalmente o fenômeno investigado.
+
+### 2. MATERIAIS NECESSÁRIOS
+- Béquer 250ml e proveta graduada
+- Termômetro digital ou sensor de temperatura
+- Amostras de teste e água destilada
+
+### 3. PROCEDIMENTO EXPERIMENTAL
+1. Prepare a bancada organizando os equipamentos em segurança.
+2. Adicione as amostras e registre a variação observada a cada 2 minutos.
+
+### 4. REGISTRO DE DADOS
+- Etapa 1: Temperatura Inicial = \({T_1}\) °C
+- Etapa 2: Temperatura Final = \({T_2}\) °C
+- Variação observada: \({\\Delta T = T_2 - T_1}\)`,
+
+        'pratica-laboratorio': `## GUIA DE EXPERIMENTAÇÃO CIENTÍFICA
+Tema da Prática: ________________________________________
+
+### 1. HIPÓTESE CIENTÍFICA
+- O que a turma espera observar ao final do experimento?
+
+### 2. NORMAS DE SEGURANÇA
+NOTA: Uso obrigatório de jaleco, óculos de proteção e atenção ao manuseio dos materiais.
+
+### 3. ETAPAS DE EXECUÇÃO
+1. Montagem do sistema experimental.
+2. Coleta sistemática de dados e medições.
+3. Análise dos resultados obtidos.`,
+
+        'jogos-rpg': `## FICHA DE MISSÃO RPG / ESCAPE ROOM PEDAGÓGICO
+Nome da Missão: ________________________________________
+Nível dos Jogadores: Turma dividida em equipes de 4 participantes
+
+NOTA: Contexto Narrativo: Descreva aqui a história de introdução que engaja os estudantes na missão...
+
+### DESAFIO 1 (ENIGMA DE CONCEITOS)
+- Pista a ser desvendada com base nos conhecimentos estudados...
+
+### DESAFIO 2 (CÓDIGO DE LIBERAÇÃO)
+- Resolva o problema matemático/científico para obter a senha de 4 dígitos: \({2^4 + 5 = ?}\)`,
+
+        'dinamica-jogo': `## ROTEIRO DE DINÂMICA DE GRUPO E JOGO
+Nome da Dinâmica: ________________________________________
+Duração: 30 a 50 minutos
+
+### 1. REGRAS DO JOGO
+- Regra 1: Cada equipe terá 2 minutos para responder cada rodada.
+- Regra 2: Respostas corretas somam 10 pontos.
+
+### 2. PONTUAÇÃO E MEDIAÇÃO
+- Como o professor conduzirá o debate ao final de cada rodada.`,
+
+        'situacao-problema': `## DESAFIO PBL — SITUAÇÃO-PROBLEMA CONTEXTUALIZADA
+Cenário Realista: ________________________________________
+
+### DESAFIO PRINCIPAL:
+- Como resolver o problema hipotético apresentado utilizando os conhecimentos da disciplina?
+
+### ETAPAS DE RESOLUÇÃO:
+1. Levantamento de hipóteses e causas principais.
+2. Proposta de intervenção ou solução prática viável.`,
+
+        'atividade-investigativa': `## ROTEIRO DE PESQUISA E INVESTIGAÇÃO ORIENTADA
+Pergunta Norteadora: ________________________________________
+
+### 1. LEVANTAMENTO DE FONTES
+- Quais dados, gráficos ou textos devem ser analisados pelos alunos?
+
+### 2. SÍNTESE E CONCLUSÃO
+- Redija uma conclusão justificando com evidências encontradas durante a investigação.`,
+
+        'atividade-imprimivel': `## ATIVIDADE PEDAGÓGICA IMPRIMÍVEL
+Disciplina: ___________________ Série/Ano: _________
+
+### TEXTO BASE PARA LEITURA:
+Leia o texto com atenção antes de responder às questões propostas a seguir...
+
+### QUESTÕES DE COMPREENSÃO:
+1. Qual é a ideia central apresentada no texto?
+_____
+_____
+
+2. Identifique os elementos principais citados no segundo parágrafo.
+_____
+_____`,
+
+        'atividade-intervencao': `## ATIVIDADE DE RECOMPOSIÇÃO DE APRENDIZAGEM
+Foco de Intervenção: ________________________________________
+
+NOTA: Atividade focada na consolidação de habilidades essenciais não atingidas previamente.
+
+### EXERCÍCIO GUIADO (PASSO A PASSO):
+1. Observe o exemplo resolvido a seguir...
+2. Agora é a sua vez: Resolva a expressão \({3x + 6 = 18}\).
+_____
+_____`,
+
+        'adaptacao-tea': `## ATIVIDADE ADAPTADA — INCLUSÃO (TEA)
+Estudante: ___________________ Data: ___/___/______
+
+NOTA: Atividade estruturada com linguagem direta, instruções curtas e apoio visual facilitado.
+
+### ETAPA 1 — OBSERVE E RELACIONE:
+- Ligue a palavra à figura correspondente.
+- Marque com um X a resposta correta.
+
+### ETAPA 2 — ATIVIDADE PRÁTICA:
+1. Escolha a opção que completa a frase corretamente.`,
+
+        'adaptacao-tdah': `## ATIVIDADE ADAPTADA — FOCO E ATENÇÃO (TDAH)
+Estudante: ___________________ Tempo Recomendado: 15 min por bloco
+
+NOTA: Tarefas divididas em pequenos blocos para evitar sobrecarga cognitiva.
+
+### BLOCO 1 (DURAÇÃO: 10 MINUTOS)
+- Responda apenas à questão 1. Faça uma pausa de 2 minutos antes de continuar.
+
+1. Responda de forma direta...
+_____
+
+### BLOCO 2 (DURAÇÃO: 10 MINUTOS)
+2. Marque a alternativa correta...`,
+
+        'pei': `## PLANO DE DESENVOLVIMENTO INDIVIDUALIZADO (PEI)
+Nome do Estudante: ________________________________________
+Diagnóstico / Acompanhamento: ________________________________________
+
+### 1. METAS A CURTO PRAZO (30 DIAS)
+- Desenvolver a habilidade de...
+
+### 2. METAS A MÉDIO PRAZO (90 DIAS)
+- Consolidar o aprendizado em...
+
+### 3. ADAPTAÇÕES CURRICULARES E RECURSOS
+- Utilização de material concreto e suporte visual reforçado.`,
+
+        'sequencia-didatica': `## SEQUÊNCIA DIDÁTICA ESTRUTURADA
+Componente Curricular: ________________________________________
+Tema Geral: ________________________________________
+
+### AULA 1 — MOBILIZAÇÃO E CONHECIMENTOS PRÉVIOS
+- Objetivos: Diagnosticar o conhecimento da turma.
+- Atividade: Roda de conversa e tempestade de ideias.
+
+### AULA 2 — APROFUNDAMENTO CONCEITUAL
+- Objetivos: Apresentar o conceito central e exemplos práticos.
+
+### AULA 3 — APLICAÇÃO E AVALIAÇÃO SÍNTESE
+- Objetivos: Elaboração de síntese individual ou em grupo.`,
+
+        'rotina-semanal': `## ROTINA SEMANAL — EDUCAÇÃO INFANTIL
+Semana: ___/___ a ___/___
+
+### SEGUNDA-FEIRA
+- Acolhimento e Roda de Histórias
+- Campo de Experiência: Escuta, fala, pensamento e imaginação
+
+### TERÇA-FEIRA
+- Atividade Sensorial e Jogos de Movimento
+- Campo de Experiência: Corpo, gestos e movimentos`,
+
+        'proposta-brincadeira': `## PROPOSTA DE ATIVIDADE LÚDICA E SENSORIAL
+Nome da Brincadeira: ________________________________________
+Faixa Etária Recomendada: ________________________________________
+
+### 1. OBJETIVOS DE DESENVOLVIMENTO
+- Estimular a coordenação motora fina e a cooperação em grupo.
+
+### 2. MATERIAIS E ORGANIZAÇÃO DO ESPAÇO
+- Espaço amplo e materiais coloridos não estruturados.
+
+### 3. COMO CONDUZIR A BRINCADEIRA
+1. Reúna as crianças em círculo para explicar as regras de forma lúdica.
+2. Inicie a atividade incentivando a participação de todos.`,
+
+        'geral': `## CONTEÚDO PEDAGÓGICO
+Digite aqui a introdução ou visão geral do seu material...
+
+### SEÇÃO 1
+Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
+    },
+
+    converterMarkdownParaHtml(texto) {
+        if (!texto) return '';
+        let str = texto.trim();
+        let linhas = str.split('\n');
+        let htmlLinhas = [];
+        let emLista = false;
+
+        for (let i = 0; i < linhas.length; i++) {
+            let linha = linhas[i].trim();
+
+            if (!linha) {
+                if (emLista) { htmlLinhas.push('</ul>'); emLista = false; }
+                htmlLinhas.push('<div style="height: 0.5rem;"></div>');
+                continue;
+            }
+
+            if (linha.toUpperCase().startsWith('GABARITO:') || linha.toUpperCase().startsWith('[GABARITO]')) {
+                if (emLista) { htmlLinhas.push('</ul>'); emLista = false; }
+                const rest = linha.replace(/^(GABARITO:|\[GABARITO\])/i, '').trim();
+                htmlLinhas.push(`<div class="gabarito-block" style="background: #f0fdf4; border: 1px solid #bbf7d0; padding: 1rem 1.25rem; border-radius: 0.75rem; margin-top: 1.5rem; color: #166534;"><h4 style="color: #15803d; font-weight: 800; font-size: 1rem; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-key"></i> GABARITO & CRITÉRIOS DE CORREÇÃO</h4>${rest ? `<p>${this.formatarFormatacaoInLine(rest)}</p>` : ''}`);
+                continue;
+            }
+
+            if (linha.toUpperCase().startsWith('NOTA:') || linha.toUpperCase().startsWith('DICA:') || linha.toUpperCase().startsWith('[NOTA]') || linha.toUpperCase().startsWith('[DICA]')) {
+                if (emLista) { htmlLinhas.push('</ul>'); emLista = false; }
+                const textNota = linha.replace(/^(NOTA:|DICA:|\[NOTA\]|\[DICA\])/i, '').trim();
+                htmlLinhas.push(`<div style="background: #eef2ff; border-left: 4px solid #4f46e5; padding: 0.875rem 1rem; border-radius: 0.5rem; margin: 1rem 0; color: #3730a3; font-size: 0.875rem;"><strong><i class="fas fa-info-circle"></i> NOTA / OBSERVAÇÃO:</strong> ${this.formatarFormatacaoInLine(textNota)}</div>`);
+                continue;
+            }
+
+            if (linha.startsWith('## ')) {
+                if (emLista) { htmlLinhas.push('</ul>'); emLista = false; }
+                const title = linha.replace(/^##\s+/, '');
+                htmlLinhas.push(`<h2 style="font-size: 1.35rem; font-weight: 800; color: #1e293b; margin-top: 1.5rem; margin-bottom: 0.75rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.35rem;">${this.formatarFormatacaoInLine(title)}</h2>`);
+                continue;
+            }
+
+            if (linha.startsWith('### ')) {
+                if (emLista) { htmlLinhas.push('</ul>'); emLista = false; }
+                const title = linha.replace(/^###\s+/, '');
+                htmlLinhas.push(`<h3 style="font-size: 1.1rem; font-weight: 700; color: #334155; margin-top: 1.25rem; margin-bottom: 0.5rem;">${this.formatarFormatacaoInLine(title)}</h3>`);
+                continue;
+            }
+
+            if (/^_{3,}$/.test(linha) || /^_{2,}/.test(linha)) {
+                if (emLista) { htmlLinhas.push('</ul>'); emLista = false; }
+                htmlLinhas.push(`<p style="border-bottom: 1px dashed #cbd5e1; height: 1.6rem; margin: 0.25rem 0;"></p>`);
+                continue;
+            }
+
+            if (linha.startsWith('- ') || linha.startsWith('* ')) {
+                if (!emLista) {
+                    htmlLinhas.push('<ul style="margin-left: 1.25rem; margin-bottom: 0.75rem; list-style-type: disc;">');
+                    emLista = true;
+                }
+                const item = linha.replace(/^[-*]\s+/, '');
+                htmlLinhas.push(`<li style="margin-bottom: 0.35rem; line-height: 1.5;">${this.formatarFormatacaoInLine(item)}</li>`);
+                continue;
+            }
+
+            if (emLista) {
+                htmlLinhas.push('</ul>');
+                emLista = false;
+            }
+
+            htmlLinhas.push(`<p style="margin-bottom: 0.75rem; line-height: 1.65; color: #334155;">${this.formatarFormatacaoInLine(linha)}</p>`);
+        }
+
+        if (emLista) htmlLinhas.push('</ul>');
+
+        let res = htmlLinhas.join('\n');
+        if (res.includes('<div class="gabarito-block"') && !res.includes('</div>\n') && !res.endsWith('</div>')) {
+            res += '</div>';
+        }
+        return res;
+    },
+
+    formatarFormatacaoInLine(texto) {
+        if (!texto) return '';
+        let out = texto.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        out = out.replace(/\*(.*?)\*/g, '<em>$1</em>');
+        return out;
+    },
+
+    carregarModeloEstruturadoManual() {
+        const areaConteudo = document.getElementById('manual-conteudo-html');
+        if (!areaConteudo) return;
+        const tipo = this.ferramentaAtiva || 'geral';
+        const modelo = this.modelosEstruturadosManuais[tipo] || this.modelosEstruturadosManuais['geral'];
+        
+        if (areaConteudo.value.trim() !== '') {
+            if (!confirm('Deseja substituir o conteúdo atual pelo modelo estruturado recomendado?')) {
+                return;
+            }
+        }
+        areaConteudo.value = modelo;
+        if (Toast) Toast.show('Modelo estruturado carregado com sucesso!', 'info');
+    },
+
+    abrirPrevisualizacaoManual() {
+        const titulo = document.getElementById('manual-titulo')?.value.trim() || 'Material sem Título';
+        const disciplina = document.getElementById('manual-disciplina')?.value || 'Geral';
+        const serie = document.getElementById('manual-serie')?.value || 'Geral';
+        const bncc = document.getElementById('manual-bncc')?.value.trim() || '';
+        const rawConteudo = document.getElementById('manual-conteudo-html')?.value.trim() || 'Nenhum conteúdo digitado ainda.';
+
+        let conteudoHtml = rawConteudo;
+        if (!rawConteudo.includes('<h2') && !rawConteudo.includes('<h3') && !rawConteudo.includes('<div')) {
+            conteudoHtml = this.converterMarkdownParaHtml(rawConteudo);
+        }
+
+        const modalContent = `
+            <div style="max-height: 75vh; overflow-y: auto; padding: 1rem; background-color: #f1f5f9;" class="custom-scrollbar">
+                <div style="background: #ffffff; width: 100%; max-width: 800px; min-height: 600px; margin: 0 auto; padding: 2.5rem; border-radius: 0.5rem; box-shadow: 0 10px 25px rgba(0,0,0,0.1); color: #1e293b; font-family: inherit;">
+                    <div style="border-bottom: 2px solid #4f46e5; padding-bottom: 1rem; margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 0.5rem;">
+                        <div>
+                            <h2 style="font-size: 1.5rem; font-weight: 800; color: #1e293b; margin: 0; line-height: 1.2;">${window.escapeHTML(titulo)}</h2>
+                            <p style="font-size: 0.875rem; color: #475569; margin-top: 0.35rem; font-weight: 600;">
+                                <i class="fas fa-book-open" style="color: #4f46e5;"></i> ${window.escapeHTML(disciplina)} • ${window.escapeHTML(serie)}
+                            </p>
+                        </div>
+                        ${bncc ? `<span style="background: #eef2ff; color: #4338ca; font-weight: 800; font-size: 0.75rem; padding: 0.35rem 0.75rem; border-radius: 0.5rem;">BNCC: ${window.escapeHTML(bncc)}</span>` : ''}
+                    </div>
+
+                    <div class="katex-render-area" style="line-height: 1.7; font-size: 0.9375rem;">
+                        ${conteudoHtml}
+                    </div>
+                </div>
+            </div>
+        `;
+
+        if (ModalComponent && typeof ModalComponent.show === 'function') {
+            ModalComponent.show({
+                titulo: `<i class="fas fa-file-invoice"></i> Pré-visualização do Material (Modo A4)`,
+                conteudo: modalContent,
+                tamanho: 'xl'
+            });
+        } else if (controller && typeof controller.openModal === 'function') {
+            controller.openModal('Pré-visualização do Material (Modo A4)', modalContent, 'xl');
+        }
+
+        setTimeout(() => {
+            if (window.renderKatex) {
+                const modalEl = document.querySelector('.modal-container') || document.body;
+                window.renderKatex(modalEl);
+            }
+        }, 100);
+    },
+
+    editarMaterialManual(materialId) {
+        const mat = (model.state.materiaisGerados || []).find(m => String(m.id) === String(materialId));
+        if (!mat) return;
+        this.materialEmEdicaoId = mat.id;
+        this.ferramentaAtiva = mat.tipo || 'avaliacao';
+        this.modoGeracaoForm = 'manual';
+        this.mudarAba('templates');
+
+        setTimeout(() => {
+            const inputTitulo = document.getElementById('manual-titulo');
+            const selectDisc = document.getElementById('manual-disciplina');
+            const selectSerie = document.getElementById('manual-serie');
+            const inputBncc = document.getElementById('manual-bncc');
+            const areaConteudo = document.getElementById('manual-conteudo-html');
+
+            if (inputTitulo) inputTitulo.value = mat.titulo || mat.tema || '';
+            if (selectDisc && mat.disciplina) selectDisc.value = mat.disciplina;
+            if (selectSerie && mat.serie) selectSerie.value = mat.serie;
+            if (inputBncc && mat.bncc) inputBncc.value = mat.bncc;
+            if (areaConteudo) areaConteudo.value = mat.raw_markdown || mat.conteudo_html || '';
+        }, 50);
+    },
+
+    async salvarMaterialManual() {
+        const titulo = document.getElementById('manual-titulo')?.value.trim();
+        const disciplina = document.getElementById('manual-disciplina')?.value;
+        const serie = document.getElementById('manual-serie')?.value;
+        const bncc = document.getElementById('manual-bncc')?.value.trim() || '';
+
+        const wysiwyg = document.getElementById('manual-conteudo-wysiwyg');
+        const textareaConteudo = document.getElementById('manual-conteudo-html');
+
+        let rawConteudo = '';
+        if (wysiwyg && wysiwyg.innerHTML.trim() !== '') {
+            rawConteudo = wysiwyg.innerHTML.trim();
+        } else if (textareaConteudo) {
+            rawConteudo = textareaConteudo.value.trim();
+        }
+
+        if (!titulo) {
+            if (Toast) Toast.show("Por favor, preencha o título do material.", "warning");
+            return;
+        }
+        if (!rawConteudo) {
+            if (Toast) Toast.show("Por favor, insira o conteúdo do material.", "warning");
+            return;
+        }
+
+        let conteudoHtml = rawConteudo;
+        if (!rawConteudo.includes('<h2') && !rawConteudo.includes('<h3') && !rawConteudo.includes('<div') && !rawConteudo.includes('<p>')) {
+            conteudoHtml = this.converterMarkdownParaHtml(rawConteudo);
+        }
+
+        let salvo;
+        const dadosMaterial = {
+            tipo: this.ferramentaAtiva || 'geral',
+            titulo,
+            tema: titulo,
+            disciplina,
+            serie,
+            bncc,
+            conteudo_html: conteudoHtml,
+            raw_markdown: rawConteudo,
+            criadoManualmente: true,
+            naLixeira: false
+        };
+
+        if (this.materialEmEdicaoId) {
+            salvo = await model.updateMaterial(this.materialEmEdicaoId, dadosMaterial);
+            this.materialEmEdicaoId = null;
+            if (Toast) Toast.show("Material editado e salvo com sucesso!", "success");
+        } else {
+            salvo = await model.saveMaterial(dadosMaterial);
+            if (Toast) Toast.show("Material criado e salvo com sucesso!", "success");
+        }
+
+        if (salvo && window.conteudoGeradoView) {
+            window.conteudoGeradoView.setMaterial(salvo.id);
+            controller.navigate('conteudo-gerado');
+        } else {
+            this.mudarAba('meus');
+        }
+    },
+
+    uploadImagemNoEditor(targetId = 'manual-conteudo-wysiwyg') {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                if (file.size > 3 * 1024 * 1024) {
+                    if (Toast) Toast.show("A imagem deve ser menor que 3MB.", "warning");
+                    return;
+                }
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const dataUrl = event.target.result;
+                    const imgHtml = `<p style="text-align: center; margin: 1rem 0;"><img src="${dataUrl}" style="max-width: 90%; max-height: 400px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" class="material-img"></p><p>&nbsp;</p>`;
+                    const editor = (typeof targetId === 'string' ? document.getElementById(targetId) : targetId) || document.getElementById('manual-conteudo-wysiwyg') || document.getElementById('editor-mat-wysiwyg') || document.getElementById('manual-conteudo-html');
+                    
+                    if (editor) {
+                        if (editor.isContentEditable || editor.contentEditable === 'true') {
+                            editor.focus();
+                            document.execCommand('insertHTML', false, imgHtml);
+                        } else if (editor.value !== undefined) {
+                            const start = editor.selectionStart || 0;
+                            const end = editor.selectionEnd || 0;
+                            editor.value = editor.value.substring(0, start) + `\n${imgHtml}\n` + editor.value.substring(end);
+                            editor.dispatchEvent(new Event('input', { bubbles: true }));
+                        }
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+        input.click();
+    },
+
+    aplicarTamanhoFonteSelecao(editor, tamPx) {
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+        const range = selection.getRangeAt(0);
+        if (range.collapsed) return;
+
+        const span = document.createElement('span');
+        span.style.fontSize = tamPx;
+        span.appendChild(range.extractContents());
+        range.insertNode(span);
+    },
+
+    async colarTextoLimpo(targetId = 'manual-conteudo-wysiwyg') {
+        const editor = (typeof targetId === 'string' ? document.getElementById(targetId) : targetId) || document.getElementById('manual-conteudo-wysiwyg') || document.getElementById('editor-mat-wysiwyg');
+        if (!editor) return;
+
+        try {
+            let texto = '';
+            if (navigator.clipboard && navigator.clipboard.readText) {
+                texto = await navigator.clipboard.readText();
+            } else {
+                texto = prompt("Cole o texto aqui para remover formatações externas:");
+            }
+
+            if (texto) {
+                const htmlLimpo = window.escapeHTML ? window.escapeHTML(texto).split('\n').map(l => l.trim() ? `<p>${l}</p>` : '').join('') : texto;
+                editor.focus();
+                if (editor.isContentEditable || editor.contentEditable === 'true') {
+                    document.execCommand('insertHTML', false, htmlLimpo);
+                } else if (editor.value !== undefined) {
+                    const start = editor.selectionStart || 0;
+                    const end = editor.selectionEnd || 0;
+                    editor.value = editor.value.substring(0, start) + texto + editor.value.substring(end);
+                }
+                if (window.Toast) Toast.show("Texto colado sem formatação!", "success");
+            }
+        } catch (err) {
+            console.error("Erro ao colar texto limpo:", err);
+            const texto = prompt("Cole o texto abaixo para remover a formatação:");
+            if (texto) {
+                const htmlLimpo = window.escapeHTML ? window.escapeHTML(texto).split('\n').map(l => l.trim() ? `<p>${l}</p>` : '').join('') : texto;
+                editor.focus();
+                document.execCommand('insertHTML', false, htmlLimpo);
+            }
+        }
+    },
+
+    vincularSanitizadorPaste(editorId = 'manual-conteudo-wysiwyg') {
+        const editor = typeof editorId === 'string' ? document.getElementById(editorId) : editorId;
+        if (!editor || editor.dataset.pasteBound === 'true') return;
+
+        editor.dataset.pasteBound = 'true';
+        editor.addEventListener('paste', (e) => {
+            e.preventDefault();
+            const clipboardData = e.clipboardData || window.clipboardData;
+            const pastedHtml = clipboardData ? clipboardData.getData('text/html') : null;
+            const pastedText = clipboardData ? clipboardData.getData('text/plain') : null;
+
+            if (pastedHtml && window.sanitizarEFormatadorHTMLColado) {
+                const htmlLimpo = window.sanitizarEFormatadorHTMLColado(pastedHtml);
+                document.execCommand('insertHTML', false, htmlLimpo);
+            } else if (pastedText) {
+                const textLimpo = window.escapeHTML ? window.escapeHTML(pastedText).replace(/\n/g, '<br>') : pastedText;
+                document.execCommand('insertHTML', false, textLimpo);
+            }
+        });
+    },
+
+    inserirSnippet(tipo, targetId = 'manual-conteudo-wysiwyg', val = null) {
+        const editor = (typeof targetId === 'string' ? document.getElementById(targetId) : targetId) || document.getElementById('manual-conteudo-wysiwyg') || document.getElementById('editor-mat-wysiwyg') || document.getElementById('manual-conteudo-html') || document.getElementById('editor-mat-conteudo');
+        if (!editor) return;
+
+        editor.focus();
+        const isEditable = editor.isContentEditable || editor.contentEditable === 'true';
+
+        if (isEditable) {
+            document.execCommand('styleWithCSS', false, true);
+
+            switch(tipo) {
+                case 'h2': document.execCommand('formatBlock', false, '<h2>'); break;
+                case 'h3': document.execCommand('formatBlock', false, '<h3>'); break;
+                case 'bold': document.execCommand('bold', false, null); break;
+                case 'italic': document.execCommand('italic', false, null); break;
+                case 'underline': document.execCommand('underline', false, null); break;
+                case 'fontsize':
+                    if (val) this.aplicarTamanhoFonteSelecao(editor, val);
+                    break;
+                case 'fontfamily':
+                    if (val) document.execCommand('fontName', false, val);
+                    break;
+                case 'forecolor':
+                    if (val) document.execCommand('foreColor', false, val);
+                    break;
+                case 'hilitecolor':
+                case 'backcolor':
+                    if (val) document.execCommand('hiliteColor', false, val);
+                    break;
+                case 'removeformat':
+                    document.execCommand('removeFormat', false, null);
+                    break;
+                case 'colar':
+                    this.colarTextoLimpo(editor);
+                    break;
+                case 'lista': document.execCommand('insertUnorderedList', false, null); break;
+                case 'frac': document.execCommand('insertHTML', false, ' \\(\\frac{a}{b}\\) '); break;
+                case 'superscript': document.execCommand('superscript', false, null); break;
+                case 'subscript': document.execCommand('subscript', false, null); break;
+                case 'sqrt': document.execCommand('insertHTML', false, ' \\(\\sqrt{x}\\) '); break;
+                case 'symbol_neq': document.execCommand('insertHTML', false, ' ≠ '); break;
+                case 'symbol_times': document.execCommand('insertHTML', false, ' × '); break;
+                case 'symbol_div': document.execCommand('insertHTML', false, ' ÷ '); break;
+                case 'symbol_alpha': document.execCommand('insertHTML', false, ' α '); break;
+                case 'symbol_beta': document.execCommand('insertHTML', false, ' β '); break;
+                case 'symbol_pi': document.execCommand('insertHTML', false, ' π '); break;
+                case 'symbol_delta': document.execCommand('insertHTML', false, ' Δ '); break;
+                case 'symbol_theta': document.execCommand('insertHTML', false, ' θ '); break;
+                case 'symbol_infty': document.execCommand('insertHTML', false, ' ∞ '); break;
+                case 'symbol_pm': document.execCommand('insertHTML', false, ' ± '); break;
+                case 'symbol_approx': document.execCommand('insertHTML', false, ' ≈ '); break;
+                case 'gabarito': window.conteudoGeradoView.inserirBlocoGabarito(editor); break;
+                case 'destaque': window.conteudoGeradoView.inserirComentarioProfessor(editor); break;
+                case 'linhas': window.conteudoGeradoView.inserirLinhasResposta(editor); break;
+                case 'tabela': window.conteudoGeradoView.inserirTabelaPedagogica(editor); break;
+                case 'imagem': this.uploadImagemNoEditor(editor); break;
+                default:
+                    if (val) document.execCommand('insertHTML', false, val);
+            }
+            if (typeof renderKatex === 'function') renderKatex(editor);
+            return;
+        }
+
+        const start = editor.selectionStart || 0;
+        const end = editor.selectionEnd || 0;
+        const selectedText = editor.value.substring(start, end);
+
+        let snippet = '';
+        switch(tipo) {
+            case 'h2': snippet = selectedText ? `\n## ${selectedText}\n` : '\n## Título da Seção\n'; break;
+            case 'h3': snippet = selectedText ? `\n### ${selectedText}\n` : '\n### Subtítulo da Seção\n'; break;
+            case 'bold': snippet = selectedText ? `**${selectedText}**` : '**Texto em Negrito**'; break;
+            case 'italic': snippet = selectedText ? `*${selectedText}*` : '*Texto em Itálico*'; break;
+            case 'underline': snippet = selectedText ? `<u>${selectedText}</u>` : '<u>Texto Sublinhado</u>'; break;
+            case 'fontsize': snippet = selectedText ? `<span style="font-size: ${val || '16px'};">${selectedText}</span>` : `<span style="font-size: ${val || '16px'};">Texto com tamanho ajustado</span>`; break;
+            case 'fontfamily': snippet = selectedText ? `<span style="font-family: ${val || 'Roboto, sans-serif'};">${selectedText}</span>` : `<span style="font-family: ${val || 'Roboto, sans-serif'};">Texto com fonte ajustada</span>`; break;
+            case 'lista': snippet = '\n- Item 1\n- Item 2\n- Item 3\n'; break;
+            case 'frac': snippet = ' \\(\\frac{a}{b}\\) '; break;
+            case 'superscript': snippet = selectedText ? ` \\(${selectedText}^2\\) ` : ' \\(x^2\\) '; break;
+            case 'subscript': snippet = selectedText ? ` \\(${selectedText}_i\\) ` : ' \\(x_i\\) '; break;
+            case 'sqrt': snippet = selectedText ? ` \\(\\sqrt{${selectedText}}\\) ` : ' \\(\\sqrt{x}\\) '; break;
+            case 'symbol_neq': snippet = ' \\(\\ne\\) '; break;
+            case 'symbol_times': snippet = ' \\(\\times\\) '; break;
+            case 'symbol_div': snippet = ' \\(\\div\\) '; break;
+            case 'symbol_alpha': snippet = ' α '; break;
+            case 'symbol_beta': snippet = ' β '; break;
+            case 'symbol_pi': snippet = ' π '; break;
+            case 'symbol_delta': snippet = ' Δ '; break;
+            case 'symbol_theta': snippet = ' θ '; break;
+            case 'symbol_infty': snippet = ' ∞ '; break;
+            case 'symbol_pm': snippet = ' ± '; break;
+            case 'symbol_approx': snippet = ' ≈ '; break;
+            case 'imagem': this.uploadImagemNoEditor(editor); break;
+            default: snippet = val || '';
+        }
+
+        const oldVal = editor.value;
+        editor.value = oldVal.substring(0, start) + snippet + oldVal.substring(end);
+        editor.focus();
+        editor.selectionStart = start + snippet.length;
+        editor.selectionEnd = start + snippet.length;
+        editor.dispatchEvent(new Event('input', { bubbles: true }));
+    },
+
+    filtrarMateriais(lista) {
+        if (!Array.isArray(lista)) return [];
+        const isLixeira = this.abaAtiva === 'lixeira';
+        const busca = (this.termoBusca || '').toLowerCase().trim();
+
+        return lista.filter(m => {
+            if (isLixeira) {
+                if (!m.naLixeira) return false;
+            } else {
+                if (m.naLixeira) return false;
+                if (!busca && String(m.pastaId || '') !== String(this.pastaAtualId || '')) {
+                    return false;
+                }
+            }
+
+            if (this.filtros.disciplina && m.disciplina !== this.filtros.disciplina) return false;
+            if (this.filtros.serie && m.serie !== this.filtros.serie) return false;
+            if (this.filtros.tipo && m.tipo !== this.filtros.tipo) return false;
+
+            if (busca) {
+                const titulo = (m.titulo || m.tema || '').toLowerCase();
+                const conteudo = (m.conteudo_html || '').toLowerCase();
+                const disciplina = (m.disciplina || '').toLowerCase();
+                const serie = (m.serie || '').toLowerCase();
+                const bncc = (m.bncc || '').toLowerCase();
+                return titulo.includes(busca) || conteudo.includes(busca) || disciplina.includes(busca) || serie.includes(busca) || bncc.includes(busca);
+            }
+
+            return true;
+        });
     },
 
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
 
-        const meusMateriais = model.state.materiaisGerados || [];
-        const materiaisFiltrados = this.filtrarMateriais(meusMateriais);
+        const todosMateriais = model.state.materiaisGerados || [];
+        const meusMateriais = todosMateriais.filter(m => !m.naLixeira);
+        const lixeiraMateriais = todosMateriais.filter(m => m.naLixeira);
+
+        const materiaisFiltrados = this.filtrarMateriais(todosMateriais);
         const totalItens = materiaisFiltrados.length;
 
         let totalPaginas = this.itensPorPagina === 'all' ? 1 : Math.ceil(totalItens / this.itensPorPagina);
@@ -840,7 +2026,7 @@ export const criarMaterialView = {
             materiaisPaginados = materiaisFiltrados.slice(inicio, fim);
         }
 
-        const todosIds = new Set(meusMateriais.map(m => String(m.id)));
+        const todosIds = new Set(todosMateriais.map(m => String(m.id)));
         for (const id of this.selecionadas) {
             if (!todosIds.has(String(id))) this.selecionadas.delete(id);
         }
@@ -848,10 +2034,19 @@ export const criarMaterialView = {
         let conteudoAba = '';
         if (this.abaAtiva === 'meus') {
             conteudoAba = this.renderMeusMateriais(materiaisPaginados, totalItens, totalPaginas);
+        } else if (this.abaAtiva === 'estudos-visuais') {
+            conteudoAba = `<div id="area-estudos-visuais-integ" class="animate-enter"></div>`;
+            setTimeout(() => {
+                if (window.estudosVisuaisView && window.estudosVisuaisView.render) {
+                    window.estudosVisuaisView.render('area-estudos-visuais-integ');
+                }
+            }, 30);
         } else if (this.abaAtiva === 'templates') {
             conteudoAba = this.renderTemplatesIA();
         } else if (this.abaAtiva === 'comunidade') {
             conteudoAba = this.renderComunidadeMateriais();
+        } else if (this.abaAtiva === 'lixeira') {
+            conteudoAba = this.renderLixeira(materiaisPaginados, totalItens, totalPaginas);
         }
 
         const html = `
@@ -859,12 +2054,12 @@ export const criarMaterialView = {
                 <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; gap: 1rem;">
                     <div>
                         <div style="display: flex; align-items: center; gap: 0.75rem;">
-                            <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Gerador & Acervo de Materiais</h2>
+                            <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Materiais & Comunidade</h2>
                             <span class="badge" style="background-color: #eef2ff; color: #4338ca; font-weight: 800; padding: 0.35rem 0.75rem; border-radius: 9999px; font-size: 0.75rem;">
                                 ${meusMateriais.length} materiais salvos
                             </span>
                         </div>
-                        <p class="text-slate-500 mt-1">Crie materiais pedagógicos com IA, organize em coleções e exporte pacotes prontos para aula.</p>
+                        <p class="text-slate-500 mt-1">Crie materiais pedagógicos com IA ou manualmente, consulte o acervo e organize seus arquivos.</p>
                     </div>
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
                         <button type="button" onclick="criarMaterialView.mudarAba('comunidade')" 
@@ -874,7 +2069,7 @@ export const criarMaterialView = {
                         </button>
                         <button type="button" onclick="criarMaterialView.abrirModalCriarMaterial()" 
                                 class="btn-primary interactive-element" style="padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.25);">
-                            <i class="fas fa-magic"></i> + Novo Material com IA
+                            <i class="fas fa-magic"></i> + Criar Material
                         </button>
                     </div>
                 </div>
@@ -884,13 +2079,21 @@ export const criarMaterialView = {
                             class="mode-toggle-btn interactive-element ${this.abaAtiva === 'meus' ? 'mode-toggle-btn--active' : ''}">
                         <i class="fas fa-folder-open" style="margin-right: 0.375rem;"></i> Meus Materiais (${meusMateriais.length})
                     </button>
+                    <button type="button" onclick="criarMaterialView.mudarAba('estudos-visuais')" 
+                            class="mode-toggle-btn interactive-element ${this.abaAtiva === 'estudos-visuais' ? 'mode-toggle-btn--active' : ''}">
+                        <i class="fas fa-brain" style="margin-right: 0.375rem;"></i> Flashcards & Mapas
+                    </button>
                     <button type="button" onclick="criarMaterialView.mudarAba('templates')" 
                             class="mode-toggle-btn interactive-element ${this.abaAtiva === 'templates' ? 'mode-toggle-btn--active' : ''}">
-                        <i class="fas fa-magic" style="margin-right: 0.375rem;"></i> Gerar com IA / Templates
+                        <i class="fas fa-wand-magic-sparkles" style="margin-right: 0.375rem;"></i> Gerar com IA / Templates
                     </button>
                     <button type="button" onclick="criarMaterialView.mudarAba('comunidade')" 
                             class="mode-toggle-btn interactive-element ${this.abaAtiva === 'comunidade' ? 'mode-toggle-btn--active' : ''}">
                         <i class="fas fa-users-rectangle" style="margin-right: 0.375rem;"></i> Acervo da Comunidade
+                    </button>
+                    <button type="button" onclick="criarMaterialView.mudarAba('lixeira')" 
+                            class="mode-toggle-btn interactive-element ${this.abaAtiva === 'lixeira' ? 'mode-toggle-btn--active' : ''}">
+                        <i class="fas fa-trash-alt" style="margin-right: 0.375rem;"></i> Lixeira (${lixeiraMateriais.length})
                     </button>
                 </div>
 
@@ -934,7 +2137,7 @@ export const criarMaterialView = {
                     <i class="fas fa-magic"></i>
                 </div>
                 <h3 class="text-xl font-bold text-slate-800 mb-2">Pronto para criar?</h3>
-                <p class="text-slate-500 text-sm">Selecione uma das ferramentas no menu lateral para configurar e gerar o conteúdo pedagógico.</p>
+                <p class="text-slate-500 text-sm">Selecione uma das ferramentas no menu lateral para configurar e gerar ou escrever o conteúdo pedagógico.</p>
             </div>
         `;
     },
@@ -954,11 +2157,211 @@ export const criarMaterialView = {
         if (window.uiController && typeof window.uiController.initAllDropdowns === 'function') {
             window.uiController.initAllDropdowns();
         }
+
+        // Se estiver no modo manual, pré-carregar modelo recomendado se o campo estiver vazio
+        if (this.modoGeracaoForm === 'manual') {
+            const areaConteudo = document.getElementById('manual-conteudo-html');
+            if (areaConteudo && areaConteudo.value.trim() === '') {
+                const modelo = this.modelosEstruturadosManuais[idFerramenta] || this.modelosEstruturadosManuais['geral'];
+                if (modelo) {
+                    areaConteudo.value = modelo;
+                }
+            }
+            setTimeout(() => {
+                anexarPreviewLatex('manual-conteudo-html', 'manual-preview-live');
+            }, 50);
+        }
+    },
+
+    modoGeracaoForm: 'ia',
+
+    setModoGeracao(modo) {
+        this.modoGeracaoForm = modo;
+        const formArea = document.getElementById('form-area');
+        if (formArea) {
+            formArea.innerHTML = this.renderizarFormularioDaFerramenta();
+            if (modo === 'manual') {
+                setTimeout(() => {
+                    anexarPreviewLatex('manual-conteudo-html', 'manual-preview-live');
+                }, 50);
+            }
+        }
     },
     renderizarFormularioDaFerramenta() {
         const config = this.formConfig[this.ferramentaAtiva];
         if (!config) return `<div class="tool-empty-state"><p class="text-slate-400">Em desenvolvimento ou sem configuração.</p></div>`;
+
+        const toggleBar = `
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; background: #f8fafc; padding: 0.5rem 0.75rem; border-radius: 1rem; border: 1px solid #e2e8f0; flex-wrap: wrap; gap: 0.5rem;">
+                <span style="font-size: 0.8125rem; font-weight: 800; color: #475569; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-sliders" style="color: #4f46e5;"></i> Modo de Criação:
+                </span>
+                <div style="display: flex; gap: 0.375rem; background-color: #e2e8f0; padding: 0.25rem; border-radius: 0.75rem;">
+                    <button type="button" onclick="criarMaterialView.setModoGeracao('ia')" 
+                            class="interactive-element" 
+                            style="padding: 0.35rem 0.875rem; font-size: 0.75rem; font-weight: 800; border-radius: 0.625rem; border: none; cursor: pointer; transition: all 0.2s; ${this.modoGeracaoForm === 'ia' ? 'background-color: #4f46e5; color: #ffffff; box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);' : 'background-color: transparent; color: #64748b;'}">
+                        <i class="fas fa-robot"></i> Gerar com IA
+                    </button>
+                    <button type="button" onclick="criarMaterialView.setModoGeracao('manual')" 
+                            class="interactive-element" 
+                            style="padding: 0.35rem 0.875rem; font-size: 0.75rem; font-weight: 800; border-radius: 0.625rem; border: none; cursor: pointer; transition: all 0.2s; ${this.modoGeracaoForm === 'manual' ? 'background-color: #10b981; color: #ffffff; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);' : 'background-color: transparent; color: #64748b;'}">
+                        <i class="fas fa-pen-to-square"></i> Escrever Meu Material
+                    </button>
+                </div>
+            </div>
+        `;
+
+        if (this.modoGeracaoForm === 'manual') {
+            return `
+                ${toggleBar}
+                <div class="tool-main-panel__header animate-enter">
+                    <h3 class="tool-main-panel__title">${config.titulo} (Criação Própria / Manual)</h3>
+                    <p class="tool-main-panel__subtitle">Escreva ou cole seu próprio material pedagógico para salvá-lo diretamente na sua biblioteca.</p>
+                </div>
+
+                <form id="manual-material-form" class="space-y-4 animate-enter flex-1" onsubmit="event.preventDefault(); criarMaterialView.salvarMaterialManual();">
+                    <div class="form-group">
+                        <label class="form-label" style="font-weight: 700;">Título do Material *</label>
+                        <input type="text" id="manual-titulo" class="form-input" placeholder="Ex: ${config.titulo} de Língua Portuguesa..." required>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                        <div class="form-group">
+                            <label class="form-label" style="font-weight: 700;">Disciplina *</label>
+                            <select id="manual-disciplina" class="form-select">
+                                ${this.disciplinas.map(d => `<option value="${d}">${d}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" style="font-weight: 700;">Série / Ano *</label>
+                            <select id="manual-serie" class="form-select">
+                                ${this.seriesDisponiveis.map(s => `<option value="${s}">${s}</option>`).join('')}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label" style="font-weight: 700;">Código BNCC (Opcional)</label>
+                        <input type="text" id="manual-bncc" class="form-input" placeholder="Ex: EF08MA07">
+                    </div>
+
+                    <div class="form-group">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                            <label class="form-label" style="font-weight: 700; margin: 0;">Conteúdo do Material (Texto, Questões ou Gabarito) *</label>
+                            <div style="display: flex; gap: 0.375rem; flex-wrap: wrap;">
+                                <button type="button" onclick="criarMaterialView.carregarModeloEstruturadoManual()" class="btn-secondary interactive-element" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; background: #eef2ff; color: #4338ca; border-color: #c7d2fe; font-weight: 700;" title="Carregar modelo de estrutura recomendado para esta ferramenta">
+                                    <i class="fas fa-wand-magic-sparkles"></i> Modelo Pronto
+                                </button>
+                                <button type="button" onclick="criarMaterialView.abrirPrevisualizacaoManual()" class="btn-secondary interactive-element" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; background: #f0fdf4; color: #15803d; border-color: #bbf7d0; font-weight: 700;" title="Pré-visualizar folha impressa A4">
+                                    <i class="fas fa-eye"></i> Pré-visualizar A4
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- BARRA DE FERRAMENTAS PEDAGÓGICAS UNIFICADA (WORD-LIKE 2 LINHAS) -->
+                        <div style="display: flex; flex-direction: column; gap: 0.5rem; background-color: #f8fafc; padding: 0.75rem; border-radius: 0.75rem 0.75rem 0 0; border: 1px solid #cbd5e1; border-bottom: none;">
+                            <!-- LINHA 1: FONTE, TAMANHO, CORES E ESTILOS DE TEXTO -->
+                            <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center;">
+                                <select onchange="criarMaterialView.inserirSnippet('fontsize', 'manual-conteudo-wysiwyg', this.value); this.selectedIndex=0;" class="form-select" style="padding: 0.15rem 0.4rem; font-size: 0.75rem; height: 1.75rem; width: auto; font-weight: 700;">
+                                    <option value="" disabled selected>Tamanho</option>
+                                    <option value="12px">Pequeno (12px)</option>
+                                    <option value="14px">Normal (14px)</option>
+                                    <option value="16px">Médio (16px)</option>
+                                    <option value="18px">Grande (18px)</option>
+                                    <option value="22px">Título (22px)</option>
+                                </select>
+
+                                <select onchange="criarMaterialView.inserirSnippet('fontfamily', 'manual-conteudo-wysiwyg', this.value); this.selectedIndex=0;" class="form-select" style="padding: 0.15rem 0.4rem; font-size: 0.75rem; height: 1.75rem; width: auto; font-weight: 700;">
+                                    <option value="" disabled selected>Fonte</option>
+                                    <option value="Inter, sans-serif">Inter</option>
+                                    <option value="Roboto, sans-serif">Roboto</option>
+                                    <option value="Outfit, sans-serif">Outfit</option>
+                                    <option value="Courier Prime, monospace">Monospace</option>
+                                    <option value="Georgia, serif">Serif</option>
+                                </select>
+
+                                <div style="width: 1px; height: 1.25rem; background: #cbd5e1; margin: 0 0.15rem;"></div>
+
+                                <!-- SELETORES DE COR DA FONTE E DO FUNDO -->
+                                <label title="Cor da Fonte" style="display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.75rem; font-weight: 700; cursor: pointer; background: #ffffff; border: 1px solid #cbd5e1; padding: 0.15rem 0.4rem; border-radius: 0.375rem; height: 1.75rem;">
+                                    <i class="fas fa-palette" style="color: #4f46e5;"></i>
+                                    <input type="color" onchange="criarMaterialView.inserirSnippet('forecolor', 'manual-conteudo-wysiwyg', this.value)" style="width: 1.2rem; height: 1.2rem; border: none; cursor: pointer; background: none; padding: 0;">
+                                </label>
+
+                                <label title="Cor de Fundo do Texto" style="display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.75rem; font-weight: 700; cursor: pointer; background: #ffffff; border: 1px solid #cbd5e1; padding: 0.15rem 0.4rem; border-radius: 0.375rem; height: 1.75rem;">
+                                    <i class="fas fa-highlighter" style="color: #eab308;"></i>
+                                    <input type="color" value="#fef08a" onchange="criarMaterialView.inserirSnippet('hilitecolor', 'manual-conteudo-wysiwyg', this.value)" style="width: 1.2rem; height: 1.2rem; border: none; cursor: pointer; background: none; padding: 0;">
+                                </label>
+
+                                <div style="width: 1px; height: 1.25rem; background: #cbd5e1; margin: 0 0.15rem;"></div>
+
+                                <button type="button" onclick="criarMaterialView.inserirSnippet('h2', 'manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Título H2"><strong>H2</strong></button>
+                                <button type="button" onclick="criarMaterialView.inserirSnippet('h3', 'manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Subtítulo H3"><strong>H3</strong></button>
+                                <button type="button" onclick="criarMaterialView.inserirSnippet('bold', 'manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Negrito"><i class="fas fa-bold"></i></button>
+                                <button type="button" onclick="criarMaterialView.inserirSnippet('italic', 'manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Itálico"><i class="fas fa-italic"></i></button>
+                                <button type="button" onclick="criarMaterialView.inserirSnippet('underline', 'manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Sublinhado"><i class="fas fa-underline"></i></button>
+                                <button type="button" onclick="criarMaterialView.inserirSnippet('lista', 'manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Lista"><i class="fas fa-list-ul"></i></button>
+                                <button type="button" onclick="criarMaterialView.inserirSnippet('removeformat', 'manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Limpar Formatação do Texto Selecionado"><i class="fas fa-eraser"></i></button>
+                            </div>
+
+                            <!-- LINHA 2: FÓRMULAS MATEMÁTICAS, SÍMBOLOS, COLAR LIMPO, BLOCOS PEDAGÓGICOS E IMAGEM -->
+                            <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center;">
+                                <button type="button" onclick="criarMaterialView.colarTextoLimpo('manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; font-weight: 800; background: #fdf4ff; color: #a21caf; border-color: #f5d0fe;" title="Colar Texto Sem Formatação Parasita (Ctrl+Shift+V)"><i class="fas fa-paste"></i> Colar Limpo</button>
+                                
+                                <div style="width: 1px; height: 1.25rem; background: #cbd5e1; margin: 0 0.15rem;"></div>
+
+                                <button type="button" onclick="criarMaterialView.inserirSnippet('frac', 'manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.45rem; font-size: 0.75rem; font-weight: 800;" title="Fração">÷ Fração</button>
+                                <button type="button" onclick="criarMaterialView.inserirSnippet('superscript', 'manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.45rem; font-size: 0.75rem; font-weight: 800;" title="Sobrescrito (X²)">X²</button>
+                                <button type="button" onclick="criarMaterialView.inserirSnippet('subscript', 'manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.45rem; font-size: 0.75rem; font-weight: 800;" title="Subscrito (Xᵢ)">Xᵢ</button>
+                                <button type="button" onclick="criarMaterialView.inserirSnippet('sqrt', 'manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.45rem; font-size: 0.75rem; font-weight: 800;" title="Raiz Quadrada">√x</button>
+
+                                <select onchange="criarMaterialView.inserirSnippet(this.value, 'manual-conteudo-wysiwyg'); this.selectedIndex=0;" class="form-select" style="padding: 0.15rem 0.4rem; font-size: 0.75rem; height: 1.75rem; width: auto; font-weight: 700;">
+                                    <option value="" disabled selected>Símbolos</option>
+                                    <option value="symbol_neq">Diferente (≠)</option>
+                                    <option value="symbol_times">Multiplicação (×)</option>
+                                    <option value="symbol_div">Divisão (÷)</option>
+                                    <option value="symbol_alpha">Alfa (α)</option>
+                                    <option value="symbol_beta">Beta (β)</option>
+                                    <option value="symbol_pi">Pi (π)</option>
+                                    <option value="symbol_delta">Delta (Δ)</option>
+                                    <option value="symbol_theta">Theta (θ)</option>
+                                    <option value="symbol_infty">Infinito (∞)</option>
+                                    <option value="symbol_pm">Mais ou Menos (±)</option>
+                                    <option value="symbol_approx">Aproximado (≈)</option>
+                                </select>
+
+                                <div style="width: 1px; height: 1.25rem; background: #cbd5e1; margin: 0 0.15rem;"></div>
+
+                                <button type="button" onclick="criarMaterialView.inserirSnippet('imagem', 'manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; font-weight: 700; background: #e0f2fe; color: #0369a1; border-color: #bae6fd;" title="Fazer Upload de Imagem para o Material"><i class="fas fa-image"></i> + Imagem</button>
+                                <button type="button" onclick="window.conteudoGeradoView.inserirBlocoGabarito('manual-conteudo-wysiwyg')" class="btn-primary interactive-element" style="background-color: #059669; font-size: 0.75rem; padding: 0.25rem 0.65rem; font-weight: 800;" title="Inserir Gabarito (Oculto na Versão do Aluno)"><i class="fas fa-check-circle"></i> + Gabarito</button>
+                                <button type="button" onclick="window.conteudoGeradoView.inserirComentarioProfessor('manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="background-color: #fefce8; border-color: #fef08a; color: #a16207; font-size: 0.75rem; padding: 0.25rem 0.65rem; font-weight: 800;" title="Inserir Orientação Pedagógica"><i class="fas fa-comment-dots"></i> + Comentário</button>
+                                <button type="button" onclick="window.conteudoGeradoView.inserirLinhasResposta('manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; font-weight: 700;" title="Linhas de Resposta"><i class="fas fa-align-justify"></i> + Linhas</button>
+                                <button type="button" onclick="window.conteudoGeradoView.inserirTabelaPedagogica('manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; font-weight: 700;" title="Tabela Pedagógica"><i class="fas fa-table"></i> + Tabela</button>
+                            </div>
+                        </div>
+
+                        <!-- CAIXA VISUAL TIPO WORD (CONTENTEDITABLE) -->
+                        <div id="manual-conteudo-wysiwyg" contenteditable="true" class="custom-scrollbar" style="display: block; width: 100%; min-height: 320px; max-height: 55vh; overflow-y: auto; background-color: #ffffff; color: #0f172a; padding: 1.25rem; border-radius: 0 0 0.75rem 0.75rem; border: 1px solid #cbd5e1; border-top: none; line-height: 1.7; font-size: 0.95rem; outline: none;"></div>
+
+                        <!-- BOX DE PRÉ-VISUALIZAÇÃO PEDAGÓGICA AO VIVO DA CRIAÇÃO MANUAL -->
+                        <div id="manual-preview-live" style="display: block; width: 100%; margin-top: 1rem;"></div>
+                    </div>
+
+                    <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between flex-wrap gap-3">
+                        <button type="button" onclick="criarMaterialView.abrirPrevisualizacaoManual()" class="btn-secondary interactive-element py-3 px-5 rounded-xl font-bold flex items-center gap-2" style="background-color: #f8fafc; color: #475569; border-color: #cbd5e1;">
+                            <i class="fas fa-eye"></i> Pré-visualizar A4
+                        </button>
+
+                        <button type="submit" class="btn-primary interactive-element py-3.5 px-6 rounded-xl font-bold text-white flex items-center gap-2" style="background-color: #10b981; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.25);">
+                            <i class="fas fa-save"></i> Salvar Material na Biblioteca
+                        </button>
+                    </div>
+                </form>
+            `;
+        }
+
         return `
+            ${toggleBar}
             <div class="tool-main-panel__header animate-enter">
                 <h3 class="tool-main-panel__title">${config.titulo}</h3>
                 <p class="tool-main-panel__subtitle">${config.descricao}</p>
@@ -1043,7 +2446,7 @@ export const criarMaterialView = {
         const nomeEscola = config.escolaName ? config.escolaName : 'Nome da Escola';
         const dataHoje = new Date().toLocaleDateString('pt-BR');
 
-        const conteudoLimpo = window.prepararHTMLParaExportacao 
+        const conteudoLimpo = window.prepararHTMLParaExportacao
             ? window.prepararHTMLParaExportacao(material.conteudo_html || '', 'professor')
             : formatarTextoComLatex(material.conteudo_html || '');
 
@@ -1247,11 +2650,11 @@ export const criarMaterialView = {
                         <label class="form-label" style="font-size: 0.75rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem;">${campo.label}</label>
                         <input type="hidden" data-field="${campo.label}" id="hidden-modo-geracao" value="${campo.default}" class="toggle-control">
                         <div class="mode-toggle-group">
-                            <button type="button" id="btn-modo-ia" onclick="criarMaterialView.setModoGeracao('ia')" class="mode-toggle-btn interactive-element ${campo.default === 'ia' ? 'mode-toggle-btn--active' : ''}">
+                            <button type="button" id="btn-modo-ia" onclick="criarMaterialView.setModoToggleIAField('ia')" class="mode-toggle-btn interactive-element ${campo.default === 'ia' ? 'mode-toggle-btn--active' : ''}">
                                 <i class="fas fa-magic"></i> Gerar com IA
                                 <span style="font-size: 0.5625rem; color: #94a3b8; font-weight: 400; text-transform: uppercase; letter-spacing: 0.05em; margin-left: 0.25rem;">(A partir do tema)</span>
                             </button>
-                            <button type="button" id="btn-modo-manual" onclick="criarMaterialView.setModoGeracao('manual')" class="mode-toggle-btn interactive-element ${campo.default === 'manual' ? 'mode-toggle-btn--active' : ''}">
+                            <button type="button" id="btn-modo-manual" onclick="criarMaterialView.setModoToggleIAField('manual')" class="mode-toggle-btn interactive-element ${campo.default === 'manual' ? 'mode-toggle-btn--active' : ''}">
                                 <i class="fas fa-pencil-alt"></i> Personalizar
                                 <span style="font-size: 0.5625rem; color: #94a3b8; font-weight: 400; text-transform: uppercase; letter-spacing: 0.05em; margin-left: 0.25rem;">(Escrever eu mesmo)</span>
                             </button>
@@ -1304,7 +2707,7 @@ export const criarMaterialView = {
         wrap.innerHTML = `<input type="text" placeholder="Palavra ${count}" class="word-val form-input pr-8"><i class="fas fa-times absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-500 cursor-pointer" onclick="this.parentElement.remove()"></i>`;
         container.insertBefore(wrap, addBtn);
     },
-    setModoGeracao(modo) {
+    setModoToggleIAField(modo) {
         const inputHidden = document.getElementById('hidden-modo-geracao');
         if (inputHidden) inputHidden.value = modo;
         const btnIa = document.getElementById('btn-modo-ia');
@@ -1370,7 +2773,7 @@ export const criarMaterialView = {
             if (palavras.length > 0) dadosExtrahidos["Palavras Listadas"] = palavras.join(', ');
         }
         if (Object.keys(dadosExtrahidos).length < 2) return Toast.show("Preencha os campos essenciais antes de gerar.", "warning");
-        
+
         const textoNotebookLM = document.getElementById('mat-contexto-texto')?.value.trim() || '';
         const contextoFinal = (this.contextoArquivoTexto ? `${this.contextoArquivoTexto}\n\n` : '') + textoNotebookLM;
 
@@ -1407,10 +2810,22 @@ export const criarMaterialView = {
     },
 
     abrirSeletorBNCC(fieldLabel = 'Código BNCC (opcional)') {
-        controller.openModal('Selecionar Habilidade BNCC', '<div id="modal-bncc-container" style="width: 100%; max-height: 80vh; min-height: 500px; overflow-y: auto;"></div>', 'xl');
+        const modalContainer = document.createElement('div');
+        modalContainer.id = 'modal-bncc-container';
+        modalContainer.style.cssText = 'width: 100%; max-height: 75vh; min-height: 480px; overflow-y: auto;';
+
+        const modal = new ModalComponent({
+            title: 'Selecionar Habilidade BNCC',
+            icon: 'fa-search',
+            maxWidth: '850px',
+            content: modalContainer
+        });
+
+        modal.open();
+
         setTimeout(() => {
             if (window.bnccView) {
-                window.bnccView.render('modal-bncc-container', null, null, (habilidadeEscolhida) => {
+                window.bnccView.render(modalContainer, null, null, (habilidadeEscolhida) => {
                     const inputs = document.querySelectorAll(`input[data-field="${fieldLabel}"], input[data-field="Código BNCC (opcional)"], input[data-field="Campo de Experiência BNCC (opcional)"]`);
                     if (inputs && inputs.length > 0) {
                         inputs.forEach(inp => {
@@ -1419,11 +2834,11 @@ export const criarMaterialView = {
                             inp.dispatchEvent(new Event('change', { bubbles: true }));
                         });
                     }
-                    controller.closeModal();
+                    modal.close();
                     Toast.show(`Habilidade ${habilidadeEscolhida.codigo} selecionada!`, 'success');
                 });
             }
         }, 50);
     }
 };
-if (typeof window !== 'undefined') window.criarMaterialView = criarMaterialView;
+if (typeof window !== 'undefined') window.criarMaterialView = criarMaterialView;

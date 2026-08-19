@@ -143,7 +143,7 @@ export const conteudoGeradoView = {
                         <!-- CABEÇALHO DO DOCUMENTO ESCOLAR -->
                         <div style="padding-bottom: 1.5rem; margin-bottom: 2rem; border-bottom: 2px solid var(--color-slate-100); display: flex; flex-direction: column; gap: 0.5rem;">
                             <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: var(--color-slate-400); text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em;">
-                                <span>${material.disciplina || 'Disciplina'} • ${material.serie || 'Série'}</span>
+                                <span>${window.escapeHTML(material.disciplina || 'Disciplina')} • ${window.escapeHTML(material.serie || material.turma || 'Série')}${material.bncc ? ` • BNCC: ${window.escapeHTML(material.bncc)}` : ''}</span>
                                 <span class="badge" style="background-color: ${isAluno ? '#f1f5f9' : '#f0fdf4'}; color: ${isAluno ? '#475569' : '#166534'};">
                                     ${isAluno ? 'Folha de Atividades (Aluno)' : 'Guia Pedagógico (Professor)'}
                                 </span>
@@ -289,29 +289,81 @@ export const conteudoGeradoView = {
         const tituloAtual = material.titulo || material.tema || '';
         const temaAtual = material.tema || '';
         const conteudoAtual = material.conteudo_html || '';
+        const disciplinaAtual = material.disciplina || material.materia || 'Geral';
+        const serieAtual = material.serie || material.turma || material.turma_ano || 'Todas as Turmas';
+        const bnccAtual = material.bncc || material.habilidade_bncc || material.habilidade || material.codigo_bncc || '';
+
+        const disciplinasLista = [
+            "Geral", "Língua Portuguesa", "Matemática", "Ciências", "História", "Geografia",
+            "Arte", "Educação Física", "Língua Inglesa", "Física", "Química",
+            "Biologia", "Filosofia", "Sociologia"
+        ];
+        if (disciplinaAtual && !disciplinasLista.includes(disciplinaAtual)) {
+            disciplinasLista.unshift(disciplinaAtual);
+        }
+
+        const seriesLista = [
+            "Todas as Turmas", "Educação Infantil", "1º Ano EF", "2º Ano EF", "3º Ano EF", "4º Ano EF",
+            "5º Ano EF", "6º Ano EF", "7º Ano EF", "8º Ano EF", "9º Ano EF",
+            "1º Ano EM", "2º Ano EM", "3º Ano EM", "Ensino Médio"
+        ];
+        if (serieAtual && !seriesLista.includes(serieAtual)) {
+            seriesLista.unshift(serieAtual);
+        }
 
         const modalHtml = `
             <div style="display: flex; flex-direction: column; gap: 1rem; width: 100%;">
                 
                 <!-- BLOCO SUPERIOR: METADADOS E SELETOR DE VISÃO -->
-                <div style="display: grid; grid-template-columns: 2fr 2fr 1.5fr; gap: 1rem; align-items: end; background: #ffffff; padding: 1rem 1.25rem; border-radius: var(--radius-xl); border: 1px solid var(--color-slate-200); box-shadow: var(--shadow-sm);">
-                    <div>
-                        <label class="form-label" style="font-weight: 800; font-size: 0.8125rem; color: var(--color-slate-700);">Título do Material</label>
-                        <input type="text" id="editor-mat-titulo" class="form-input" value="${window.escapeHTML(tituloAtual)}" placeholder="Ex: Avaliação Bimestral de Ciências" style="font-weight: 700;">
+                <div style="display: flex; flex-direction: column; gap: 0.75rem; background: #ffffff; padding: 1.25rem; border-radius: var(--radius-xl); border: 1px solid var(--color-slate-200); box-shadow: var(--shadow-sm);">
+                    <!-- LINHA 1: TÍTULO, TEMA E MODO DE EDIÇÃO -->
+                    <div style="display: grid; grid-template-columns: 2.5fr 2fr 1.5fr; gap: 1rem; align-items: end;">
+                        <div>
+                            <label class="form-label" style="font-weight: 800; font-size: 0.8125rem; color: var(--color-slate-700);">Título do Material *</label>
+                            <input type="text" id="editor-mat-titulo" class="form-input" value="${window.escapeHTML(tituloAtual)}" placeholder="Ex: Avaliação Bimestral de Ciências" style="font-weight: 700;">
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-weight: 800; font-size: 0.8125rem; color: var(--color-slate-700);">Tema / Conteúdo</label>
+                            <input type="text" id="editor-mat-tema" class="form-input" value="${window.escapeHTML(temaAtual)}" placeholder="Ex: Fotossíntese e Cadeia Alimentar" style="font-weight: 700;">
+                        </div>
+                        <div>
+                            <label class="form-label" style="font-weight: 800; font-size: 0.8125rem; color: var(--color-slate-700);">Modo de Edição</label>
+                            <div style="display: flex; gap: 0.25rem; background: var(--color-slate-100); padding: 0.25rem; border-radius: var(--radius-xl); border: 1px solid var(--color-slate-200);">
+                                <button type="button" id="btn-mode-mat-code" onclick="conteudoGeradoView.alternarModoEdicaoVisual('code')" class="btn-primary" style="flex: 1; padding: 0.45rem 0.5rem; font-size: 0.75rem; font-weight: 800; justify-content: center; background: var(--color-primary);" title="Editor de Texto e Fórmulas LaTeX com Pré-Visualização KaTeX ao vivo">
+                                    <i class="fas fa-square-root-alt"></i> Texto / LaTeX
+                                </button>
+                                <button type="button" id="btn-mode-mat-visual" onclick="conteudoGeradoView.alternarModoEdicaoVisual('visual')" class="btn-secondary" style="flex: 1; padding: 0.45rem 0.5rem; font-size: 0.75rem; font-weight: 800; justify-content: center; background: transparent;" title="Editor Visual em Folha Mestre">
+                                    <i class="fas fa-file-alt"></i> Folha Mestre
+                                </button>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <label class="form-label" style="font-weight: 800; font-size: 0.8125rem; color: var(--color-slate-700);">Tema / Conteúdo</label>
-                        <input type="text" id="editor-mat-tema" class="form-input" value="${window.escapeHTML(temaAtual)}" placeholder="Ex: Fotossíntese e Cadeia Alimentar" style="font-weight: 700;">
-                    </div>
-                    <div>
-                        <label class="form-label" style="font-weight: 800; font-size: 0.8125rem; color: var(--color-slate-700);">Modo de Edição</label>
-                        <div style="display: flex; gap: 0.25rem; background: var(--color-slate-100); padding: 0.25rem; border-radius: var(--radius-xl); border: 1px solid var(--color-slate-200);">
-                            <button type="button" id="btn-mode-mat-code" onclick="conteudoGeradoView.alternarModoEdicaoVisual('code')" class="btn-primary" style="flex: 1; padding: 0.45rem 0.5rem; font-size: 0.75rem; font-weight: 800; justify-content: center; background: var(--color-primary);" title="Editor de Texto e Fórmulas LaTeX com Pré-Visualização KaTeX ao vivo">
-                                <i class="fas fa-square-root-alt"></i> Texto / LaTeX
-                            </button>
-                            <button type="button" id="btn-mode-mat-visual" onclick="conteudoGeradoView.alternarModoEdicaoVisual('visual')" class="btn-secondary" style="flex: 1; padding: 0.45rem 0.5rem; font-size: 0.75rem; font-weight: 800; justify-content: center; background: transparent;" title="Editor Visual em Folha Mestre">
-                                <i class="fas fa-file-alt"></i> Folha Mestre
-                            </button>
+
+                    <!-- LINHA 2: TURMA/ANO, DISCIPLINA E HABILIDADE BNCC (ORGANIZAÇÃO E FILTROS) -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 1rem; align-items: end; border-top: 1px dashed var(--color-slate-200); padding-top: 0.75rem;">
+                        <div>
+                            <label class="form-label" style="font-weight: 800; font-size: 0.8125rem; color: var(--color-slate-700); display: flex; align-items: center; gap: 0.35rem;">
+                                <i class="fas fa-graduation-cap" style="color: #4f46e5;"></i> Turma / Ano
+                            </label>
+                            <select id="editor-mat-serie" class="form-select" style="font-weight: 700; font-size: 0.875rem;">
+                                ${seriesLista.map(s => `<option value="${window.escapeHTML(s)}" ${s === serieAtual ? 'selected' : ''}>${window.escapeHTML(s)}</option>`).join('')}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="form-label" style="font-weight: 800; font-size: 0.8125rem; color: var(--color-slate-700); display: flex; align-items: center; gap: 0.35rem;">
+                                <i class="fas fa-book-open" style="color: #059669;"></i> Disciplina / Componente
+                            </label>
+                            <select id="editor-mat-disciplina" class="form-select" style="font-weight: 700; font-size: 0.875rem;">
+                                ${disciplinasLista.map(d => `<option value="${window.escapeHTML(d)}" ${d === disciplinaAtual ? 'selected' : ''}>${window.escapeHTML(d)}</option>`).join('')}
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="form-label" style="font-weight: 800; font-size: 0.8125rem; color: var(--color-slate-700); display: flex; align-items: center; gap: 0.35rem;">
+                                <i class="fas fa-award" style="color: #d97706;"></i> Habilidade / Código BNCC
+                            </label>
+                            <input type="text" id="editor-mat-bncc" class="form-input" value="${window.escapeHTML(bnccAtual)}" placeholder="Ex: EF06MA01 ou descrição da habilidade..." style="font-weight: 700; font-size: 0.875rem;">
                         </div>
                     </div>
                 </div>
@@ -319,68 +371,105 @@ export const conteudoGeradoView = {
                 <!-- MESA DE TRABALHO STUDIO (BACKGROUND NEUTRO + BARRA RIBBON + FOLHA A4) -->
                 <div style="background-color: #f1f5f9; border-radius: var(--radius-2xl); border: 1px solid var(--color-slate-200); padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem;">
                     
-                    <!-- BARRA DE FERRAMENTAS RIBBON CLÁSSICA E MODERNA -->
-                    <div id="editor-mat-toolbar-visual" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.625rem 1rem; background-color: #ffffff; border: 1px solid var(--color-slate-200); border-radius: var(--radius-xl); box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
-                        
-                        <!-- ATALHOS TeX / MATEMÁTICA -->
+                    <!-- BARRA DE FERRAMENTAS PEDAGÓGICAS UNIFICADA (WORD-LIKE) -->
+                    <div id="editor-mat-toolbar-visual" style="display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; background-color: #ffffff; border: 1px solid var(--color-slate-200); border-radius: var(--radius-xl); box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
                         <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem;">
-                            <button type="button" onclick="conteudoGeradoView.inserirFormulaLatex('\\\\dfrac{a}{b}')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem; font-weight: 800; color: #4f46e5;" title="Inserir Fração TeX (a/b)">
-                                <i class="fas fa-divide"></i> <span>Fração</span>
-                            </button>
-                            <button type="button" onclick="conteudoGeradoView.inserirFormulaLatex('x^{2}')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem; font-weight: 800; color: #4f46e5;" title="Inserir Potência (x²)">
-                                <i class="fas fa-superscript"></i> <span>x²</span>
-                            </button>
-                            <button type="button" onclick="conteudoGeradoView.inserirFormulaLatex('\\\\sqrt{x}')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem; font-weight: 800; color: #4f46e5;" title="Inserir Raiz Quadrada">
-                                <i class="fas fa-square-root-alt"></i> <span>√x</span>
-                            </button>
-                            <button type="button" onclick="conteudoGeradoView.inserirFormulaLatex('\\\\alpha')" class="btn-secondary" style="padding: 0.35rem 0.55rem; font-size: 0.8125rem; font-weight: 800; color: #4f46e5;" title="Símbolo Alpha">
-                                <span>α</span>
-                            </button>
-                            <button type="button" onclick="conteudoGeradoView.inserirFormulaLatex('\\\\beta')" class="btn-secondary" style="padding: 0.35rem 0.55rem; font-size: 0.8125rem; font-weight: 800; color: #4f46e5;" title="Símbolo Beta">
-                                <span>β</span>
-                            </button>
-                            <div style="width: 1px; height: 1.5rem; background-color: var(--color-slate-200); margin: 0 0.25rem;"></div>
-                            <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('bold')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem; font-weight: 800;" title="Negrito (Ctrl+B)">
-                                <i class="fas fa-bold"></i> <span>N</span>
-                            </button>
-                            <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('italic')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem; font-style: italic;" title="Itálico (Ctrl+I)">
-                                <i class="fas fa-italic"></i> <span>I</span>
-                            </button>
+                            <!-- FONTE E TAMANHO -->
+                            <select onchange="window.criarMaterialView.inserirSnippet('fontsize', 'editor-mat-wysiwyg', this.value); this.selectedIndex=0;" class="form-select" style="padding: 0.15rem 0.4rem; font-size: 0.75rem; height: 1.75rem; width: auto; font-weight: 700;">
+                                <option value="" disabled selected>Tamanho</option>
+                                <option value="12px">Pequeno (12px)</option>
+                                <option value="14px">Normal (14px)</option>
+                                <option value="16px">Médio (16px)</option>
+                                <option value="18px">Grande (18px)</option>
+                                <option value="22px">Título (22px)</option>
+                            </select>
+
+                            <select onchange="window.criarMaterialView.inserirSnippet('fontfamily', 'editor-mat-wysiwyg', this.value); this.selectedIndex=0;" class="form-select" style="padding: 0.15rem 0.4rem; font-size: 0.75rem; height: 1.75rem; width: auto; font-weight: 700;">
+                                <option value="" disabled selected>Fonte</option>
+                                <option value="Inter, sans-serif">Inter</option>
+                                <option value="Roboto, sans-serif">Roboto</option>
+                                <option value="Outfit, sans-serif">Outfit</option>
+                                <option value="Courier Prime, monospace">Monospace</option>
+                                <option value="Georgia, serif">Serif</option>
+                            </select>
+
+                            <div style="width: 1px; height: 1.25rem; background: #cbd5e1; margin: 0 0.15rem;"></div>
+
+                            <!-- SELETORES DE COR DA FONTE E DO FUNDO -->
+                            <label title="Cor da Fonte" style="display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.75rem; font-weight: 700; cursor: pointer; background: #ffffff; border: 1px solid #cbd5e1; padding: 0.15rem 0.4rem; border-radius: 0.375rem; height: 1.75rem;">
+                                <i class="fas fa-palette" style="color: #4f46e5;"></i>
+                                <input type="color" onchange="window.criarMaterialView.inserirSnippet('forecolor', 'editor-mat-wysiwyg', this.value)" style="width: 1.2rem; height: 1.2rem; border: none; cursor: pointer; background: none; padding: 0;">
+                            </label>
+
+                            <label title="Cor de Fundo do Texto" style="display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.75rem; font-weight: 700; cursor: pointer; background: #ffffff; border: 1px solid #cbd5e1; padding: 0.15rem 0.4rem; border-radius: 0.375rem; height: 1.75rem;">
+                                <i class="fas fa-highlighter" style="color: #eab308;"></i>
+                                <input type="color" value="#fef08a" onchange="window.criarMaterialView.inserirSnippet('hilitecolor', 'editor-mat-wysiwyg', this.value)" style="width: 1.2rem; height: 1.2rem; border: none; cursor: pointer; background: none; padding: 0;">
+                            </label>
+
+                            <div style="width: 1px; height: 1.25rem; background: #cbd5e1; margin: 0 0.15rem;"></div>
+
+                            <!-- ESTILOS DE TEXTO -->
+                            <button type="button" onclick="window.criarMaterialView.inserirSnippet('h2', 'editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Título H2"><strong>H2</strong></button>
+                            <button type="button" onclick="window.criarMaterialView.inserirSnippet('h3', 'editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Subtítulo H3"><strong>H3</strong></button>
+                            <button type="button" onclick="window.criarMaterialView.inserirSnippet('bold', 'editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Negrito"><i class="fas fa-bold"></i></button>
+                            <button type="button" onclick="window.criarMaterialView.inserirSnippet('italic', 'editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Itálico"><i class="fas fa-italic"></i></button>
+                            <button type="button" onclick="window.criarMaterialView.inserirSnippet('underline', 'editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Sublinhado"><i class="fas fa-underline"></i></button>
+                            <button type="button" onclick="window.criarMaterialView.inserirSnippet('lista', 'editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Lista"><i class="fas fa-list-ul"></i></button>
+                            <button type="button" onclick="window.criarMaterialView.inserirSnippet('removeformat', 'editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Limpar Formatação do Texto Selecionado"><i class="fas fa-eraser"></i></button>
                         </div>
 
-                        <!-- GRUPO RECURSOS PEDAGÓGICOS -->
-                        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;">
-                            <button type="button" onclick="conteudoGeradoView.inserirBlocoGabarito()" class="btn-primary" style="background-color: #059669; font-size: 0.78125rem; padding: 0.4rem 0.75rem; font-weight: 800; box-shadow: var(--shadow-sm);" title="Inserir gabarito que fica oculto na versão do aluno">
-                                <i class="fas fa-check-circle"></i> + Gabarito
-                            </button>
-                            <button type="button" onclick="conteudoGeradoView.inserirComentarioProfessor()" class="btn-secondary" style="background-color: #fefce8; border-color: #fef08a; color: #a16207; font-size: 0.78125rem; padding: 0.4rem 0.75rem; font-weight: 800;" title="Inserir orientação pedagógica para o professor">
-                                <i class="fas fa-comment-dots"></i> + Comentário
-                            </button>
-                            <button type="button" onclick="conteudoGeradoView.inserirLinhasResposta()" class="btn-secondary" style="font-size: 0.78125rem; padding: 0.4rem 0.65rem; font-weight: 700;" title="Inserir pauta de linhas para resposta do aluno">
-                                <i class="fas fa-align-justify"></i> + Linhas
-                            </button>
-                            <button type="button" onclick="conteudoGeradoView.inserirTabelaPedagogica()" class="btn-secondary" style="font-size: 0.78125rem; padding: 0.4rem 0.65rem; font-weight: 700;" title="Inserir grade/tabela pedagógica">
-                                <i class="fas fa-table"></i> + Tabela
-                            </button>
+                        <!-- ESTRUTURAS PEDAGÓGICAS, COLAR LIMPO E UPLOAD -->
+                        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem;">
+                            <button type="button" onclick="window.criarMaterialView.colarTextoLimpo('editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; font-weight: 800; background: #fdf4ff; color: #a21caf; border-color: #f5d0fe;" title="Colar Texto Sem Formatação Parasita"><i class="fas fa-paste"></i> Colar Limpo</button>
+                            
+                            <div style="width: 1px; height: 1.25rem; background: #cbd5e1; margin: 0 0.15rem;"></div>
+
+                            <!-- FÓRMULAS E MATEMÁTICA -->
+                            <button type="button" onclick="window.criarMaterialView.inserirSnippet('frac', 'editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem; font-weight: 800;" title="Fração">÷ Fração</button>
+                            <button type="button" onclick="window.criarMaterialView.inserirSnippet('superscript', 'editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem; font-weight: 800;" title="Sobrescrito">X²</button>
+                            <button type="button" onclick="window.criarMaterialView.inserirSnippet('subscript', 'editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem; font-weight: 800;" title="Subscrito">Xᵢ</button>
+                            <button type="button" onclick="window.criarMaterialView.inserirSnippet('sqrt', 'editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem; font-weight: 800;" title="Raiz Quadrada">√x</button>
+
+                            <!-- SÍMBOLOS DROPDOWN -->
+                            <select onchange="window.criarMaterialView.inserirSnippet(this.value, 'editor-mat-wysiwyg'); this.selectedIndex=0;" class="form-select" style="padding: 0.15rem 0.4rem; font-size: 0.75rem; height: 1.75rem; width: auto; font-weight: 700;">
+                                <option value="" disabled selected>Símbolos</option>
+                                <option value="symbol_neq">Diferente (≠)</option>
+                                <option value="symbol_times">Multiplicação (×)</option>
+                                <option value="symbol_div">Divisão (÷)</option>
+                                <option value="symbol_alpha">Alfa (α)</option>
+                                <option value="symbol_beta">Beta (β)</option>
+                                <option value="symbol_pi">Pi (π)</option>
+                                <option value="symbol_delta">Delta (Δ)</option>
+                                <option value="symbol_theta">Theta (θ)</option>
+                                <option value="symbol_infty">Infinito (∞)</option>
+                                <option value="symbol_pm">Mais ou Menos (±)</option>
+                                <option value="symbol_approx">Aproximado (≈)</option>
+                            </select>
+
+                            <div style="width: 1px; height: 1.25rem; background: #cbd5e1; margin: 0 0.15rem;"></div>
+
+                            <!-- ESTRUTURAS PEDAGÓGICAS E UPLOAD -->
+                            <button type="button" onclick="window.criarMaterialView.inserirSnippet('imagem', 'editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.25rem 0.65rem; font-size: 0.75rem; font-weight: 800; background: #e0f2fe; color: #0369a1; border-color: #bae6fd;" title="Upload de Imagem"><i class="fas fa-image"></i> + Imagem</button>
+                            <button type="button" onclick="window.conteudoGeradoView.inserirBlocoGabarito('editor-mat-wysiwyg')" class="btn-primary" style="background-color: #059669; font-size: 0.75rem; padding: 0.25rem 0.65rem; font-weight: 800;" title="Inserir Gabarito"><i class="fas fa-check-circle"></i> + Gabarito</button>
+                            <button type="button" onclick="window.conteudoGeradoView.inserirComentarioProfessor('editor-mat-wysiwyg')" class="btn-secondary" style="background-color: #fefce8; border-color: #fef08a; color: #a16207; font-size: 0.75rem; padding: 0.25rem 0.65rem; font-weight: 800;" title="Inserir Orientação Pedagógica"><i class="fas fa-comment-dots"></i> + Comentário</button>
+                            <button type="button" onclick="window.conteudoGeradoView.inserirLinhasResposta('editor-mat-wysiwyg')" class="btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; font-weight: 700;" title="Inserir Linhas"><i class="fas fa-align-justify"></i> + Linhas</button>
+                            <button type="button" onclick="window.conteudoGeradoView.inserirTabelaPedagogica('editor-mat-wysiwyg')" class="btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; font-weight: 700;" title="Inserir Tabela"><i class="fas fa-table"></i> + Tabela</button>
                         </div>
                     </div>
 
-                    <!-- AREA PRINCIPAL DE EDIÇÃO: TEXTAREA COM PRÉ-VISUALIZAÇÃO KATEX AO VIVO -->
+                    <!-- ÁREA PRINCIPAL DE EDIÇÃO: EDITOR VISUAL (WYSIWYG TIPO WORD) -->
                     <div style="width: 100%; display: flex; flex-direction: column; gap: 1rem; position: relative;">
-                        
-                        <!-- TEXTAREA DE CÓDIGO/TEXTO (MODO PADRÃO TEXTO E LATEX) -->
-                        <textarea id="editor-mat-conteudo" class="custom-scrollbar" 
-                                  style="display: block; width: 100%; min-height: 260px; max-height: 45vh; font-family: 'Fira Code', 'Segoe UI Mono', monospace; font-size: 0.9375rem; line-height: 1.6; background-color: #ffffff; color: #0f172a; padding: 1.25rem; border-radius: var(--radius-xl); border: 2px solid var(--color-slate-200); box-shadow: var(--shadow-sm);"
-                                  placeholder="Digite ou edite o texto e as equações em LaTeX aqui...">${window.escapeHTML(conteudoAtual)}</textarea>
-
-                        <!-- BOX DE PRÉ-VISUALIZAÇÃO KATEX AO VIVO (IGUAL AO GERADOR DE AVALIAÇÕES) -->
-                        <div id="editor-mat-preview" style="display: block; width: 100%;"></div>
-
-                        <!-- CONTAINER VISUAL OCULTO POR PADRÃO (WYSIWYG) -->
+                        <!-- CONTAINER VISUAL PRINCIPAL (CONTENTEDITABLE) -->
                         <div id="editor-mat-wysiwyg" contenteditable="true" class="custom-scrollbar" 
-                             style="display: none; width: 100%; max-width: 820px; min-height: 480px; max-height: 60vh; overflow-y: auto; background: #ffffff; padding: 2.5rem; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); line-height: 1.75; font-size: 1rem; color: #1e293b;">
+                             style="display: block; width: 100%; min-height: 380px; max-height: 55vh; overflow-y: auto; background: #ffffff; padding: 1.75rem; border-radius: var(--radius-xl); border: 2px solid var(--color-slate-200); box-shadow: var(--shadow-sm); line-height: 1.75; font-size: 1rem; color: #1e293b; outline: none;">
                             ${conteudoAtual}
                         </div>
+
+                        <!-- TEXTAREA DE CÓDIGO (OCULTA POR PADRÃO - SUPORTE AVANÇADO) -->
+                        <textarea id="editor-mat-conteudo" class="custom-scrollbar" 
+                                  style="display: none; width: 100%; min-height: 260px; max-height: 45vh; font-family: monospace; font-size: 0.9rem; background-color: #ffffff; color: #0f172a; padding: 1rem; border-radius: var(--radius-xl); border: 2px solid var(--color-slate-200);">${window.escapeHTML(conteudoAtual)}</textarea>
+
+                        <div id="editor-mat-preview" style="display: none; width: 100%;"></div>
                     </div>
                 </div>
 
@@ -388,7 +477,7 @@ export const conteudoGeradoView = {
                 <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.5rem; flex-wrap: wrap; gap: 1rem;">
                     <div style="padding: 0.5rem 0.875rem; background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-lg); font-size: 0.8125rem; color: #1e40af; display: flex; align-items: center; gap: 0.5rem;">
                         <i class="fas fa-sync-alt" style="color: #3b82f6;"></i>
-                        <span><strong>Edição Mestre:</strong> Atualiza simultaneamente a <strong>Versão do Aluno</strong> e do <strong>Professor</strong>.</span>
+                        <span><strong>Edição Mestre:</strong> As alterações são salvas diretamente no documento final da sua biblioteca.</span>
                     </div>
 
                     <div style="display: flex; gap: 0.75rem;">
@@ -404,7 +493,13 @@ export const conteudoGeradoView = {
         controller.openModal('Editar Material Pedagógico', modalHtml, 'xl');
 
         setTimeout(() => {
-            anexarPreviewLatex('editor-mat-conteudo', 'editor-mat-preview');
+            const wysiwyg = document.getElementById('editor-mat-wysiwyg');
+            if (wysiwyg) {
+                if (typeof renderKatex === 'function') renderKatex(wysiwyg);
+                if (window.criarMaterialView && typeof window.criarMaterialView.vincularSanitizadorPaste === 'function') {
+                    window.criarMaterialView.vincularSanitizadorPaste(wysiwyg);
+                }
+            }
         }, 50);
     },
 
@@ -502,99 +597,95 @@ export const conteudoGeradoView = {
         textarea.focus();
     },
 
-    inserirLinhasResposta() {
-        const wysiwyg = document.getElementById('editor-mat-wysiwyg');
-        const textarea = document.getElementById('editor-mat-conteudo');
+    inserirLinhasResposta(targetId = 'editor-mat-wysiwyg') {
+        const target = (typeof targetId === 'string' ? document.getElementById(targetId) : targetId) || document.getElementById('editor-mat-wysiwyg') || document.getElementById('manual-conteudo-wysiwyg') || document.getElementById('editor-mat-conteudo');
+        const blocoHTML = `<div class="linhas-resposta" style="margin: 1.25rem 0; font-family: monospace; color: #94a3b8;"><p style="border-bottom: 1px dashed #cbd5e1; height: 1.8rem; margin: 0;"></p><p style="border-bottom: 1px dashed #cbd5e1; height: 1.8rem; margin: 0;"></p><p style="border-bottom: 1px dashed #cbd5e1; height: 1.8rem; margin: 0;"></p></div><p>&nbsp;</p>`;
 
-        const blocoHTML = `<div class="linhas-resposta" style="margin: 1.25rem 0; font-family: monospace; color: #94a3b8;"><p style="border-bottom: 1px dashed #cbd5e1; height: 1.8rem; margin: 0;"></p><p style="border-bottom: 1px dashed #cbd5e1; height: 1.8rem; margin: 0;"></p><p style="border-bottom: 1px dashed #cbd5e1; height: 1.8rem; margin: 0;"></p></div><p></p>`;
-
-        if (wysiwyg && wysiwyg.style.display !== 'none') {
-            wysiwyg.focus();
+        if (!target) return;
+        target.focus();
+        if (target.isContentEditable || target.contentEditable === 'true') {
             document.execCommand('insertHTML', false, blocoHTML);
             return;
         }
 
-        if (!textarea) return;
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        textarea.setRangeText(`\n${blocoHTML}\n`, start, end, 'end');
-        textarea.focus();
+        const start = target.selectionStart || 0;
+        const end = target.selectionEnd || 0;
+        target.setRangeText(`\n${blocoHTML}\n`, start, end, 'end');
+        target.dispatchEvent(new Event('input', { bubbles: true }));
     },
 
-    inserirTabelaPedagogica() {
-        const wysiwyg = document.getElementById('editor-mat-wysiwyg');
-        const textarea = document.getElementById('editor-mat-conteudo');
+    inserirTabelaPedagogica(targetId = 'editor-mat-wysiwyg') {
+        const target = (typeof targetId === 'string' ? document.getElementById(targetId) : targetId) || document.getElementById('editor-mat-wysiwyg') || document.getElementById('manual-conteudo-wysiwyg') || document.getElementById('editor-mat-conteudo');
+        const blocoHTML = `<table style="width: 100%; border-collapse: collapse; margin: 1.25rem 0; border: 1px solid #cbd5e1;"><thead><tr style="background: #f8fafc;"><th style="border: 1px solid #cbd5e1; padding: 0.625rem; text-align: left; font-weight: 800;">Item / Critério</th><th style="border: 1px solid #cbd5e1; padding: 0.625rem; text-align: left; font-weight: 800;">Descrição / Resposta Esperada</th></tr></thead><tbody><tr><td style="border: 1px solid #cbd5e1; padding: 0.625rem;">01</td><td style="border: 1px solid #cbd5e1; padding: 0.625rem;">...</td></tr><tr><td style="border: 1px solid #cbd5e1; padding: 0.625rem;">02</td><td style="border: 1px solid #cbd5e1; padding: 0.625rem;">...</td></tr></tbody></table><p>&nbsp;</p>`;
 
-        const blocoHTML = `<table style="width: 100%; border-collapse: collapse; margin: 1.25rem 0; border: 1px solid #cbd5e1;"><thead><tr style="background: #f8fafc;"><th style="border: 1px solid #cbd5e1; padding: 0.625rem; text-align: left; font-weight: 800;">Item / Critério</th><th style="border: 1px solid #cbd5e1; padding: 0.625rem; text-align: left; font-weight: 800;">Descrição / Resposta Esperada</th></tr></thead><tbody><tr><td style="border: 1px solid #cbd5e1; padding: 0.625rem;">01</td><td style="border: 1px solid #cbd5e1; padding: 0.625rem;">...</td></tr><tr><td style="border: 1px solid #cbd5e1; padding: 0.625rem;">02</td><td style="border: 1px solid #cbd5e1; padding: 0.625rem;">...</td></tr></tbody></table><p></p>`;
-
-        if (wysiwyg && wysiwyg.style.display !== 'none') {
-            wysiwyg.focus();
+        if (!target) return;
+        target.focus();
+        if (target.isContentEditable || target.contentEditable === 'true') {
             document.execCommand('insertHTML', false, blocoHTML);
             return;
         }
 
-        if (!textarea) return;
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        textarea.setRangeText(`\n${blocoHTML}\n`, start, end, 'end');
-        textarea.focus();
+        const start = target.selectionStart || 0;
+        const end = target.selectionEnd || 0;
+        target.setRangeText(`\n${blocoHTML}\n`, start, end, 'end');
+        target.dispatchEvent(new Event('input', { bubbles: true }));
     },
 
-    inserirBlocoGabarito() {
-        const wysiwyg = document.getElementById('editor-mat-wysiwyg');
-        const textarea = document.getElementById('editor-mat-conteudo');
+    inserirBlocoGabarito(targetId = 'editor-mat-wysiwyg') {
+        const target = (typeof targetId === 'string' ? document.getElementById(targetId) : targetId) || document.getElementById('editor-mat-wysiwyg') || document.getElementById('manual-conteudo-wysiwyg') || document.getElementById('editor-mat-conteudo');
+        const blocoHTML = `<div class="gabarito-bloco" data-gabarito="true"><h3>Gabarito e Expectativa de Resposta</h3><p>Digite a resposta esperada ou resolução detalhada aqui...</p></div><p>&nbsp;</p>`;
 
-        const blocoHTML = `<div class="gabarito-bloco" data-gabarito="true"><h3>Gabarito e Expectativa de Resposta</h3><p>Digite a resposta esperada ou resolução detalhada aqui...</p></div><p></p>`;
-
-        if (wysiwyg && wysiwyg.style.display !== 'none') {
-            wysiwyg.focus();
+        if (!target) return;
+        target.focus();
+        if (target.isContentEditable || target.contentEditable === 'true') {
             document.execCommand('insertHTML', false, blocoHTML);
             return;
         }
 
-        if (!textarea) return;
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const selectedText = textarea.value.substring(start, end) || 'Digite a resposta esperada ou resolução detalhada aqui...';
+        const start = target.selectionStart || 0;
+        const end = target.selectionEnd || 0;
+        const selectedText = target.value ? (target.value.substring(start, end) || 'Digite a resposta esperada ou resolução detalhada aqui...') : 'Digite a resposta esperada ou resolução detalhada aqui...';
         
         const bloco = `\n<div class="gabarito-bloco" data-gabarito="true">\n  <h3>Gabarito e Expectativa de Resposta</h3>\n  <p>${selectedText}</p>\n</div>\n`;
 
-        textarea.setRangeText(bloco, start, end, 'end');
-        textarea.focus();
+        target.setRangeText(bloco, start, end, 'end');
+        target.dispatchEvent(new Event('input', { bubbles: true }));
     },
 
-    inserirComentarioProfessor() {
-        const wysiwyg = document.getElementById('editor-mat-wysiwyg');
-        const textarea = document.getElementById('editor-mat-conteudo');
+    inserirComentarioProfessor(targetId = 'editor-mat-wysiwyg') {
+        const target = (typeof targetId === 'string' ? document.getElementById(targetId) : targetId) || document.getElementById('editor-mat-wysiwyg') || document.getElementById('manual-conteudo-wysiwyg') || document.getElementById('editor-mat-conteudo');
+        const blocoHTML = `<div class="comentario-professor"><strong>Observação para o Professor:</strong> Digite orientações pedagógicas, critérios de avaliação ou observações aqui...</div><p>&nbsp;</p>`;
 
-        const blocoHTML = `<div class="comentario-professor"><strong>Observação para o Professor:</strong> Digite orientações pedagógicas, critérios de avaliação ou observações aqui...</div><p></p>`;
-
-        if (wysiwyg && wysiwyg.style.display !== 'none') {
-            wysiwyg.focus();
+        if (!target) return;
+        target.focus();
+        if (target.isContentEditable || target.contentEditable === 'true') {
             document.execCommand('insertHTML', false, blocoHTML);
             return;
         }
 
-        if (!textarea) return;
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const selectedText = textarea.value.substring(start, end) || 'Digite orientações pedagógicas, critérios de avaliação ou observações aqui...';
+        const start = target.selectionStart || 0;
+        const end = target.selectionEnd || 0;
+        const selectedText = target.value ? (target.value.substring(start, end) || 'Digite orientações pedagógicas, critérios de avaliação ou observações aqui...') : 'Digite orientações pedagógicas, critérios de avaliação ou observações aqui...';
 
         const bloco = `\n<div class="comentario-professor">\n  <strong>Observação para o Professor:</strong> ${selectedText}\n</div>\n`;
 
-        textarea.setRangeText(bloco, start, end, 'end');
-        textarea.focus();
+        target.setRangeText(bloco, start, end, 'end');
+        target.dispatchEvent(new Event('input', { bubbles: true }));
     },
 
     async salvarEdicaoMaterial() {
         const inputTitulo = document.getElementById('editor-mat-titulo');
         const inputTema = document.getElementById('editor-mat-tema');
+        const selectSerie = document.getElementById('editor-mat-serie');
+        const selectDisciplina = document.getElementById('editor-mat-disciplina');
+        const inputBncc = document.getElementById('editor-mat-bncc');
+
         const wysiwyg = document.getElementById('editor-mat-wysiwyg');
         const textareaConteudo = document.getElementById('editor-mat-conteudo');
 
         let novoConteudo = '';
 
-        if (wysiwyg && wysiwyg.style.display !== 'none') {
+        if (wysiwyg && wysiwyg.innerHTML.trim() !== '') {
             novoConteudo = wysiwyg.innerHTML;
         } else if (textareaConteudo) {
             novoConteudo = textareaConteudo.value;
@@ -604,19 +695,49 @@ export const conteudoGeradoView = {
             return Toast.show("O conteúdo do material não pode ficar vazio.", "warning");
         }
 
-        const novoTitulo = inputTitulo ? inputTitulo.value.trim() : '';
-        const novoTema = inputTema ? inputTema.value.trim() : '';
+        let conteudoHtml = novoConteudo;
+        if (window.criarMaterialView && typeof window.criarMaterialView.converterMarkdownParaHtml === 'function') {
+            if (!novoConteudo.includes('<h2') && !novoConteudo.includes('<h3') && !novoConteudo.includes('<div') && !novoConteudo.includes('<p>')) {
+                conteudoHtml = window.criarMaterialView.converterMarkdownParaHtml(novoConteudo);
+            }
+        }
+
+        const material = (model.state.materiaisGerados || []).find(m => m.id === this.materialIdAtual);
+        const novoTitulo = inputTitulo ? inputTitulo.value.trim() : (material ? (material.titulo || material.tema) : '');
+        const novoTema = inputTema ? inputTema.value.trim() : (material ? (material.tema || material.titulo) : '');
+        const novaSerie = selectSerie ? selectSerie.value.trim() : (material ? (material.serie || material.turma) : '');
+        const novaDisciplina = selectDisciplina ? selectDisciplina.value.trim() : (material ? (material.disciplina || material.materia) : '');
+        const novaBncc = inputBncc ? inputBncc.value.trim() : (material ? (material.bncc || material.habilidade_bncc) : '');
 
         try {
-            await model.updateMaterial(this.materialIdAtual, {
+            const dadosAtualizados = {
+                conteudo_html: conteudoHtml,
+                raw_markdown: novoConteudo,
                 titulo: novoTitulo,
                 tema: novoTema,
-                conteudo_html: novoConteudo
-            });
+                serie: novaSerie,
+                turma: novaSerie,
+                turma_ano: novaSerie,
+                disciplina: novaDisciplina,
+                materia: novaDisciplina,
+                bncc: novaBncc,
+                habilidade_bncc: novaBncc,
+                habilidade: novaBncc,
+                codigo_bncc: novaBncc
+            };
+
+            await model.updateMaterial(this.materialIdAtual, dadosAtualizados);
+
+            if (material) {
+                Object.assign(material, dadosAtualizados);
+            }
 
             controller.closeModal();
-            Toast.show("Material atualizado com sucesso!", "success");
+            Toast.show("Material e metadados organizacionais atualizados com sucesso!", "success");
             this.render('view-container');
+            if (typeof renderKatex === 'function') {
+                renderKatex(document.getElementById('view-container'));
+            }
         } catch (err) {
             console.error("Erro ao salvar edição:", err);
             Toast.show("Erro ao salvar alterações no material.", "error");
@@ -932,11 +1053,11 @@ export const conteudoGeradoView = {
                 <div class="header">
                     <div class="header-info">
                         <p><strong>ESCOLA:</strong> ${window.escapeHTML(nomeEscola)}</p>
-                        <p><strong>PROFESSOR(A):</strong> ${window.escapeHTML(nomeProf)} &nbsp;&nbsp;&nbsp;&nbsp; <strong>DISCIPLINA:</strong> ${window.escapeHTML(material.disciplina || 'Geral')} &nbsp;&nbsp;&nbsp;&nbsp; <strong>SÉRIE/ANO:</strong> ${window.escapeHTML(material.serie || '-')}</p>
+                        <p><strong>PROFESSOR(A):</strong> ${window.escapeHTML(nomeProf)} &nbsp;&nbsp;&nbsp;&nbsp; <strong>DISCIPLINA:</strong> ${window.escapeHTML(material.disciplina || 'Geral')} &nbsp;&nbsp;&nbsp;&nbsp; <strong>SÉRIE/ANO:</strong> ${window.escapeHTML(material.serie || '-')} &nbsp;&nbsp;&nbsp;&nbsp; <strong>TURMA:</strong> ________</p>
                         ${!isProf ? `
-                            <p><strong>ALUNO(A):</strong> _______________________________________________________ <strong>TURMA:</strong> ________ <strong>DATA:</strong> ____/____/2026</p>
+                            <p><strong>ALUNO(A):</strong> _______________________________________________________ &nbsp;&nbsp;&nbsp;&nbsp; <strong>DATA:</strong> ____/____/2026</p>
                         ` : `
-                            <p><strong>TIPO DO DOCUMENTO:</strong> Guia Pedagógico do Docente &nbsp;&nbsp;&nbsp;&nbsp; <strong>DATA:</strong> ____/____/2026</p>
+                            <p><strong>DATA:</strong> ____/____/2026</p>
                         `}
                     </div>
                     ${logoUrl ? `<img src="${logoUrl}" class="header-logo" alt="Logo da Instituição" />` : ''}

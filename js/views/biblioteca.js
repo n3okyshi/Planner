@@ -1,5 +1,7 @@
 import { criarMaterialView } from './criarMaterial.js';
 import { controller } from '../controller.js';
+import { CardComponent } from '../components/card.js';
+import { storageService } from '../services/storageService.js';
 
 export const bibliotecaView = {
     abaAtiva: 'criados',

@@ -2,47 +2,60 @@ PLANNER PRO DOCENTE 2026
 ========================
 
 Aplicação web estática de gestão pedagógica para professores, escolas e coordenação.
-Stack principal: Vanilla JavaScript ES6+, HTML5, CSS3, Firebase SDK web e serviço offline com PWA.
+Stack principal: Exclusivamente Vanilla JavaScript ES6+, HTML5, CSS3, Firebase SDK web e PWA Offline-First.
 
-ARQUITETURA
------------
+ARQUITETURA MVC MODERNA & DESACOPLADA
+-------------------------------------
 
-O projeto segue MVC parcial/organizado em camadas:
+O projeto segue o padrão MVC (Model-View-Controller) organizado em camadas desacopladas:
 
-- Model:   js/model.js + js/models/*
-- Views:   js/views/*
-- Controller: js/controller.js + js/controllers/*
+- Model:         js/model.js + js/models/* (Estado global reativo via js/reactive.js)
+- Controller:    js/controller.js + js/controllers/* + js/router.js
+- Views:         js/views/* (Renderização modular com DocumentFragment e Event Delegation)
+- Componentes:   js/components/* (Suíte UI Reutilizável)
+- Serviços:      js/services/* (Persistência Híbrida Offline-First & Cloud Sync)
 
-O estado global principal fica em model.state e é reativo por createReactiveState() em js/reactive.js.
-Persist�ncia local com localStorage e sincroniza��o opcional com Firebase/Firestore.
+ESTRUTURA DE PASTAS E ARQUIVOS
+------------------------------
 
-PASTA RAIZ
-----------
+PASTA RAIZ:
+- index.html           Shell HTML principal e links CDN (Firebase, KaTeX, FontAwesome)
+- manifest.json        Configuração de instalação PWA Standalone
+- firebase.json        Configurações do Firebase Hosting
+- sw.js                Service Worker PWA (Cache de assets e Background Sync)
+- _constructor.txt     Documentação técnica atualizada do projeto
 
-- index.html           Shell HTML e refer�ncia de CSS/JS
-- manifest.json        PWA
-- firebase.json        Hosting/config Firebase
-- sw.js                Service Worker
-- _constructor.txt    Documento t�cnico atual
+CSS (DESIGN SYSTEM PROPRIETÁRIO):
+- css/variables.css    Tokens visuais (Cores, Tipografia, Sombras, Arredondamentos)
+- css/base.css         Reset global e padronização de formulários/inputs
+- css/layout.css       Shell da aplicação, Sidebar, Topbar e Grids responsivas
+- css/components.css   Design System: Cards, Modais, Dropdowns, Badges, Paginadores
 
-CSS
----
+JAVASCRIPT (ES6+ MODULES):
 
-- css/variables.css    Tokens visuais
-- css/base.css         Reset e base global
-- css/layout.css       Shell principal, sidebar, header e layout
-- css/components.css   Design system: cards, forms, dropdowns, buttons, shells
+Core & Roteamento:
+- js/app.js            Inicializador da aplicação PWA
+- js/controller.js     Navegação central, ciclo de vida e coordenação MVC
+- js/router.js         Roteador com registro de rotas, aliases e Lazy-Loading dinâmico
+- js/model.js          Modelo agregador de estado global e reatividade
+- js/reactive.js       Proxy reativo para auto-save e re-renderização
+- js/utils.js          Helpers, sanitizador 4-passos KaTeX/XSS, renderizador KaTeX
 
-JAVASCRIPT
-----------
+Serviços & Persistência:
+- js/services/storageService.js  Persistência Híbrida (IndexedDB + LocalStorage)
+- js/services/syncService.js     Fila de sincronização offline e Cloud Firestore Sync
+- js/firebase-service.js         SDK Firebase (Auth, Firestore, Cloud Storage)
+- js/ai-service.js               Integração com Gemini API para geração pedagógica
 
-Core:
-- js/controller.js         Navega��o, render, rotas e bootstrap da aplica��o
-- js/model.js              Agregador de estado e integra��o de modelos
-- js/firebase-service.js   Auth, Firestore e sincroniza��o cloud
-- js/ai-service.js         Integra��o com IA para gera��o e corre��o
-- js/utils.js              Helpers globais e utilit�rios
-- js/reactive.js          Reatividade e auto-save local
+Componentes UI Reutilizáveis (js/components/):
+- js/components/modal.js         ModalComponent (Modais acessíveis, backdrop blur e ESC)
+- js/components/paginator.js     PaginatorComponent (Controle reativo de paginação)
+- js/components/filterBar.js     FilterBarComponent (Barra unificada de busca e filtros)
+- js/components/card.js          CardComponent (Cartões unificados de materiais/questões)
+- js/components/toast.js         Toast Component (Notificações temporárias)
+
+Utilitários & Arquitetura:
+- js/utils/eventDelegator.js     Event Delegation centralizado via data-action
 
 Controllers:
 - js/controllers/authController.js
@@ -55,73 +68,32 @@ Models:
 - js/models/turmaModel.js
 - js/models/provaModel.js
 - js/models/planejamentoModel.js
+- js/models/apresentacaoModel.js
 
-Views principais:
-- dashboard.js
-- biblioteca.js
-- calendario.js
-- diario.js
-- frequencia.js
-- horario.js
-- turmas.js
-- sala.js
-- provas.js
-- bncc.js
-- bimestralizacao.js
-- planejamento.js
-- mensal.js
-- notasAnuais.js
-- comunidade.js
-- quizGestor.js
-- quizPlayer.js
-- criarMaterial.js
-- conteudoGerado.js
-- correcaoAutomatica.js
-- simuladores.js
-- settings.js
+Views Principais (js/views/):
+- dashboard.js, biblioteca.js, calendario.js, diario.js, frequencia.js, horario.js,
+  turmas.js, sala.js, provas.js, bncc.js, bimestralizacao.js, planejamento.js,
+  mensal.js, notasAnuais.js, comunidade.js, quizGestor.js, quizPlayer.js,
+  criarMaterial.js, conteudoGerado.js, correcaoAutomatica.js, simuladores.js,
+  apresentacoes.js, estudosVisuais.js, config.js
 
-ROTAS ATIVAS
-------------
+ROTAS ATIVAS NO ROTEADOR
+------------------------
 
-O controller expõe a navegação por viewName para estas entradas:
+O router expõe as seguintes rotas principais e aliases:
+- dashboard, biblioteca, criar-material, turmas, provas, stats-provas, correcao,
+  simuladores, periodo, mensal, dia, bncc, bimestralizacao, comunidade, frequencia,
+  horario, mapa, notas-anuais, ata-conselho, conteudo-gerado, quiz-gestor,
+  quiz-player, quiz-aluno, estudos-visuais, apresentacoes, apresentador-player, config.
 
-dashboard, horario, calendario, mensal, periodo, dia, turmas, bncc,
-bimestralizacao, mapa, provas, frequencia, config, stats-provas, comunidade,
-notas-anuais, criar-material, biblioteca, quiz-gestor, quiz-player,
-conteudo-gerado, correcao, simuladores.
+DIRETRIZES DE SEGURANÇA E PERFORMANCE
+--------------------------------------
 
-PADRÃO DE UI
-------------
-
-A maioria das views deve renderizar com o padrão visual do sistema:
-
-- view-shell
-- view-header
-- view-header__title / subtitle / actions
-- card
-- panel
-- form-input / form-select / form-label
-- dropdown custom e bot�es
-
-O CSS n�o deve depender de bibliotecas externas como Bootstrap/Tailwind.
-FontAwesome e KaTeX entram como integra��es j� presentes no HTML principal.
-
-REGRA DE NEG�CIO E QUALIDADE
-----------------------------
-
-- N�o usar npm/yarn, React, Vue, Angular ou bibliotecas CSS de runtime.
-- Sanitizar strings com escapeHTML() antes de injetar em HTML.
-- Usar model.saveLocal() para persist�ncia segura.
-- Respeitar MVC e o layout/vari�veis do design system.
-- N�o criar visual improvisado fora do standard j� definido em components.css.
-
-OBSERVA��ES DE ESTADO
----------------------
-
-A aplica��o � orientada a dados locais e usa Firebase apenas para:
-- autentica��o
-- sincroniza��o do estado por usu�rio
-- armazenamento de estruturas compartilhadas
-
-Quando o usu�rio est� autenticado, as a��es de sincroniza��o passam pelo UID e
-por service callbacks dispon�veis em firebase-service.js.
+1. Proibição Estrita: É TERMINANTEMENTE PROIBIDO utilizar Node.js, npm/yarn, React,
+   Vue, Angular, Bootstrap ou Tailwind. Todo o código é Vanilla JS ES6+ puro.
+2. Sanitização XSS: Toda injeção no DOM deve usar escapeHTML() para textos puros e
+   sanitizeComLatex() para conteúdos com fórmulas KaTeX.
+3. Performance DOM: Usar DocumentFragment em listagens extensas para evitar Layout Thrashing.
+4. Desacoplamento Global: Usar EventDelegator (data-action) em substituição a onclick inline.
+5. Persistência Offline-First: Utilizar storageService para gravações no IndexedDB e
+   syncService para sincronização com o Cloud Firestore.

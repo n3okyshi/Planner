@@ -111,15 +111,32 @@ export const model = {
         const mergeColecaoPorId = (localArr = [], cloudArr = []) => {
             const map = new Map();
             localArr.forEach(item => map.set(String(item.id), item));
+
+            const getTime = (item) => {
+                const t = item.updatedAt || item.deletadoEm || item.createdAt;
+                return t ? new Date(t).getTime() : 0;
+            };
+
             cloudArr.forEach(item => {
                 const id = String(item.id);
                 const existente = map.get(id);
                 if (!existente) {
                     map.set(id, item);
                 } else {
-                    const timeC = new Date(item.updatedAt || item.createdAt || 0).getTime();
-                    const timeL = new Date(existente.updatedAt || existente.createdAt || 0).getTime();
-                    if (timeC >= timeL) map.set(id, item);
+                    const timeC = getTime(item);
+                    const timeL = getTime(existente);
+                    if (timeC > timeL) {
+                        map.set(id, item);
+                    } else if (timeC === timeL) {
+                        // Empate exato: se a versão da nuvem tiver a flag naLixeira (ou updatedAt), prioriza ela
+                        if (item.naLixeira && !existente.naLixeira) {
+                            map.set(id, item);
+                        } else if (!item.naLixeira && existente.naLixeira) {
+                            // Mantém a versão local já marcada como lixeira
+                        } else {
+                            map.set(id, item);
+                        }
+                    }
                 }
             });
             return Array.from(map.values());
@@ -237,11 +254,12 @@ export const model = {
         if (this.currentUser) {
             firebaseService.saveMaterialDoc(this.currentUser.uid, novoMaterial).catch(e => console.warn("Erro ao salvar material na subcoleção:", e));
         }
+        this._atualizarViewsMaterial();
         return novoMaterial;
     },
     async updateMaterial(id, dadosAtualizados) {
         if (!this.state.materiaisGerados) this.state.materiaisGerados = [];
-        const index = this.state.materiaisGerados.findIndex(m => m.id === id);
+        const index = this.state.materiaisGerados.findIndex(m => String(m.id) === String(id));
         if (index !== -1) {
             const matAtualizado = {
                 ...this.state.materiaisGerados[index],
@@ -253,16 +271,117 @@ export const model = {
             if (this.currentUser) {
                 firebaseService.saveMaterialDoc(this.currentUser.uid, matAtualizado).catch(e => console.warn("Erro ao atualizar material na subcoleção:", e));
             }
+            this._atualizarViewsMaterial();
             return matAtualizado;
         }
     },
     async deleteMaterial(id) {
+        return this.moverMaterialParaLixeira(id);
+    },
+    async moverMaterialParaLixeira(id) {
         if (!this.state.materiaisGerados) this.state.materiaisGerados = [];
-        this.state.materiaisGerados = this.state.materiaisGerados.filter(m => m.id !== id);
+        const index = this.state.materiaisGerados.findIndex(m => String(m.id) === String(id));
+        if (index !== -1) {
+            const dataAgora = new Date().toISOString();
+            const matAtualizado = {
+                ...this.state.materiaisGerados[index],
+                naLixeira: true,
+                deletadoEm: dataAgora,
+                updatedAt: dataAgora
+            };
+            this.state.materiaisGerados[index] = matAtualizado;
+            this.saveLocal();
+            if (this.currentUser) {
+                firebaseService.saveMaterialDoc(this.currentUser.uid, matAtualizado).catch(e => console.warn("Erro ao atualizar material na subcoleção:", e));
+            }
+            if (Toast) Toast.show("Material enviado para a lixeira.", "info");
+            this._atualizarViewsMaterial();
+            return matAtualizado;
+        }
+        return false;
+    },
+    async moverMateriaisParaLixeiraEmMassa(idsArray) {
+        if (!idsArray || !idsArray.length) return;
+        if (!this.state.materiaisGerados) this.state.materiaisGerados = [];
+        const setIds = new Set(idsArray.map(id => String(id)));
+        const dataAgora = new Date().toISOString();
+        this.state.materiaisGerados = this.state.materiaisGerados.map(m => {
+            if (setIds.has(String(m.id))) {
+                const matLixeira = { ...m, naLixeira: true, deletadoEm: dataAgora, updatedAt: dataAgora };
+                if (this.currentUser) {
+                    firebaseService.saveMaterialDoc(this.currentUser.uid, matLixeira).catch(e => console.warn("Erro ao enviar para lixeira no Firebase:", e));
+                }
+                return matLixeira;
+            }
+            return m;
+        });
+        this.saveLocal();
+        if (Toast) Toast.show(`${idsArray.length} materiais enviados para a lixeira.`, "info");
+        this._atualizarViewsMaterial();
+        return true;
+    },
+    async restaurarMaterialDaLixeira(id) {
+        if (!this.state.materiaisGerados) this.state.materiaisGerados = [];
+        const index = this.state.materiaisGerados.findIndex(m => String(m.id) === String(id));
+        if (index !== -1) {
+            const matAtualizado = {
+                ...this.state.materiaisGerados[index],
+                naLixeira: false,
+                deletadoEm: null,
+                updatedAt: new Date().toISOString()
+            };
+            this.state.materiaisGerados[index] = matAtualizado;
+            this.saveLocal();
+            if (this.currentUser) {
+                firebaseService.saveMaterialDoc(this.currentUser.uid, matAtualizado).catch(e => console.warn("Erro ao restaurar material na subcoleção:", e));
+            }
+            if (Toast) Toast.show("Material restaurado com sucesso!", "success");
+            this._atualizarViewsMaterial();
+            return matAtualizado;
+        }
+        return false;
+    },
+    async deleteMaterialPermanente(id) {
+        if (!this.state.materiaisGerados) this.state.materiaisGerados = [];
+        this.state.materiaisGerados = this.state.materiaisGerados.filter(m => String(m.id) !== String(id));
         this.saveLocal();
         if (this.currentUser) {
-            firebaseService.deleteMaterialDoc(this.currentUser.uid, id).catch(e => console.warn("Erro ao deletar material na subcoleção:", e));
+            firebaseService.deleteMaterialDoc(this.currentUser.uid, id).catch(e => console.warn("Erro ao deletar material no Firebase:", e));
         }
+        if (Toast) Toast.show("Material excluído permanentemente.", "info");
+        this._atualizarViewsMaterial();
+        return true;
+    },
+    async deleteMateriaisPermanentesEmMassa(idsArray) {
+        if (!idsArray || !idsArray.length) return;
+        if (!this.state.materiaisGerados) this.state.materiaisGerados = [];
+        const setIds = new Set(idsArray.map(id => String(id)));
+        this.state.materiaisGerados = this.state.materiaisGerados.filter(m => !setIds.has(String(m.id)));
+        this.saveLocal();
+        if (this.currentUser && firebaseService?.deleteMaterialDoc) {
+            for (const id of idsArray) {
+                firebaseService.deleteMaterialDoc(this.currentUser.uid, id).catch(e => console.warn("Erro ao deletar material no Firebase:", e));
+            }
+        }
+        if (Toast) Toast.show(`${idsArray.length} materiais excluídos permanentemente.`, "info");
+        this._atualizarViewsMaterial();
+        return true;
+    },
+    async esvaziarLixeira() {
+        if (!this.state.materiaisGerados) this.state.materiaisGerados = [];
+        if (!this.state.flashcards) this.state.flashcards = [];
+        if (!this.state.mindmaps) this.state.mindmaps = [];
+
+        const idsMateriais = this.state.materiaisGerados.filter(m => m.naLixeira).map(m => m.id);
+        if (idsMateriais.length) {
+            await this.deleteMateriaisPermanentesEmMassa(idsMateriais);
+        }
+        
+        this.state.flashcards = this.state.flashcards.filter(d => !d.naLixeira);
+        this.state.mindmaps = this.state.mindmaps.filter(m => !m.naLixeira);
+        
+        this.saveLocal();
+        this._atualizarViewsMaterial();
         return true;
     },
     async saveQuiz(quiz) {
@@ -308,9 +427,49 @@ export const model = {
         return novoDeck;
     },
     async deleteFlashcardDeck(deckId) {
+        return this.moverFlashcardParaLixeira(deckId);
+    },
+    async moverFlashcardParaLixeira(deckId) {
+        if (!this.state.flashcards) this.state.flashcards = [];
+        const index = this.state.flashcards.findIndex(d => String(d.id) === String(deckId));
+        if (index !== -1) {
+            const dataAgora = new Date().toISOString();
+            this.state.flashcards[index] = {
+                ...this.state.flashcards[index],
+                naLixeira: true,
+                deletadoEm: dataAgora,
+                updatedAt: dataAgora
+            };
+            this.saveLocal();
+            if (Toast) Toast.show("Baralho de Flashcards enviado para a lixeira.", "info");
+            this._atualizarViewsMaterial();
+            return true;
+        }
+        return false;
+    },
+    async restaurarFlashcardDaLixeira(deckId) {
+        if (!this.state.flashcards) this.state.flashcards = [];
+        const index = this.state.flashcards.findIndex(d => String(d.id) === String(deckId));
+        if (index !== -1) {
+            this.state.flashcards[index] = {
+                ...this.state.flashcards[index],
+                naLixeira: false,
+                deletadoEm: null,
+                updatedAt: new Date().toISOString()
+            };
+            this.saveLocal();
+            if (Toast) Toast.show("Baralho restaurado com sucesso!", "success");
+            this._atualizarViewsMaterial();
+            return true;
+        }
+        return false;
+    },
+    async deleteFlashcardDeckPermanente(deckId) {
         if (!this.state.flashcards) this.state.flashcards = [];
         this.state.flashcards = this.state.flashcards.filter(d => String(d.id) !== String(deckId));
         this.saveLocal();
+        if (Toast) Toast.show("Baralho excluído permanentemente.", "info");
+        this._atualizarViewsMaterial();
         return true;
     },
     async saveMindmap(mindmap) {
@@ -332,11 +491,100 @@ export const model = {
         return novoMindmap;
     },
     async deleteMindmap(mindmapId) {
+        return this.moverMindmapParaLixeira(mindmapId);
+    },
+    async moverMindmapParaLixeira(mindmapId) {
+        if (!this.state.mindmaps) this.state.mindmaps = [];
+        const index = this.state.mindmaps.findIndex(m => String(m.id) === String(mindmapId));
+        if (index !== -1) {
+            const dataAgora = new Date().toISOString();
+            this.state.mindmaps[index] = {
+                ...this.state.mindmaps[index],
+                naLixeira: true,
+                deletadoEm: dataAgora,
+                updatedAt: dataAgora
+            };
+            this.saveLocal();
+            if (Toast) Toast.show("Mapa Mental enviado para a lixeira.", "info");
+            this._atualizarViewsMaterial();
+            return true;
+        }
+        return false;
+    },
+    async restaurarMindmapDaLixeira(mindmapId) {
+        if (!this.state.mindmaps) this.state.mindmaps = [];
+        const index = this.state.mindmaps.findIndex(m => String(m.id) === String(mindmapId));
+        if (index !== -1) {
+            this.state.mindmaps[index] = {
+                ...this.state.mindmaps[index],
+                naLixeira: false,
+                deletadoEm: null,
+                updatedAt: new Date().toISOString()
+            };
+            this.saveLocal();
+            if (Toast) Toast.show("Mapa Mental restaurado com sucesso!", "success");
+            this._atualizarViewsMaterial();
+            return true;
+        }
+        return false;
+    },
+    async deleteMindmapPermanente(mindmapId) {
         if (!this.state.mindmaps) this.state.mindmaps = [];
         this.state.mindmaps = this.state.mindmaps.filter(m => String(m.id) !== String(mindmapId));
         this.saveLocal();
+        if (Toast) Toast.show("Mapa Mental excluído permanentemente.", "info");
+        this._atualizarViewsMaterial();
         return true;
     },
+    criarPastaMaterial(nome, parentId = null) {
+        if (!this.state.pastasMateriais) this.state.pastasMateriais = [];
+        const novaPasta = {
+            id: 'pasta_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            nome: (nome || 'Nova Pasta').trim(),
+            parentId: parentId || null,
+            createdAt: new Date().toISOString()
+        };
+        this.state.pastasMateriais.push(novaPasta);
+        this.saveLocal();
+        if (Toast) Toast.show(`Pasta "${novaPasta.nome}" criada com sucesso.`, 'success');
+        this._atualizarViewsMaterial();
+        return novaPasta;
+    },
+
+    excluirPastaMaterial(pastaId) {
+        if (!this.state.pastasMateriais) this.state.pastasMateriais = [];
+        if (this.state.materiaisGerados) {
+            this.state.materiaisGerados.forEach(m => {
+                if (String(m.pastaId) === String(pastaId)) {
+                    m.pastaId = null;
+                }
+            });
+        }
+        const pastaAlvo = this.state.pastasMateriais.find(p => String(p.id) === String(pastaId));
+        const parentId = pastaAlvo ? pastaAlvo.parentId : null;
+        this.state.pastasMateriais.forEach(p => {
+            if (String(p.parentId) === String(pastaId)) {
+                p.parentId = parentId;
+            }
+        });
+
+        this.state.pastasMateriais = this.state.pastasMateriais.filter(p => String(p.id) !== String(pastaId));
+        this.saveLocal();
+        if (Toast) Toast.show('Pasta removida.', 'info');
+        this._atualizarViewsMaterial();
+    },
+
+    moverMaterialParaPasta(materialId, pastaId) {
+        if (!this.state.materiaisGerados) return;
+        const mat = this.state.materiaisGerados.find(m => String(m.id) === String(materialId));
+        if (mat) {
+            mat.pastaId = pastaId || null;
+            this.saveLocal();
+            if (Toast) Toast.show('Material movido com sucesso.', 'success');
+            this._atualizarViewsMaterial();
+        }
+    },
+
     async persist(cloudOperation) {
         this.saveLocal();
         if (this.currentUser && cloudOperation) {
@@ -581,13 +829,11 @@ export const model = {
     },
 
     _atualizarViewsMaterial() {
-        if (window.criarMaterialView && window.controller?.currentView === 'criar-material') {
+        const currView = window.controller?.currentView;
+        if (window.criarMaterialView && (currView === 'criar-material' || currView === 'materiais-comunidade' || currView === 'biblioteca')) {
             window.criarMaterialView.render('view-container');
         }
-        if (window.bibliotecaView && window.controller?.currentView === 'biblioteca') {
-            window.bibliotecaView.render('view-container');
-        }
-        if (window.conteudoGeradoView && window.controller?.currentView === 'conteudo-gerado') {
+        if (window.conteudoGeradoView && currView === 'conteudo-gerado') {
             window.conteudoGeradoView.render('view-container');
         }
     },

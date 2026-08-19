@@ -8,6 +8,10 @@ import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { firebaseService } from '../firebase-service.js';
 import { Toast } from '../components/toast.js';
+import { ModalComponent } from '../components/modal.js';
+import { PaginatorComponent } from '../components/paginator.js';
+import { FilterBarComponent } from '../components/filterBar.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 import { renderKatex, formatarTextoComLatex, sanitizeComLatex } from '../utils.js';
 
 /**
@@ -46,7 +50,8 @@ export const comunidadeView = {
 
     mudarAba(aba) {
         this.abaAtiva = aba;
-        this.render('view-container');
+        const targetContainer = document.getElementById('area-comunidade-materiais') ? 'area-comunidade-materiais' : 'view-container';
+        this.render(targetContainer);
     },
 
     /**
@@ -475,7 +480,10 @@ export const comunidadeView = {
             return;
         }
 
-        grid.innerHTML = this.questoes.map(q => {
+        grid.innerHTML = '';
+        const fragment = document.createDocumentFragment();
+
+        this.questoes.forEach(q => {
             const corMateria = (model.coresComponentes && model.coresComponentes[q.materia]) || '#4f46e5';
             const estrelasHtml = this._renderEstrelasDificuldade(q.dificuldade);
             const autorNome = q.autor ? q.autor.split(' ')[0] : 'Professor(a)';
@@ -490,61 +498,57 @@ export const comunidadeView = {
             const tipoIcon = (q.tipo === 'multipla' || q.tipo === 'multipla_escolha') ? 'fa-list-ul' : 'fa-pen-nib';
             const bgHeader = `${corMateria}12`;
 
-            return `
-                <div class="comunidade-card interactive-element animate-enter" style="border: 1px solid var(--color-slate-200); border-radius: var(--radius-2xl); background: var(--color-white); display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow-sm);">
-                    
-                    <!-- CABEÇALHO DO CARD COM COR SUAVE -->
-                    <div style="padding: 1rem 1.25rem; background-color: ${bgHeader}; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-slate-100);">
-                        <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                            <span class="badge" style="background-color: var(--color-white); color: ${corMateria}; font-weight: 800; box-shadow: var(--shadow-sm);">
-                                ${materiaEscaped}
-                            </span>
-                            <span class="badge" style="background-color: rgba(255, 255, 255, 0.85); color: var(--color-slate-600); font-weight: 600; font-size: 0.6875rem;">
-                                ${tipoLabel}
-                            </span>
-                        </div>
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            ${estrelasHtml}
-                            <div style="width: 2rem; height: 2rem; border-radius: var(--radius-lg); background-color: var(--color-white); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm); color: ${corMateria};">
-                                <i class="fas ${tipoIcon}" style="font-size: 0.8125rem;"></i>
-                            </div>
-                        </div>
+            const card = document.createElement('div');
+            card.className = 'comunidade-card interactive-element animate-enter';
+            card.style.cssText = 'border: 1px solid var(--color-slate-200); border-radius: var(--radius-2xl); background: var(--color-white); display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow-sm);';
+            card.innerHTML = `
+                <div style="padding: 1rem 1.25rem; background-color: ${bgHeader}; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--color-slate-100);">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                        <span class="badge" style="background-color: var(--color-white); color: ${corMateria}; font-weight: 800; box-shadow: var(--shadow-sm);">
+                            ${materiaEscaped}
+                        </span>
+                        <span class="badge" style="background-color: rgba(255, 255, 255, 0.85); color: var(--color-slate-600); font-weight: 600; font-size: 0.6875rem;">
+                            ${tipoLabel}
+                        </span>
                     </div>
-
-                    <!-- CORPO DO CARD COM ENUNCIADO E METADADOS -->
-                    <div style="padding: 1.25rem; display: flex; flex-direction: column; flex: 1;">
-                        
-                        <!-- ENUNCIADO COM SUPORTE A KATEX/LATEX -->
-                        <div class="comunidade-card__enunciado" style="color: var(--color-slate-800); font-size: 0.875rem; line-height: 1.55; font-weight: 500; margin-bottom: 0.75rem; max-height: 130px; overflow-y: auto;">
-                            ${q.enunciado ? formatarTextoComLatex(sanitizeComLatex(q.enunciado).replace(/\n/g, '<br>')) : '<span style="color: var(--color-slate-400); font-style: italic;">Sem enunciado cadastrado.</span>'}
-                        </div>
-
-                        <!-- METADADOS COMPACTOS -->
-                        <div style="margin-top: auto; padding-top: 0.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.375rem; font-size: 0.75rem; color: var(--color-slate-400);">
-                            <div style="display: flex; align-items: center; gap: 0.375rem; flex-wrap: wrap;">
-                                ${anoEscaped ? `<span style="font-weight: 700; color: var(--color-slate-500);">${anoEscaped}</span>` : ''}
-                                ${bimestreEscaped ? `<span>• ${bimestreEscaped}</span>` : ''}
-                                ${escolaEscaped ? `<span class="truncate" style="max-width: 140px;" title="${escolaEscaped}">• ${escolaEscaped}</span>` : ''}
-                            </div>
-                            <span style="display: flex; align-items: center; gap: 0.25rem; color: var(--color-slate-500); font-weight: 600;">
-                                <i class="fas fa-user-circle" style="color: var(--color-slate-400);"></i> ${autorEscaped}
-                            </span>
-                        </div>
-
-                        <!-- AÇÕES / BOTÕES -->
-                        <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--color-slate-100); display: flex; gap: 0.5rem; align-items: center;">
-                            <button type="button" onclick="comunidadeView.copiarQuestao(${idEscaped})" class="btn-secondary interactive-element" style="padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 700;" title="Copiar texto da questão">
-                                <i class="far fa-copy"></i> <span>Copiar</span>
-                            </button>
-                            <button type="button" onclick="comunidadeView.importarQuestao(${idEscaped})" class="btn-primary interactive-element" style="flex: 1; justify-content: center; padding: 0.5rem 0.875rem; font-size: 0.8125rem; font-weight: 700; background-color: #4f46e5;">
-                                <i class="fas fa-download"></i> <span>Importar para meu Banco</span>
-                            </button>
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        ${estrelasHtml}
+                        <div style="width: 2rem; height: 2rem; border-radius: var(--radius-lg); background-color: var(--color-white); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm); color: ${corMateria};">
+                            <i class="fas ${tipoIcon}" style="font-size: 0.8125rem;"></i>
                         </div>
                     </div>
                 </div>
-            `;
-        }).join('');
 
+                <div style="padding: 1.25rem; display: flex; flex-direction: column; flex: 1;">
+                    <div class="comunidade-card__enunciado" style="color: var(--color-slate-800); font-size: 0.875rem; line-height: 1.55; font-weight: 500; margin-bottom: 0.75rem; max-height: 130px; overflow-y: auto;">
+                        ${q.enunciado ? formatarTextoComLatex(sanitizeComLatex(q.enunciado).replace(/\n/g, '<br>')) : '<span style="color: var(--color-slate-400); font-style: italic;">Sem enunciado cadastrado.</span>'}
+                    </div>
+
+                    <div style="margin-top: auto; padding-top: 0.5rem; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.375rem; font-size: 0.75rem; color: var(--color-slate-400);">
+                        <div style="display: flex; align-items: center; gap: 0.375rem; flex-wrap: wrap;">
+                            ${anoEscaped ? `<span style="font-weight: 700; color: var(--color-slate-500);">${anoEscaped}</span>` : ''}
+                            ${bimestreEscaped ? `<span>• ${bimestreEscaped}</span>` : ''}
+                            ${escolaEscaped ? `<span class="truncate" style="max-width: 140px;" title="${escolaEscaped}">• ${escolaEscaped}</span>` : ''}
+                        </div>
+                        <span style="display: flex; align-items: center; gap: 0.25rem; color: var(--color-slate-500); font-weight: 600;">
+                            <i class="fas fa-user-circle" style="color: var(--color-slate-400);"></i> ${autorEscaped}
+                        </span>
+                    </div>
+
+                    <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--color-slate-100); display: flex; gap: 0.5rem; align-items: center;">
+                        <button type="button" onclick="comunidadeView.copiarQuestao(${idEscaped})" class="btn-secondary interactive-element" style="padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 700;" title="Copiar texto da questão">
+                            <i class="far fa-copy"></i> <span>Copiar</span>
+                        </button>
+                        <button type="button" onclick="comunidadeView.importarQuestao(${idEscaped})" class="btn-primary interactive-element" style="flex: 1; justify-content: center; padding: 0.5rem 0.875rem; font-size: 0.8125rem; font-weight: 700; background-color: #4f46e5;">
+                            <i class="fas fa-download"></i> <span>Importar para meu Banco</span>
+                        </button>
+                    </div>
+                </div>
+            `;
+            fragment.appendChild(card);
+        });
+
+        grid.appendChild(fragment);
         renderKatex(grid);
     },
 
@@ -690,7 +694,10 @@ export const comunidadeView = {
             'rubrica-avaliacao': { i: 'fas fa-calculator', c: '#9333ea', bg: '#faf5ff' }
         };
 
-        grid.innerHTML = this.materiais.map(m => {
+        grid.innerHTML = '';
+        const fragment = document.createDocumentFragment();
+
+        this.materiais.forEach(m => {
             const style = colorMap[m.tipo] || { i: 'fas fa-file-alt', c: '#64748b', bg: '#f8fafc' };
             const tituloSafe = window.escapeHTML ? window.escapeHTML(m.titulo || m.tema || 'Material Pedagógico') : (m.titulo || 'Material Pedagógico');
             const discSafe = window.escapeHTML ? window.escapeHTML(m.disciplina || 'Geral') : (m.disciplina || 'Geral');
@@ -698,33 +705,37 @@ export const comunidadeView = {
             const autorSafe = window.escapeHTML ? window.escapeHTML(m.autor || 'Professor(a)') : (m.autor || 'Professor(a)');
             const dataFmt = m.data_partilha ? new Date(m.data_partilha).toLocaleDateString('pt-BR') : '';
 
-            return `
-                <div class="material-card interactive-element animate-enter" style="border: 1px solid var(--color-slate-200); border-radius: var(--radius-2xl); background: var(--color-white); display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow-sm);">
-                    <div style="padding: 1.25rem; background-color: ${style.bg}; display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--color-slate-100);">
-                        <span class="badge" style="background-color: var(--color-white); color: ${style.c}; font-weight: 800; box-shadow: var(--shadow-sm);">
-                            ${discSafe}
-                        </span>
-                        <div style="width: 2.25rem; height: 2.25rem; border-radius: var(--radius-lg); background-color: var(--color-white); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm);">
-                            <i class="${style.i}" style="color: ${style.c};"></i>
-                        </div>
+            const card = document.createElement('div');
+            card.className = 'material-card interactive-element animate-enter';
+            card.style.cssText = 'border: 1px solid var(--color-slate-200); border-radius: var(--radius-2xl); background: var(--color-white); display: flex; flex-direction: column; overflow: hidden; box-shadow: var(--shadow-sm);';
+            card.innerHTML = `
+                <div style="padding: 1.25rem; background-color: ${style.bg}; display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--color-slate-100);">
+                    <span class="badge" style="background-color: var(--color-white); color: ${style.c}; font-weight: 800; box-shadow: var(--shadow-sm);">
+                        ${discSafe}
+                    </span>
+                    <div style="width: 2.25rem; height: 2.25rem; border-radius: var(--radius-lg); background-color: var(--color-white); display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm);">
+                        <i class="${style.i}" style="color: ${style.c};"></i>
                     </div>
+                </div>
 
-                    <div style="padding: 1.25rem; display: flex; flex-direction: column; flex: 1;">
-                        <h4 style="font-weight: 800; color: var(--color-slate-800); font-size: 1.05rem; line-height: 1.35; margin-bottom: 0.35rem;" class="line-clamp-2">${tituloSafe}</h4>
-                        <p style="font-size: 0.75rem; color: var(--color-slate-400); margin-bottom: 1rem;">${serieSafe} • Por <strong>${autorSafe}</strong> ${dataFmt ? 'em ' + dataFmt : ''}</p>
+                <div style="padding: 1.25rem; display: flex; flex-direction: column; flex: 1;">
+                    <h4 style="font-weight: 800; color: var(--color-slate-800); font-size: 1.05rem; line-height: 1.35; margin-bottom: 0.35rem;" class="line-clamp-2">${tituloSafe}</h4>
+                    <p style="font-size: 0.75rem; color: var(--color-slate-400); margin-bottom: 1rem;">${serieSafe} • Por <strong>${autorSafe}</strong> ${dataFmt ? 'em ' + dataFmt : ''}</p>
 
-                        <div style="margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--color-slate-100); display: flex; gap: 0.5rem;">
-                            <button type="button" onclick="comunidadeView.abrirPreviewMaterial('${m.id}')" class="btn-secondary interactive-element" style="flex: 1; padding: 0.625rem 0.75rem; font-size: 0.8125rem;">
-                                <i class="fas fa-eye"></i> <span>Visualizar</span>
-                            </button>
-                            <button type="button" onclick="comunidadeView.importarMaterialComunidade('${m.id}')" class="btn-primary interactive-element" style="flex: 1; padding: 0.625rem 0.75rem; font-size: 0.8125rem; background-color: #4f46e5;">
-                                <i class="fas fa-download"></i> <span>Importar</span>
-                            </button>
-                        </div>
+                    <div style="margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--color-slate-100); display: flex; gap: 0.5rem;">
+                        <button type="button" onclick="comunidadeView.abrirPreviewMaterial('${m.id}')" class="btn-secondary interactive-element" style="flex: 1; padding: 0.625rem 0.75rem; font-size: 0.8125rem;">
+                            <i class="fas fa-eye"></i> <span>Visualizar</span>
+                        </button>
+                        <button type="button" onclick="comunidadeView.importarMaterialComunidade('${m.id}')" class="btn-primary interactive-element" style="flex: 1; padding: 0.625rem 0.75rem; font-size: 0.8125rem; background-color: #4f46e5;">
+                            <i class="fas fa-download"></i> <span>Importar</span>
+                        </button>
                     </div>
                 </div>
             `;
-        }).join('');
+            fragment.appendChild(card);
+        });
+
+        grid.appendChild(fragment);
     },
 
     abrirPreviewMaterial(materialId) {
@@ -734,26 +745,44 @@ export const comunidadeView = {
         const tituloSafe = window.escapeHTML ? window.escapeHTML(mat.titulo || mat.tema || 'Material') : (mat.titulo || 'Material');
         const conteudo = mat.conteudo_html || '<p>Conteúdo não disponível.</p>';
 
-        window.controller.openModal(tituloSafe, `
-            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; max-width: 800px; max-height: 80vh; overflow-y: auto;" class="custom-scrollbar">
-                <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.75rem; border-bottom: 1px solid var(--color-slate-100); flex-wrap: wrap; gap: 0.5rem;">
-                    <div>
-                        <span class="badge" style="background: #eef2ff; color: #4f46e5; font-weight: 800; margin-right: 0.5rem;">${window.escapeHTML(mat.disciplina || 'Geral')}</span>
-                        <span style="font-size: 0.8125rem; color: var(--color-slate-500);">${window.escapeHTML(mat.serie || 'Série Livre')} • Por <strong>${window.escapeHTML(mat.autor || 'Prof')}</strong></span>
-                    </div>
-                    <button type="button" onclick="comunidadeView.importarMaterialComunidade('${mat.id}')" class="btn-primary" style="background-color: #4f46e5;">
-                        <i class="fas fa-download mr-1"></i> Importar para Minha Biblioteca
-                    </button>
-                </div>
-                <div class="documento-visualizacao" style="background: #fff; padding: 1.5rem; border: 1px solid var(--color-slate-200); border-radius: var(--radius-xl); font-size: 0.9375rem; line-height: 1.6;">
-                    ${conteudo}
+        const previewContainer = document.createElement('div');
+        previewContainer.style.cssText = 'padding: 1rem; display: flex; flex-direction: column; gap: 1rem; max-width: 800px; max-height: 75vh; overflow-y: auto;';
+        previewContainer.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 0.75rem; border-bottom: 1px solid var(--color-slate-100); flex-wrap: wrap; gap: 0.5rem;">
+                <div>
+                    <span class="badge" style="background: #eef2ff; color: #4f46e5; font-weight: 800; margin-right: 0.5rem;">${window.escapeHTML(mat.disciplina || 'Geral')}</span>
+                    <span style="font-size: 0.8125rem; color: var(--color-slate-500);">${window.escapeHTML(mat.serie || 'Série Livre')} • Por <strong>${window.escapeHTML(mat.autor || 'Prof')}</strong></span>
                 </div>
             </div>
-        `, 'large');
+            <div class="documento-visualizacao" style="background: #fff; padding: 1.5rem; border: 1px solid var(--color-slate-200); border-radius: var(--radius-xl); font-size: 0.9375rem; line-height: 1.6;">
+                ${conteudo}
+            </div>
+        `;
+
+        const modal = new ModalComponent({
+            title: tituloSafe,
+            icon: 'fa-book-open',
+            maxWidth: '850px',
+            content: previewContainer,
+            actions: [
+                {
+                    id: 'btn-importar-modal',
+                    label: 'Importar para Minha Biblioteca',
+                    icon: 'fa-download',
+                    class: 'btn-primary',
+                    onClick: () => {
+                        this.importarMaterialComunidade(mat.id);
+                        modal.close();
+                    }
+                }
+            ]
+        });
+
+        modal.open();
 
         setTimeout(() => {
             if (window.renderKatex) {
-                window.renderKatex(document.querySelector('.documento-visualizacao'));
+                window.renderKatex(previewContainer.querySelector('.documento-visualizacao'));
             }
         }, 50);
     },
@@ -762,7 +791,6 @@ export const comunidadeView = {
         const mat = (this.materiais || []).find(m => String(m.id) === String(materialId));
         if (!mat) return;
         model.importarMaterialComunidade(mat);
-        window.controller.closeModal();
     }
 };
 

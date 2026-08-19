@@ -34,14 +34,24 @@ export const estudosVisuaisView = {
     dragStartNodeY: 0,
     posMapCache: new Map(),
 
+    _getContainer() {
+        const integ = document.getElementById('area-estudos-visuais-integ');
+        if (integ) return integ;
+        return document.getElementById('view-container');
+    },
+
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
+        if (!container) container = this._getContainer();
         if (!container) return;
+
+        const isEmbedded = container.id === 'area-estudos-visuais-integ';
 
         const html = `
             <div class="animate-enter" style="display: flex; flex-direction: column; gap: var(--spacing-6); padding-bottom: var(--spacing-8);">
                 
-                <!-- TOP HEADER & TABS -->
+                ${!isEmbedded ? `
+                <!-- TOP HEADER & TABS (Modo Standalone) -->
                 <div class="card" style="padding: var(--spacing-4) var(--spacing-6); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-4);">
                     <div>
                         <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--color-slate-800); letter-spacing: -0.025em; display: flex; align-items: center; gap: var(--spacing-2);">
@@ -60,6 +70,22 @@ export const estudosVisuaisView = {
                         </button>
                     </div>
                 </div>
+                ` : `
+                <!-- SUB-NAVEGAÇÃO COMPACTA (Modo Integrado em Materiais & Comunidade) -->
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; background: #f8fafc; padding: 0.625rem 1rem; border-radius: 1rem; border: 1px solid #e2e8f0;">
+                    <span style="font-size: 0.875rem; font-weight: 800; color: #334155; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-brain" style="color: #4f46e5;"></i> Estudo Visual:
+                    </span>
+                    <div style="display: flex; background-color: #e2e8f0; padding: 0.25rem; border-radius: 0.75rem; gap: 0.25rem;">
+                        <button type="button" onclick="estudosVisuaisView.mudarAba('flashcards')" class="interactive-element" style="padding: 0.4rem 1rem; font-size: 0.8125rem; font-weight: 800; border-radius: 0.5rem; ${this.abaAtiva === 'flashcards' ? 'background-color: #ffffff; color: #4f46e5; box-shadow: 0 1px 2px rgba(0,0,0,0.05);' : 'background: transparent; border: none; color: #64748b;'}">
+                            <i class="fas fa-layer-group"></i> Flashcards
+                        </button>
+                        <button type="button" onclick="estudosVisuaisView.mudarAba('mindmaps')" class="interactive-element" style="padding: 0.4rem 1rem; font-size: 0.8125rem; font-weight: 800; border-radius: 0.5rem; ${this.abaAtiva === 'mindmaps' ? 'background-color: #ffffff; color: #4f46e5; box-shadow: 0 1px 2px rgba(0,0,0,0.05);' : 'background: transparent; border: none; color: #64748b;'}">
+                            <i class="fas fa-project-diagram"></i> Mapas Mentais
+                        </button>
+                    </div>
+                </div>
+                `}
 
                 <!-- CONTEÚDO DA ABA SELECIONADA -->
                 <div id="estudos-visuais-content">
@@ -78,7 +104,7 @@ export const estudosVisuaisView = {
         this.modoEstudoAtivo = false;
         this.currentDeck = null;
         this.currentMindmap = null;
-        this.render('view-container');
+        this.render(this._getContainer());
     },
 
     voltarParaGaleria(aba = null) {
@@ -86,7 +112,7 @@ export const estudosVisuaisView = {
         this.currentDeck = null;
         this.currentMindmap = null;
         this.modoEstudoAtivo = false;
-        this.render('view-container');
+        this.render(this._getContainer());
     },
 
     // =========================================================================
@@ -101,7 +127,7 @@ export const estudosVisuaisView = {
             return this.renderEditorDeck();
         }
 
-        const decks = model.state.flashcards || [];
+        const decks = (model.state.flashcards || []).filter(d => !d.naLixeira);
         const selecionadosCount = this.baralhosSelecionados.size;
 
         // Calcular total de cartas selecionadas
@@ -209,12 +235,12 @@ export const estudosVisuaisView = {
         } else {
             this.baralhosSelecionados.delete(deckId);
         }
-        this.render('view-container');
+        this.render(this._getContainer());
     },
 
     desmarcarTodosBaralhos() {
         this.baralhosSelecionados.clear();
-        this.render('view-container');
+        this.render(this._getContainer());
     },
 
     iniciarEstudoCombinado() {
@@ -242,7 +268,7 @@ export const estudosVisuaisView = {
         this.isCardFlipped = false;
         this.estudoScores = {};
         this.modoEstudoAtivo = true;
-        this.render('view-container');
+        this.render(this._getContainer());
     },
 
     emptyStateFlashcards() {
@@ -456,7 +482,7 @@ export const estudosVisuaisView = {
             await model.saveFlashcardDeck(novoDeck);
             controller.closeModal();
             Toast.show("Baralho gerado com sucesso!", "success");
-            this.render('view-container');
+            this.render(this._getContainer());
         } catch (error) {
             console.error(error);
             Toast.show(error.message || "Erro ao gerar Flashcards via IA.", "error");
@@ -480,18 +506,27 @@ export const estudosVisuaisView = {
     },
 
     async excluirDeck(deckId) {
-        if (confirm("Deseja realmente excluir este baralho de Flashcards?")) {
+        const acao = async () => {
             await model.deleteFlashcardDeck(deckId);
             this.baralhosSelecionados.delete(deckId);
             Toast.show("Baralho removido.", "info");
-            this.render('view-container');
+            this.render(this._getContainer());
+        };
+        if (window.controller && typeof window.controller.confirmarAcao === 'function') {
+            window.controller.confirmarAcao(
+                "Excluir Baralho",
+                "Deseja realmente excluir este baralho de Flashcards?",
+                acao
+            );
+        } else if (confirm("Deseja realmente excluir este baralho de Flashcards?")) {
+            acao();
         }
     },
 
     editarDeck(id) {
         this.currentDeck = (model.state.flashcards || []).find(d => String(d.id) === String(id));
         if (!this.currentDeck) return;
-        this.render('view-container');
+        this.render(this._getContainer());
     },
 
     renderEditorDeck() {
@@ -580,14 +615,14 @@ export const estudosVisuaisView = {
         if (!this.currentDeck.cards) this.currentDeck.cards = [];
         this.currentDeck.cards.push({ frente: "", verso: "", dica: "" });
         await model.saveFlashcardDeck(this.currentDeck);
-        this.render('view-container');
+        this.render(this._getContainer());
     },
 
     async removerCarta(index) {
         if (!this.currentDeck) return;
         this.currentDeck.cards.splice(index, 1);
         await model.saveFlashcardDeck(this.currentDeck);
-        this.render('view-container');
+        this.render(this._getContainer());
     },
 
     async salvarCarta(index) {
@@ -612,7 +647,7 @@ export const estudosVisuaisView = {
         this.isCardFlipped = false;
         this.estudoScores = {};
         this.modoEstudoAtivo = true;
-        this.render('view-container');
+        this.render(this._getContainer());
     },
 
     virarCarta() {
@@ -634,7 +669,7 @@ export const estudosVisuaisView = {
         if (this.currentCardIndex < this.currentDeck.cards.length - 1) {
             this.currentCardIndex++;
             this.isCardFlipped = false;
-            this.render('view-container');
+            this.render(this._getContainer());
         } else {
             this.mostrarResumoEstudo();
         }
@@ -644,7 +679,7 @@ export const estudosVisuaisView = {
         if (this.currentCardIndex > 0) {
             this.currentCardIndex--;
             this.isCardFlipped = false;
-            this.render('view-container');
+            this.render(this._getContainer());
         }
     },
 
@@ -660,7 +695,7 @@ export const estudosVisuaisView = {
         this.isCardFlipped = false;
         this.estudoScores = {};
         Toast.show("Cartas embaralhadas!", "info");
-        this.render('view-container');
+        this.render(this._getContainer());
     },
 
     // --- CÓPIA DE CARTA PARA OUTRO BARALHO (ex: 'Dificuldades') ---
@@ -908,7 +943,7 @@ export const estudosVisuaisView = {
             return this.renderVisualizadorMindmap();
         }
 
-        const mindmaps = model.state.mindmaps || [];
+        const mindmaps = (model.state.mindmaps || []).filter(m => !m.naLixeira);
 
         return `
             <div style="display: flex; flex-direction: column; gap: var(--spacing-6);">
@@ -1213,10 +1248,19 @@ export const estudosVisuaisView = {
     },
 
     async excluirMindmap(mapaId) {
-        if (confirm("Deseja realmente excluir este Mapa Mental?")) {
+        const acao = async () => {
             await model.deleteMindmap(mapaId);
             Toast.show("Mapa Mental removido.", "info");
-            this.render('view-container');
+            this.render(this._getContainer());
+        };
+        if (window.controller && typeof window.controller.confirmarAcao === 'function') {
+            window.controller.confirmarAcao(
+                "Excluir Mapa Mental",
+                "Deseja realmente excluir este Mapa Mental?",
+                acao
+            );
+        } else if (confirm("Deseja realmente excluir este Mapa Mental?")) {
+            acao();
         }
     },
 
@@ -1227,7 +1271,7 @@ export const estudosVisuaisView = {
         this.panX = 80;
         this.panY = 220;
         this.collapsedNodes.clear();
-        this.render('view-container');
+        this.render(this._getContainer());
         this.setupMindmapEvents();
     },
 
@@ -1599,13 +1643,22 @@ export const estudosVisuaisView = {
 
     async excluirNo(nodeId) {
         if (nodeId === 'root') return;
-        if (confirm("Excluir este conceito e seus sub-ramos?")) {
+        const acao = async () => {
             const pai = this.encontrarPai(this.currentMindmap.root, nodeId);
             if (pai && pai.children) {
                 pai.children = pai.children.filter(c => c.id !== nodeId);
                 await model.saveMindmap(this.currentMindmap);
                 this.renderArvoreMindmap();
             }
+        };
+        if (window.controller && typeof window.controller.confirmarAcao === 'function') {
+            window.controller.confirmarAcao(
+                "Excluir Conceito",
+                "Excluir este conceito e seus sub-ramos?",
+                acao
+            );
+        } else if (confirm("Excluir este conceito e seus sub-ramos?")) {
+            acao();
         }
     },
 

@@ -120,14 +120,27 @@ export const firebaseService = {
                 fullState.materiaisGerados = data.materiaisGerados || [];
                 fullState.quizzes = data.quizzes || [];
                 fullState.apresentacoes = data.apresentacoes || [];
+                fullState.flashcards = data.flashcards || [];
+                fullState.mindmaps = data.mindmaps || [];
             }
             
             // Busca materiais da subcoleção dedicada
             const materiaisSub = await this.fetchMateriaisDocs(uid);
             if (materiaisSub && materiaisSub.length > 0) {
                 const mapa = new Map();
-                (fullState.materiaisGerados || []).forEach(m => mapa.set(m.id, m));
-                materiaisSub.forEach(m => mapa.set(m.id, m));
+                // Subcoleção é a verdade principal
+                materiaisSub.forEach(m => mapa.set(String(m.id), m));
+
+                // Se houver material antigo no doc raiz e não estiver na subcoleção, migra
+                const raizMateriais = (docSnap && docSnap.exists && docSnap.data().materiaisGerados) || [];
+                raizMateriais.forEach(m => {
+                    const key = String(m.id);
+                    if (!mapa.has(key)) {
+                        mapa.set(key, m);
+                        this.saveMaterialDoc(uid, m).catch(() => {});
+                    }
+                });
+
                 fullState.materiaisGerados = Array.from(mapa.values());
             }
 
@@ -174,6 +187,16 @@ export const firebaseService = {
     async deleteMaterialDoc(uid, materialId) {
         if (!uid || !this.db || !materialId) return;
         await this.db.collection('professores').doc(uid).collection('materiais').doc(String(materialId)).delete();
+        try {
+            const docRef = this.db.collection('professores').doc(uid);
+            const docSnap = await docRef.get();
+            if (docSnap.exists && docSnap.data().materiaisGerados) {
+                const filtrados = (docSnap.data().materiaisGerados || []).filter(m => String(m.id) !== String(materialId));
+                await docRef.update({ materiaisGerados: filtrados });
+            }
+        } catch (e) {
+            console.warn("Aviso ao limpar material legado da raiz:", e);
+        }
     },
     async fetchMateriaisDocs(uid) {
         if (!uid || !this.db) return [];

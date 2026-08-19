@@ -1,6 +1,8 @@
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
+import { ModalComponent } from '../components/modal.js';
+import { PaginatorComponent } from '../components/paginator.js';
 import { aiService } from '../ai-service.js';
 import { renderKatex, formatarTextoComLatex, sanitizeComLatex, alternarModoEdicaoPreview, lerArquivoTexto } from '../utils.js';
 
@@ -359,13 +361,15 @@ export const provasView = {
             const letras = ['a', 'b', 'c', 'd', 'e'];
             conteudoGabarito = `
             <div id="gabarito-questao-${q.id}" style="margin-top: 1rem; display: ${gabaritoOculto ? 'none' : 'flex'}; flex-direction: column; gap: 0.375rem; padding-left: 0.75rem; border-left: 2px solid var(--color-slate-100);">
-                ${q.alternativas.map((alt, i) => `
-                    <div style="font-size: 0.75rem; display: flex; gap: 0.5rem; ${q.correta == i ? 'color: #059669; font-weight: 700;' : 'color: var(--color-slate-500);'}">
-                        <span style="text-transform: uppercase; font-weight: 700;">${letras[i]})</span> 
-                        <span>${this.formatarHTMLQuestao(alt)}</span>
-                        ${q.correta == i ? '<i class="fas fa-check-circle" style="font-size: 0.625rem; margin-top: 0.125rem;"></i>' : ''}
-                    </div>
-                `).join('')}
+                ${q.alternativas.map((alt, i) => {
+                    const isCorreta = q.correta == i;
+                    const styleCor = isCorreta ? 'color: #059669; font-weight: 700;' : 'color: var(--color-slate-500);';
+                    const iconCorreta = isCorreta ? '<i class="fas fa-check-circle" style="font-size: 0.625rem; margin-top: 0.125rem;"></i>' : '';
+                    return '<div style="font-size: 0.75rem; display: flex; gap: 0.5rem; ' + styleCor + '">' +
+                        '<span style="text-transform: uppercase; font-weight: 700;">' + letras[i] + ')</span>' +
+                        '<span>' + this.formatarHTMLQuestao(alt) + '</span>' + iconCorreta +
+                    '</div>';
+                }).join('')}
             </div>`;
         } else if (q.gabarito || q.gabarito_comentado) {
             const textoGabarito = q.gabarito || q.gabarito_comentado;
@@ -994,7 +998,7 @@ export const provasView = {
                     const iconCheck = (isProf && q.correta == idx) ? ' ✓' : '';
                     return `
                                 <div class="alternativa" style="${styleCorrect}">
-                                    <span class="alt-letra">( &nbsp; ) <strong>${letras[idx]})</strong></span> 
+                                    <span class="alt-letra">( &nbsp; ) <strong>${letras[idx]}</strong></span> 
                                     <span>${this.formatarHTMLQuestao(alt)} ${iconCheck}</span>
                                 </div>
                             `;
