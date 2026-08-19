@@ -121,6 +121,16 @@ export const firebaseService = {
                 fullState.quizzes = data.quizzes || [];
                 fullState.apresentacoes = data.apresentacoes || [];
             }
+            
+            // Busca materiais da subcoleção dedicada
+            const materiaisSub = await this.fetchMateriaisDocs(uid);
+            if (materiaisSub && materiaisSub.length > 0) {
+                const mapa = new Map();
+                (fullState.materiaisGerados || []).forEach(m => mapa.set(m.id, m));
+                materiaisSub.forEach(m => mapa.set(m.id, m));
+                fullState.materiaisGerados = Array.from(mapa.values());
+            }
+
             const turmasSnap = await docRef.collection('turmas').get();
             const turmasPromises = turmasSnap.docs.map(async (turmaDoc) => {
                 const turmaData = {
@@ -151,9 +161,29 @@ export const firebaseService = {
     },
     async saveRoot(uid, data) {
         if (!uid || !this.db) return;
-        const { turmas, ...rootData } = data;
-        const cleanData = JSON.parse(JSON.stringify(rootData));
+        // Omitir materiaisGerados do documento raiz para evitar estourar o limite de 1MB do Firestore
+        const { turmas, materiaisGerados, ...rootData } = data;
+        let cleanData = JSON.parse(JSON.stringify(rootData));
         await this.db.collection('professores').doc(uid).set(cleanData, { merge: true });
+    },
+    async saveMaterialDoc(uid, material) {
+        if (!uid || !this.db || !material || !material.id) return;
+        const cleanMaterial = JSON.parse(JSON.stringify(material));
+        await this.db.collection('professores').doc(uid).collection('materiais').doc(String(material.id)).set(cleanMaterial, { merge: true });
+    },
+    async deleteMaterialDoc(uid, materialId) {
+        if (!uid || !this.db || !materialId) return;
+        await this.db.collection('professores').doc(uid).collection('materiais').doc(String(materialId)).delete();
+    },
+    async fetchMateriaisDocs(uid) {
+        if (!uid || !this.db) return [];
+        try {
+            const snap = await this.db.collection('professores').doc(uid).collection('materiais').get();
+            return snap.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+        } catch (e) {
+            console.warn("Erro ao buscar subcoleção de materiais:", e);
+            return [];
+        }
     },
     async saveHorarioOnly(uid, horarioData) {
         if (!uid) return;

@@ -306,11 +306,11 @@ export const conteudoGeradoView = {
                     <div>
                         <label class="form-label" style="font-weight: 800; font-size: 0.8125rem; color: var(--color-slate-700);">Modo de Edição</label>
                         <div style="display: flex; gap: 0.25rem; background: var(--color-slate-100); padding: 0.25rem; border-radius: var(--radius-xl); border: 1px solid var(--color-slate-200);">
-                            <button type="button" id="btn-mode-mat-visual" onclick="conteudoGeradoView.alternarModoEdicaoVisual('visual')" class="btn-primary" style="flex: 1; padding: 0.45rem 0.5rem; font-size: 0.75rem; font-weight: 800; justify-content: center;" title="Editor Visual em Folha Mestre">
-                                <i class="fas fa-file-alt"></i> Folha Mestre
+                            <button type="button" id="btn-mode-mat-code" onclick="conteudoGeradoView.alternarModoEdicaoVisual('code')" class="btn-primary" style="flex: 1; padding: 0.45rem 0.5rem; font-size: 0.75rem; font-weight: 800; justify-content: center; background: var(--color-primary);" title="Editor de Texto e Fórmulas LaTeX com Pré-Visualização KaTeX ao vivo">
+                                <i class="fas fa-square-root-alt"></i> Texto / LaTeX
                             </button>
-                            <button type="button" id="btn-mode-mat-code" onclick="conteudoGeradoView.alternarModoEdicaoVisual('code')" class="btn-secondary" style="flex: 1; padding: 0.45rem 0.5rem; font-size: 0.75rem; font-weight: 800; justify-content: center; background: transparent;" title="Editar Código HTML Avançado">
-                                <i class="fas fa-code"></i> Código HTML
+                            <button type="button" id="btn-mode-mat-visual" onclick="conteudoGeradoView.alternarModoEdicaoVisual('visual')" class="btn-secondary" style="flex: 1; padding: 0.45rem 0.5rem; font-size: 0.75rem; font-weight: 800; justify-content: center; background: transparent;" title="Editor Visual em Folha Mestre">
+                                <i class="fas fa-file-alt"></i> Folha Mestre
                             </button>
                         </div>
                     </div>
@@ -322,46 +322,29 @@ export const conteudoGeradoView = {
                     <!-- BARRA DE FERRAMENTAS RIBBON CLÁSSICA E MODERNA -->
                     <div id="editor-mat-toolbar-visual" style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; padding: 0.625rem 1rem; background-color: #ffffff; border: 1px solid var(--color-slate-200); border-radius: var(--radius-xl); box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
                         
-                        <!-- GRUPO FORMATAÇÃO E TIPOGRAFIA -->
+                        <!-- ATALHOS TeX / MATEMÁTICA -->
                         <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem;">
+                            <button type="button" onclick="conteudoGeradoView.inserirFormulaLatex('\\\\dfrac{a}{b}')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem; font-weight: 800; color: #4f46e5;" title="Inserir Fração TeX (a/b)">
+                                <i class="fas fa-divide"></i> <span>Fração</span>
+                            </button>
+                            <button type="button" onclick="conteudoGeradoView.inserirFormulaLatex('x^{2}')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem; font-weight: 800; color: #4f46e5;" title="Inserir Potência (x²)">
+                                <i class="fas fa-superscript"></i> <span>x²</span>
+                            </button>
+                            <button type="button" onclick="conteudoGeradoView.inserirFormulaLatex('\\\\sqrt{x}')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem; font-weight: 800; color: #4f46e5;" title="Inserir Raiz Quadrada">
+                                <i class="fas fa-square-root-alt"></i> <span>√x</span>
+                            </button>
+                            <button type="button" onclick="conteudoGeradoView.inserirFormulaLatex('\\\\alpha')" class="btn-secondary" style="padding: 0.35rem 0.55rem; font-size: 0.8125rem; font-weight: 800; color: #4f46e5;" title="Símbolo Alpha">
+                                <span>α</span>
+                            </button>
+                            <button type="button" onclick="conteudoGeradoView.inserirFormulaLatex('\\\\beta')" class="btn-secondary" style="padding: 0.35rem 0.55rem; font-size: 0.8125rem; font-weight: 800; color: #4f46e5;" title="Símbolo Beta">
+                                <span>β</span>
+                            </button>
+                            <div style="width: 1px; height: 1.5rem; background-color: var(--color-slate-200); margin: 0 0.25rem;"></div>
                             <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('bold')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem; font-weight: 800;" title="Negrito (Ctrl+B)">
                                 <i class="fas fa-bold"></i> <span>N</span>
                             </button>
                             <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('italic')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem; font-style: italic;" title="Itálico (Ctrl+I)">
                                 <i class="fas fa-italic"></i> <span>I</span>
-                            </button>
-                            <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('subscript')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem;" title="Subscrito (ex: H₂O)">
-                                <i class="fas fa-subscript"></i> <span>S₂</span>
-                            </button>
-                            <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('superscript')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem;" title="Sobrescrito (ex: X²)">
-                                <i class="fas fa-superscript"></i> <span>S²</span>
-                            </button>
-                            <div style="width: 1px; height: 1.5rem; background-color: var(--color-slate-200); margin: 0 0.25rem;"></div>
-                            <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('formatBlock', 'H3')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem; font-weight: 800;" title="Título de Seção (H3)">
-                                <i class="fas fa-heading"></i> <span>H3 Título</span>
-                            </button>
-                            <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('formatBlock', 'H4')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem; font-weight: 700;" title="Subtítulo (H4)">
-                                <i class="fas fa-heading" style="font-size: 0.7rem;"></i> <span>H4 Sub</span>
-                            </button>
-                            <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('formatBlock', 'P')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem;" title="Parágrafo Normal">
-                                <i class="fas fa-paragraph"></i> <span>Texto</span>
-                            </button>
-                        </div>
-
-                        <!-- GRUPO ALINHAMENTO E LISTAS -->
-                        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem;">
-                            <div style="width: 1px; height: 1.5rem; background-color: var(--color-slate-200); margin: 0 0.25rem;"></div>
-                            <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('justifyLeft')" class="btn-secondary" style="padding: 0.35rem 0.55rem; font-size: 0.8125rem;" title="Alinhar à Esquerda">
-                                <i class="fas fa-align-left"></i>
-                            </button>
-                            <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('justifyCenter')" class="btn-secondary" style="padding: 0.35rem 0.55rem; font-size: 0.8125rem;" title="Centralizar">
-                                <i class="fas fa-align-center"></i>
-                            </button>
-                            <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('insertUnorderedList')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem;" title="Lista com Marcadores (•)">
-                                <i class="fas fa-list-ul"></i>
-                            </button>
-                            <button type="button" onclick="conteudoGeradoView.formatarTextoVisual('insertOrderedList')" class="btn-secondary" style="padding: 0.35rem 0.65rem; font-size: 0.8125rem;" title="Lista Numerada (1.)">
-                                <i class="fas fa-list-ol"></i>
                             </button>
                         </div>
 
@@ -382,19 +365,22 @@ export const conteudoGeradoView = {
                         </div>
                     </div>
 
-                    <!-- CANVAS CENTRALIZADO DA FOLHA A4 DA MESA -->
-                    <div style="width: 100%; display: flex; justify-content: center; position: relative;">
+                    <!-- AREA PRINCIPAL DE EDIÇÃO: TEXTAREA COM PRÉ-VISUALIZAÇÃO KATEX AO VIVO -->
+                    <div style="width: 100%; display: flex; flex-direction: column; gap: 1rem; position: relative;">
                         
-                        <!-- CONTAINER VISUAL (WYSIWYG FOLHA MESTRE A4) -->
+                        <!-- TEXTAREA DE CÓDIGO/TEXTO (MODO PADRÃO TEXTO E LATEX) -->
+                        <textarea id="editor-mat-conteudo" class="custom-scrollbar" 
+                                  style="display: block; width: 100%; min-height: 260px; max-height: 45vh; font-family: 'Fira Code', 'Segoe UI Mono', monospace; font-size: 0.9375rem; line-height: 1.6; background-color: #ffffff; color: #0f172a; padding: 1.25rem; border-radius: var(--radius-xl); border: 2px solid var(--color-slate-200); box-shadow: var(--shadow-sm);"
+                                  placeholder="Digite ou edite o texto e as equações em LaTeX aqui...">${window.escapeHTML(conteudoAtual)}</textarea>
+
+                        <!-- BOX DE PRÉ-VISUALIZAÇÃO KATEX AO VIVO (IGUAL AO GERADOR DE AVALIAÇÕES) -->
+                        <div id="editor-mat-preview" style="display: block; width: 100%;"></div>
+
+                        <!-- CONTAINER VISUAL OCULTO POR PADRÃO (WYSIWYG) -->
                         <div id="editor-mat-wysiwyg" contenteditable="true" class="custom-scrollbar" 
-                             style="width: 100%; max-width: 820px; min-height: 480px; max-height: 60vh; overflow-y: auto; background: #ffffff; padding: 2.5rem; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.06), 0 1px 3px rgba(0,0,0,0.04); line-height: 1.75; font-size: 1rem; color: #1e293b; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
+                             style="display: none; width: 100%; max-width: 820px; min-height: 480px; max-height: 60vh; overflow-y: auto; background: #ffffff; padding: 2.5rem; border: 1px solid #e2e8f0; border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); line-height: 1.75; font-size: 1rem; color: #1e293b;">
                             ${conteudoAtual}
                         </div>
-
-                        <!-- TEXTAREA DE CÓDIGO HTML (MODO AVANÇADO CÓDIGO) -->
-                        <textarea id="editor-mat-conteudo" class="custom-scrollbar" 
-                                  style="display: none; width: 100%; max-width: 820px; min-height: 480px; max-height: 60vh; font-family: 'Fira Code', 'Courier New', monospace; font-size: 0.875rem; line-height: 1.6; background-color: #0f172a; color: #f8fafc; padding: 1.75rem; border-radius: 8px; border: 1px solid #334155; box-shadow: 0 10px 30px rgba(0,0,0,0.15);">${window.escapeHTML(conteudoAtual)}</textarea>
-                        <div id="editor-mat-preview" style="display: none; margin-top: 0.5rem;"></div>
                     </div>
                 </div>
 
@@ -416,14 +402,19 @@ export const conteudoGeradoView = {
         `;
 
         controller.openModal('Editar Material Pedagógico', modalHtml, 'xl');
+
+        setTimeout(() => {
+            anexarPreviewLatex('editor-mat-conteudo', 'editor-mat-preview');
+        }, 50);
     },
 
-    modosEdicaoMatAtual: 'visual',
+    modosEdicaoMatAtual: 'code',
 
     alternarModoEdicaoVisual(modo) {
         this.modosEdicaoMatAtual = modo;
         const wysiwyg = document.getElementById('editor-mat-wysiwyg');
         const textarea = document.getElementById('editor-mat-conteudo');
+        const preview = document.getElementById('editor-mat-preview');
         const btnVisual = document.getElementById('btn-mode-mat-visual');
         const btnCode = document.getElementById('btn-mode-mat-code');
 
@@ -433,6 +424,7 @@ export const conteudoGeradoView = {
             wysiwyg.innerHTML = textarea.value;
             wysiwyg.style.display = 'block';
             textarea.style.display = 'none';
+            if (preview) preview.style.display = 'none';
 
             if (btnVisual) {
                 btnVisual.className = 'btn-primary';
@@ -455,6 +447,27 @@ export const conteudoGeradoView = {
                 btnVisual.className = 'btn-secondary';
                 btnVisual.style.background = 'transparent';
             }
+
+            anexarPreviewLatex('editor-mat-conteudo', 'editor-mat-preview');
+        }
+    },
+
+    inserirFormulaLatex(templateTex) {
+        const wysiwyg = document.getElementById('editor-mat-wysiwyg');
+        const textarea = document.getElementById('editor-mat-conteudo');
+
+        if (textarea && textarea.style.display !== 'none') {
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            textarea.setRangeText(` \\(${templateTex}\\) `, start, end, 'end');
+            textarea.focus();
+            textarea.dispatchEvent(new Event('input', { bubbles: true }));
+            return;
+        }
+
+        if (wysiwyg) {
+            wysiwyg.focus();
+            document.execCommand('insertHTML', false, ` \\(${templateTex}\\) `);
         }
     },
 
@@ -667,6 +680,27 @@ export const conteudoGeradoView = {
         fileDownload.download = `${nomeArquivo}.doc`;
         fileDownload.click();
         document.body.removeChild(fileDownload);
+    },
+
+    copiarTextoFormatado() {
+        const material = (model.state.materiaisGerados || []).find(m => m.id === this.materialIdAtual);
+        if (!material || !material.conteudo_html) {
+            return Toast.show("Nenhum material carregado para cópia.", "warning");
+        }
+
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = material.conteudo_html;
+
+        // Converte o HTML em texto formatado limpo preservando quebras de linha
+        const textoLimpo = (tempDiv.innerText || tempDiv.textContent || '').trim();
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(textoLimpo)
+                .then(() => Toast.show("Conteúdo copiado para a área de transferência!", "success"))
+                .catch(() => Toast.show("Erro ao copiar texto para a área de transferência.", "error"));
+        } else {
+            Toast.show("Recurso de cópia não suportado neste navegador.", "warning");
+        }
     },
 
     abrirOpcoesImpressao() {

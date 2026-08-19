@@ -101,33 +101,74 @@ export function secureShuffle(array) {
 }
 
 /**
+ * Normaliza e sanitiza expressões TeX/LaTeX no texto, convertendo delimitadores de cifrão ($...$ e $$...$$) 
+ * para a sintaxe moderna \(...\) e \[...\], e tratando rigorosamente cifrões soltos e valores monetários (ex: R$ 100,00 ou $ \text{R$} $).
+ * @param {string} texto 
+ * @returns {string} Texto com delimitadores TeX modernizados e moedas protegidas.
+ */
+export function normalizarDelimitadoresLatex(texto) {
+    if (!texto) return '';
+    let str = String(texto);
+
+    // PASSO 1: Limpeza imediata de todas as variações de R$ envolvidas em TeX/LaTeX (Casos 1 e 5)
+    // Exemplos: "\(\text{R\$}\)", "\( \text{R$} \)", "$ \text{R$} $", "\text{R\$}", "\text{R$}"
+    str = str
+        .replace(/\\\(\s*\\text\{\s*R\\?\$?\s*\}\s*\\\)/gi, 'R$')
+        .replace(/\$\s*\\text\{\s*R\\?\$?\s*\}\s*\$/gi, 'R$')
+        .replace(/\\text\{\s*R\\?\$?\s*\}/gi, 'R$');
+
+    // PASSO 2: Proteção de valores monetários legítimos com R$ ou US$ (Caso 4)
+    // Substitui "R$" ou "R$ " por token seguro para que o cifrão de R$ NUNCA seja confundido com delimitador TeX
+    const currencyTokens = [];
+    str = str.replace(/(?:R\\?\$|US\\?\$)\s*[\d\.,]*/gi, (match) => {
+        const idx = currencyTokens.length;
+        currencyTokens.push(match);
+        return `___CURRENCY_TOKEN_${idx}___`;
+    });
+
+    // PASSO 3: Normalização de delimitadores TeX legítimos
+    // 3.1 Bloco: $$ ... $$ -> \[ ... \]
+    str = str.replace(/\$\$([\s\S]*?)\$\$/g, (match, formula) => {
+        return `\\[${formula.trim()}\\]`;
+    });
+
+    // 3.2 Inline: $ ... $ (apenas quando pareados na mesma linha) -> \( ... \) (Casos 2 e 3)
+    str = str.replace(/\$([^\$\n\r]+?)\$/g, (match, formula) => {
+        const conteudo = formula.trim();
+        const temMath = /\\(?:dfrac|frac|sqrt|begin|end|alpha|beta|theta|pi|sum|int|lim|vec|hat|bar|times|div|pm|leq|geq|neq|approx|text)|[\^_\=\+\-\<\>\/\\]/.test(conteudo);
+        const palavras = conteudo.split(/\s+/).filter(Boolean);
+        if (!temMath && palavras.length > 3) {
+            return match; // Mantém original se for frase em prosa
+        }
+        return `\\(${conteudo}\\)`;
+    });
+
+    // PASSO 4: Limpeza de cifrões soltos residuais no final de palavras (Caso 3)
+    str = str.replace(/(?<=\w)\s*\$(?=[^\w\\]|$)/g, '');
+
+    // PASSO 5: Restauração dos tokens de moeda intactos
+    str = str.replace(/___CURRENCY_TOKEN_(\d+)___/g, (match, idxStr) => {
+        const idx = parseInt(idxStr, 10);
+        return currencyTokens[idx] !== undefined ? currencyTokens[idx] : match;
+    });
+
+    return str;
+}
+
+/**
  * Sanitiza conteúdo HTML para segurança XSS sem corromper expressões e símbolos matemáticos LaTeX.
- * Utiliza um Extrator com Regex Unificado de Passo Único para prevenir 100% de aninhamentos de tokens ($___MATH_TOKEN_0___$),
- * neutraliza scripts, iframes e manipuladores inline (onclick, onerror, etc.),
- * e restaura as fórmulas matemáticas intactas com compilação KaTeX.
+ * Utiliza um Extrator com Regex Unificado de Passo Único para prevenir 100% de aninhamentos de tokens,
+ * neutraliza scripts, iframes e manipuladores inline, e restaura as fórmulas matemáticas intactas com compilação KaTeX.
  * @param {string} rawHtml 
  * @returns {string} HTML seguro com fórmulas matemáticas preservadas e compiladas.
  */
 export function sanitizeComLatex(rawHtml) {
     if (!rawHtml) return '';
-    let str = String(rawHtml);
-
-    // 0. Normaliza moedas com escape TeX (ex: R\$1.200, 00 ou R\$ 480 -> R$ 1.200,00)
-    str = str.replace(/R\\?\$ /gi, 'R$ ');
-    str = str.replace(/R\\?\$/gi, 'R$ ');
-    str = str.replace(/(R\$\s*\d+(?:[\.,]\d+)?)\s*,\s*(\d{2})/g, '$1,$2');
-
-    // 0.1 Proteção de valores monetários R$ e cifrão
-    const currencyTokens = [];
-    str = str.replace(/R\$\s*\d+(?:[\.,]\d+)?/g, (match) => {
-        const idx = currencyTokens.length;
-        currencyTokens.push(match.replace(/R\$\s*/, 'R$ '));
-        return `___CURRENCY_TOKEN_${idx}___`;
-    });
+    let str = normalizarDelimitadoresLatex(String(rawHtml));
 
     // 1. Extração e proteção de expressões matemáticas em PASSO ÚNICO (elimina tokens aninhados)
     const tokens = [];
-    const UNIFIED_MATH_REGEX = /(?:\$\$([\s\S]*?)\$\$|\\\[([\s\S]*?)\\\]|(?:\$)?\\begin\{([a-zA-Z*]+)\}([\s\S]*?)\\end\{\3\}(?:\$)?|\\\(([\s\S]*?)\\\)|\$([^\$\n\r]+?)\$)/g;
+    const UNIFIED_MATH_REGEX = /(?:\\\[([\s\S]*?)\\\]|\\\(([\s\S]*?)\\\)|\$\$\$([\s\S]*?)\$\$|(?:\$)?\\begin\{([a-zA-Z*]+)\}([\s\S]*?)\\end\{\4\}(?:\$)?|\$([^\$\n\r]+?)\$)/g;
 
     str = str.replace(UNIFIED_MATH_REGEX, (match) => {
         const idx = tokens.length;
@@ -144,19 +185,13 @@ export function sanitizeComLatex(rawHtml) {
         .replace(/\son\w+\s*=\s*(?:'[^']*'|"[^"]*"|[^\s>]+)/gi, '') // Remove onclick, onerror, onload, etc.
         .replace(/javascript:/gi, 'blocked:');
 
-    // 3. Restauração segura das fórmulas matemáticas intactas com substituição baseada em função
+    // 3. Restauração segura das fórmulas matemáticas intactas
     str = str.replace(/___MATH_TOKEN_(\d+)___/g, (match, idxStr) => {
         const idx = parseInt(idxStr, 10);
         return tokens[idx] !== undefined ? tokens[idx] : match;
     });
 
-    // 4. Restauração dos valores monetários
-    str = str.replace(/___CURRENCY_TOKEN_(\d+)___/g, (match, idxStr) => {
-        const idx = parseInt(idxStr, 10);
-        return currencyTokens[idx] !== undefined ? currencyTokens[idx] : match;
-    });
-
-    // 5. Se o KaTeX estiver disponível, compila as fórmulas diretamente
+    // 4. Se o KaTeX estiver disponível, compila as fórmulas diretamente
     if (window.katex && typeof window.katex.renderToString === 'function') {
         return formatarTextoComLatex(str);
     }
@@ -166,25 +201,23 @@ export function sanitizeComLatex(rawHtml) {
 
 /**
  * Aplica o KaTeX em um elemento DOM específico de forma segura, modular e resiliente.
- * Suporta delimitação de bloco ($$ ... $$, \[ ... \]), em linha ($ ... $, \( ... \)) e ambientes matriciais e algébricos.
+ * Suporta delimitação de bloco (\[ ... \], $$ ... $$), em linha (\( ... \), $ ... $) e ambientes matriciais e algébricos.
  * Desescapa entidades HTML (&lt;, &gt;, &amp;) dentro das fórmulas para evitar erros de parser.
  * @param {HTMLElement|string} element - O elemento DOM ou ID do elemento que contém o texto LaTeX.
  * @param {Object} [customOptions] - Opções adicionais para o renderMathInElement.
  */
 export function renderMath(element, customOptions = {}) {
-    // Early return: previne erros se o elemento for nulo ou indefinido
     if (!element) return;
     const target = typeof element === 'string' ? document.getElementById(element) : element;
     if (!target) return;
 
-    // Desescapa entidades HTML dentro de delimitadores matemáticos nos nós de texto para prevenir quebra no KaTeX
     desescaparEntidadesMatematicas(target);
 
     const defaultOptions = {
         delimiters: [
-            { left: '$$', right: '$$', display: true },
             { left: '\\[', right: '\\]', display: true },
             { left: '\\(', right: '\\)', display: false },
+            { left: '$$', right: '$$', display: true },
             { left: '$', right: '$', display: false },
             { left: '\\begin{equation}', right: '\\end{equation}', display: true },
             { left: '\\begin{align}', right: '\\end{align}', display: true },
@@ -200,9 +233,7 @@ export function renderMath(element, customOptions = {}) {
         ],
         ignoredTags: ['script', 'noscript', 'style', 'textarea', 'option'],
         ignoredClasses: ['no-katex'],
-        // Impede que um erro de sintaxe no LaTeX trave a thread principal do JS
         throwOnError: false,
-        // Utiliza a cor de erro do Design System (#dc2626) para equações inválidas
         errorColor: '#dc2626',
         strict: false,
         ...customOptions
@@ -304,22 +335,19 @@ function renderizarFallbackManual(target) {
  * @param {string} texto 
  * @returns {string} HTML com equações renderizadas
  */
+/**
+ * Formata um texto contendo fórmulas LaTeX (\[...\], \(...\), \begin{matrix}...) diretamente em HTML compilado com KaTeX.
+ * @param {string} texto 
+ * @returns {string} HTML com equações renderizadas
+ */
 export function formatarTextoComLatex(texto) {
     if (!texto) return '';
     if (!window.katex || typeof window.katex.renderToString !== 'function') {
-        return texto;
+        return normalizarDelimitadoresLatex(texto);
     }
 
     try {
-        let resultado = String(texto);
-
-        // Proteção de valores monetários
-        const currencyTokens = [];
-        resultado = resultado.replace(/\$\s*(\d+(?:[\.,]\d+)?)/g, (match, val) => {
-            const idx = currencyTokens.length;
-            currencyTokens.push(`$ ${val}`);
-            return `___CURRENCY_TOKEN_${idx}___`;
-        });
+        let resultado = normalizarDelimitadoresLatex(String(texto));
 
         const normalizarFormula = (formula) => {
             return String(formula)
@@ -331,16 +359,7 @@ export function formatarTextoComLatex(texto) {
                 .trim();
         };
 
-        // 1. Fórmulas em bloco: $$ ... $$
-        resultado = resultado.replace(/\$\$([\s\S]*?)\$\$/g, (match, formula) => {
-            try {
-                return window.katex.renderToString(normalizarFormula(formula), { displayMode: true, throwOnError: false });
-            } catch (err) {
-                return match;
-            }
-        });
-
-        // 2. Fórmulas em bloco: \[ ... \]
+        // 1. Fórmulas em bloco modernas: \[ ... \]
         resultado = resultado.replace(/\\\[([\s\S]*?)\\\]/g, (match, formula) => {
             try {
                 return window.katex.renderToString(normalizarFormula(formula), { displayMode: true, throwOnError: false });
@@ -349,7 +368,16 @@ export function formatarTextoComLatex(texto) {
             }
         });
 
-        // 3. Ambientes matriciais e algébricos com ou sem $: \begin{...} ... \end{...}
+        // 2. Fórmulas em bloco legadas: $$ ... $$
+        resultado = resultado.replace(/\$\$([\s\S]*?)\$\$/g, (match, formula) => {
+            try {
+                return window.katex.renderToString(normalizarFormula(formula), { displayMode: true, throwOnError: false });
+            } catch (err) {
+                return match;
+            }
+        });
+
+        // 3. Ambientes matriciais e algébricos: \begin{...} ... \end{...}
         resultado = resultado.replace(/(?:\$)?\\begin\{([a-zA-Z*]+)\}([\s\S]*?)\\end\{\1\}(?:\$)?/g, (match, envName, envContent) => {
             try {
                 const formulaLimpa = `\\begin{${envName}}${normalizarFormula(envContent)}\\end{${envName}}`;
@@ -359,16 +387,7 @@ export function formatarTextoComLatex(texto) {
             }
         });
 
-        // 4. Fórmulas em linha: $ ... $
-        resultado = resultado.replace(/\$([^\$\n\r]+?)\$/g, (match, formula) => {
-            try {
-                return window.katex.renderToString(normalizarFormula(formula), { displayMode: false, throwOnError: false });
-            } catch (err) {
-                return match;
-            }
-        });
-
-        // 5. Fórmulas em linha: \( ... \)
+        // 4. Fórmulas em linha modernas: \( ... \)
         resultado = resultado.replace(/\\\(([\s\S]*?)\\\)/g, (match, formula) => {
             try {
                 return window.katex.renderToString(normalizarFormula(formula), { displayMode: false, throwOnError: false });
@@ -377,10 +396,13 @@ export function formatarTextoComLatex(texto) {
             }
         });
 
-        // Restaura valores monetários
-        resultado = resultado.replace(/___CURRENCY_TOKEN_(\d+)___/g, (match, idxStr) => {
-            const idx = parseInt(idxStr, 10);
-            return currencyTokens[idx] !== undefined ? currencyTokens[idx] : match;
+        // 5. Fallback para fórmulas em linha legadas em $ ... $
+        resultado = resultado.replace(/\$([^\$\n\r]+?)\$/g, (match, formula) => {
+            try {
+                return window.katex.renderToString(normalizarFormula(formula), { displayMode: false, throwOnError: false });
+            } catch (err) {
+                return match;
+            }
         });
 
         return resultado;

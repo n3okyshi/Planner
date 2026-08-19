@@ -234,20 +234,36 @@ export const model = {
         };
         this.state.materiaisGerados.push(novoMaterial);
         this.saveLocal();
+        if (this.currentUser) {
+            firebaseService.saveMaterialDoc(this.currentUser.uid, novoMaterial).catch(e => console.warn("Erro ao salvar material na subcoleção:", e));
+        }
         return novoMaterial;
     },
     async updateMaterial(id, dadosAtualizados) {
         if (!this.state.materiaisGerados) this.state.materiaisGerados = [];
         const index = this.state.materiaisGerados.findIndex(m => m.id === id);
         if (index !== -1) {
-            this.state.materiaisGerados[index] = {
+            const matAtualizado = {
                 ...this.state.materiaisGerados[index],
                 ...dadosAtualizados,
                 updatedAt: new Date().toISOString()
             };
+            this.state.materiaisGerados[index] = matAtualizado;
             this.saveLocal();
-            return this.state.materiaisGerados[index];
+            if (this.currentUser) {
+                firebaseService.saveMaterialDoc(this.currentUser.uid, matAtualizado).catch(e => console.warn("Erro ao atualizar material na subcoleção:", e));
+            }
+            return matAtualizado;
         }
+    },
+    async deleteMaterial(id) {
+        if (!this.state.materiaisGerados) this.state.materiaisGerados = [];
+        this.state.materiaisGerados = this.state.materiaisGerados.filter(m => m.id !== id);
+        this.saveLocal();
+        if (this.currentUser) {
+            firebaseService.deleteMaterialDoc(this.currentUser.uid, id).catch(e => console.warn("Erro ao deletar material na subcoleção:", e));
+        }
+        return true;
     },
     async saveQuiz(quiz) {
         if (!this.state.quizzes) this.state.quizzes = [];
@@ -431,7 +447,143 @@ export const model = {
         return novoLocal;
     },
 
+    async deleteMateriaisEmMassa(idsArray) {
+        if (!idsArray || !idsArray.length) return;
+        if (!this.state.materiaisGerados) this.state.materiaisGerados = [];
+        const setIds = new Set(idsArray.map(id => String(id)));
+        this.state.materiaisGerados = this.state.materiaisGerados.filter(m => !setIds.has(String(m.id)));
+        this.saveLocal();
+        if (this.currentUser && firebaseService?.deleteMaterialDoc) {
+            for (const id of idsArray) {
+                firebaseService.deleteMaterialDoc(this.currentUser.uid, id).catch(e => console.warn("Erro ao deletar material na subcoleção:", e));
+            }
+        }
+        if (Toast) Toast.show(`${idsArray.length} materiais excluídos com sucesso.`, "info");
+        this._atualizarViewsMaterial();
+        return true;
+    },
+
+    async duplicarMaterial(materialId) {
+        if (!this.state.materiaisGerados) this.state.materiaisGerados = [];
+        const matOriginal = this.state.materiaisGerados.find(m => String(m.id) === String(materialId));
+        if (!matOriginal) {
+            if (Toast) Toast.show("Material não encontrado para duplicação.", "error");
+            return null;
+        }
+
+        const copia = JSON.parse(JSON.stringify(matOriginal));
+        copia.id = 'mat_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 4);
+        copia.titulo = `${copia.titulo || copia.tema || 'Material'} (Cópia)`;
+        copia.createdAt = new Date().toISOString();
+        delete copia.compartilhado;
+
+        this.state.materiaisGerados.unshift(copia);
+        this.saveLocal();
+        if (this.currentUser && firebaseService?.saveMaterialDoc) {
+            firebaseService.saveMaterialDoc(this.currentUser.uid, copia).catch(e => console.warn("Erro ao salvar cópia de material na nuvem:", e));
+        }
+        if (Toast) Toast.show("Material duplicado com sucesso!", "success");
+        this._atualizarViewsMaterial();
+        return copia;
+    },
+
+    async compartilharMateriaisEmMassa(idsArray) {
+        if (!idsArray || !idsArray.length) return;
+        let sucessos = 0;
+        for (const id of idsArray) {
+            try {
+                await this.compartilharMaterial(id);
+                sucessos++;
+            } catch (e) {
+                console.error("Erro ao compartilhar item em massa:", id, e);
+            }
+        }
+        if (sucessos > 0 && Toast) {
+            Toast.show(`${sucessos} materiais compartilhados com a comunidade!`, "success");
+        }
+        this._atualizarViewsMaterial();
+    },
+
+    async compilarMateriaisEmPacote(idsArray, tituloPacote = 'Pacote Integrado de Materiais') {
+        if (!idsArray || !idsArray.length) return null;
+        if (!this.state.materiaisGerados) this.state.materiaisGerados = [];
+
+        const materiaisSelecionados = this.state.materiaisGerados.filter(m => idsArray.map(String).includes(String(m.id)));
+        if (!materiaisSelecionados.length) {
+            if (Toast) Toast.show("Nenhum material encontrado para compilação.", "error");
+            return null;
+        }
+
+        const profNome = this.state.userConfig?.profName || 'Professor(a)';
+        const escolaNome = this.state.userConfig?.escola || 'Escola';
+        const dataHoje = new Date().toLocaleDateString('pt-BR');
+
+        let htmlCompilado = `
+            <div class="pacote-compilado-capa" style="page-break-after: always; text-align: center; padding: 4rem 2rem; border-bottom: 2px dashed #cbd5e1; margin-bottom: 3rem;">
+                <h1 style="font-size: 2.25rem; font-weight: 800; color: #1e293b; margin-bottom: 1rem;">${window.escapeHTML ? window.escapeHTML(tituloPacote) : tituloPacote}</h1>
+                <p style="font-size: 1.125rem; color: #64748b; margin-bottom: 2rem;">Coletânea de Materiais Pedagógicos Integrados</p>
+                <div style="display: inline-block; text-align: left; background-color: #f8fafc; padding: 1.25rem 2rem; border-radius: 1rem; border: 1px solid #e2e8f0;">
+                    <p style="margin: 0.25rem 0; font-weight: 600; color: #334155;"><strong>Elaborado por:</strong> ${window.escapeHTML ? window.escapeHTML(profNome) : profNome}</p>
+                    <p style="margin: 0.25rem 0; font-weight: 600; color: #334155;"><strong>Instituição:</strong> ${window.escapeHTML ? window.escapeHTML(escolaNome) : escolaNome}</p>
+                    <p style="margin: 0.25rem 0; font-weight: 600; color: #334155;"><strong>Data da Compilação:</strong> ${dataHoje}</p>
+                    <p style="margin: 0.25rem 0; font-weight: 600; color: #334155;"><strong>Total de Seções:</strong> ${materiaisSelecionados.length} materiais</p>
+                </div>
+            </div>
+            
+            <div class="pacote-sumario" style="margin-bottom: 3rem; background-color: #f1f5f9; padding: 1.5rem; border-radius: 1rem;">
+                <h3 style="font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem;">Índice do Pacote:</h3>
+                <ol style="margin-left: 1.5rem; color: #475569;">
+                    ${materiaisSelecionados.map(m => `
+                        <li style="margin-bottom: 0.5rem;">
+                            <strong>${window.escapeHTML ? window.escapeHTML(m.titulo || m.tema || 'Material') : (m.titulo || 'Material')}</strong> 
+                            <span style="color: #94a3b8; font-size: 0.875rem;">(${window.escapeHTML ? window.escapeHTML(m.disciplina || 'Geral') : (m.disciplina || 'Geral')} - ${window.escapeHTML ? window.escapeHTML(m.serie || 'Geral') : (m.serie || 'Geral')})</span>
+                        </li>
+                    `).join('')}
+                </ol>
+            </div>
+        `;
+
+        materiaisSelecionados.forEach((m, idx) => {
+            const tituloMat = window.escapeHTML ? window.escapeHTML(m.titulo || m.tema || 'Seção') : (m.titulo || 'Seção');
+            htmlCompilado += `
+                <div class="pacote-secao" style="page-break-before: ${idx > 0 ? 'always' : 'auto'}; margin-bottom: 4rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 2px solid #4f46e5; padding-bottom: 0.5rem; margin-bottom: 1.5rem;">
+                        <h2 style="font-size: 1.5rem; font-weight: 800; color: #1e293b;">${idx + 1}. ${tituloMat}</h2>
+                        <span style="font-size: 0.75rem; background-color: #e0e7ff; color: #4338ca; padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 700;">${window.escapeHTML ? window.escapeHTML(m.disciplina || 'Geral') : (m.disciplina || 'Geral')}</span>
+                    </div>
+                    <div class="secao-conteudo">
+                        ${m.conteudo_html || '<p>Sem conteúdo estipulado.</p>'}
+                    </div>
+                </div>
+            `;
+        });
+
+        const novoPacote = {
+            id: 'pacote_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 4),
+            titulo: tituloPacote,
+            tema: `Compilação de ${materiaisSelecionados.length} materiais`,
+            tipo: 'pacote-compilado',
+            disciplina: materiaisSelecionados[0]?.disciplina || 'Geral',
+            serie: materiaisSelecionados[0]?.serie || 'Diversas',
+            conteudo_html: htmlCompilado,
+            itensCompiladosCount: materiaisSelecionados.length,
+            createdAt: new Date().toISOString()
+        };
+
+        this.state.materiaisGerados.unshift(novoPacote);
+        this.saveLocal();
+        if (this.currentUser && firebaseService?.saveMaterialDoc) {
+            firebaseService.saveMaterialDoc(this.currentUser.uid, novoPacote).catch(e => console.warn("Erro ao salvar pacote compilado no Firebase:", e));
+        }
+        if (Toast) Toast.show(`Pacote "${tituloPacote}" compilado com sucesso!`, "success");
+        this._atualizarViewsMaterial();
+        return novoPacote;
+    },
+
     _atualizarViewsMaterial() {
+        if (window.criarMaterialView && window.controller?.currentView === 'criar-material') {
+            window.criarMaterialView.render('view-container');
+        }
         if (window.bibliotecaView && window.controller?.currentView === 'biblioteca') {
             window.bibliotecaView.render('view-container');
         }

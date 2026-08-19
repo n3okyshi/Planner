@@ -36,8 +36,99 @@ export const aiService = {
         { id: 'gemini-3-flash-preview', v: 'v1beta' },
         { id: 'gemini-2.5-flash', v: 'v1beta' },
         { id: 'gemini-2.5-flash-lite', v: 'v1beta' },
+        { id: 'gemini-2.5-pro', v: 'v1beta' },
+        // 1. Linha de Frente: Mais rápidos e recomendados pelo console para substituir os antigos
+        { id: 'gemini-3.6-flash', v: 'v1beta' },
+        { id: 'gemini-3.7-flash', v: 'v1beta' }, // Modelo mais recente disponível na sua lista
+        { id: 'gemini-3.5-flash', v: 'v1beta' },
+
+        // 2. Tarefas Complexas: Substitutos do antigo Pro
+        { id: 'gemini-3.1-pro-preview', v: 'v1beta' }, // O próprio erro do 2.5 pediu para usar este
+
+        // 3. Modelos Leves (Lite) para respostas muito curtas
+        { id: 'gemini-3.5-flash-lite', v: 'v1beta' },
+        { id: 'gemini-3.1-flash-lite', v: 'v1beta' },
+
+        // 4. Aliases Dinâmicos (Sempre apontam para as versões mais novas no servidor do Google)
+        { id: 'gemini-flash-latest', v: 'v1beta' },
+        { id: 'gemini-pro-latest', v: 'v1beta' },
+
+        // 5. Fallbacks de última geração da família 2.5 que ainda estão ativos na sua conta
+        { id: 'gemini-2.5-flash', v: 'v1beta' },
         { id: 'gemini-2.5-pro', v: 'v1beta' }
     ],
+
+    _contarQuestoesNoHTML(html) {
+        if (!html) return 0;
+
+        // 1. Busca termos explícitos: Questão X, Exercício X, Item X
+        const matchesQ = html.match(/(?:Quest[ãa]o|Exerc[íi]cio|Item)\s*\d+/gi) || [];
+        if (matchesQ.length > 0) {
+            return new Set(matchesQ.map(m => m.toLowerCase().replace(/\s+/g, ''))).size;
+        }
+
+        // 2. Busca por numerações no início de elementos: "01.", "1.", "1)", "01)"
+        const matchesNum = html.match(/(?:<p>|<h[1-6]>|<div>|<li>)\s*(?:<strong>|<b>)?\s*(\d{1,2})[\.\)\-]/gi) || [];
+        if (matchesNum.length > 0) {
+            return new Set(matchesNum.map(m => m.replace(/\D/g, ''))).size;
+        }
+
+        // 3. Fallback: Contagem de itens <li> em listas ordenadas <ol>
+        const matchesLi = html.match(/<li>/gi) || [];
+        if (matchesLi.length > 0 && html.includes('<ol')) {
+            return matchesLi.length;
+        }
+
+        return 0;
+    },
+
+    async _validarERefinarMaterial(resultadoInicial, idFerramenta, dados, qtdRequerida = 0) {
+        if (!resultadoInicial || !resultadoInicial.conteudo_html) return resultadoInicial;
+
+        try {
+            console.log("🔍 Iniciando 2ª Camada de Auditoria e Refinamento de IA...");
+            const html = resultadoInicial.conteudo_html;
+            const qtdEncontrada = this._contarQuestoesNoHTML(html);
+
+            const temErroLatex = /hab\.\/km\^2\$|\$\s*\\text\{|\$\s*\d+(?:[\.,]\d+)?\s*(?=[^\$\d\w\\]|\s*$)/.test(html);
+            const precisaRefinarQtd = qtdRequerida > 0 && qtdEncontrada < qtdRequerida;
+
+            if (!precisaRefinarQtd && !temErroLatex) {
+                console.log(`✅ Material aprovado na 1ª camada com ${qtdEncontrada} questões encontradas.`);
+                return resultadoInicial;
+            }
+
+            console.warn(`⚠️ Auditoria IA detectou inconsistência: ${qtdEncontrada}/${qtdRequerida} questões encontradas. Executando 2ª camada de expansão e correção...`);
+
+            const promptAuditoria = `
+                Você é um auditor sênior de qualidade pedagógica e especialista em formatação HTML/LaTeX.
+                Examine o material gerado a seguir para a ferramenta ${idFerramenta.toUpperCase()}:
+
+                MATERIAL GERADO ORIGINAL (Contém apenas ${qtdEncontrada} questões):
+                ${JSON.stringify(resultadoInicial)}
+
+                SUA MISSÃO DE REFINAMENTO E EXPANSÃO (2ª CAMADA):
+                1. ${qtdRequerida > 0 ? `O professor solicitou EXATAMENTE ${qtdRequerida} questões completas. O material original continha apenas ${qtdEncontrada} questões. Você DEVE MANTÊ-LAS E ADICIONAR AS QUESTÕES FALTANTES (da Questão ${qtdEncontrada + 1} até a Questão ${qtdRequerida}), retornando o HTML completo contendo TODAS as ${qtdRequerida} questões com enunciado, opções e gabarito no final.` : 'Garanta que todas as questões e seções estejam completas e ricas.'}
+                2. Corrija qualquer erro de sintaxe LaTeX ou cifrões soltos. Todas as expressões matemáticas inline devem usar \(...\) e equações em destaque devem usar \[...\]. NUNCA use cifrões soltos. Escreva valores em dinheiro como texto simples (ex: R$ 100,00).
+                3. Garanta a tag <div class='gabarito-bloco'><h3>Gabarito e Expectativa de Resposta</h3>...</div> no final contemplando o gabarito de TODAS as ${qtdRequerida} questões.
+                
+                Retorne APENAS o JSON final corrigido na mesma estrutura exata.
+            `;
+
+            const resultadoRefinado = await this._executarPromptGemini(promptAuditoria, 8192);
+            if (resultadoRefinado && resultadoRefinado.conteudo_html) {
+                const qtdRefinada = this._contarQuestoesNoHTML(resultadoRefinado.conteudo_html);
+                console.log(`✅ 2ª Camada de Auditoria concluída! Contagem de questões: ${qtdRefinada}/${qtdRequerida}`);
+                if (qtdRefinada >= qtdEncontrada) {
+                    return resultadoRefinado;
+                }
+            }
+        } catch (err) {
+            console.warn("⚠️ Auditoria de 2ª camada encontrou um aviso, retornando resultado original:", err.message);
+        }
+
+        return resultadoInicial;
+    },
     _esperar: (ms) => new Promise(res => setTimeout(res, ms)),
     async _executarPromptGemini(prompt, maxTokens = 4096) {
         if (!navigator.onLine) {
@@ -414,9 +505,17 @@ export const aiService = {
             `;
         }
 
-        const qtdRequerida = Number(dados.quantidade || dados.qtd || 0);
-        const instrucaoQuantidade = qtdRequerida > 0 
-            ? `\n\nGARANTIA DE QUANTIDADE EXATA (OBRIGATÓRIO):\nO professor solicitou EXATAMENTE ${qtdRequerida} questões/exercícios. Você DEVE obrigatoriamente criar e numerar ${qtdRequerida} itens completos (Questão 1, Questão 2, ..., Questão ${qtdRequerida}). É estritamente proibido retornar apenas 5 ou truncar a quantidade solicitada.` 
+        let qtdRequerida = 0;
+        Object.entries(dados).forEach(([k, v]) => {
+            const kl = String(k).toLowerCase();
+            if (kl.includes('quantidade') || kl.includes('questões') || kl.includes('questoes') || kl.includes('qtd') || kl.includes('número') || kl.includes('numero') || kl.includes('nº') || kl.includes('itens') || kl.includes('exercícios') || kl.includes('exercicios')) {
+                const num = parseInt(String(v).replace(/\D/g, ''), 10);
+                if (!isNaN(num) && num > 0) qtdRequerida = num;
+            }
+        });
+
+        const instrucaoQuantidade = qtdRequerida > 0
+            ? `\n\nGARANTIA ABSOLUTA DE QUANTIDADE (OBRIGATÓRIO E CRÍTICO):\nO professor solicitou EXATAMENTE ${qtdRequerida} questões/exercícios. Você DEVE obrigatoriamente criar e numerar ${qtdRequerida} itens completos (Questão 1, Questão 2, ..., Questão ${qtdRequerida}). É ESTRITAMENTE PROIBIDO resumir, truncar ou entregar menos de ${qtdRequerida} questões. Se foram pedidas ${qtdRequerida} questões, crie todas as ${qtdRequerida}.${qtdRequerida >= 8 ? ' OBSERVAÇÃO DE CONCISÃO: Para garantir que todas as ' + qtdRequerida + ' questões caibam perfeitamente sem truncar, mantenha os enunciados e opções diretos, focados e objetivos.' : ''}`
             : '';
 
         const prompt = `
@@ -431,7 +530,10 @@ export const aiService = {
             
             REGRAS OBRIGATÓRIAS:
             1. Responda APENAS um objeto JSON puro. Sem formatação markdown, sem blocos \`\`\`json.
-            2. NUNCA insira cifrões soltos ou desacompanhados de fechamento antes de números e unidades (EXEMPLO PROIBIDO: "$ 320 \text{ kg}"). Para números com unidades, escreva texto simples "320 kg" ou notação LaTeX fechada "$320\\text{ kg}$". Para moedas reais, use sempre "R$ 320,00".
+            2. REGRAS ESTRITAS DE LaTeX E SÍMBOLOS MATEMÁTICOS:
+               - NUNCA insira cifrões soltos ou no final de frases/unidades (EXEMPLO PROIBIDO: "hab./km^2$" ou "$ 320 \text{ kg}").
+               - Toda expressão matemática no meio do texto DEVE ser envolvida em \(...\) (LaTeX inline) e equações em destaque em \[...\] (LaTeX em bloco). NUNCA use cifrões soltos ou $...$ / $$...$$.
+               - Para valores monetários em reais, escreva sempre "R$ 1.200,00" (como texto corrido normal, sem delimitadores TeX ou barras invertidas).
             3. Garanta que todas as tags HTML sejam puras, bem formadas e abertas/fechadas corretamente (<p>, <ul>, <li>, <div>). NUNCA inicie blocos com </p> solto ou entidades escapadas (&lt;p&gt;).
             4. O JSON DEVE ter a seguinte estrutura exata:
             {
@@ -439,11 +541,12 @@ export const aiService = {
                 "disciplina": "A disciplina informada",
                 "serie": "A série informada",
                 "tipo": "${idFerramenta}",
-                "conteudo_html": "O conteúdo completo do material formatado em tags HTML nativas (h3, p, ul, li, strong, table, thead, tbody, tr, th, td, etc) pronto para exibição. IMPORTANTE: 1. Para avaliações, listas ou atividades com exercícios, envolva toda a seção de gabarito e respostas dentro da tag <div class='gabarito-bloco'><h3>Gabarito e Expectativa de Resposta</h3>...</div> para possibilitar a separação automática entre a Versão do Aluno e a Versão do Professor. 2. Para qualquer fórmula matemática, equação, fração, expoente ou expressão científica, utilize OBRIGATORIAMENTE notação TeX/LaTeX padrão entre $$ ... $$ (para fórmulas em destaque/bloco) ou $ ... $ (para fórmulas no meio do texto)."
+                "conteudo_html": "O conteúdo completo do material formatado em tags HTML nativas (h3, p, ul, li, strong, table, thead, tbody, tr, th, td, etc) pronto para exibição. IMPORTANTE: 1. Para avaliações, listas ou atividades com exercícios, envolva toda a seção de gabarito e respostas dentro da tag <div class='gabarito-bloco'><h3>Gabarito e Expectativa de Resposta</h3>...</div> para possibilitar a separação automática entre a Versão do Aluno e a Versão do Professor. 2. Para qualquer fórmula matemática, equação, fração, expoente ou expressão científica, utilize OBRIGATORIAMENTE notação TeX/LaTeX padrão entre \[ ... \] (para fórmulas em destaque/bloco) ou \( ... \) (para fórmulas no meio do texto)."
             }
         `;
 
-        return await this._executarPromptGemini(prompt, 8192);
+        const resultadoInicial = await this._executarPromptGemini(prompt, 8192);
+        return await this._validarERefinarMaterial(resultadoInicial, idFerramenta, dados, qtdRequerida);
     },
     async gerarFlashcards({ disciplina, serie, assunto, quantidade = 8, nivel = 'Médio', contextoDocumento = '' }) {
         const secaoContexto = contextoDocumento && contextoDocumento.trim() !== ''

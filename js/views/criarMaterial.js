@@ -2,11 +2,30 @@ import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { aiService } from '../ai-service.js';
 import { Toast } from '../components/toast.js';
-import { lerArquivoTexto } from '../utils.js';
+import { lerArquivoTexto, renderKatex, formatarTextoComLatex, sanitizeComLatex } from '../utils.js';
 
 export const criarMaterialView = {
+    abaAtiva: 'meus', // 'meus', 'templates', 'comunidade'
+    selecionadas: new Set(),
+    termoBusca: '',
+    filtros: {
+        disciplina: '',
+        serie: '',
+        tipo: ''
+    },
+    paginaAtual: 1,
+    itensPorPagina: 25,
     ferramentaAtiva: null,
     contextoArquivoTexto: '',
+    disciplinas: [
+        "Língua Portuguesa", "Matemática", "Ciências", "História", "Geografia",
+        "Arte", "Educação Física", "Língua Inglesa", "Física", "Química",
+        "Biologia", "Filosofia", "Sociologia"
+    ],
+    seriesDisponiveis: [
+        "Educação Infantil", "1º Ano EF", "2º Ano EF", "3º Ano EF", "4º Ano EF", 
+        "5º Ano EF", "6º Ano EF", "7º Ano EF", "8º Ano EF", "9º Ano EF", "Ensino Médio"
+    ],
     categoriasMenu: [
         {
             titulo: 'PLANEJAR',
@@ -256,25 +275,636 @@ export const criarMaterialView = {
             ]
         }
     },
-    render(container) {
-        if (typeof container === 'string') container = document.getElementById(container);
-        if (!container) return;
-        container.innerHTML = `
-            <div class="fade-in" style="padding-bottom: 6rem; display: flex; flex-direction: column; height: 100%;">
-                <div style="margin-bottom: 1.5rem;">
-                    <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Criar Conteúdo</h2>
-                    <p class="text-slate-500 mt-1">Escolha uma ferramenta para começar a criar materiais com IA</p>
+    mudarAba(novaAba) {
+        this.abaAtiva = novaAba;
+        this.filtros = { disciplina: '', serie: '', tipo: '' };
+        this.termoBusca = '';
+        this.paginaAtual = 1;
+        this.render('view-container');
+    },
+
+    atualizarFiltro(campo, valor) {
+        this.filtros[campo] = valor;
+        this.paginaAtual = 1;
+        this.render('view-container');
+    },
+
+    atualizarBusca(valor) {
+        this.termoBusca = valor || '';
+        this.paginaAtual = 1;
+        this.render('view-container');
+    },
+
+    mudarQtdPagina(qtd) {
+        this.itensPorPagina = qtd === 'all' ? 'all' : Number(qtd);
+        this.paginaAtual = 1;
+        this.render('view-container');
+    },
+
+    proximaPagina() {
+        this.paginaAtual++;
+        this.render('view-container');
+    },
+
+    paginaAnterior() {
+        if (this.paginaAtual > 1) {
+            this.paginaAtual--;
+            this.render('view-container');
+        }
+    },
+
+    filtrarMateriais(todas) {
+        return (todas || []).filter(m => {
+            const termo = (this.termoBusca || '').toLowerCase();
+            const matchBusca = !termo ||
+                (m.titulo && m.titulo.toLowerCase().includes(termo)) ||
+                (m.tema && m.tema.toLowerCase().includes(termo)) ||
+                (m.disciplina && m.disciplina.toLowerCase().includes(termo)) ||
+                (m.serie && m.serie.toLowerCase().includes(termo)) ||
+                (m.bncc && m.bncc.toLowerCase().includes(termo)) ||
+                (m.conteudo_html && m.conteudo_html.toLowerCase().includes(termo));
+            
+            const matchDisciplina = !this.filtros.disciplina || m.disciplina === this.filtros.disciplina;
+            const matchSerie = !this.filtros.serie || (m.serie && m.serie.includes(this.filtros.serie));
+            const matchTipo = !this.filtros.tipo || m.tipo === this.filtros.tipo;
+
+            return matchBusca && matchDisciplina && matchSerie && matchTipo;
+        });
+    },
+
+    toggleSelecao(id) {
+        const idStr = String(id);
+        if (this.selecionadas.has(idStr)) {
+            this.selecionadas.delete(idStr);
+        } else {
+            this.selecionadas.add(idStr);
+        }
+        this.render('view-container');
+    },
+
+    selecionarTodos(listaPaginada) {
+        const todosMarcados = listaPaginada.every(m => this.selecionadas.has(String(m.id)));
+        if (todosMarcados) {
+            listaPaginada.forEach(m => this.selecionadas.delete(String(m.id)));
+        } else {
+            listaPaginada.forEach(m => this.selecionadas.add(String(m.id)));
+        }
+        this.render('view-container');
+    },
+
+    limparSelecao() {
+        this.selecionadas.clear();
+        this.render('view-container');
+    },
+
+    async compilarPacoteSelecionados() {
+        if (this.selecionadas.size === 0) return;
+        const defaultTitle = `Pacote Integrado (${this.selecionadas.size} materiais)`;
+        const titulo = prompt("Digite o título para o novo Pacote Compilado de Materiais:", defaultTitle);
+        if (!titulo || !titulo.trim()) return;
+
+        const novoPacote = await model.compilarMateriaisEmPacote(Array.from(this.selecionadas), titulo.trim());
+        if (novoPacote && window.conteudoGeradoView) {
+            this.selecionadas.clear();
+            window.conteudoGeradoView.setMaterial(novoPacote.id);
+            controller.navigate('conteudo-gerado');
+        }
+    },
+
+    baixarWordSelecionados() {
+        if (this.selecionadas.size === 0) return;
+        const selecionadosList = (model.state.materiaisGerados || []).filter(m => this.selecionadas.has(String(m.id)));
+        if (!selecionadosList.length) return;
+
+        let htmlLote = `
+            <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+            <head>
+                <meta charset='utf-8'>
+                <title>Coletânea de Materiais - Planner Pro</title>
+                <style>
+                    body { font-family: 'Segoe UI', Calibri, Arial, sans-serif; padding: 30px; color: #1e293b; }
+                    h1 { color: #1e293b; font-size: 20pt; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+                    h2 { color: #334155; font-size: 16pt; margin-top: 20px; }
+                    p, li { line-height: 1.6; color: #334155; font-size: 11pt; }
+                    .secao-material { page-break-after: always; margin-bottom: 40px; }
+                </style>
+            </head>
+            <body>
+        `;
+
+        selecionadosList.forEach((m, idx) => {
+            const tituloSafe = window.escapeHTML ? window.escapeHTML(m.titulo || m.tema || 'Material') : (m.titulo || 'Material');
+            htmlLote += `
+                <div class="secao-material">
+                    <h1>${idx + 1}. ${tituloSafe}</h1>
+                    <p><strong>Disciplina:</strong> ${window.escapeHTML(m.disciplina || 'Geral')} | <strong>Série:</strong> ${window.escapeHTML(m.serie || 'Geral')}</p>
+                    <hr>
+                    ${m.conteudo_html || ''}
                 </div>
-                <div style="display: flex; flex-direction: row; gap: 1.5rem; align-items: flex-start; flex: 1; position: relative; min-height: 0;">
-                    <aside class="tool-sidebar custom-scrollbar">
-                        ${this.gerarMenuLateral()}
-                    </aside>
-                    <main id="form-area" class="tool-main-panel animate-enter">
-                        ${this.gerarHTMLEmptyState()}
-                    </main>
+            `;
+        });
+
+        htmlLote += "</body></html>";
+
+        const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(htmlLote);
+        const fileDownload = document.createElement("a");
+        document.body.appendChild(fileDownload);
+        fileDownload.href = source;
+        fileDownload.download = `coletanea_materiais_${Date.now().toString(36)}.doc`;
+        fileDownload.click();
+        document.body.removeChild(fileDownload);
+        if (Toast) Toast.show(`${selecionadosList.length} materiais exportados para Word!`, "success");
+    },
+
+    imprimirPDFSelecionados() {
+        if (this.selecionadas.size === 0) return;
+        const selecionadosList = (model.state.materiaisGerados || []).filter(m => this.selecionadas.has(String(m.id)));
+        if (!selecionadosList.length) return;
+
+        const config = model.state.userConfig || {};
+        const nomeProf = config.profName ? config.profName : 'Professor(a)';
+        const nomeEscola = config.escolaName ? config.escolaName : 'Nome da Escola';
+        const dataHoje = new Date().toLocaleDateString('pt-BR');
+
+        let corpoImpressao = '';
+        selecionadosList.forEach((m, idx) => {
+            const conteudoLimpo = window.prepararHTMLParaExportacao 
+                ? window.prepararHTMLParaExportacao(m.conteudo_html || '', 'professor')
+                : (m.conteudo_html || '');
+            
+            corpoImpressao += `
+                <div class="secao-impressao-item" style="page-break-before: ${idx > 0 ? 'always' : 'auto'}; margin-bottom: 30px;">
+                    <div style="border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 20px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; font-weight: bold;">
+                            <span>${window.escapeHTML(nomeEscola)}</span>
+                            <span>PROFESSOR(A): ${window.escapeHTML(nomeProf)}</span>
+                        </div>
+                        <h2 style="font-size: 18px; font-weight: 900; margin: 10px 0 5px 0; text-transform: uppercase;">${window.escapeHTML(m.titulo || m.tema || 'Material')}</h2>
+                        <div style="display: flex; justify-content: space-between; font-size: 11px; color: #475569;">
+                            <span>DISCIPLINA: ${window.escapeHTML(m.disciplina || 'Geral')} • SÉRIE: ${window.escapeHTML(m.serie || 'Geral')}</span>
+                            <span>DATA: ${dataHoje}</span>
+                        </div>
+                    </div>
+                    <div class="content" style="line-height: 1.6;">
+                        ${conteudoLimpo}
+                    </div>
+                </div>
+            `;
+        });
+
+        const htmlDocumento = `
+            <!DOCTYPE html>
+            <html lang="pt-BR">
+            <head>
+                <meta charset="UTF-8">
+                <title>Lote de Materiais Pedagógicos - Impressão</title>
+                <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+                <style>
+                    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+                    body { font-family: 'Inter', sans-serif; color: #1e293b; background: #fff; padding: 0; margin: 0; }
+                    @page { size: A4; margin: 15mm; }
+                    .content h3 { font-size: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
+                    .content p { font-size: 13px; text-align: justify; margin-bottom: 8px; }
+                    .content ul, .content ol { font-size: 13px; padding-left: 20px; }
+                    .gabarito-bloco, .gabarito { background-color: #ecfdf5; border: 1px solid #a7f3d0; border-left: 4px solid #059669; padding: 10px 14px; margin: 12px 0; border-radius: 6px; }
+                </style>
+            </head>
+            <body>
+                ${corpoImpressao}
+                <script>
+                    window.onload = () => { window.print(); };
+                </script>
+            </body>
+            </html>
+        `;
+
+        const printWin = window.open('', '_blank');
+        printWin.document.open();
+        printWin.document.write(htmlDocumento);
+        printWin.document.close();
+    },
+
+    compartilharSelecionados() {
+        if (this.selecionadas.size === 0) return;
+        model.compartilharMateriaisEmMassa(Array.from(this.selecionadas));
+    },
+
+    excluirSelecionados() {
+        if (this.selecionadas.size === 0) return;
+        const qtd = this.selecionadas.size;
+        const acao = () => {
+            model.deleteMateriaisEmMassa(Array.from(this.selecionadas));
+            this.selecionadas.clear();
+        };
+
+        if (window.uiController && window.uiController.confirmarAcao) {
+            window.uiController.confirmarAcao(
+                "Excluir Materiais Selecionados",
+                `Tem certeza que deseja apagar ${qtd} materiais da sua biblioteca? Esta ação é irreversível.`,
+                acao
+            );
+        } else if (confirm(`Tem certeza que deseja apagar ${qtd} materiais?`)) {
+            acao();
+        }
+    },
+
+    cardMaterial(m) {
+        const isSelected = this.selecionadas.has(String(m.id));
+        const tituloSafe = window.escapeHTML ? window.escapeHTML(m.titulo || m.tema || 'Material sem título') : (m.titulo || m.tema || 'Material sem título');
+        const disciplinaSafe = window.escapeHTML ? window.escapeHTML(m.disciplina || 'Geral') : (m.disciplina || 'Geral');
+        const serieSafe = window.escapeHTML ? window.escapeHTML(m.serie || 'Série não informada') : (m.serie || 'Série não informada');
+        const tipoLabel = (m.tipo || 'geral').replace(/-/g, ' ').toUpperCase();
+        const dataFormatada = new Date(m.createdAt || Date.now()).toLocaleDateString('pt-BR');
+
+        const colorMap = {
+            'planejamento': { i: 'far fa-calendar-alt', c: '#4f46e5', bg: '#eef2ff' },
+            'dinamica-jogo': { i: 'fas fa-users', c: '#2563eb', bg: '#eff6ff' },
+            'jogos-rpg': { i: 'fas fa-dice-d20', c: '#e11d48', bg: '#fff1f2' },
+            'atividade-imprimivel': { i: 'fas fa-print', c: '#059669', bg: '#ecfdf5' },
+            'avaliacao-prova': { i: 'fas fa-clipboard-list', c: '#ea580c', bg: '#fff7ed' },
+            'rubrica-avaliacao': { i: 'fas fa-table-cells', c: '#c026d3', bg: '#fdf4ff' },
+            'diario-laboratorio': { i: 'fas fa-vial', c: '#0d9488', bg: '#f0fdfa' },
+            'pacote-compilado': { i: 'fas fa-layer-group', c: '#7c3aed', bg: '#f3e8ff' }
+        };
+        const style = colorMap[m.tipo] || { i: 'fas fa-file-alt', c: '#64748b', bg: '#f8fafc' };
+
+        // Process preview snippet with latex
+        let previewTexto = (m.conteudo_html || '').replace(/<[^>]*>?/gm, '');
+        if (previewTexto.length > 140) previewTexto = previewTexto.substring(0, 140) + '...';
+        const previewSafe = window.sanitizeComLatex ? window.sanitizeComLatex(previewTexto) : window.escapeHTML(previewTexto);
+
+        return `
+            <div class="material-card-unified interactive-element ${isSelected ? 'material-card-unified--selected' : ''}">
+                <!-- CAPA & SELEÇÃO -->
+                <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <input type="checkbox" ${isSelected ? 'checked' : ''} 
+                               onchange="criarMaterialView.toggleSelecao('${m.id}')"
+                               style="width: 1.25rem; height: 1.25rem; accent-color: #4f46e5; cursor: pointer; border-radius: 0.375rem;">
+                        <div style="width: 2.25rem; height: 2.25rem; border-radius: 0.75rem; background-color: ${style.bg}; color: ${style.c}; display: flex; align-items: center; justify-content: center; font-size: 1rem;">
+                            <i class="${style.i}"></i>
+                        </div>
+                        <div>
+                            <span class="badge" style="background-color: ${style.bg}; color: ${style.c}; font-size: 0.6875rem; font-weight: 800;">${tipoLabel}</span>
+                        </div>
+                    </div>
+                    ${m.compartilhado ? `
+                        <span class="badge" style="background-color: #f3e8ff; color: #7c3aed; font-size: 0.625rem; font-weight: 800;" title="Público na Comunidade">
+                            <i class="fas fa-globe"></i> Público
+                        </span>
+                    ` : ''}
+                </div>
+
+                <!-- TÍTULO & DETALHES -->
+                <div>
+                    <h4 style="font-weight: 800; color: #1e293b; font-size: 1.05rem; margin-bottom: 0.25rem; line-height: 1.3;">${tituloSafe}</h4>
+                    <p style="font-size: 0.75rem; color: #64748b; font-weight: 600; margin-bottom: 0.5rem;">
+                        <i class="fas fa-book-open" style="color: #94a3b8; margin-right: 0.25rem;"></i> ${disciplinaSafe} • ${serieSafe}
+                    </p>
+                    <div style="font-size: 0.8125rem; color: #475569; background-color: #f8fafc; padding: 0.625rem; border-radius: 0.75rem; border: 1px solid #f1f5f9; min-height: 2.75rem; max-height: 3.5rem; overflow: hidden;" class="katex-render-area">
+                        ${previewSafe || '<em style="color: #94a3b8;">Sem prévia de conteúdo.</em>'}
+                    </div>
+                </div>
+
+                <!-- METADADOS & AÇÕES -->
+                <div style="margin-top: auto; padding-top: 0.75rem; border-top: 1px solid #f1f5f9; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem;">
+                    <span style="font-size: 0.6875rem; color: #94a3b8; font-weight: 500;">
+                        <i class="far fa-clock"></i> ${dataFormatada}
+                    </span>
+                    
+                    <div style="display: flex; align-items: center; gap: 0.375rem;">
+                        <button type="button" onclick="conteudoGeradoView.setMaterial('${m.id}'); controller.navigate('conteudo-gerado');" 
+                                class="btn-primary interactive-element" 
+                                style="padding: 0.45rem 0.875rem; font-size: 0.75rem; background-color: #4f46e5; border-radius: 0.625rem; box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);">
+                            <i class="fas fa-eye"></i> Abrir
+                        </button>
+                        
+                        <button type="button" onclick="model.duplicarMaterial('${m.id}')" 
+                                class="interactive-element" 
+                                style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; background: #fff; color: #64748b; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
+                                title="Duplicar Material">
+                            <i class="far fa-clone" style="font-size: 0.75rem;"></i>
+                        </button>
+
+                        ${m.compartilhado ? `
+                            <button type="button" onclick="model.removerMaterialDaComunidade('${m.id}')" 
+                                    class="interactive-element" 
+                                    style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #ddd6fe; background: #f3e8ff; color: #7c3aed; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
+                                    title="Público (Clique para retirar da comunidade)">
+                                <i class="fas fa-globe" style="font-size: 0.75rem;"></i>
+                            </button>
+                        ` : `
+                            <button type="button" onclick="model.compartilharMaterial('${m.id}')" 
+                                    class="interactive-element" 
+                                    style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; background: #fff; color: #94a3b8; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
+                                    title="Compartilhar com a Comunidade">
+                                <i class="fas fa-globe" style="font-size: 0.75rem;"></i>
+                            </button>
+                        `}
+
+                        <button type="button" onclick="model.deleteMaterial('${m.id}')" 
+                                class="interactive-element" 
+                                style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #fee2e2; background: #fef2f2; color: #ef4444; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
+                                title="Excluir Material">
+                            <i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>
+                        </button>
+                    </div>
                 </div>
             </div>
         `;
+    },
+
+    floatingActionBar() {
+        return `
+            <div class="floating-action-bar">
+                <div class="floating-action-bar__counter">
+                    <span class="floating-action-bar__badge">${this.selecionadas.size}</span>
+                    <span>selecionados</span>
+                </div>
+
+                <button type="button" onclick="criarMaterialView.compilarPacoteSelecionados()" class="floating-action-bar__btn floating-action-bar__btn--primary" title="Compilar materiais selecionados em um único arquivo integrado com capa e sumário">
+                    <i class="fas fa-layer-group"></i> Compilar em Pacote
+                </button>
+
+                <button type="button" onclick="criarMaterialView.baixarWordSelecionados()" class="floating-action-bar__btn floating-action-bar__btn--secondary" title="Exportar materiais selecionados em arquivo Word (.doc)">
+                    <i class="far fa-file-word"></i> Baixar Word
+                </button>
+
+                <button type="button" onclick="criarMaterialView.imprimirPDFSelecionados()" class="floating-action-bar__btn floating-action-bar__btn--secondary" title="Imprimir / Gerar PDF dos materiais selecionados">
+                    <i class="fas fa-print"></i> PDF / Imprimir
+                </button>
+
+                <button type="button" onclick="criarMaterialView.compartilharSelecionados()" class="floating-action-bar__btn floating-action-bar__btn--secondary" title="Publicar selecionados na Comunidade">
+                    <i class="fas fa-globe"></i> Compartilhar
+                </button>
+
+                <button type="button" onclick="criarMaterialView.excluirSelecionados()" class="floating-action-bar__btn floating-action-bar__btn--danger" title="Excluir selecionados">
+                    <i class="fas fa-trash-alt"></i> Excluir
+                </button>
+
+                <button type="button" onclick="criarMaterialView.limparSelecao()" class="floating-action-bar__btn floating-action-bar__btn--secondary" style="margin-left: auto;" title="Cancelar seleção">
+                    <i class="fas fa-times"></i> Limpar
+                </button>
+            </div>
+        `;
+    },
+
+    renderMeusMateriais(materiaisPaginados, totalItens, totalPaginas) {
+        const todosMarcados = materiaisPaginados.length > 0 && materiaisPaginados.every(m => this.selecionadas.has(String(m.id)));
+
+        return `
+            <div class="animate-enter">
+                <!-- BARRA DE FILTROS & BUSCA (PADRÃO BANCO DE QUESTÕES) -->
+                <div class="dynamic-box" style="padding: 1.25rem; margin-bottom: 1.5rem;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
+                        <div>
+                            <label class="form-label">Disciplina</label>
+                            <select onchange="criarMaterialView.atualizarFiltro('disciplina', this.value)" class="form-select">
+                                <option value="">Todas as Disciplinas</option>
+                                ${this.disciplinas.map(d => `<option value="${d}" ${this.filtros.disciplina === d ? 'selected' : ''}>${d}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Série / Ano</label>
+                            <select onchange="criarMaterialView.atualizarFiltro('serie', this.value)" class="form-select">
+                                <option value="">Todas as Séries</option>
+                                ${this.seriesDisponiveis.map(s => `<option value="${s}" ${this.filtros.serie === s ? 'selected' : ''}>${s}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Tipo de Material</label>
+                            <select onchange="criarMaterialView.atualizarFiltro('tipo', this.value)" class="form-select">
+                                <option value="">Todos os Tipos</option>
+                                <option value="planejamento" ${this.filtros.tipo === 'planejamento' ? 'selected' : ''}>Planejamento</option>
+                                <option value="dinamica-jogo" ${this.filtros.tipo === 'dinamica-jogo' ? 'selected' : ''}>Dinâmica e Jogo</option>
+                                <option value="jogos-rpg" ${this.filtros.tipo === 'jogos-rpg' ? 'selected' : ''}>Jogos e RPG</option>
+                                <option value="atividade-imprimivel" ${this.filtros.tipo === 'atividade-imprimivel' ? 'selected' : ''}>Atividade Imprimível</option>
+                                <option value="avaliacao-prova" ${this.filtros.tipo === 'avaliacao-prova' ? 'selected' : ''}>Avaliação / Prova</option>
+                                <option value="rubrica-avaliacao" ${this.filtros.tipo === 'rubrica-avaliacao' ? 'selected' : ''}>Rubrica de Avaliação</option>
+                                <option value="diario-laboratorio" ${this.filtros.tipo === 'diario-laboratorio' ? 'selected' : ''}>Diário de Laboratório</option>
+                                <option value="pacote-compilado" ${this.filtros.tipo === 'pacote-compilado' ? 'selected' : ''}>Pacote Compilado</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div style="position: relative; margin-top: 1rem;">
+                        <i class="fas fa-search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--color-slate-400);"></i>
+                        <input type="text" placeholder="Pesquisar por título, assunto, palavra-chave ou código BNCC..." 
+                               class="form-input" style="padding-left: 2.75rem; width: 100%;"
+                               oninput="criarMaterialView.atualizarBusca(this.value)" value="${this.termoBusca}">
+                    </div>
+                </div>
+
+                <!-- CONTROLES SUPERIORES DE SELEÇÃO E PAGINAÇÃO -->
+                <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; gap: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <button type="button" onclick="criarMaterialView.selecionarTodos(criarMaterialView.filtrarMateriais(model.state.materiaisGerados || []))"
+                                class="btn-secondary interactive-element" style="padding: 0.4rem 0.875rem; font-size: 0.75rem; font-weight: 700;">
+                            <i class="${todosMarcados ? 'fas fa-check-square' : 'far fa-square'}"></i>
+                            ${todosMarcados ? 'Desmarcar Todos' : 'Marcar Todos'}
+                        </button>
+                        <span style="font-size: 0.75rem; font-weight: 700; color: #94a3b8;">Exibindo <strong style="color: #475569;">${materiaisPaginados.length}</strong> de <strong style="color: #475569;">${totalItens}</strong> materiais</span>
+                    </div>
+
+                    <div style="display: flex; align-items: center; background-color: #ffffff; border-radius: 0.75rem; border: 1px solid #e2e8f0; padding: 0.25rem 0.75rem; box-shadow: var(--shadow-sm);">
+                        <label class="form-label" style="margin-bottom: 0; margin-right: 0.5rem; font-size: 0.75rem;">Exibir por pág:</label>
+                        <select onchange="criarMaterialView.mudarQtdPagina(this.value)" class="form-select" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; width: 5.5rem; border: none; background: transparent;">
+                            <option value="25" ${this.itensPorPagina === 25 ? 'selected' : ''}>25</option>
+                            <option value="50" ${this.itensPorPagina === 50 ? 'selected' : ''}>50</option>
+                            <option value="100" ${this.itensPorPagina === 100 ? 'selected' : ''}>100</option>
+                            <option value="all" ${this.itensPorPagina === 'all' ? 'selected' : ''}>Todos</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- GRID DE CARDS UNIFICADOS -->
+                ${materiaisPaginados.length > 0 ? `
+                    <div class="materials-workspace-grid">
+                        ${materiaisPaginados.map(m => this.cardMaterial(m)).join('')}
+                    </div>
+                ` : this.gerarHTMLEmptyStateWorkspace()}
+
+                <!-- PAGINAÇÃO INFERIOR -->
+                ${totalPaginas > 1 ? `
+                    <div style="display: flex; margin-top: 2rem; justify-content: space-between; align-items: center; background-color: var(--color-white); padding: 1rem; border-radius: var(--radius-2xl); border: 1px solid var(--color-slate-200); box-shadow: var(--shadow-sm);">
+                        <button onclick="criarMaterialView.paginaAnterior()" ${this.paginaAtual === 1 ? 'disabled' : ''}
+                                class="btn-secondary interactive-element" style="padding: 0.5rem 1rem; font-size: 0.8125rem;">
+                            <i class="fas fa-chevron-left"></i> Anterior
+                        </button>
+                        
+                        <span style="font-size: 0.75rem; font-weight: 700; color: var(--color-slate-400); text-transform: uppercase;">
+                            Página <span style="color: #4f46e5; font-size: 0.875rem; font-weight: 900;">${this.paginaAtual}</span> de ${totalPaginas}
+                        </span>
+                        
+                        <button onclick="criarMaterialView.proximaPagina()" ${this.paginaAtual === totalPaginas ? 'disabled' : ''}
+                                class="btn-primary interactive-element" style="padding: 0.5rem 1rem; font-size: 0.8125rem; background-color: #4f46e5;">
+                            Próxima <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    },
+
+    gerarHTMLEmptyStateWorkspace() {
+        return `
+            <div class="tool-empty-state animate-enter" style="max-width: 32rem; padding: 4rem 2rem; background-color: var(--color-white); border-radius: 1.5rem; border: 1px solid #f1f5f9; box-shadow: var(--shadow-sm); margin: 2rem auto; text-align: center;">
+                <div class="tool-empty-state__icon-wrap" style="width: 5rem; height: 5rem; margin: 0 auto 1.25rem;">
+                    <i class="fas fa-folder-open" style="font-size: 2rem; color: #94a3b8;"></i>
+                </div>
+                <h3 class="text-xl font-bold text-slate-800 mb-2">Nenhum material encontrado</h3>
+                <p class="text-slate-500 text-sm mb-6">Tente ajustar seus filtros de busca ou crie um novo conteúdo pedagógico com IA.</p>
+                <button type="button" onclick="criarMaterialView.mudarAba('templates')" class="btn-primary interactive-element" style="padding: 0.75rem 1.5rem; background-color: #4f46e5; display: inline-flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-magic"></i> + Criar com IA agora
+                </button>
+            </div>
+        `;
+    },
+
+    renderTemplatesIA() {
+        return `
+            <div class="animate-enter" style="display: flex; flex-direction: row; gap: 1.5rem; align-items: flex-start; position: relative; min-height: 550px;">
+                <aside class="tool-sidebar custom-scrollbar" style="width: 280px; flex-shrink: 0;">
+                    ${this.gerarMenuLateral()}
+                </aside>
+                <main id="form-area" class="tool-main-panel animate-enter" style="flex: 1;">
+                    ${this.ferramentaAtiva ? this.renderizarFormularioDaFerramenta() : this.gerarHTMLEmptyState()}
+                </main>
+            </div>
+        `;
+    },
+
+    renderComunidadeMateriais() {
+        setTimeout(() => {
+            if (window.comunidadeView && window.comunidadeView.render) {
+                window.comunidadeView.render('area-comunidade-materiais');
+            }
+        }, 30);
+
+        return `
+            <div class="animate-enter">
+                <div id="area-comunidade-materiais">
+                    <div style="text-align: center; padding: 4rem 2rem;">
+                        <i class="fas fa-circle-notch fa-spin text-indigo-600 text-3xl"></i>
+                        <p class="text-slate-500 mt-2">Carregando acervo compartilhado da comunidade...</p>
+                    </div>
+                </div>
+            </div>
+        `;
+    },
+
+    abrirModalCriarMaterial() {
+        const modalContent = `
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; max-height: 70vh; overflow-y: auto; padding: 0.5rem;" class="custom-scrollbar">
+                ${this.categoriasMenu.map(cat => `
+                    <div style="grid-column: 1 / -1; margin-top: 0.5rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.25rem;">
+                        <h4 style="font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">${cat.titulo}</h4>
+                    </div>
+                    ${cat.itens.map(item => `
+                        <button type="button" 
+                                onclick="controller.closeModal(); criarMaterialView.mudarAba('templates'); criarMaterialView.selecionarFerramenta('${item.id}', null);"
+                                class="interactive-element" 
+                                ${item.disabled ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}
+                                style="display: flex; align-items: center; gap: 0.75rem; padding: 0.875rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 0.875rem; text-align: left; transition: all var(--transition-fast);"
+                                onmouseover="this.style.borderColor='#818cf8'; this.style.backgroundColor='#ffffff';" onmouseout="this.style.borderColor='#e2e8f0'; this.style.backgroundColor='#f8fafc';">
+                            <div style="width: 2.25rem; height: 2.25rem; border-radius: 0.625rem; background-color: #ffffff; border: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+                                <i class="${item.icone} ${item.cor}"></i>
+                            </div>
+                            <div>
+                                <h5 style="font-weight: 700; font-size: 0.875rem; color: #1e293b; line-height: 1.2;">${item.label}</h5>
+                            </div>
+                        </button>
+                    `).join('')}
+                `).join('')}
+            </div>
+        `;
+        controller.openModal('Selecionar Ferramenta de Geração por IA', modalContent, 'xl');
+    },
+
+    render(container) {
+        if (typeof container === 'string') container = document.getElementById(container);
+        if (!container) return;
+
+        const meusMateriais = model.state.materiaisGerados || [];
+        const materiaisFiltrados = this.filtrarMateriais(meusMateriais);
+        const totalItens = materiaisFiltrados.length;
+
+        let totalPaginas = this.itensPorPagina === 'all' ? 1 : Math.ceil(totalItens / this.itensPorPagina);
+        if (totalPaginas === 0) totalPaginas = 1;
+        if (this.paginaAtual > totalPaginas) this.paginaAtual = totalPaginas;
+
+        let materiaisPaginados = materiaisFiltrados;
+        if (this.itensPorPagina !== 'all') {
+            const inicio = (this.paginaAtual - 1) * this.itensPorPagina;
+            const fim = inicio + this.itensPorPagina;
+            materiaisPaginados = materiaisFiltrados.slice(inicio, fim);
+        }
+
+        const todosIds = new Set(meusMateriais.map(m => String(m.id)));
+        for (const id of this.selecionadas) {
+            if (!todosIds.has(String(id))) this.selecionadas.delete(id);
+        }
+
+        let conteudoAba = '';
+        if (this.abaAtiva === 'meus') {
+            conteudoAba = this.renderMeusMateriais(materiaisPaginados, totalItens, totalPaginas);
+        } else if (this.abaAtiva === 'templates') {
+            conteudoAba = this.renderTemplatesIA();
+        } else if (this.abaAtiva === 'comunidade') {
+            conteudoAba = this.renderComunidadeMateriais();
+        }
+
+        const html = `
+            <div class="fade-in print-hidden" style="padding-bottom: 6rem;">
+                <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; gap: 1rem;">
+                    <div>
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Gerador & Acervo de Materiais</h2>
+                            <span class="badge" style="background-color: #eef2ff; color: #4338ca; font-weight: 800; padding: 0.35rem 0.75rem; border-radius: 9999px; font-size: 0.75rem;">
+                                ${meusMateriais.length} materiais salvos
+                            </span>
+                        </div>
+                        <p class="text-slate-500 mt-1">Crie materiais pedagógicos com IA, organize em coleções e exporte pacotes prontos para aula.</p>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <button type="button" onclick="criarMaterialView.mudarAba('comunidade')" 
+                                class="btn-secondary interactive-element"
+                                style="background-color: #4f46e5; color: #ffffff; padding: 0.75rem 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.25);">
+                            <i class="fas fa-globe"></i> Explorar Comunidade
+                        </button>
+                        <button type="button" onclick="criarMaterialView.abrirModalCriarMaterial()" 
+                                class="btn-primary interactive-element" style="padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.25);">
+                            <i class="fas fa-magic"></i> + Novo Material com IA
+                        </button>
+                    </div>
+                </div>
+
+                <div class="mode-toggle-group" style="width: fit-content; margin-bottom: 1.5rem;">
+                    <button type="button" onclick="criarMaterialView.mudarAba('meus')" 
+                            class="mode-toggle-btn interactive-element ${this.abaAtiva === 'meus' ? 'mode-toggle-btn--active' : ''}">
+                        <i class="fas fa-folder-open" style="margin-right: 0.375rem;"></i> Meus Materiais (${meusMateriais.length})
+                    </button>
+                    <button type="button" onclick="criarMaterialView.mudarAba('templates')" 
+                            class="mode-toggle-btn interactive-element ${this.abaAtiva === 'templates' ? 'mode-toggle-btn--active' : ''}">
+                        <i class="fas fa-magic" style="margin-right: 0.375rem;"></i> Gerar com IA / Templates
+                    </button>
+                    <button type="button" onclick="criarMaterialView.mudarAba('comunidade')" 
+                            class="mode-toggle-btn interactive-element ${this.abaAtiva === 'comunidade' ? 'mode-toggle-btn--active' : ''}">
+                        <i class="fas fa-users-rectangle" style="margin-right: 0.375rem;"></i> Acervo da Comunidade
+                    </button>
+                </div>
+
+                ${conteudoAba}
+
+                ${this.selecionadas.size > 0 ? this.floatingActionBar() : ''}
+            </div>
+        `;
+
+        container.innerHTML = html;
+
+        if (window.renderKatex) {
+            window.renderKatex(container);
+        }
     },
     gerarMenuLateral() {
         return this.categoriasMenu.map(categoria => `
