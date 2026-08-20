@@ -11,19 +11,25 @@ import { commandPaletteController } from './controllers/commandPaletteController
 import { notificationController } from './controllers/notificationController.js';
 import { router } from './router.js';
 import { viewRegistry, publicViewAliases } from './services/viewRegistry.js';
-/**
- * Helper Global de Segurança contra XSS.
- * Transforma caracteres especiais em entidades HTML.
- * @global
- */
-window.escapeHTML = escapeHTML;
-export const controller = {
+import { EventDelegator } from './utils/eventDelegator.js';
+
+const subControllers = [
+    uiController,
+    authController,
+    turmaController,
+    planejamentoController,
+    commandPaletteController,
+    notificationController
+];
+
+const controllerCore = {
     currentView: null,
     views: {},
 
     init: function () {
         if (typeof window !== 'undefined') {
-            window.controller = this;
+            window.controller = controller;
+            window.escapeHTML = escapeHTML;
         }
         this.bindViews();
         uiController.aplicarTema();
@@ -92,10 +98,10 @@ export const controller = {
                 }
                 container.appendChild(wrapper);
                 
-                // DISPARO DO KATEX NO ESCOPO DO WRAPPER INJETADO
-                renderMath(wrapper);
-                setTimeout(() => renderMath(wrapper), 50);
-                setTimeout(() => renderMath(wrapper), 200);
+                // DISPARO DO KATEX ALINHADO À PINTURA (ELIMINA LAYOUT THRASHING E MULTIPLOS SETTIMEOUTS)
+                requestAnimationFrame(() => {
+                    renderMath(wrapper);
+                });
 
                 uiController.initLazyLoading(wrapper);
                 uiController.updateBreadcrumb(target);
@@ -124,40 +130,6 @@ export const controller = {
         }, 50);
     },
 
-    openModal(t, c, s) { uiController.openModal(t, c, s); },
-    closeModal() { uiController.closeModal(); },
-    confirmarAcao(t, m, c) { uiController.confirmarAcao(t, m, c); },
-    toggleSidebar() { uiController.toggleSidebar(); },
-    aplicarTema() { uiController.aplicarTema(); },
-
-    handleLogin() { authController.handleLogin(); },
-    handleLogout() { authController.handleLogout(); },
-
-    openAddTurma() { turmaController.openAddTurma(); },
-    saveTurma() { turmaController.saveTurma(); },
-    deleteTurma(id) { turmaController.deleteTurma(id); },
-    updateSerieOptions(n) { turmaController.updateSerieOptions(n); },
-    openAddAluno(t, a) { turmaController.openAddAluno(t, a); },
-    saveAluno(t, a) { turmaController.saveAluno(t, a); },
-    deleteAluno(t, a) { turmaController.deleteAluno(t, a); },
-    openAddAlunoLote(id) { turmaController.openAddAlunoLote(id); },
-    saveAlunoLote(id) { turmaController.saveAlunoLote(id); },
-    openAddAvaliacao(id) { turmaController.openAddAvaliacao(id); },
-    saveAvaliacao(id) { turmaController.saveAvaliacao(id); },
-    deleteAvaliacao(t, a) { turmaController.deleteAvaliacao(t, a); },
-    updateNota(t, al, av, v) { turmaController.updateNota(t, al, av, v); },
-
-    salvarDiario() { planejamentoController.salvarDiario(); },
-    mudarDataDiario(d) { planejamentoController.mudarDataDiario(d); },
-    mudarMesDiario(d) { planejamentoController.mudarMesDiario(d); },
-    mudarTurmaDiario(id) { planejamentoController.mudarTurmaDiario(id); },
-    abrirModalCopiarPlanejamento(id) { planejamentoController.abrirModalCopiarPlanejamento(id); },
-    confirmarCopiaPlanejamento(id) { planejamentoController.confirmarCopiaPlanejamento(id); },
-    openSeletorBncc(t, p, n, s) { planejamentoController.openSeletorBncc(t, p, n, s); },
-    openSeletorBnccDiario(t) { planejamentoController.openSeletorBnccDiario(t); },
-    removeHabilidade(t, p, c) { planejamentoController.removeHabilidade(t, p, c); },
-    openSeletorBnccMensal(t, m, n, s) { planejamentoController.openSeletorBnccMensal(t, m, n, s); },
-    removeHabilidadeMensal(t, m, c) { planejamentoController.removeHabilidadeMensal(t, m, c); },
     openSeletorBnccQuestao() {
         const elMateria = document.getElementById('q-materia');
         const elAno = document.getElementById('q-ano');
@@ -240,6 +212,22 @@ export const controller = {
         if (dateEl) {
             dateEl.innerText = new Date().toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
         }
+
+        EventDelegator.bind(document.body, {
+            'navigate': (e, target) => {
+                const route = target.getAttribute('data-route');
+                if (route) controller.navigate(route);
+            },
+            'toggle-sidebar': () => controller.toggleSidebar(),
+            'handle-login': () => controller.handleLogin(),
+            'toggle-zen': () => uiController.toggleZenMode(),
+            'toggle-theme': () => uiController.toggleTema(),
+            'open-sync': () => uiController.abrirCentroSincronizacao(),
+            'print': () => window.print(),
+            'export-data': () => controller.exportData(),
+            'command-palette': () => window.commandPaletteController?.open(),
+            'toggle-notifications': () => window.notificationController?.toggle()
+        });
     },
     openDayOptions(data) {
         if (calendarioView && calendarioView.openDayOptions) {
@@ -285,6 +273,22 @@ export const controller = {
         else if (this.currentView === 'calendario') this.navigate('calendario');
     }
 };
+
+export const controller = new Proxy(controllerCore, {
+    get(target, prop, receiver) {
+        if (prop in target) {
+            const val = Reflect.get(target, prop, receiver);
+            return typeof val === 'function' ? val.bind(receiver) : val;
+        }
+        for (const sub of subControllers) {
+            if (sub && typeof sub[prop] === 'function') {
+                return sub[prop].bind(sub);
+            }
+        }
+        return undefined;
+    }
+});
+
 if (typeof window !== 'undefined') {
     window.controller = controller;
 }

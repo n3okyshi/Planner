@@ -509,7 +509,6 @@ export const estudosVisuaisView = {
         const acao = async () => {
             await model.deleteFlashcardDeck(deckId);
             this.baralhosSelecionados.delete(deckId);
-            Toast.show("Baralho removido.", "info");
             this.render(this._getContainer());
         };
         if (window.controller && typeof window.controller.confirmarAcao === 'function') {
@@ -1250,7 +1249,6 @@ export const estudosVisuaisView = {
     async excluirMindmap(mapaId) {
         const acao = async () => {
             await model.deleteMindmap(mapaId);
-            Toast.show("Mapa Mental removido.", "info");
             this.render(this._getContainer());
         };
         if (window.controller && typeof window.controller.confirmarAcao === 'function') {

@@ -71,7 +71,7 @@ export const router = {
     routes: routeRegistry,
     aliases: routeAliases,
     modules: viewModuleMap,
-    
+
     resolve(viewName = 'dashboard') {
         const alias = this.aliases[viewName];
         const target = alias || viewName;

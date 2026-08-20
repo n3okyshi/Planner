@@ -1,7 +1,7 @@
 
 
 import { firebaseService } from '../firebase-service.js';
-import { provaService } from '../services/provaService.js';
+import { dataProxy } from '../services/dataProxy.js';
 import { viewRegistry } from '../services/viewRegistry.js';
 import { Toast } from '../components/toast.js';
 import { normalizeText, generateUUID, generateId, secureShuffle } from '../utils.js';
@@ -73,7 +73,7 @@ export const provaMethods = {
         if (!questao) return;
         const enunciadoNormalizado = (questao.enunciado || "").trim();
         try {
-            const jaExiste = await provaService.verificarDuplicataComunidade(enunciadoNormalizado);
+            const jaExiste = await dataProxy.verificarDuplicataComunidade(enunciadoNormalizado);
             if (jaExiste) {
                 if (Toast) Toast.show("Essa questão já existe na comunidade.", "warning");
                 questao.compartilhada = true;
@@ -103,7 +103,7 @@ export const provaMethods = {
                 id_local_origem: String(questao.id),
                 data_partilha: new Date().toISOString()
             };
-            await provaService.publicarQuestaoComunidade(qPublica);
+            await dataProxy.publicarQuestaoComunidade(qPublica);
             questao.compartilhada = true;
             this.saveLocal();
             if (Toast) Toast.show("Compartilhado com sucesso!", "success");
@@ -119,7 +119,7 @@ export const provaMethods = {
     async removerDaComunidade(questaoId) {
         try {
             if (!firebaseService?.removerQuestaoComunidade) throw new Error("Firebase Service não carregado");
-            await provaService.removerQuestaoComunidade(this.currentUser.uid, questaoId);
+            await dataProxy.removerQuestaoComunidade(this.currentUser.uid, questaoId);
             const questao = this.state.questoes.find(q => String(q.id) === String(questaoId));
             if (questao) {
                 delete questao.compartilhada;

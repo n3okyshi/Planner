@@ -12,12 +12,31 @@ export const planejamentoView = {
 
     mudarAba(aba) {
         this.abaAtiva = aba;
-        this.render('view-container');
+        if (window.controller) {
+            window.controller.currentView = aba === 'diario' ? 'dia' : aba;
+            if (window.uiController && typeof window.uiController.updateActiveNav === 'function') {
+                window.uiController.updateActiveNav(window.controller.currentView);
+            }
+            if (window.uiController && typeof window.uiController.updateBreadcrumb === 'function') {
+                window.uiController.updateBreadcrumb(window.controller.currentView);
+            }
+        }
+        this.render('view-container', aba);
     },
 
-    render(container) {
+    render(container, forceAba = null) {
         if (typeof container === 'string') container = document.getElementById(container);
+        if (!container) container = document.getElementById('view-container');
         if (!container) return;
+
+        if (forceAba) {
+            this.abaAtiva = forceAba;
+        } else if (window.controller && window.controller.currentView) {
+            const v = window.controller.currentView;
+            if (v === 'mensal') this.abaAtiva = 'mensal';
+            else if (v === 'dia' || v === 'diario') this.abaAtiva = 'diario';
+            else if (v === 'periodo' || v === 'planejamento') this.abaAtiva = 'periodo';
+        }
 
         const html = `
             <div class="animate-enter" style="display: flex; flex-direction: column; gap: var(--spacing-6); padding-bottom: var(--spacing-8);">

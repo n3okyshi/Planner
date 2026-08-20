@@ -730,6 +730,43 @@ export const uiController = {
             await window.syncService.forcarSincronizacao();
             this.abrirCentroSincronizacao();
         }
+    },
+
+    renderLoading(container, mensagem = 'Carregando...') {
+        if (typeof container === 'string') container = document.getElementById(container);
+        if (!container) return;
+        const msgEscaped = window.escapeHTML(mensagem);
+        container.innerHTML = `
+            <div class="comunidade-empty fade-in" style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3rem 1rem;">
+                <i class="fas fa-circle-notch fa-spin" style="font-size: 2rem; color: var(--color-primary);"></i>
+                <p style="color: var(--color-slate-500); margin-top: var(--spacing-4); font-size: 0.875rem; font-weight: 700;">${msgEscaped}</p>
+            </div>
+        `;
+    },
+
+    renderEmptyState(container, { icone = 'fa-search', titulo = 'Nenhum resultado encontrado', mensagem = 'Tente ajustar os filtros de busca.', acaoTexto = '', acaoDataAction = '' } = {}) {
+        if (typeof container === 'string') container = document.getElementById(container);
+        if (!container) return;
+        const iconEscaped = window.escapeHTML(icone);
+        const titEscaped = window.escapeHTML(titulo);
+        const msgEscaped = window.escapeHTML(mensagem);
+        const acaoTxtEscaped = window.escapeHTML(acaoTexto);
+        const acaoActionEscaped = window.escapeHTML(acaoDataAction);
+
+        container.innerHTML = `
+            <div class="card fade-in" style="padding: 3rem 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; border: 2px dashed var(--color-slate-200); width: 100%; box-sizing: border-box;">
+                <div style="width: 3.5rem; height: 3.5rem; border-radius: var(--radius-full); background-color: var(--color-slate-100); color: var(--color-slate-400); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; margin-bottom: 1rem;">
+                    <i class="fas ${iconEscaped}"></i>
+                </div>
+                <h4 style="font-size: 1rem; font-weight: 800; color: var(--color-slate-800); margin-bottom: 0.25rem;">${titEscaped}</h4>
+                <p style="font-size: 0.875rem; color: var(--color-slate-500); max-width: 380px;">${msgEscaped}</p>
+                ${acaoTexto ? `
+                    <button type="button" data-action="${acaoActionEscaped}" class="btn-primary" style="margin-top: 1rem;">
+                        <span>${acaoTxtEscaped}</span>
+                    </button>
+                ` : ''}
+            </div>
+        `;
     }
 };
 

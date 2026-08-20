@@ -120,7 +120,7 @@ export const planejamentoController = {
         if (!turma) return;
         const callback = (habilidade) => {
             model.addHabilidadeMensal(turmaId, mes, habilidade);
-            if (window.mensalView) window.mensalView.render('view-container');
+            if (window.mensalView) window.mensalView.render();
         };
         window.controller.openModal(`BNCC - ${mes} (${turma.nome})`, '<div id="modal-bncc-container" style="width: 100%; max-height: 80vh; overflow-y: auto; padding: var(--spacing-4);"></div>', 'xl');
         setTimeout(() => {
@@ -160,8 +160,8 @@ export const planejamentoController = {
     removeHabilidadeMensal(turmaId, mes, codigo) {
         window.controller.confirmarAcao("Remover?", "Deseja remover esta habilidade do mês?", () => {
             model.removeHabilidadeMensal(turmaId, mes, codigo);
-            if (window.controller.currentView === 'mensal' && window.mensalView) {
-                window.mensalView.render('view-container');
+            if (window.mensalView) {
+                window.mensalView.render();
             }
             if (window.Toast) window.Toast.show("Habilidade removida do planejamento mensal.", "info");
         });

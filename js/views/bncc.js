@@ -1,5 +1,6 @@
 import { model } from '../model.js';
 import { Toast } from '../components/toast.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 
 export const bnccView = {
     selecionarCallback: null,
@@ -7,6 +8,7 @@ export const bnccView = {
     filtrosVisiveisMobile: false,
     bancoCompleto: [],
     estaCarregandoBanco: false,
+    _cleanupDelegators: [],
 
     async render(container, preNivel = null, preSerie = null, callbackExterno = null) {
         if (typeof container === 'string') container = document.getElementById(container);
@@ -14,6 +16,10 @@ export const bnccView = {
 
         this.selecionarCallback = callbackExterno;
         this.filtrosVisiveisMobile = false;
+
+        // Limpa ouvintes anteriores
+        this._cleanupDelegators.forEach(cleanup => cleanup());
+        this._cleanupDelegators = [];
 
         const html = `
             <div class="view-shell fade-in">
@@ -31,7 +37,7 @@ export const bnccView = {
                         <div style="position: relative; width: 100%;">
                             <i class="fas fa-search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--color-slate-400);"></i>
                             <input type="text" id="bncc-busca-global" 
-                                   oninput="bnccView.executarBuscaRapida(this.value)"
+                                   data-action="busca-global-bncc"
                                    placeholder="Busca global (ex: Frações, Verbos, EF06...)" 
                                    class="form-input" style="padding-left: 2.75rem;">
                             <div id="loading-global" style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); display: none;">
@@ -52,7 +58,7 @@ export const bnccView = {
 
                         <div>
                             <label for="bncc-nivel" class="form-label">Nível de Ensino</label>
-                            <select id="bncc-nivel" onchange="bnccView.updateFiltros(this.value)" class="form-select">
+                            <select id="bncc-nivel" data-action="nivel-bncc" class="form-select">
                                 <option value="">Selecione o nível...</option>
                                 <option value="Educação Infantil">Educação Infantil</option>
                                 <option value="Ensino Fundamental">Ensino Fundamental</option>
@@ -62,7 +68,7 @@ export const bnccView = {
 
                         <div>
                             <label for="bncc-componente" class="form-label">Componente / Campo</label>
-                            <select id="bncc-componente" onchange="bnccView.updateEixos()" disabled class="form-select">
+                            <select id="bncc-componente" data-action="componente-bncc" disabled class="form-select">
                                 <option value="">Aguardando nível...</option>
                             </select>
                         </div>
@@ -82,10 +88,10 @@ export const bnccView = {
                         </div>
 
                         <div style="display: flex; flex-direction: column; gap: var(--spacing-2); margin-top: var(--spacing-2); padding-top: var(--spacing-4); border-top: 1px solid var(--color-slate-100);">
-                            <button type="button" onclick="bnccView.pesquisar()" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem;">
+                            <button type="button" data-action="pesquisar-bncc" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem;">
                                 <i class="fas fa-search"></i> <span>Aplicar Filtros</span>
                             </button>
-                            <button type="button" onclick="bnccView.limparFiltros()" class="btn-secondary" style="width: 100%; justify-content: center; padding: 0.5rem; font-size: 0.75rem;">
+                            <button type="button" data-action="limpar-filtros-bncc" class="btn-secondary" style="width: 100%; justify-content: center; padding: 0.5rem; font-size: 0.75rem;">
                                 <span>Limpar Filtros</span>
                             </button>
                         </div>
@@ -109,7 +115,44 @@ export const bnccView = {
         `;
 
         container.innerHTML = html;
-        this.garantirBancoCompleto();
+
+        // Registro centralizado de eventos via EventDelegator
+        this._cleanupDelegators.push(
+            EventDelegator.bind(container, {
+                'pesquisar-bncc': () => this.pesquisar(),
+                'limpar-filtros-bncc': () => this.limparFiltros(),
+                'copiar-bncc': (e, target) => {
+                    const codigo = target.getAttribute('data-codigo');
+                    const descricao = target.getAttribute('data-descricao');
+                    if (codigo && descricao) this.copiarParaAreaTransferencia(codigo, descricao);
+                },
+                'vincular-bncc': (e, target) => {
+                    const rawPayload = target.getAttribute('data-payload');
+                    if (rawPayload) {
+                        try {
+                            const obj = JSON.parse(rawPayload);
+                            this.executarSelecao(obj, target);
+                        } catch (err) { }
+                    }
+                }
+            }, 'click')
+        );
+
+        this._cleanupDelegators.push(
+            EventDelegator.bind(container, {
+                'nivel-bncc': (e, target) => this.updateFiltros(target.value),
+                'componente-bncc': () => this.updateEixos()
+            }, 'change')
+        );
+
+        this._cleanupDelegators.push(
+            EventDelegator.bind(container, {
+                'busca-global-bncc': (e, target) => this.executarBuscaRapida(target.value)
+            }, 'input')
+        );
+
+        // Carga diferida do banco completo ocorre sob demanda na busca global
+        // (removido chamada ansiosathis.garantirBancoCompleto() para economizar memória)
 
         if (preNivel) {
             const nivelSelect = document.getElementById('bncc-nivel');
@@ -177,14 +220,16 @@ export const bnccView = {
         try {
             const niveis = ["Educação Infantil", "Ensino Fundamental", "Ensino Médio"];
             const arquivos = ["bncc_infantil.json", "bncc_fundamental.json", "bncc_medio.json"];
-            const promises = arquivos.map(async (arq, i) => {
-                const res = await fetch(`./assets/BNCC/${arq}`);
-                const json = await res.json();
-                this.dataCache[niveis[i]] = json;
-                return this._normalizarDados(json, niveis[i]);
-            });
-            const arrays = await Promise.all(promises);
-            this.bancoCompleto = arrays.flat();
+            const arrayNiveis = [];
+            for (let i = 0; i < niveis.length; i++) {
+                const niv = niveis[i];
+                if (!this.dataCache[niv]) {
+                    const res = await fetch(`./assets/BNCC/${arquivos[i]}`);
+                    this.dataCache[niv] = await res.json();
+                }
+                arrayNiveis.push(this._normalizarDados(this.dataCache[niv], niv));
+            }
+            this.bancoCompleto = arrayNiveis.flat();
         } catch (e) {
             console.error("Erro ao carregar banco global BNCC", e);
         } finally {
@@ -372,9 +417,14 @@ export const bnccView = {
         return lista;
     },
 
+    /**
+     * Renderiza os cards de habilidades utilizando DocumentFragment para otimização do DOM e elimina Layout Thrashing.
+     */
     renderCards(data) {
         const container = document.getElementById('bncc-resultados');
         if (!container) return;
+
+        container.innerHTML = '';
 
         if (data.length === 0) {
             container.innerHTML = `
@@ -386,64 +436,72 @@ export const bnccView = {
             return;
         }
 
-        container.innerHTML = data.map(item => {
+        const fragment = document.createDocumentFragment();
+
+        data.forEach(item => {
             const cor = item.cor || '#64748b';
-            const objSafe = JSON.stringify({
+            const payloadStr = JSON.stringify({
                 codigo: item.codigo,
                 descricao: item.descricao,
                 componente: item.componente,
                 objeto: item.objeto_conhecimento,
                 cor: item.cor
-            }).replace(/'/g, "&#39;").replace(/"/g, "&quot;");
+            });
 
-            let btnAcao = this.selecionarCallback ?
-                `<button type="button" onclick='bnccView.executarSelecao(${objSafe}, this)' 
+            const card = document.createElement('div');
+            card.className = 'card';
+            card.style.cssText = `padding: var(--spacing-4); border-left: 5px solid ${cor}; display: flex; flex-direction: column; gap: var(--spacing-3); transition: all var(--transition-fast);`;
+
+            let btnAcaoHTML = this.selecionarCallback ?
+                `<button type="button" data-action="vincular-bncc" data-payload='${window.escapeHTML(payloadStr)}' 
                          class="btn-primary" style="background-color: #059669; padding: 0.5rem 1rem; font-size: 0.75rem; border-radius: var(--radius-lg); white-space: nowrap;">
                     <i class="fas fa-plus"></i> <span>Vincular</span>
                 </button>` :
-                `<button type="button" onclick="bnccView.copiarParaAreaTransferencia('${window.escapeHTML(item.codigo)}', '${window.escapeHTML(item.descricao).replace(/'/g, "\\'")}')" 
+                `<button type="button" data-action="copiar-bncc" data-codigo="${window.escapeHTML(item.codigo)}" data-descricao="${window.escapeHTML(item.descricao)}" 
                          class="btn-icon" title="Copiar código e descrição">
                     <i class="far fa-copy" style="font-size: 1rem;"></i>
                 </button>`;
 
-            return `
-                <div class="card" style="padding: var(--spacing-4); border-left: 5px solid ${cor}; display: flex; flex-direction: column; gap: var(--spacing-3); transition: all var(--transition-fast);">
-                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--spacing-3);">
-                        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem;">
-                            <span style="background-color: ${cor}; color: white; font-size: 0.6875rem; font-weight: 900; padding: 0.125rem 0.5rem; border-radius: var(--radius-sm); letter-spacing: 0.05em; text-transform: uppercase;">
-                                ${window.escapeHTML(item.codigo)}
+            card.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--spacing-3);">
+                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.375rem;">
+                        <span style="background-color: ${cor}; color: white; font-size: 0.6875rem; font-weight: 900; padding: 0.125rem 0.5rem; border-radius: var(--radius-sm); letter-spacing: 0.05em; text-transform: uppercase;">
+                            ${window.escapeHTML(item.codigo)}
+                        </span>
+                        <span class="badge" style="background-color: var(--color-slate-100); color: var(--color-slate-600); font-weight: 700;">
+                            ${window.escapeHTML(item.componente)}
+                        </span>
+                        <span class="badge" style="background-color: var(--color-slate-100); color: var(--color-slate-600); font-weight: 700;">
+                            ${window.escapeHTML(item.ano)}
+                        </span>
+                        ${item.eixo && item.eixo !== item.componente ? `
+                            <span class="badge" style="background-color: var(--color-primary-light); color: var(--color-primary); font-weight: 700;">
+                                ${window.escapeHTML(item.eixo)}
                             </span>
-                            <span class="badge" style="background-color: var(--color-slate-100); color: var(--color-slate-600); font-weight: 700;">
-                                ${window.escapeHTML(item.componente)}
-                            </span>
-                            <span class="badge" style="background-color: var(--color-slate-100); color: var(--color-slate-600); font-weight: 700;">
-                                ${window.escapeHTML(item.ano)}
-                            </span>
-                            ${item.eixo && item.eixo !== item.componente ? `
-                                <span class="badge" style="background-color: var(--color-primary-light); color: var(--color-primary); font-weight: 700;">
-                                    ${window.escapeHTML(item.eixo)}
-                                </span>
-                            ` : ''}
-                        </div>
-
-                        <div style="flex-shrink: 0;">
-                            ${btnAcao}
-                        </div>
+                        ` : ''}
                     </div>
 
-                    <p style="font-size: 0.875rem; color: var(--color-slate-700); line-height: 1.6; font-weight: 500; margin: 0;">
-                        ${window.escapeHTML(item.descricao)}
-                    </p>
-
-                    ${item.objeto_conhecimento ? `
-                        <div style="padding-top: var(--spacing-2); border-top: 1px solid var(--color-slate-100); display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.75rem; color: var(--color-slate-500);">
-                            <i class="fas fa-lightbulb" style="color: #f59e0b; margin-top: 0.125rem;"></i>
-                            <span><em>Objeto de Conhecimento:</em> ${window.escapeHTML(item.objeto_conhecimento)}</span>
-                        </div>
-                    ` : ''}
+                    <div style="flex-shrink: 0;">
+                        ${btnAcaoHTML}
+                    </div>
                 </div>
+
+                <p style="font-size: 0.875rem; color: var(--color-slate-700); line-height: 1.6; font-weight: 500; margin: 0;">
+                    ${window.escapeHTML(item.descricao)}
+                </p>
+
+                ${item.objeto_conhecimento ? `
+                    <div style="padding-top: var(--spacing-2); border-top: 1px solid var(--color-slate-100); display: flex; align-items: flex-start; gap: 0.5rem; font-size: 0.75rem; color: var(--color-slate-500);">
+                        <i class="fas fa-lightbulb" style="color: #f59e0b; margin-top: 0.125rem;"></i>
+                        <span><em>Objeto de Conhecimento:</em> ${window.escapeHTML(item.objeto_conhecimento)}</span>
+                    </div>
+                ` : ''}
             `;
-        }).join('');
+
+            fragment.appendChild(card);
+        });
+
+        container.appendChild(fragment);
     },
 
     executarSelecao(obj, btnElement) {

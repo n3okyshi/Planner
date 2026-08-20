@@ -84,12 +84,13 @@ export const provasView = {
     },
     filtrarQuestoes(todas) {
         return todas.filter(q => {
-            const termo = this.termoBusca.toLowerCase();
-            const matchBusca = !this.termoBusca ||
-                (q.enunciado?.toLowerCase().includes(termo)) ||
-                (q.bncc?.codigo?.toLowerCase().includes(termo)) ||
-                (q.escola?.toLowerCase().includes(termo)) ||
-                (q.tags?.some(tag => tag.toLowerCase().includes(termo)));
+            const codigoBncc = typeof q.bncc === 'string' ? q.bncc : (q.bncc?.codigo || '');
+            const qAdapter = {
+                ...q,
+                bncc_texto: codigoBncc,
+                tags_texto: Array.isArray(q.tags) ? q.tags.join(' ') : ''
+            };
+            const matchBusca = (window.matchMultiTermos || matchMultiTermos)(qAdapter, ['enunciado', 'bncc_texto', 'escola', 'tags_texto'], this.termoBusca);
             const matchMateria = !this.filtros.materia || q.materia === this.filtros.materia;
             const matchAno = !this.filtros.ano || q.ano === this.filtros.ano;
             const matchTipo = !this.filtros.tipo || q.tipo === this.filtros.tipo;

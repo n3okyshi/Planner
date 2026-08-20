@@ -1,6 +1,8 @@
 
 import { model } from '../model.js';
 import { controller } from '../controller.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
+
 function safeHTML(str) {
     if (typeof window.escapeHTML === 'function') return window.escapeHTML(str);
     if (!str) return '';
@@ -8,8 +10,10 @@ function safeHTML(str) {
         return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m];
     });
 }
+
 export const calendarioView = {
     exibirLegenda: false,
+    _cleanupDelegator: null,
     mesesNomes: [
         "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
         "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
@@ -21,6 +25,11 @@ export const calendarioView = {
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+
+        if (typeof this._cleanupDelegator === 'function') {
+            this._cleanupDelegator();
+            this._cleanupDelegator = null;
+        }
 
         const config = (model.state && model.state.userConfig) || {};
         let nomeProf = 'Professor(a)';
@@ -45,8 +54,8 @@ export const calendarioView = {
                     </div>
                     
                     <div>
-                        <button onclick="calendarioView.toggleLegenda()" 
-                                style="font-size: 0.75rem; font-weight: 700; padding: 0.5rem 1rem; border-radius: var(--radius-xl); transition: all var(--transition-fast); display: flex; align-items: center; gap: 0.5rem; cursor: pointer; border: none; ${this.exibirLegenda ? 'color: var(--color-white); background-color: var(--color-primary); box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);' : 'color: var(--color-primary); background-color: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.3);'}" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter='none'">
+                        <button type="button" data-action="toggle-legenda" 
+                                style="font-size: 0.75rem; font-weight: 700; padding: 0.5rem 1rem; border-radius: var(--radius-xl); transition: all var(--transition-fast); display: flex; align-items: center; gap: 0.5rem; cursor: pointer; border: none; ${this.exibirLegenda ? 'color: var(--color-white); background-color: var(--color-primary); box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.3);' : 'color: var(--color-primary); background-color: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.3);'}">
                             <i class="fas ${this.exibirLegenda ? 'fa-eye-slash' : 'fa-eye'}"></i> 
                             ${this.exibirLegenda ? 'Ocultar Legenda' : 'Ver Legenda'}
                         </button>
@@ -58,7 +67,7 @@ export const calendarioView = {
                             <h3 style="font-size: 0.75rem; font-weight: 700; color: var(--color-slate-500); text-transform: uppercase; letter-spacing: 0.05em; display: flex; align-items: center; gap: 0.5rem;">
                                 <i class="fas fa-tags"></i> Tipos de Eventos
                             </h3>
-                            <button onclick="calendarioView.toggleLegenda()" style="color: var(--color-slate-400); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='var(--color-slate-600)'" onmouseout="this.style.color='var(--color-slate-400)'">
+                            <button type="button" data-action="toggle-legenda" style="color: var(--color-slate-400); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);">
                                 <i class="fas fa-times"></i>
                             </button>
                         </div>
@@ -67,9 +76,8 @@ export const calendarioView = {
                         </div>
                     </div>
                 ` : ''}
-                <div class="calendar-grid-months">
-                    ${this.mesesNomes.map((nome, index) => this.gerarTemplateMes(index + 1, nome)).join('')}
-                </div>
+                <div id="calendar-grid-months-container" class="calendar-grid-months"></div>
+
                 <div class="print-only" style="display: none; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.5rem; margin-top: 2rem; padding-top: 1rem; border-top: 1px solid var(--color-slate-200); page-break-inside: avoid;">
                     <div style="grid-column: 1 / -1; margin-bottom: 0.5rem; font-weight: 700; font-size: 0.875rem; color: var(--color-slate-800);">Legenda:</div>
                     ${this.gerarLegendaItens(true)} 
@@ -77,8 +85,23 @@ export const calendarioView = {
             </div>
         `;
         container.innerHTML = html;
+
+        const gridContainer = document.getElementById('calendar-grid-months-container');
+        if (gridContainer) {
+            this.renderMesesGrid(gridContainer);
+        }
+
+        this._cleanupDelegator = EventDelegator.bind(container, {
+            'toggle-legenda': () => this.toggleLegenda(),
+            'abrir-dia-calendario': (e, target) => {
+                const dataIso = target.getAttribute('data-data');
+                if (dataIso) controller.openDayOptions(dataIso);
+            }
+        });
+
         this.atualizarDataHeader();
     },
+
     gerarLegendaItens(isPrint = false) {
         if (!model.tiposEventos) return '';
 
@@ -91,73 +114,105 @@ export const calendarioView = {
                 </div>
             `).join('');
     },
-    gerarTemplateMes(mes, nome) {
+
+    renderMesesGrid(gridContainer) {
+        if (!gridContainer) return;
+        gridContainer.innerHTML = '';
+        const fragment = document.createDocumentFragment();
+
+        this.mesesNomes.forEach((nome, index) => {
+            const cardMes = this.criarElementoMes(index + 1, nome);
+            fragment.appendChild(cardMes);
+        });
+
+        gridContainer.appendChild(fragment);
+    },
+
+    criarElementoMes(mes, nome) {
         const ano = 2026;
         const primeiroDiaSemana = new Date(ano, mes - 1, 1).getDay();
         const totalDias = new Date(ano, mes, 0).getDate();
-        let diasHtml = '';
+
+        const cardMes = document.createElement('div');
+        cardMes.className = 'print-border-shadow-none';
+        cardMes.style.cssText = 'background-color: var(--color-white); padding: 1rem; border-radius: var(--radius-2xl); box-shadow: var(--shadow-sm); border: 1px solid var(--color-slate-200); transition: box-shadow var(--transition-fast); height: 100%; display: flex; flex-direction: column; page-break-inside: avoid;';
+
+        const headerHtml = `
+            <h3 style="font-weight: 700; color: var(--color-slate-800); margin-bottom: 0.5rem; text-align: center; border-bottom: 1px solid var(--color-slate-100); padding-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.75rem; display: flex; justify-content: space-between; align-items: center; padding-left: 0.5rem; padding-right: 0.5rem;">
+                <span>${window.escapeHTML(nome)}</span>
+            </h3>
+            <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.25rem; font-size: 0.5625rem; font-weight: 900; color: var(--color-slate-400); text-align: center; margin-bottom: 0.25rem; text-transform: uppercase;">
+                <div style="color: #ef4444;">D</div>
+                <div>S</div><div>T</div><div>Q</div><div>Q</div><div>S</div><div>S</div>
+            </div>
+        `;
+        cardMes.innerHTML = headerHtml;
+
+        const gridDias = document.createElement('div');
+        gridDias.className = 'calendar-grid';
+        gridDias.style.cssText = 'display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.25rem; flex: 1; align-content: start;';
+
+        const diasFragment = document.createDocumentFragment();
 
         for (let i = 0; i < primeiroDiaSemana; i++) {
-            diasHtml += `<div style="height: 2rem;"></div>`;
+            const vago = document.createElement('div');
+            vago.style.height = '2rem';
+            diasFragment.appendChild(vago);
         }
+
+        const hoje = new Date();
+
         for (let dia = 1; dia <= totalDias; dia++) {
             const dataIso = `${ano}-${String(mes).padStart(2, '0')}-${String(dia).padStart(2, '0')}`;
             const evento = model.state.eventos ? model.state.eventos[dataIso] : null;
 
-            let classesBase = "calendar-day ";
+            const divDia = document.createElement('div');
+            divDia.className = 'calendar-day interactive-element';
+            divDia.setAttribute('data-action', 'abrir-dia-calendario');
+            divDia.setAttribute('data-data', dataIso);
+
             let styleBase = "height: 2rem; display: flex; align-items: center; justify-content: center; position: relative; cursor: pointer; border-radius: var(--radius-lg); transition: all var(--transition-fast); font-size: 0.75rem; font-weight: 600;";
             let tooltipText = 'Clique para adicionar evento';
-            let hoverBg = 'var(--color-slate-100)';
+
             if (evento) {
                 const configEvento = model.tiposEventos[evento.tipo];
                 if (configEvento) {
                     styleBase += `background-color: ${configEvento.bg} !important; color: ${configEvento.color} !important; border: 1px solid ${configEvento.border} !important; font-weight: 700;`;
                     tooltipText = `${window.escapeHTML(configEvento.label)}: ${safeHTML(evento.descricao || '')}`;
-                    hoverBg = configEvento.bg;
                 } else {
                     styleBase += "background-color: #f3f4f6; color: #6b7280; font-weight: 700; border: 1px solid #e5e7eb;";
                     tooltipText = `Evento: ${safeHTML(evento.descricao || '')}`;
                 }
             } else {
-                classesBase += "day-empty ";
+                divDia.classList.add('day-empty');
                 styleBase += "color: var(--color-slate-700); background-color: transparent; border: 1px solid transparent;";
             }
 
-            const hoje = new Date();
             const isHoje = hoje.getDate() === dia && (hoje.getMonth() + 1) === mes && hoje.getFullYear() === ano;
             if (isHoje) {
                 styleBase += "box-shadow: 0 0 0 2px var(--color-primary); font-weight: 700;";
                 if (!evento) {
                     styleBase += "background-color: var(--color-primary) !important; color: var(--color-white) !important;";
-                    hoverBg = 'var(--color-primary-hover)';
                 }
             }
-            diasHtml += `
-                <div class="${classesBase}" style="${styleBase}"
-                     title="${tooltipText}"
-                     onmouseover="if(this.classList.contains('day-empty') && !${isHoje}) this.style.backgroundColor='${hoverBg}'"
-                     onmouseout="if(this.classList.contains('day-empty') && !${isHoje}) this.style.backgroundColor='transparent'"
-                     onclick="controller.openDayOptions('${dataIso}')">
-                    <span>${dia}</span>
-                    ${(evento && evento.descricao) ? `<span class="no-print" style="position: absolute; bottom: 0.125rem; width: 0.25rem; height: 0.25rem; border-radius: 50%; background-color: currentColor; opacity: 0.7;"></span>` : ''}
-                </div>
+
+            divDia.style.cssText = styleBase;
+            divDia.title = tooltipText;
+
+            divDia.innerHTML = `
+                <span>${dia}</span>
+                ${(evento && evento.descricao) ? `<span class="no-print" style="position: absolute; bottom: 0.125rem; width: 0.25rem; height: 0.25rem; border-radius: 50%; background-color: currentColor; opacity: 0.7;"></span>` : ''}
             `;
+
+            diasFragment.appendChild(divDia);
         }
-        return `
-            <div class="print-border-shadow-none" style="background-color: var(--color-white); padding: 1rem; border-radius: var(--radius-2xl); box-shadow: var(--shadow-sm); border: 1px solid var(--color-slate-200); transition: box-shadow var(--transition-fast); height: 100%; display: flex; flex-direction: column; page-break-inside: avoid;" onmouseover="this.style.boxShadow='var(--shadow-md)'" onmouseout="this.style.boxShadow='var(--shadow-sm)'">
-                <h3 style="font-weight: 700; color: var(--color-slate-800); margin-bottom: 0.5rem; text-align: center; border-bottom: 1px solid var(--color-slate-100); padding-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.75rem; display: flex; justify-content: space-between; align-items: center; padding-left: 0.5rem; padding-right: 0.5rem;">
-                    <span>${window.escapeHTML(nome)}</span>
-                </h3>
-                <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.25rem; font-size: 0.5625rem; font-weight: 900; color: var(--color-slate-400); text-align: center; margin-bottom: 0.25rem; text-transform: uppercase;">
-                    <div style="color: #ef4444;">D</div>
-                    <div>S</div><div>T</div><div>Q</div><div>Q</div><div>S</div><div>S</div>
-                </div>
-                <div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.25rem; flex: 1; align-content: start;" class="calendar-grid">
-                    ${diasHtml}
-                </div>
-            </div>
-        `;
+
+        gridDias.appendChild(diasFragment);
+        cardMes.appendChild(gridDias);
+
+        return cardMes;
     },
+
     atualizarDataHeader() {
         const el = document.getElementById('current-date');
         if (el) {

@@ -166,5 +166,5 @@ Em seguida, acesse no navegador: `http://localhost:8000`
 ---
 
 <p align="center">
-  <strong>Planner Pro Docente</strong> • Tecnologia a serviço da transformação pedagógica 🚀
+  <strong>Planner Pro Docente</strong>
 </p>

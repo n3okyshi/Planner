@@ -1,3 +1,5 @@
+import { Toast } from '../components/toast.js';
+
 const STORAGE_PREFIX = 'planner_pro_docente_2026';
 const DB_NAME = 'planner_pro_db';
 const DB_VERSION = 2;
@@ -9,7 +11,16 @@ export const storageService = {
     namespace: STORAGE_PREFIX,
     _dbPromise: null,
     _pendingSaveTimeout: null,
+    _pendingSaveResolvers: [],
     _lastStateToSave: null,
+
+    _promisifyRequest(request) {
+        return new Promise((resolve, reject) => {
+            if (!request) return resolve(null);
+            request.onsuccess = () => resolve(request.result !== undefined ? request.result : true);
+            request.onerror = (event) => reject(event.target?.error || request.error);
+        });
+    },
 
     _openDB() {
         if (this._dbPromise) return this._dbPromise;
@@ -98,16 +109,21 @@ export const storageService = {
         // Armazena o último estado para persistência assíncrona debounced
         this._lastStateToSave = cleanValue;
 
-        if (this._pendingSaveTimeout) {
-            clearTimeout(this._pendingSaveTimeout);
-        }
+        return new Promise((resolve, reject) => {
+            this._pendingSaveResolvers.push({ resolve, reject });
 
-        return new Promise((resolve) => {
+            if (this._pendingSaveTimeout) {
+                clearTimeout(this._pendingSaveTimeout);
+            }
+
             this._pendingSaveTimeout = setTimeout(async () => {
+                const resolvers = [...this._pendingSaveResolvers];
+                this._pendingSaveResolvers = [];
+
                 try {
                     const db = await this._openDB();
                     if (!db) {
-                        resolve(false);
+                        resolvers.forEach(r => r.resolve(false));
                         return;
                     }
 
@@ -115,14 +131,11 @@ export const storageService = {
                     const store = transaction.objectStore(STORE_NAME);
                     const request = store.put(this._lastStateToSave, STATE_KEY);
 
-                    request.onsuccess = () => resolve(true);
-                    request.onerror = (err) => {
-                        console.warn('[storageService] Erro ao salvar no IndexedDB:', err);
-                        resolve(false);
-                    };
+                    await this._promisifyRequest(request);
+                    resolvers.forEach(r => r.resolve(true));
                 } catch (e) {
                     console.warn('[storageService] Erro na transação IndexedDB:', e);
-                    resolve(false);
+                    resolvers.forEach(r => r.resolve(false));
                 }
             }, 100);
         });
@@ -144,7 +157,17 @@ export const storageService = {
             localStorage.setItem(this.namespace, cleanStr);
             return true;
         } catch (error) {
-            // Quota do localStorage excedida - suprimido silenciosamente pois o IndexedDB assume o volume total
+            const isQuota = error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED' || error.code === 22 || error.code === 1014;
+            if (isQuota) {
+                console.warn('[storageService] LocalStorage Quota Exceeded. Alternando para IndexedDB.', error);
+                if (!this._quotaAlertShown) {
+                    this._quotaAlertShown = true;
+                    Toast.show("Espaço local do navegador cheio! Dados salvos com segurança via IndexedDB/Nuvem.", "warning");
+                    setTimeout(() => { this._quotaAlertShown = false; }, 30000);
+                }
+            } else {
+                console.error('[storageService] Erro ao salvar no localStorage:', error);
+            }
             return false;
         }
     },
@@ -291,15 +314,18 @@ export const storageService = {
         };
 
         try {
+            const strPayload = JSON.stringify(op);
+            if (strPayload.length > 5 * 1024 * 1024) { // 5MB limite de payload individual
+                console.warn('[storageService] Operação offline excede 5MB:', op.tipo);
+                Toast.show("Operação muito grande para salvar offline. Conecte-se para sincronizar.", "warning");
+            }
+
             const db = await this._openDB();
             if (db) {
-                await new Promise((resolve, reject) => {
-                    const tx = db.transaction([QUEUE_STORE_NAME], 'readwrite');
-                    const store = tx.objectStore(QUEUE_STORE_NAME);
-                    const req = store.put(op);
-                    req.onsuccess = () => resolve(true);
-                    req.onerror = (err) => reject(err);
-                });
+                const tx = db.transaction([QUEUE_STORE_NAME], 'readwrite');
+                const store = tx.objectStore(QUEUE_STORE_NAME);
+                const req = store.put(op);
+                await this._promisifyRequest(req);
             }
         } catch (e) {
             console.warn('[storageService] Erro ao enfileirar no IndexedDB, usando fallback:', e);
@@ -307,7 +333,10 @@ export const storageService = {
                 const fila = JSON.parse(localStorage.getItem('planner_offline_queue') || '[]');
                 fila.push(op);
                 localStorage.setItem('planner_offline_queue', JSON.stringify(fila));
-            } catch (err) {}
+            } catch (err) {
+                console.error('[storageService] Falha crítica no enfileiramento offline:', err);
+                Toast.show("Falha ao salvar alteração offline. Conecte-se à internet para garantir o backup.", "error");
+            }
         }
 
         // Solicita registro na Background Sync API se suportado
@@ -355,22 +384,32 @@ export const storageService = {
      */
     async removerOperacaoOffline(id) {
         if (!id) return;
+        return this.removerOperacoesOfflineEmMassa([id]);
+    },
+
+    /**
+     * Remove múltiplas operações concluídas da fila offline em uma única transação atômica.
+     * @param {Array<string>} idsArray 
+     */
+    async removerOperacoesOfflineEmMassa(idsArray) {
+        if (!idsArray || !idsArray.length) return;
+        const setIds = new Set(idsArray.map(id => String(id)));
         try {
             const db = await this._openDB();
             if (db) {
                 await new Promise((resolve) => {
                     const tx = db.transaction([QUEUE_STORE_NAME], 'readwrite');
                     const store = tx.objectStore(QUEUE_STORE_NAME);
-                    const req = store.delete(id);
-                    req.onsuccess = () => resolve(true);
-                    req.onerror = () => resolve(false);
+                    idsArray.forEach(id => store.delete(id));
+                    tx.oncomplete = () => resolve(true);
+                    tx.onerror = () => resolve(false);
                 });
             }
         } catch (e) {}
 
         try {
             const fila = JSON.parse(localStorage.getItem('planner_offline_queue') || '[]');
-            const filtrada = fila.filter(item => item.id !== id);
+            const filtrada = fila.filter(item => !setIds.has(String(item.id)));
             localStorage.setItem('planner_offline_queue', JSON.stringify(filtrada));
         } catch (e) {}
     },

@@ -6,7 +6,8 @@
 
 import { model } from '../model.js';
 import { controller } from '../controller.js';
-import { firebaseService } from '../firebase-service.js';
+import { dataProxy } from '../services/dataProxy.js';
+import { uiController } from '../controllers/uiController.js';
 import { Toast } from '../components/toast.js';
 import { ModalComponent } from '../components/modal.js';
 import { PaginatorComponent } from '../components/paginator.js';
@@ -105,11 +106,11 @@ export const comunidadeView = {
 
                 <!-- SELETOR DE ABAS DA COMUNIDADE -->
                 <div class="mode-toggle-group" style="width: fit-content; margin-bottom: 1.5rem;">
-                    <button type="button" onclick="comunidadeView.mudarAba('questoes')" 
+                    <button type="button" data-action="mudar-aba-comunidade" data-aba="questoes" 
                             class="mode-toggle-btn interactive-element ${!isMateriais ? 'mode-toggle-btn--active' : ''}">
                         <i class="fas fa-question-circle" style="color: ${!isMateriais ? 'var(--color-primary)' : 'inherit'}; margin-right: 0.35rem;"></i> Banco de Questões
                     </button>
-                    <button type="button" onclick="comunidadeView.mudarAba('materiais')" 
+                    <button type="button" data-action="mudar-aba-comunidade" data-aba="materiais" 
                             class="mode-toggle-btn interactive-element ${isMateriais ? 'mode-toggle-btn--active' : ''}">
                         <i class="fas fa-book-open" style="color: ${isMateriais ? 'var(--color-primary)' : 'inherit'}; margin-right: 0.35rem;"></i> Materiais Pedagógicos
                     </button>
@@ -147,7 +148,7 @@ export const comunidadeView = {
 
                             <!-- FILTRO BIMESTRE -->
                             <div>
-                                <select id="filter-bimestre" onchange="comunidadeView.setFiltroBimestre(this.value)" class="form-select" style="width: 100%; padding: 0.5rem 0.75rem; font-size: 0.8125rem;">
+                                <select id="filter-bimestre" data-action="filtro-bimestre-comunidade" class="form-select" style="width: 100%; padding: 0.5rem 0.75rem; font-size: 0.8125rem;">
                                     <option value="">Todos os Bimestres</option>
                                     ${this.bimestresDisponiveis.map(b => `<option value="${b}" ${this.filtroBimestre === b ? 'selected' : ''}>${b}</option>`).join('')}
                                 </select>
@@ -155,17 +156,17 @@ export const comunidadeView = {
 
                             <!-- FILTRO ESCOLA -->
                             <div>
-                                <input type="text" id="filter-escola" placeholder="Filtrar por escola..." class="form-input" style="width: 100%; padding: 0.5rem 0.75rem; font-size: 0.8125rem;" value="${window.escapeHTML(this.filtroEscola || '')}" oninput="comunidadeView.setFiltroEscola(this.value)">
+                                <input type="text" id="filter-escola" data-action="filtro-escola-comunidade" placeholder="Filtrar por escola..." class="form-input" style="width: 100%; padding: 0.5rem 0.75rem; font-size: 0.8125rem;" value="${window.escapeHTML(this.filtroEscola || '')}">
                             </div>
 
                             <!-- BOTÕES E QUANTIDADE -->
                             <div style="display: flex; gap: 0.5rem; align-items: center;">
-                                <button onclick="comunidadeView.novaBusca()" class="btn-primary comunidade-search-button" style="flex: 1; justify-content: center;">
+                                <button type="button" data-action="nova-busca-comunidade" class="btn-primary comunidade-search-button" style="flex: 1; justify-content: center;">
                                     <i class="fas fa-search"></i> Buscar
                                 </button>
 
                                 <div class="custom-dropdown" style="width: 5rem;">
-                                    <input type="hidden" onchange="comunidadeView.mudarQtdPagina(this.value)" value="${this.itensPorPagina}">
+                                    <input type="hidden" value="${this.itensPorPagina}">
                                     <button type="button" class="dropdown-button" style="padding: 0.5rem;">
                                         <span class="dropdown-label">${this.itensPorPagina}</span>
                                         <i class="fas fa-chevron-down" style="color: var(--color-slate-400); font-size: 0.75rem; margin-left: auto;"></i>
@@ -183,7 +184,7 @@ export const comunidadeView = {
                     <section id="comunidade-results" class="comunidade-results"></section>
 
                     <div id="pagination-controls" class="card-page-controls hidden">
-                        <button onclick="comunidadeView.paginaAnterior()" id="btn-prev-page" disabled class="btn-pager">
+                        <button type="button" data-action="prev-pagina-comunidade" id="btn-prev-page" disabled class="btn-pager">
                             <i class="fas fa-chevron-left"></i> Anterior
                         </button>
 
@@ -191,7 +192,7 @@ export const comunidadeView = {
                             Página <span id="page-num" style="color: #4f46e5; font-size: 0.875rem; margin-left: 0.25rem;">${this.paginaAtual}</span>
                         </span>
 
-                        <button onclick="comunidadeView.proximaPagina()" id="btn-next-page" disabled class="btn-pager btn-pager--active">
+                        <button type="button" data-action="next-pagina-comunidade" id="btn-next-page" disabled class="btn-pager btn-pager--active">
                             Próxima <i class="fas fa-chevron-right"></i>
                         </button>
                     </div>
@@ -202,7 +203,7 @@ export const comunidadeView = {
                             
                             <!-- BUSCA DE TEXTO -->
                             <div style="grid-column: 1 / -1;">
-                                <input type="text" id="search-comunidade-material" placeholder="Buscar materiais por tema, título, autor ou disciplina..." class="form-input--search comunidade-search" style="width: 100%;" onkeydown="if(event.key==='Enter') comunidadeView.buscarMateriais()">
+                                <input type="text" id="search-comunidade-material" placeholder="Buscar materiais por tema, título, autor ou disciplina..." class="form-input--search comunidade-search" style="width: 100%;">
                             </div>
 
                             <!-- FILTRO MATÉRIA / DISCIPLINA -->
@@ -227,14 +228,14 @@ export const comunidadeView = {
 
                             <!-- FILTRO TIPO DE MATERIAL -->
                             <div>
-                                <select id="filter-tipo-material" onchange="comunidadeView.setFiltroTipoMaterial(this.value)" class="form-select" style="width: 100%; padding: 0.5rem 0.75rem; font-size: 0.8125rem;">
+                                <select id="filter-tipo-material" data-action="filtro-tipo-material-comunidade" class="form-select" style="width: 100%; padding: 0.5rem 0.75rem; font-size: 0.8125rem;">
                                     ${this.tiposMateriaisDisponiveis.map(t => `<option value="${t.valor}" ${this.filtroTipoMaterial === t.valor ? 'selected' : ''}>${t.label}</option>`).join('')}
                                 </select>
                             </div>
 
                             <!-- BOTÃO DE BUSCA -->
                             <div>
-                                <button onclick="comunidadeView.buscarMateriais()" class="btn-primary comunidade-search-button" style="width: 100%; justify-content: center;">
+                                <button type="button" data-action="buscar-materiais-comunidade" class="btn-primary comunidade-search-button" style="width: 100%; justify-content: center;">
                                     <i class="fas fa-search mr-1"></i> Buscar Materiais
                                 </button>
                             </div>
@@ -247,6 +248,45 @@ export const comunidadeView = {
         `;
 
         container.innerHTML = html;
+
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+
+        const unbindClick = EventDelegator.bind(container, {
+            'mudar-aba-comunidade': (e, target) => {
+                const aba = target.getAttribute('data-aba');
+                if (aba) this.mudarAba(aba);
+            },
+            'nova-busca-comunidade': () => this.novaBusca(),
+            'buscar-materiais-comunidade': () => this.buscarMateriais(),
+            'prev-pagina-comunidade': () => this.paginaAnterior(),
+            'next-pagina-comunidade': () => this.proximaPagina(),
+            'abrir-preview-material': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) this.abrirPreviewMaterial(id);
+            },
+            'importar-material-comunidade': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) this.importarMaterialComunidade(id);
+            }
+        }, 'click');
+
+        const unbindChange = EventDelegator.bind(container, {
+            'filtro-bimestre-comunidade': (e, target) => this.setFiltroBimestre(target.value),
+            'filtro-tipo-material-comunidade': (e, target) => this.setFiltroTipoMaterial(target.value)
+        }, 'change');
+
+        const unbindInput = EventDelegator.bind(container, {
+            'filtro-escola-comunidade': (e, target) => this.setFiltroEscola(target.value)
+        }, 'input');
+
+        this._cleanupDelegators = () => {
+            if (typeof unbindClick === 'function') unbindClick();
+            if (typeof unbindChange === 'function') unbindChange();
+            if (typeof unbindInput === 'function') unbindInput();
+        };
 
         if (!isMateriais) {
             // ATIVAÇÃO DO DROPDOWN CUSTOMIZADO DE QUESTÕES
@@ -303,60 +343,23 @@ export const comunidadeView = {
         const paginationControls = document.getElementById('pagination-controls');
 
         if (grid) {
-            grid.innerHTML = '<div class="comunidade-empty"><i class="fas fa-circle-notch fa-spin"></i><p style="color: var(--color-slate-400); margin-top: var(--spacing-4); font-size: 0.875rem; font-weight: 700;">Carregando comunidade...</p></div>';
+            uiController.renderLoading(grid, 'Carregando comunidade...');
         }
 
         try {
-            let ref = firebaseService.db.collection('comunidade_questoes');
+            const res = await dataProxy.buscarComunidadePaginada({
+                colecao: 'comunidade_questoes',
+                filtroMateria: filtro,
+                filtroBimestre: filtroBimestre,
+                filtroEscola: filtroEscola,
+                termoBusca: termoBusca,
+                ultimoDoc: direcao === 'proxima' ? this.ultimoDoc : null,
+                limite: this.itensPorPagina
+            });
 
-            // Aplica filtros básicos no Firestore
-            if (filtro) {
-                ref = ref.where('materia', '==', filtro);
-            }
-            if (filtroBimestre) {
-                ref = ref.where('bimestre', '==', filtroBimestre);
-            }
-
-            // Ordenação padrão por data (mais recentes primeiro)
-            ref = ref.orderBy('data_partilha', 'desc');
-
-            // --- Lógica de Paginação ---
-            if (direcao === 'proxima' && this.ultimoDoc) {
-                ref = ref.startAfter(this.ultimoDoc);
-            }
-
-            // Define o limite
-            const limiteQuery = Number(this.itensPorPagina);
-            const snapshot = await ref.limit(limiteQuery).get();
-
-            // Processa resultados
-            let resultados = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-
-            // Filtragem local por texto e escola (Client-Side Filtering)
-            if (filtroEscola) {
-                const escolaTermo = filtroEscola.toLowerCase();
-                resultados = resultados.filter(q => q.escola && q.escola.toLowerCase().includes(escolaTermo));
-            }
-
-            if (termoBusca) {
-                const termo = termoBusca.toLowerCase();
-                resultados = resultados.filter(q =>
-                    (q.enunciado && q.enunciado.toLowerCase().includes(termo)) ||
-                    (q.materia && q.materia.toLowerCase().includes(termo)) ||
-                    (q.escola && q.escola.toLowerCase().includes(termo)) ||
-                    (q.bncc?.codigo && q.bncc.codigo.toLowerCase().includes(termo))
-                );
-            }
-
-            // Atualiza o cursor para a próxima página
-            if (snapshot.docs.length > 0) {
-                this.ultimoDoc = snapshot.docs[snapshot.docs.length - 1];
-                this.totalCarregado = snapshot.docs.length;
-            } else {
-                this.ultimoDoc = null;
-            }
-
-            this.questoes = resultados;
+            this.questoes = res.itens;
+            this.ultimoDoc = res.ultimoDoc;
+            this.totalCarregado = res.itens.length;
 
             // Salva no cache
             this.paginasCache.set(this.paginaAtual, {
@@ -374,12 +377,18 @@ export const comunidadeView = {
 
         } catch (error) {
             console.error("Erro na busca da comunidade:", error);
-            if (error.code === 'failed-precondition') {
+            if (error?.code === 'failed-precondition') {
                 window.Toast.show("A criar índices... Tente novamente em instantes.", "warning");
             } else {
                 window.Toast.show("Erro ao buscar dados da comunidade.", "error");
             }
-            if (grid) grid.innerHTML = '<div class="comunidade-empty"><i class="fas fa-exclamation-triangle"></i><p style="color: #dc2626; margin-top: var(--spacing-4); font-size: 0.875rem; font-weight: 700;">Erro de conexão ou índice inexistente.</p></div>';
+            if (grid) {
+                uiController.renderEmptyState(grid, {
+                    icone: 'fa-exclamation-triangle',
+                    titulo: 'Erro de conexão',
+                    mensagem: 'Não foi possível carregar os dados da comunidade.'
+                });
+            }
         }
     },
 
@@ -635,37 +644,29 @@ export const comunidadeView = {
     async buscarMateriais() {
         const grid = document.getElementById('comunidade-materiais-results');
         if (!grid) return;
-        grid.innerHTML = `
-            <div class="card" style="grid-column: 1 / -1; padding: 4rem 2rem; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center;">
-                <div class="spinner spinner--primary" style="margin-bottom: 1rem;"></div>
-                <p style="color: var(--color-slate-600); font-weight: 700;">Consultando materiais pedagógicos da comunidade...</p>
-            </div>
-        `;
+        uiController.renderLoading(grid, 'Consultando materiais pedagógicos da comunidade...');
 
         const busca = (document.getElementById('search-comunidade-material')?.value || '').trim().toLowerCase();
         const disc = this.filtroMateria || '';
         const tipo = this.filtroTipoMaterial || '';
 
         try {
-            let mats = await firebaseService.getMateriaisComunidade(disc, tipo);
-            if (busca) {
-                mats = mats.filter(m => 
-                    (m.titulo || '').toLowerCase().includes(busca) || 
-                    (m.tema || '').toLowerCase().includes(busca) ||
-                    (m.disciplina || '').toLowerCase().includes(busca) ||
-                    (m.autor || '').toLowerCase().includes(busca)
-                );
-            }
-            this.materiais = mats;
+            const res = await dataProxy.buscarComunidadePaginada({
+                colecao: 'comunidade_materiais',
+                filtroMateria: disc,
+                filtroTipo: tipo,
+                termoBusca: busca,
+                limite: 50
+            });
+            this.materiais = res.itens;
             this.renderListaMateriais();
         } catch (e) {
             console.error("Erro ao buscar materiais:", e);
-            grid.innerHTML = `
-                <div class="card" style="grid-column: 1 / -1; padding: 3rem 2rem; text-align: center; color: #ef4444;">
-                    <i class="fas fa-exclamation-circle text-2xl mb-2"></i>
-                    <p style="font-weight: 700;">Não foi possível carregar os materiais da comunidade.</p>
-                </div>
-            `;
+            uiController.renderEmptyState(grid, {
+                icone: 'fa-exclamation-circle',
+                titulo: 'Falha de conexão',
+                mensagem: 'Não foi possível carregar os materiais da comunidade.'
+            });
         }
     },
 
@@ -723,10 +724,10 @@ export const comunidadeView = {
                     <p style="font-size: 0.75rem; color: var(--color-slate-400); margin-bottom: 1rem;">${serieSafe} • Por <strong>${autorSafe}</strong> ${dataFmt ? 'em ' + dataFmt : ''}</p>
 
                     <div style="margin-top: auto; padding-top: 1rem; border-top: 1px solid var(--color-slate-100); display: flex; gap: 0.5rem;">
-                        <button type="button" onclick="comunidadeView.abrirPreviewMaterial('${m.id}')" class="btn-secondary interactive-element" style="flex: 1; padding: 0.625rem 0.75rem; font-size: 0.8125rem;">
+                        <button type="button" data-action="abrir-preview-material" data-id="${m.id}" class="btn-secondary interactive-element" style="flex: 1; padding: 0.625rem 0.75rem; font-size: 0.8125rem;">
                             <i class="fas fa-eye"></i> <span>Visualizar</span>
                         </button>
-                        <button type="button" onclick="comunidadeView.importarMaterialComunidade('${m.id}')" class="btn-primary interactive-element" style="flex: 1; padding: 0.625rem 0.75rem; font-size: 0.8125rem; background-color: #4f46e5;">
+                        <button type="button" data-action="importar-material-comunidade" data-id="${m.id}" class="btn-primary interactive-element" style="flex: 1; padding: 0.625rem 0.75rem; font-size: 0.8125rem; background-color: #4f46e5;">
                             <i class="fas fa-download"></i> <span>Importar</span>
                         </button>
                     </div>
@@ -791,6 +792,17 @@ export const comunidadeView = {
         const mat = (this.materiais || []).find(m => String(m.id) === String(materialId));
         if (!mat) return;
         model.importarMaterialComunidade(mat);
+    },
+
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+    },
+
+    onLeave() {
+        this.destroy();
     }
 };
 

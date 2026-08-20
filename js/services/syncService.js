@@ -100,7 +100,7 @@ export const syncService = {
 
         // Ordena operações por timestamp crescente (garante ordenação cronológica)
         const filaOrdenada = [...fila].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-        let sucessos = 0;
+        const idsSucesso = [];
 
         for (const op of filaOrdenada) {
             try {
@@ -130,14 +130,18 @@ export const syncService = {
                 }
 
                 if (ok) {
-                    await storageService.removerOperacaoOffline(op.id);
-                    sucessos++;
+                    idsSucesso.push(op.id);
                 }
             } catch (err) {
                 console.warn(`[syncService] Erro ao sincronizar operação ${op.id}:`, err);
             }
         }
 
+        if (idsSucesso.length > 0) {
+            await storageService.removerOperacoesOfflineEmMassa(idsSucesso);
+        }
+
+        const sucessos = idsSucesso.length;
         this._isProcessingQueue = false;
         const filaRestante = await storageService.obterFilaOffline();
 
@@ -151,47 +155,57 @@ export const syncService = {
         }
     },
 
+    /**
+     * Helper genérico unificado para execução de gravações no Firebase com fallback automático para a fila offline.
+     * @private
+     */
+    async _executarComFallback(tipoOp, acaoFirebase, dadosOffline) {
+        const uid = dadosOffline?.uid || (window.model && window.model.currentUser ? window.model.currentUser.uid : null);
+        if (uid && firebaseService && firebaseService.initialized) {
+            try {
+                await acaoFirebase(uid);
+                return true;
+            } catch (e) {
+                console.warn(`[syncService] Falha na gravação em nuvem de '${tipoOp}'. Enfileirando offline:`, e);
+            }
+        }
+        await storageService.enfileirarOperacaoOffline({ tipo: tipoOp, uid, ...dadosOffline });
+        return true;
+    },
+
     async loadUser(uid) {
         if (!uid || !firebaseService || !firebaseService.loadFullData) return null;
         return firebaseService.loadFullData(uid);
     },
     async persistUser(uid, payload) {
-        if (!uid || !firebaseService || !firebaseService.saveRoot) {
-            await storageService.enfileirarOperacaoOffline({ tipo: 'salvar_root', uid, dados: payload });
-            return true;
-        }
-        try {
-            await firebaseService.saveRoot(uid, payload);
-            return true;
-        } catch (e) {
-            await storageService.enfileirarOperacaoOffline({ tipo: 'salvar_root', uid, dados: payload });
-            return true;
-        }
+        return this._executarComFallback('salvar_root', (u) => firebaseService.saveRoot(u, payload), { uid, dados: payload });
     },
     async persistTurma(uid, turma) {
-        if (!uid || !firebaseService || !firebaseService.saveTurma) {
-            await storageService.enfileirarOperacaoOffline({ tipo: 'salvar_turma', uid, turma });
-            return true;
-        }
-        try {
-            await firebaseService.saveTurma(uid, turma);
-            return true;
-        } catch (e) {
-            await storageService.enfileirarOperacaoOffline({ tipo: 'salvar_turma', uid, turma });
-            return true;
-        }
+        return this._executarComFallback('salvar_turma', (u) => firebaseService.saveTurma(u, turma), { uid, turma });
     },
     async persistAluno(uid, turmaId, aluno) {
-        if (!uid || !firebaseService || !firebaseService.saveAluno) {
-            await storageService.enfileirarOperacaoOffline({ tipo: 'salvar_aluno', uid, turmaId, aluno });
-            return true;
-        }
+        return this._executarComFallback('salvar_aluno', (u) => firebaseService.saveAluno(u, turmaId, aluno), { uid, turmaId, aluno });
+    },
+    async persistMaterialDoc(uid, material) {
+        if (!uid || !firebaseService || !firebaseService.saveMaterialDoc) return;
         try {
-            await firebaseService.saveAluno(uid, turmaId, aluno);
-            return true;
+            await firebaseService.saveMaterialDoc(uid, material);
         } catch (e) {
-            await storageService.enfileirarOperacaoOffline({ tipo: 'salvar_aluno', uid, turmaId, aluno });
-            return true;
+            console.warn("Erro ao persistir documento de material via syncService:", e);
+        }
+    },
+    async deleteMaterialDoc(uid, materialId) {
+        if (!uid || !firebaseService || !firebaseService.deleteMaterialDoc) return;
+        try {
+            await firebaseService.deleteMaterialDoc(uid, materialId);
+        } catch (e) {
+            console.warn("Erro ao deletar documento de material via syncService:", e);
+        }
+    },
+    async deleteMateriaisEmMassa(uid, idsArray) {
+        if (!uid || !idsArray || !idsArray.length) return;
+        for (const id of idsArray) {
+            await this.deleteMaterialDoc(uid, id);
         }
     },
     async forcarSincronizacao() {

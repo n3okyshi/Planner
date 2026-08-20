@@ -60,7 +60,7 @@
                     <p class="sidebar__subtitle">Docente 2026</p>
                 </div>
             </div>
-            <button onclick="controller.toggleSidebar()" class="sidebar__toggle" title="Menu">
+            <button data-action="toggle-sidebar" class="sidebar__toggle" title="Menu">
                 <i id="sidebar-toggle-icon" class="fas fa-bars"></i>
             </button>
         </div>
@@ -71,14 +71,14 @@
                 Principal
             </p>
 
-            <button id="nav-dashboard" onclick="controller.navigate('dashboard')" class="nav-item" title="Início">
+            <button id="nav-dashboard" data-action="navigate" data-route="dashboard" class="nav-item" title="Início">
                 <div class="nav-item__icon">
                     <i class="fas fa-home"></i>
                 </div>
                 <span class="nav-label" style="font-size: 0.875rem; font-weight: 500;">Início</span>
             </button>
 
-            <button id="nav-materiais-comunidade" onclick="controller.navigate('materiais-comunidade')" class="nav-item"
+            <button id="nav-materiais-comunidade" data-action="navigate" data-route="materiais-comunidade" class="nav-item"
                 title="Materiais & Comunidade">
                 <div class="nav-item__icon">
                     <i class="fas fa-folder-open"></i>
@@ -86,7 +86,7 @@
                 <span class="nav-label" style="font-size: 0.875rem; font-weight: 500;">Materiais & Comunidade</span>
             </button>
 
-            <button id="nav-apresentacoes" onclick="controller.navigate('apresentacoes')" class="nav-item"
+            <button id="nav-apresentacoes" data-action="navigate" data-route="apresentacoes" class="nav-item"
                 title="Apresentação Animada">
                 <div class="nav-item__icon">
                     <i class="fas fa-desktop"></i>
@@ -94,14 +94,14 @@
                 <span class="nav-label" style="font-size: 0.875rem; font-weight: 500;">Apresentação Animada</span>
             </button>
 
-            <button id="nav-turmas" onclick="controller.navigate('turmas')" class="nav-item" title="Turmas">
+            <button id="nav-turmas" data-action="navigate" data-route="turmas" class="nav-item" title="Turmas">
                 <div class="nav-item__icon">
                     <i class="fas fa-users"></i>
                 </div>
                 <span class="nav-label" style="font-size: 0.875rem; font-weight: 500;">Turmas</span>
             </button>
 
-            <button id="nav-quiz-gestor" onclick="controller.navigate('quiz-gestor')" class="nav-item"
+            <button id="nav-quiz-gestor" data-action="navigate" data-route="quiz-gestor" class="nav-item"
                 title="Quiz ao vivo">
                 <div class="nav-item__icon">
                     <i class="fas fa-gamepad"></i>
@@ -109,7 +109,7 @@
                 <span class="nav-label" style="font-size: 0.875rem; font-weight: 500;">Quiz ao vivo</span>
             </button>
 
-            <button id="nav-correcao" onclick="controller.navigate('correcao')" class="nav-item"
+            <button id="nav-correcao" data-action="navigate" data-route="correcao" class="nav-item"
                 title="Correção Automática">
                 <div class="nav-item__icon">
                     <i class="fas fa-magic"></i>
@@ -117,7 +117,7 @@
                 <span class="nav-label" style="font-size: 0.875rem; font-weight: 500;">Correção IA</span>
             </button>
 
-            <button id="nav-simuladores" onclick="controller.navigate('simuladores')" class="nav-item"
+            <button id="nav-simuladores" data-action="navigate" data-route="simuladores" class="nav-item"
                 title="Simulações Interativas">
                 <div class="nav-item__icon">
                     <i class="fas fa-flask"></i>
@@ -130,28 +130,28 @@
                 Planejamento & Conteúdo
             </p>
 
-            <button id="nav-planejamento" onclick="controller.navigate('planejamento')" class="nav-item" title="Planejamento Pedagógico">
+            <button id="nav-planejamento" data-action="navigate" data-route="planejamento" class="nav-item" title="Planejamento Pedagógico">
                 <div class="nav-item__icon">
                     <i class="far fa-calendar-alt"></i>
                 </div>
                 <span class="nav-label" style="font-size: 0.875rem; font-weight: 500;">Planejamento</span>
             </button>
 
-            <button id="nav-provas" onclick="controller.navigate('provas')" class="nav-item" title="Banco de Questões">
+            <button id="nav-provas" data-action="navigate" data-route="provas" class="nav-item" title="Banco de Questões">
                 <div class="nav-item__icon">
                     <i class="fas fa-file-signature"></i>
                 </div>
                 <span class="nav-label" style="font-size: 0.875rem; font-weight: 500;">Banco de Questões</span>
             </button>
 
-            <button id="nav-bncc" onclick="controller.navigate('bncc')" class="nav-item" title="Consulta BNCC">
+            <button id="nav-bncc" data-action="navigate" data-route="bncc" class="nav-item" title="Consulta BNCC">
                 <div class="nav-item__icon">
                     <i class="fas fa-book-open"></i>
                 </div>
                 <span class="nav-label" style="font-size: 0.875rem; font-weight: 500;">Consulta BNCC</span>
             </button>
 
-            <button id="nav-bimestralizacao" onclick="controller.navigate('bimestralizacao')" class="nav-item"
+            <button id="nav-bimestralizacao" data-action="navigate" data-route="bimestralizacao" class="nav-item"
                 title="Bimestralizações">
                 <div class="nav-item__icon">
                     <i class="fas fa-layer-group"></i>
@@ -165,28 +165,28 @@
                 Rotina & Acadêmico
             </p>
 
-            <button id="nav-frequencia" onclick="controller.navigate('frequencia')" class="nav-item" title="Frequência">
+            <button id="nav-frequencia" data-action="navigate" data-route="frequencia" class="nav-item" title="Frequência">
                 <div class="nav-item__icon">
                     <i class="fas fa-check-double"></i>
                 </div>
                 <span class="nav-label" style="font-size: 0.875rem; font-weight: 500;">Frequência</span>
             </button>
 
-            <button id="nav-horario" onclick="controller.navigate('horario')" class="nav-item" title="Grade Horária">
+            <button id="nav-horario" data-action="navigate" data-route="horario" class="nav-item" title="Grade Horária">
                 <div class="nav-item__icon">
                     <i class="far fa-clock"></i>
                 </div>
                 <span class="nav-label" style="font-size: 0.875rem; font-weight: 500;">Grade Horária</span>
             </button>
 
-            <button id="nav-mapa" onclick="controller.navigate('mapa')" class="nav-item" title="Mapa de Sala">
+            <button id="nav-mapa" data-action="navigate" data-route="mapa" class="nav-item" title="Mapa de Sala">
                 <div class="nav-item__icon">
                     <i class="fas fa-th"></i>
                 </div>
                 <span class="nav-label" style="font-size: 0.875rem; font-weight: 500;">Mapa de Sala</span>
             </button>
 
-            <button id="nav-notas-anuais" onclick="controller.navigate('notas-anuais')" class="nav-item"
+            <button id="nav-notas-anuais" data-action="navigate" data-route="notas-anuais" class="nav-item"
                 title="Notas Anuais">
                 <div class="nav-item__icon">
                     <i class="fas fa-award"></i>
@@ -194,7 +194,7 @@
                 <span class="nav-label" style="font-size: 0.875rem; font-weight: 500;">Notas Anuais</span>
             </button>
 
-            <button id="nav-ata-conselho" onclick="controller.navigate('ata-conselho')" class="nav-item"
+            <button id="nav-ata-conselho" data-action="navigate" data-route="ata-conselho" class="nav-item"
                 title="Ata do Conselho de Classe">
                 <div class="nav-item__icon">
                     <i class="fas fa-clipboard-check"></i>
@@ -208,7 +208,7 @@
                     Conta
                 </p>
 
-                <button id="nav-config" onclick="controller.navigate('config')" class="nav-item" title="Perfil">
+                <button id="nav-config" data-action="navigate" data-route="config" class="nav-item" title="Perfil">
                     <div class="nav-item__icon">
                         <i class="far fa-user"></i>
                     </div>
@@ -216,7 +216,7 @@
                 </button>
 
                 <div id="auth-container" class="px-1 mt-2">
-                    <button onclick="controller.handleLogin()" class="btn-login">
+                    <button data-action="handle-login" class="btn-login">
                         <div class="btn-login__icon-wrapper">
                             <i class="fab fa-google" style="color: var(--color-primary);"></i>
                         </div>
@@ -234,7 +234,7 @@
     <main id="main-content" class="l-main">
         <header class="l-header">
             <div class="header__group">
-                <button type="button" onclick="controller.toggleSidebar()" class="header__toggle-btn"
+                <button type="button" data-action="toggle-sidebar" class="header__toggle-btn"
                     title="Alternar Barra Lateral (Sanfona)">
                     <i id="header-sidebar-toggle-icon" class="fas fa-bars"></i>
                 </button>
@@ -243,7 +243,7 @@
                         style="color: var(--color-slate-300);">/</span> Início
                 </div>
                 <!-- Command Palette Trigger Button -->
-                <button type="button" onclick="window.commandPaletteController?.open()" class="btn-secondary"
+                <button type="button" data-action="command-palette" class="btn-secondary"
                     style="padding: 0.35rem 0.75rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.5rem; border-radius: var(--radius-full); background: var(--bg-surface-secondary); border: 1px solid var(--border-color);"
                     title="Buscar ou Executar Comando (Ctrl + K)">
                     <i class="fas fa-search" style="color: var(--color-primary); font-size: 0.75rem;"></i>
@@ -255,7 +255,7 @@
             <div class="header__group">
                 <!-- Notifications Bell Popover -->
                 <div class="notification-container">
-                    <button id="notification-bell-btn" type="button" onclick="window.notificationController?.toggle()"
+                    <button id="notification-bell-btn" type="button" data-action="toggle-notifications"
                         class="btn-icon" title="Alertas Pedagógicos">
                         <i class="far fa-bell"></i>
                         <span id="notification-badge" class="notification-badge-icon" style="display: none;">0</span>
@@ -264,28 +264,28 @@
                 </div>
 
                 <!-- Zen / Presentation Mode -->
-                <button type="button" onclick="uiController.toggleZenMode()" class="btn-icon desktop-only"
+                <button type="button" data-action="toggle-zen" class="btn-icon desktop-only"
                     title="Modo Apresentação / Foco (Projetor)">
                     <i class="fas fa-tv"></i>
                 </button>
 
                 <!-- Dark / Light Theme Toggle -->
-                <button type="button" onclick="uiController.toggleTema()" class="btn-icon"
+                <button type="button" data-action="toggle-theme" class="btn-icon"
                     title="Alternar Modo Noturno / Claro">
                     <i id="theme-toggle-icon" class="fas fa-moon"></i>
                 </button>
 
-                <div id="cloud-status" class="status-badge" onclick="uiController.abrirCentroSincronizacao()"
+                <div id="cloud-status" class="status-badge" data-action="open-sync"
                     style="cursor: pointer;"
                     title="Centro de Transparência de Sincronização (Clique para ver detalhes)">
                     <i class="fas fa-cloud" style="color: var(--color-slate-300);"></i>
                 </div>
 
-                <button onclick="window.print()" class="btn-primary">
+                <button data-action="print" class="btn-primary">
                     <i class="fas fa-print"></i> <span class="desktop-only">Gerar PDF</span>
                 </button>
 
-                <button onclick="controller.exportData()" class="btn-icon" title="Backup Local (JSON)">
+                <button data-action="export-data" class="btn-icon" title="Backup Local (JSON)">
                     <i class="fas fa-download"></i>
                 </button>
 

@@ -1,5 +1,7 @@
 import { firebaseConfig } from './config.js';
 import { generateSecurePIN } from './utils.js';
+import { Toast } from './components/toast.js';
+
 export const firebaseService = {
     auth: null,
     db: null,
@@ -56,11 +58,28 @@ export const firebaseService = {
             console.warn("Erro ao configurar persistência:", e);
         }
         console.log("Firebase Service inicializado.");
+
+        this.checkRedirectResult().catch(err => {
+            console.warn("Aviso ao checar getRedirectResult:", err);
+        });
+    },
+
+    async checkRedirectResult() {
+        if (!this.auth) return;
+        try {
+            const result = await this.auth.getRedirectResult();
+            if (result && result.user) {
+                console.log("✅ Autenticação por redirecionamento concluída:", result.user.email);
+            }
+        } catch (error) {
+            console.error("❌ Erro ao processar resultado do redirecionamento Firebase Auth:", error);
+            Toast.show("Falha ao concluir login por redirecionamento.", "error");
+        }
     },
     onAuthStateChanged(callback) {
         if (this.auth) this.auth.onAuthStateChanged(callback);
     },
-    async loginWithGoogle() {
+    async loginGoogle() {
         if (!this.auth) this.init();
         const provider = new firebase.auth.GoogleAuthProvider();
 
@@ -78,14 +97,12 @@ export const firebaseService = {
             } else {
                 console.error("Erro na autenticação:", error);
                 const msgAmigavel = "Não foi possível concluir o login com o Google. Verifique sua conexão e tente novamente.";
-                if (window.Toast && window.Toast.show) {
-                    window.Toast.show(msgAmigavel, "error");
-                }
+                Toast.show(msgAmigavel, "error");
             }
         }
     },
-    async loginGoogle() {
-        return await this.loginWithGoogle();
+    async loginWithGoogle() {
+        return await this.loginGoogle();
     },
     async logout() {
         this.clearActiveListeners();
@@ -359,23 +376,124 @@ export const firebaseService = {
         }
     },
 
+    // =========================================================================
+    // UTILITÁRIOS GENÉRICOS DE CONSULTA E DELEÇÃO NA COMUNIDADE (FIRESTORE)
+    // =========================================================================
+    async _fetchComunidadeColecao(colecaoName, filtroCampos = {}, orderByCampo = 'data_partilha', limite = 50) {
+        if (!this.db) return [];
+        try {
+            let ref = this.db.collection(colecaoName);
+            Object.entries(filtroCampos).forEach(([campo, valor]) => {
+                if (valor) ref = ref.where(campo, '==', valor);
+            });
+            const snapshot = await ref.orderBy(orderByCampo, 'desc').limit(limite).get();
+            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        } catch (e) {
+            console.warn(`Aviso ao buscar ${colecaoName} no Firestore:`, e.message);
+            try {
+                const snapshot = await this.db.collection(colecaoName).limit(limite).get();
+                let docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                Object.entries(filtroCampos).forEach(([campo, valor]) => {
+                    if (valor) docs = docs.filter(d => d[campo] === valor);
+                });
+                docs.sort((a, b) => new Date(b[orderByCampo] || 0) - new Date(a[orderByCampo] || 0));
+                return docs;
+            } catch (err2) {
+                if (err2?.code === 'permission-denied' || String(err2?.message).includes('permissions')) {
+                    console.warn(`🔒 Coleção '${colecaoName}' sem regra de leitura pública no Firestore. Atualize o firestore.rules.`);
+                } else {
+                    console.error(`Erro no fallback de ${colecaoName}:`, err2);
+                }
+                return [];
+            }
+        }
+    },
+
+    async _removerComunidadeItem(colecaoName, uid, idLocalOrigem) {
+        if (!this.db || !uid) return;
+        try {
+            const snapshot = await this.db.collection(colecaoName)
+                .where('uid_autor', '==', uid)
+                .where('id_local_origem', '==', String(idLocalOrigem))
+                .get();
+            if (snapshot.empty) return;
+            const batch = this.db.batch();
+            snapshot.forEach(doc => batch.delete(doc.ref));
+            return await batch.commit();
+        } catch (e) {
+            console.error(`Erro ao remover item da coleção '${colecaoName}':`, e);
+            throw e;
+        }
+    },
+
+    async buscarComunidadePaginada({ colecao = 'comunidade_questoes', filtroMateria = '', filtroBimestre = '', filtroTipo = '', filtroEscola = '', termoBusca = '', ultimoDoc = null, limite = 20 } = {}) {
+        if (!this.db) return { itens: [], ultimoDoc: null };
+        try {
+            let ref = this.db.collection(colecao);
+            if (filtroMateria) ref = ref.where(colecao === 'comunidade_materiais' ? 'disciplina' : 'materia', '==', filtroMateria);
+            if (filtroBimestre) ref = ref.where('bimestre', '==', filtroBimestre);
+            if (filtroTipo) ref = ref.where('tipo', '==', filtroTipo);
+
+            ref = ref.orderBy('data_partilha', 'desc');
+
+            const limiteQuery = Number(limite);
+            let resultados = [];
+            let cursorAtual = ultimoDoc;
+            let maxPassos = 5;
+
+            while (resultados.length < limiteQuery && maxPassos > 0) {
+                maxPassos--;
+                let currentRef = ref;
+                if (cursorAtual) {
+                    currentRef = currentRef.startAfter(cursorAtual);
+                }
+                const snapshot = await currentRef.limit(limiteQuery).get();
+                if (snapshot.empty) {
+                    cursorAtual = null;
+                    break;
+                }
+                cursorAtual = snapshot.docs[snapshot.docs.length - 1];
+                let docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+                if (filtroEscola) {
+                    const escolaTermo = filtroEscola.toLowerCase();
+                    docs = docs.filter(q => q.escola && q.escola.toLowerCase().includes(escolaTermo));
+                }
+
+                if (termoBusca) {
+                    const termo = termoBusca.toLowerCase();
+                    docs = docs.filter(q =>
+                        (q.enunciado && q.enunciado.toLowerCase().includes(termo)) ||
+                        (q.titulo && q.titulo.toLowerCase().includes(termo)) ||
+                        (q.materia && q.materia.toLowerCase().includes(termo)) ||
+                        (q.disciplina && q.disciplina.toLowerCase().includes(termo)) ||
+                        (q.escola && q.escola.toLowerCase().includes(termo)) ||
+                        (q.bncc?.codigo && q.bncc.codigo.toLowerCase().includes(termo))
+                    );
+                }
+
+                resultados.push(...docs);
+
+                if (snapshot.docs.length < limiteQuery) {
+                    break;
+                }
+            }
+
+            return {
+                itens: resultados,
+                ultimoDoc: cursorAtual
+            };
+        } catch (e) {
+            console.error(`Erro em buscarComunidadePaginada (${colecao}):`, e);
+            throw e;
+        }
+    },
+
     async getQuestoesComunidade(materia = '') {
-        let ref = this.db.collection('comunidade_questoes');
-        if (materia) ref = ref.where('materia', '==', materia);
-        const snapshot = await ref.orderBy('data_partilha', 'desc').limit(50).get();
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        return this._fetchComunidadeColecao('comunidade_questoes', { materia });
     },
     async removerQuestaoComunidade(uid, questaoIdLocal) {
-        const snapshot = await this.db.collection('comunidade_questoes')
-            .where('uid_autor', '==', uid)
-            .where('id_local_origem', '==', String(questaoIdLocal))
-            .get();
-        if (snapshot.empty) return;
-        const batch = this.db.batch();
-        snapshot.forEach(doc => {
-            batch.delete(doc.ref);
-        });
-        return batch.commit();
+        return this._removerComunidadeItem('comunidade_questoes', uid, questaoIdLocal);
     },
     async verificarDuplicataComunidade(enunciado) {
         try {
@@ -402,32 +520,7 @@ export const firebaseService = {
     // BANCO DE MATERIAIS PEDAGÓGICOS DA COMUNIDADE (FIRESTORE)
     // =========================================================================
     async getMateriaisComunidade(disciplina = '', tipo = '') {
-        if (!this.db) return [];
-        try {
-            let ref = this.db.collection('comunidade_materiais');
-            if (disciplina) ref = ref.where('disciplina', '==', disciplina);
-            if (tipo) ref = ref.where('tipo', '==', tipo);
-            const snapshot = await ref.orderBy('data_partilha', 'desc').limit(50).get();
-            return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        } catch (e) {
-            console.warn("Aviso ao buscar materiais da comunidade no Firestore:", e.message);
-            // Fallback 1: se índice composto ou ordenação falhar, busca simples e ordena em memória
-            try {
-                const snapshot = await this.db.collection('comunidade_materiais').limit(50).get();
-                let docs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                if (disciplina) docs = docs.filter(d => d.disciplina === disciplina);
-                if (tipo) docs = docs.filter(d => d.tipo === tipo);
-                docs.sort((a, b) => new Date(b.data_partilha || 0) - new Date(a.data_partilha || 0));
-                return docs;
-            } catch (err2) {
-                if (err2?.code === 'permission-denied' || String(err2?.message).includes('permissions')) {
-                    console.warn("🔒 Coleção 'comunidade_materiais' sem regra de leitura pública no Firestore. Atualize o firestore.rules.");
-                } else {
-                    console.error("Erro no fallback de materiais da comunidade:", err2);
-                }
-                return [];
-            }
-        }
+        return this._fetchComunidadeColecao('comunidade_materiais', { disciplina, tipo });
     },
 
     async verificarDuplicataMaterialComunidade(titulo) {
@@ -463,22 +556,36 @@ export const firebaseService = {
     },
 
     async removerMaterialComunidade(uid, materialIdLocal) {
-        if (!this.db || !uid) return;
-        try {
-            const snapshot = await this.db.collection('comunidade_materiais')
-                .where('uid_autor', '==', uid)
-                .where('id_local_origem', '==', String(materialIdLocal))
-                .get();
-            if (snapshot.empty) return;
-            const batch = this.db.batch();
-            snapshot.forEach(doc => {
-                batch.delete(doc.ref);
-            });
-            return batch.commit();
-        } catch (e) {
-            console.error("Erro ao remover material da comunidade:", e);
-            throw e;
-        }
+        return this._removerComunidadeItem('comunidade_materiais', uid, materialIdLocal);
+    },
+
+    // =========================================================================
+    // COMUNIDADE DE FLASHCARDS & MAPAS MENTAIS (FIRESTORE)
+    // =========================================================================
+    async getFlashcardsComunidade(materia = '') {
+        return this._fetchComunidadeColecao('comunidade_flashcards', { materia });
+    },
+
+    async publicarFlashcardComunidade(dadosFlashcard) {
+        if (!this.db) throw new Error("Firestore não inicializado.");
+        return await this.db.collection('comunidade_flashcards').add(dadosFlashcard);
+    },
+
+    async removerFlashcardComunidade(uid, flashcardIdLocal) {
+        return this._removerComunidadeItem('comunidade_flashcards', uid, flashcardIdLocal);
+    },
+
+    async getMapasMentaisComunidade(materia = '') {
+        return this._fetchComunidadeColecao('comunidade_mindmaps', { materia });
+    },
+
+    async publicarMapaMentalComunidade(dadosMapa) {
+        if (!this.db) throw new Error("Firestore não inicializado.");
+        return await this.db.collection('comunidade_mindmaps').add(dadosMapa);
+    },
+
+    async removerMapaMentalComunidade(uid, mapaIdLocal) {
+        return this._removerComunidadeItem('comunidade_mindmaps', uid, mapaIdLocal);
     },
 
     // =========================================================================

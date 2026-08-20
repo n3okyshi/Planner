@@ -335,14 +335,7 @@ export const criarMaterialView = {
             if (isLixeiraTab && !naLixeira) return false;
             if (!isLixeiraTab && naLixeira) return false;
 
-            const termo = (this.termoBusca || '').toLowerCase();
-            const matchBusca = !termo ||
-                (m.titulo && m.titulo.toLowerCase().includes(termo)) ||
-                (m.tema && m.tema.toLowerCase().includes(termo)) ||
-                (m.disciplina && m.disciplina.toLowerCase().includes(termo)) ||
-                (m.serie && m.serie.toLowerCase().includes(termo)) ||
-                (m.bncc && m.bncc.toLowerCase().includes(termo)) ||
-                (m.conteudo_html && m.conteudo_html.toLowerCase().includes(termo));
+            const matchBusca = (window.matchMultiTermos || matchMultiTermos)(m, ['titulo', 'tema', 'disciplina', 'serie', 'bncc', 'habilidade_bncc', 'habilidade', 'codigo_bncc', 'conteudo_html'], this.termoBusca);
 
             const matchDisciplina = !this.filtros.disciplina || m.disciplina === this.filtros.disciplina;
             const matchSerie = !this.filtros.serie || (m.serie && m.serie.includes(this.filtros.serie));
@@ -1992,12 +1985,8 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
             if (this.filtros.tipo && m.tipo !== this.filtros.tipo) return false;
 
             if (busca) {
-                const titulo = (m.titulo || m.tema || '').toLowerCase();
-                const conteudo = (m.conteudo_html || '').toLowerCase();
-                const disciplina = (m.disciplina || '').toLowerCase();
-                const serie = (m.serie || '').toLowerCase();
-                const bncc = (m.bncc || '').toLowerCase();
-                return titulo.includes(busca) || conteudo.includes(busca) || disciplina.includes(busca) || serie.includes(busca) || bncc.includes(busca);
+                const matchBusca = (window.matchMultiTermos || matchMultiTermos)(m, ['titulo', 'tema', 'disciplina', 'serie', 'bncc', 'habilidade_bncc', 'habilidade', 'codigo_bncc', 'conteudo_html'], busca);
+                if (!matchBusca) return false;
             }
 
             return true;

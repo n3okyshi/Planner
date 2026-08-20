@@ -130,7 +130,12 @@ export const aiService = {
         return resultadoInicial;
     },
     _esperar: (ms) => new Promise(res => setTimeout(res, ms)),
-    async _executarPromptGemini(prompt, maxTokens = 4096) {
+
+    /**
+     * Núcleo unificado de requisições HTTP para a API do Gemini com rotatividade de modelos e tratamento de Rate Limit (429).
+     * @private
+     */
+    async _fazerRequisicaoModelosGemini(partsPayload, maxTokens = 4096, temperature = 0.7) {
         if (!navigator.onLine) {
             Toast.show("Você está offline. Conecte-se para usar a IA.", "warning");
             throw new Error("Sem conexão com a internet.");
@@ -147,9 +152,9 @@ export const aiService = {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: prompt }] }],
+                        contents: [{ parts: partsPayload }],
                         generationConfig: {
-                            temperature: 0.7,
+                            temperature: temperature,
                             topK: 40,
                             topP: 0.95,
                             maxOutputTokens: maxTokens,
@@ -173,7 +178,7 @@ export const aiService = {
                     .replace(/```/g, "")
                     .trim();
                 const finalResult = JSON.parse(cleanJson);
-                console.log(`✅ Sucesso na geração com: ${modelInfo.id}`);
+                console.log(`✅ Sucesso na requisição IA com: ${modelInfo.id}`);
                 return finalResult;
             } catch (error) {
                 if (i === this.MODELOS.length - 1) {
@@ -183,75 +188,25 @@ export const aiService = {
             }
         }
     },
-    async _executarPromptMultimodalGemini(prompt, imagemBase64, mimeType = 'image/jpeg', maxTokens = 4096) {
-        if (!navigator.onLine) {
-            Toast.show("Você está offline. Conecte-se para usar a IA.", "warning");
-            throw new Error("Sem conexão com a internet.");
-        }
-        let ultimoErro = "";
-        const apiKeyAtual = await this.getApiKey();
 
-        // Extrai apenas a string base64 pura caso venha com prefixo data:image/...;base64,
+    async _executarPromptGemini(prompt, maxTokens = 4096) {
+        return this._fazerRequisicaoModelosGemini([{ text: prompt }], maxTokens, 0.7);
+    },
+
+    async _executarPromptMultimodalGemini(prompt, imagemBase64, mimeType = 'image/jpeg', maxTokens = 4096) {
         const base64Data = imagemBase64.includes(',')
             ? imagemBase64.split(',')[1]
             : imagemBase64;
-
-        for (let i = 0; i < this.MODELOS.length; i++) {
-            const modelInfo = this.MODELOS[i];
-            try {
-                const url = `https://generativelanguage.googleapis.com/${modelInfo.v}/models/${modelInfo.id}:generateContent?key=${apiKeyAtual}`;
-                console.log(`👁️ Tentativa IA Vision ${i + 1}/${this.MODELOS.length}: Usando ${modelInfo.id}...`);
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        contents: [
-                            {
-                                parts: [
-                                    { text: prompt },
-                                    {
-                                        inline_data: {
-                                            mime_type: mimeType,
-                                            data: base64Data
-                                        }
-                                    }
-                                ]
-                            }
-                        ],
-                        generationConfig: {
-                            temperature: 0.1,
-                            topK: 32,
-                            topP: 0.95,
-                            maxOutputTokens: maxTokens,
-                        }
-                    })
-                });
-                const data = await response.json();
-                if (!response.ok || data.error) {
-                    const msg = data.error?.message || `Erro HTTP ${response.status}`;
-                    console.warn(`⚠️ Modelo ${modelInfo.id} falhou na visão: ${msg}`);
-                    ultimoErro = msg;
-                    if (response.status === 429) await this._esperar(1000);
-                    throw new Error(msg);
-                }
-                if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
-                    throw new Error("Resposta vazia da IA.");
-                }
-                const textResponse = data.candidates[0].content.parts[0].text;
-                const cleanJson = textResponse
-                    .replace(/```json/gi, "")
-                    .replace(/```/g, "")
-                    .trim();
-                const finalResult = JSON.parse(cleanJson);
-                console.log(`✅ Sucesso na visão computacional com: ${modelInfo.id}`);
-                return finalResult;
-            } catch (error) {
-                if (i === this.MODELOS.length - 1) {
-                    console.error("❌ Falha crítica na visão: Todos os modelos de IA falharam.");
-                    throw new Error(`Não foi possível analisar a imagem no momento. Detalhe: ${ultimoErro || error.message}`);
+        const partsPayload = [
+            { text: prompt },
+            {
+                inline_data: {
+                    mime_type: mimeType,
+                    data: base64Data
                 }
             }
-        }
+        ];
+        return this._fazerRequisicaoModelosGemini(partsPayload, maxTokens, 0.1);
     },
     /**
      * Analisa visualmente uma foto ou digitalização de cartão-resposta/gabarito e extrai as alternativas marcadas com alta precisão.

@@ -1,6 +1,5 @@
 import { firebaseService } from '../firebase-service.js';
-import { planejamentoService } from '../services/planejamentoService.js';
-import { turmaService } from '../services/turmaService.js';
+import { dataProxy } from '../services/dataProxy.js';
 
 export const planejamentoMethods = {
     savePlanoDiario(data, turmaId, conteudo) {
@@ -9,8 +8,8 @@ export const planejamentoMethods = {
         if (!this.state.planosDiarios[data]) this.state.planosDiarios[data] = {};
         this.state.planosDiarios[data][String(turmaId)] = conteudo;
         this.saveLocal();
-        if (this.currentUser && typeof planejamentoService !== 'undefined' && planejamentoService?.savePlanoDiario) {
-            planejamentoService.savePlanoDiario(this.currentUser.uid, this.state.planosDiarios);
+        if (this.currentUser) {
+            dataProxy.saveRoot(this.currentUser.uid, { planosDiarios: this.state.planosDiarios });
         }
     },
     getPlanoDiario(data, turmaId) {
@@ -36,7 +35,7 @@ export const planejamentoMethods = {
             this.saveLocal();
 
             if (this.currentUser && firebaseService?.saveTurma) {
-                planejamentoService.saveTurma(this.currentUser.uid, turma);
+                dataProxy.saveTurma(this.currentUser.uid, turma);
             }
         }
     },
@@ -49,7 +48,7 @@ export const planejamentoMethods = {
         this.saveLocal();
 
         if (this.currentUser && firebaseService?.saveTurma) {
-            planejamentoService.saveTurma(this.currentUser.uid, turma);
+            dataProxy.saveTurma(this.currentUser.uid, turma);
         }
     },
     editarHabilidadePlanejamento(turmaId, periodoIdx, codigoOriginal, novaHabilidade) {
@@ -67,7 +66,7 @@ export const planejamentoMethods = {
             };
             this.saveLocal();
             if (this.currentUser && firebaseService?.saveTurma) {
-                planejamentoService.saveTurma(this.currentUser.uid, turma);
+                dataProxy.saveTurma(this.currentUser.uid, turma);
             }
             return true;
         }
@@ -85,7 +84,7 @@ export const planejamentoMethods = {
             this.saveLocal();
 
             if (this.currentUser && firebaseService?.saveTurma) {
-                planejamentoService.saveTurma(this.currentUser.uid, turma);
+                dataProxy.saveTurma(this.currentUser.uid, turma);
             }
         }
     },
@@ -193,7 +192,7 @@ export const planejamentoMethods = {
         this.saveLocal();
 
         if (this.currentUser && firebaseService?.saveTurma) {
-            planejamentoService.saveTurma(this.currentUser.uid, turma);
+            dataProxy.saveTurma(this.currentUser.uid, turma);
         }
 
         console.log(`✅ Habilidade ${codigoHabilidade} removida com sucesso de ${mes}.`);
@@ -208,7 +207,7 @@ export const planejamentoMethods = {
         this.saveLocal();
 
         if (this.currentUser && firebaseService?.saveTurma) {
-            planejamentoService.saveTurma(this.currentUser.uid, destino);
+            dataProxy.saveTurma(this.currentUser.uid, destino);
         }
         return true;
     },
@@ -253,7 +252,7 @@ export const planejamentoMethods = {
 
         this.saveLocal();
         if (this.currentUser && firebaseService?.saveTurma) {
-            planejamentoService.saveTurma(this.currentUser.uid, turma);
+            dataProxy.saveTurma(this.currentUser.uid, turma);
         }
         return true;
     },
@@ -274,8 +273,8 @@ export const planejamentoMethods = {
 
         if (sucesso > 0) {
             this.saveLocal();
-            if (this.currentUser && typeof planejamentoService !== 'undefined' && planejamentoService?.savePlanoDiario) {
-                planejamentoService.savePlanoDiario(this.currentUser.uid, this.state.planosDiarios);
+            if (this.currentUser) {
+                dataProxy.saveRoot(this.currentUser.uid, { planosDiarios: this.state.planosDiarios });
             }
         }
         return sucesso;

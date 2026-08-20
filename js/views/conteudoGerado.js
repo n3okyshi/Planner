@@ -282,6 +282,30 @@ export const conteudoGeradoView = {
         }
     },
 
+    abrirSeletorBnccModal() {
+        const bnccInput = document.getElementById('editor-mat-bncc');
+        const serieEl = document.getElementById('editor-mat-serie');
+        const discEl = document.getElementById('editor-mat-disciplina');
+
+        const callback = (habilidade) => {
+            if (bnccInput && habilidade && habilidade.codigo) {
+                const fn = window.adicionarCodigoBNCC || adicionarCodigoBNCC;
+                bnccInput.value = fn(bnccInput.value, habilidade.codigo);
+                Toast.show(`Habilidade ${habilidade.codigo} anexada ao material!`, 'success');
+            }
+        };
+
+        const serie = serieEl ? serieEl.value : null;
+        const nivel = 'Fundamental';
+
+        if (window.controller && window.controller.openModal) {
+            window.controller.openModal('Consultar & Anexar BNCC', '<div id="modal-bncc-editor" style="width: 100%; max-height: 80vh; overflow-y: auto; padding: var(--spacing-4);"></div>', 'xl');
+            setTimeout(() => {
+                if (window.bnccView) window.bnccView.render('modal-bncc-editor', nivel, serie, callback);
+            }, 50);
+        }
+    },
+
     abrirEditorModal() {
         const material = (model.state.materiaisGerados || []).find(m => m.id === this.materialIdAtual);
         if (!material) return Toast.show("Nenhum material carregado para edição.", "error");
@@ -361,9 +385,14 @@ export const conteudoGeradoView = {
 
                         <div>
                             <label class="form-label" style="font-weight: 800; font-size: 0.8125rem; color: var(--color-slate-700); display: flex; align-items: center; gap: 0.35rem;">
-                                <i class="fas fa-award" style="color: #d97706;"></i> Habilidade / Código BNCC
+                                <i class="fas fa-award" style="color: #d97706;"></i> Habilidade(s) BNCC (separadas por vírgula)
                             </label>
-                            <input type="text" id="editor-mat-bncc" class="form-input" value="${window.escapeHTML(bnccAtual)}" placeholder="Ex: EF06MA01 ou descrição da habilidade..." style="font-weight: 700; font-size: 0.875rem;">
+                            <div style="display: flex; gap: 0.5rem; align-items: center;">
+                                <input type="text" id="editor-mat-bncc" class="form-input" value="${window.escapeHTML(bnccAtual)}" placeholder="Ex: EF06MA01, EF06MA02, EF09MA07" style="font-weight: 700; font-size: 0.875rem; flex: 1;">
+                                <button type="button" onclick="conteudoGeradoView.abrirSeletorBnccModal()" class="btn-secondary interactive-element" style="padding: 0.45rem 0.75rem; font-size: 0.75rem; white-space: nowrap; background: #fff8f0; border-color: #fde68a; color: #b45309;" title="Buscar e Anexar Habilidades da BNCC">
+                                    <i class="fas fa-search-plus"></i> BNCC
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

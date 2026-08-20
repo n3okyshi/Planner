@@ -1,5 +1,5 @@
 import { firebaseService } from '../firebase-service.js';
-import { turmaService } from '../services/turmaService.js';
+import { dataProxy } from '../services/dataProxy.js';
 import { generateId } from '../utils.js';
 
 export const turmaMethods = {
@@ -18,14 +18,14 @@ export const turmaMethods = {
         this.state.turmas.push(novaTurma);
         this.saveLocal();
         if (this.currentUser && firebaseService?.saveTurma) {
-            turmaService.saveTurma(this.currentUser.uid, novaTurma);
+            dataProxy.saveTurma(this.currentUser.uid, novaTurma);
         }
     },
     deleteTurma(id) {
         this.state.turmas = this.state.turmas.filter(t => String(t.id) !== String(id));
         this.saveLocal();
         if (this.currentUser && firebaseService?.deleteTurma) {
-            turmaService.deleteTurma(this.currentUser.uid, id);
+            dataProxy.deleteTurma(this.currentUser.uid, id);
         }
     },
     addAluno(turmaId, nomeAluno) {
@@ -42,7 +42,7 @@ export const turmaMethods = {
             turma.alunos.sort((a, b) => a.nome.localeCompare(b.nome));
             this.saveLocal();
             if (this.currentUser && firebaseService?.saveAluno) {
-                turmaService.saveAluno(this.currentUser.uid, turmaId, novoAluno);
+                dataProxy.saveAluno(this.currentUser.uid, turmaId, novoAluno);
             }
         }
     },
@@ -52,7 +52,7 @@ export const turmaMethods = {
             turma.alunos = turma.alunos.filter(a => String(a.id) !== String(alunoId));
             this.saveLocal();
             if (this.currentUser && firebaseService?.deleteAluno) {
-                turmaService.deleteAluno(this.currentUser.uid, turmaId, alunoId);
+                dataProxy.deleteAluno(this.currentUser.uid, turmaId, alunoId);
             }
         }
     },
@@ -68,7 +68,7 @@ export const turmaMethods = {
             turma.avaliacoes.push(novaAv);
             this.saveLocal();
             if (this.currentUser && firebaseService?.saveAvaliacao) {
-                turmaService.saveAvaliacao(this.currentUser.uid, turmaId, novaAv);
+                dataProxy.saveAvaliacao(this.currentUser.uid, turmaId, novaAv);
             }
         }
     },
@@ -83,7 +83,7 @@ export const turmaMethods = {
             });
             this.saveLocal();
             if (this.currentUser && firebaseService?.deleteAvaliacao) {
-                turmaService.deleteAvaliacao(this.currentUser.uid, turmaId, avId);
+                dataProxy.deleteAvaliacao(this.currentUser.uid, turmaId, avId);
             }
         }
     },
@@ -101,7 +101,7 @@ export const turmaMethods = {
                 }
                 this.saveLocal();
                 if (this.currentUser && firebaseService?.saveAluno) {
-                    turmaService.saveAluno(this.currentUser.uid, turmaId, aluno);
+                    dataProxy.saveAluno(this.currentUser.uid, turmaId, aluno);
                 }
             }
         }
@@ -137,7 +137,7 @@ export const turmaMethods = {
         this.saveLocal();
         if (this.currentUser && firebaseService?.saveFrequenciaAluno) {
             try {
-                await turmaService.saveFrequenciaAluno(
+                await dataProxy.saveFrequenciaAluno(
                     this.currentUser.uid,
                     turmaId,
                     alunoId,
@@ -195,7 +195,7 @@ export const turmaMethods = {
         if (alunoOcupante) {
             alunoOcupante.posicao = null;
             if (this.currentUser && firebaseService?.saveAluno) {
-                turmaService.saveAluno(this.currentUser.uid, turmaId, alunoOcupante);
+                dataProxy.saveAluno(this.currentUser.uid, turmaId, alunoOcupante);
             }
         }
         const aluno = turma.alunos.find(a => String(a.id) === String(alunoId));
@@ -203,7 +203,7 @@ export const turmaMethods = {
             aluno.posicao = novaPosicao;
             this.saveLocal();
             if (this.currentUser && firebaseService?.saveAluno) {
-                turmaService.saveAluno(this.currentUser.uid, turmaId, aluno);
+                dataProxy.saveAluno(this.currentUser.uid, turmaId, aluno);
             }
         }
     },
@@ -215,7 +215,7 @@ export const turmaMethods = {
             aluno.posicao = null;
             this.saveLocal();
             if (this.currentUser && firebaseService?.saveAluno) {
-                turmaService.saveAluno(this.currentUser.uid, turmaId, aluno);
+                dataProxy.saveAluno(this.currentUser.uid, turmaId, aluno);
             }
         }
     },
@@ -230,7 +230,7 @@ export const turmaMethods = {
                 }
                 this.saveLocal();
                 if (this.currentUser && firebaseService?.saveAluno) {
-                    turmaService.saveAluno(this.currentUser.uid, turmaId, turma.alunos[index]);
+                    dataProxy.saveAluno(this.currentUser.uid, turmaId, turma.alunos[index]);
                 }
             }
         }
@@ -247,8 +247,8 @@ export const turmaMethods = {
 
         this.saveLocal();
         if (this.currentUser && firebaseService?.saveAluno) {
-            if (alunoOrigem) turmaService.saveAluno(this.currentUser.uid, turmaId, alunoOrigem);
-            if (alunoDestino) turmaService.saveAluno(this.currentUser.uid, turmaId, alunoDestino);
+            if (alunoOrigem) dataProxy.saveAluno(this.currentUser.uid, turmaId, alunoOrigem);
+            if (alunoDestino) dataProxy.saveAluno(this.currentUser.uid, turmaId, alunoDestino);
         }
     },
     setMapaConfig(turmaId, config) {
@@ -261,7 +261,7 @@ export const turmaMethods = {
         };
         this.saveLocal();
         if (this.currentUser && firebaseService?.saveTurma) {
-            turmaService.saveTurma(this.currentUser.uid, turma);
+            dataProxy.saveTurma(this.currentUser.uid, turma);
         }
     },
     addOcorrenciaDossie(turmaId, alunoId, ocorrencia) {
@@ -288,7 +288,7 @@ export const turmaMethods = {
         aluno.dossie.unshift(novaOcorrencia);
         this.saveLocal();
         if (this.currentUser && firebaseService?.saveAluno) {
-            turmaService.saveAluno(this.currentUser.uid, turmaId, aluno);
+            dataProxy.saveAluno(this.currentUser.uid, turmaId, aluno);
         }
         return novaOcorrencia;
     },
@@ -301,7 +301,7 @@ export const turmaMethods = {
         aluno.dossie = aluno.dossie.filter(o => String(o.id) !== String(ocorrenciaId));
         this.saveLocal();
         if (this.currentUser && firebaseService?.saveAluno) {
-            turmaService.saveAluno(this.currentUser.uid, turmaId, aluno);
+            dataProxy.saveAluno(this.currentUser.uid, turmaId, aluno);
         }
         return true;
     },
@@ -326,7 +326,7 @@ export const turmaMethods = {
                 tDest.avaliacoes.push(novaAv);
                 sucesso++;
                 if (this.currentUser && firebaseService?.saveAvaliacao) {
-                    turmaService.saveAvaliacao(this.currentUser.uid, tDest.id, novaAv);
+                    dataProxy.saveAvaliacao(this.currentUser.uid, tDest.id, novaAv);
                 }
             }
         });
@@ -343,7 +343,7 @@ export const turmaMethods = {
         if (ocupanteAtual && String(ocupanteAtual.id) !== String(alunoId)) {
             ocupanteAtual.posicao = null;
             if (this.currentUser && firebaseService?.saveAluno) {
-                turmaService.saveAluno(this.currentUser.uid, turmaId, ocupanteAtual);
+                dataProxy.saveAluno(this.currentUser.uid, turmaId, ocupanteAtual);
             }
         }
 
@@ -352,7 +352,7 @@ export const turmaMethods = {
             aluno.posicao = posicao;
             this.saveLocal();
             if (this.currentUser && firebaseService?.saveAluno) {
-                turmaService.saveAluno(this.currentUser.uid, turmaId, aluno);
+                dataProxy.saveAluno(this.currentUser.uid, turmaId, aluno);
             }
             return true;
         }
@@ -367,7 +367,7 @@ export const turmaMethods = {
             aluno.posicao = null;
             this.saveLocal();
             if (this.currentUser && firebaseService?.saveAluno) {
-                turmaService.saveAluno(this.currentUser.uid, turmaId, aluno);
+                dataProxy.saveAluno(this.currentUser.uid, turmaId, aluno);
             }
             return true;
         }

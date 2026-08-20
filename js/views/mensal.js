@@ -10,6 +10,20 @@ export const mensalView = {
 
     render(container, turmaId = null) {
         if (typeof container === 'string') container = document.getElementById(container);
+
+        // Se o contêiner de abas do planejamento (#subarea-planejamento-content) existir no DOM,
+        // renderiza a view mensal dentro dele para não apagar o cabeçalho com as abas ("Por Período", "Mensal", "Diário").
+        const subarea = document.getElementById('subarea-planejamento-content');
+        if (subarea && (container === document.getElementById('view-container') || !container)) {
+            container = subarea;
+        } else if (!subarea && (container === document.getElementById('view-container') || !container)) {
+            if (window.planejamentoView) {
+                window.planejamentoView.abaAtiva = 'mensal';
+                window.planejamentoView.render('view-container');
+                return;
+            }
+        }
+
         if (!container) return;
         if (turmaId) this.currentTurmaId = turmaId;
 

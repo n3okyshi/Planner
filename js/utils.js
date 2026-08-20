@@ -80,9 +80,7 @@ export function generateId(prefix = '') {
     return prefix ? `${prefix}_${id}` : id;
 }
 
-export function generateUUID() {
-    return generateId();
-}
+export const generateUUID = generateId;
 
 /**
  * Embaralha uma lista utilizando o algoritmo Fisher-Yates com números aleatórios criptograficamente seguros.
@@ -508,14 +506,14 @@ export function prepararHTMLParaExportacao(rawHtml, modo = 'professor') {
         const headers = tempDiv.querySelectorAll('h1, h2, h3, h4, h5, strong, p');
         headers.forEach(h => {
             const text = (h.textContent || '').trim().toLowerCase();
-            if (text.startsWith('gabarito') || 
-                text.startsWith('respostas esperadas') || 
-                text.startsWith('critérios de correção') || 
-                text.startsWith('resolução comentada') || 
+            if (text.startsWith('gabarito') ||
+                text.startsWith('respostas esperadas') ||
+                text.startsWith('critérios de correção') ||
+                text.startsWith('resolução comentada') ||
                 text.startsWith('gabarito comentado')) {
-                
+
                 let next = h.nextElementSibling;
-                while (next && !['H1','H2','H3','H4'].includes(next.tagName)) {
+                while (next && !['H1', 'H2', 'H3', 'H4'].includes(next.tagName)) {
                     const toRemove = next;
                     next = next.nextElementSibling;
                     toRemove.remove();
@@ -608,7 +606,7 @@ export function anexarPreviewLatex(input, previewContainer) {
                     ${linhasProcessadas}
                 </div>
             `;
-            renderKatex(previewEl);
+            renderMath(previewEl);
         } else {
             previewEl.style.display = 'none';
         }
@@ -648,7 +646,7 @@ export function alternarModoEdicaoPreview(textareaId, previewId, btnId) {
         // Entrar no modo de visualização com KaTeX
         const val = textarea.value || '';
         const html = sanitizeComLatex(val).replace(/\n/g, '<br>') || '<em style="color: var(--color-slate-400);">Nenhum conteúdo digitado. Clique nesta área para editar.</em>';
-        
+
         preview.innerHTML = `
             <div style="font-size: 0.6875rem; font-weight: 800; color: var(--color-primary, #4f46e5); text-transform: uppercase; margin-bottom: 0.375rem; display: flex; justify-content: space-between; align-items: center;">
                 <span><i class="fas fa-eye"></i> Pré-visualização Matemática (KaTeX)</span>
@@ -661,18 +659,18 @@ export function alternarModoEdicaoPreview(textareaId, previewId, btnId) {
                 ${html}
             </div>
         `;
-        
+
         preview.onclick = () => alternarModoEdicaoPreview(textarea, preview, btn);
         textarea.style.display = 'none';
         preview.style.display = 'block';
-        
+
         if (btn) {
             btn.innerHTML = '<i class="fas fa-edit"></i> <span>Editar Texto</span>';
             btn.classList.remove('btn-secondary');
             btn.classList.add('btn-primary');
         }
-        
-        renderKatex(preview);
+
+        renderMath(preview);
     }
 }
 
@@ -688,7 +686,7 @@ export async function lerArquivoTexto(file) {
         const ext = file.name.split('.').pop().toLowerCase();
 
         if (ext === 'pdf') {
-            reader.onload = function(e) {
+            reader.onload = function (e) {
                 try {
                     const content = e.target.result;
                     // Extração de texto de fluxos PDF sem dependências externas
@@ -708,7 +706,7 @@ export async function lerArquivoTexto(file) {
             reader.onerror = reject;
             reader.readAsBinaryString(file);
         } else {
-            reader.onload = function(e) {
+            reader.onload = function (e) {
                 const text = e.target.result || "";
                 resolve(text.substring(0, 35000));
             };
@@ -1083,6 +1081,80 @@ export function processarFiltroDocumentScanner(canvas, modo = 'scan_otimizado', 
     return canvas;
 }
 
+/**
+ * Adiciona um novo código BNCC a uma string de códigos existentes separados por vírgula.
+ * Evita duplicidades (case-insensitive) e formata com vírgula e espaço.
+ * @param {string} stringAtual 
+ * @param {string} novoCodigo 
+ * @returns {string}
+ */
+export function adicionarCodigoBNCC(stringAtual, novoCodigo) {
+    if (!novoCodigo) return stringAtual || '';
+    const codLimpo = String(novoCodigo).trim();
+    if (!codLimpo) return stringAtual || '';
+    if (!stringAtual || !String(stringAtual).trim()) {
+        return codLimpo;
+    }
+
+    const existentes = String(stringAtual)
+        .split(',')
+        .map(s => s.trim())
+        .filter(Boolean);
+
+    const codUpper = codLimpo.toUpperCase();
+    if (!existentes.some(c => c.toUpperCase() === codUpper)) {
+        existentes.push(codLimpo);
+    }
+    return existentes.join(', ');
+}
+
+/**
+ * Realiza busca multi-termo separada por vírgulas (lógica AND independente de ordem / permutação)
+ * em campos textuais de um objeto de material ou questão.
+ * @param {Object} item - Objeto do material/questão
+ * @param {Array<string>} fields - Lista de propriedades a verificar
+ * @param {string} queryStr - Busca do usuário (ex: "EF09MA07, EF09MA01")
+ * @returns {boolean}
+ */
+export function matchMultiTermos(item, fields, queryStr) {
+    if (!queryStr || !String(queryStr).trim()) return true;
+    if (!item) return false;
+
+    const termos = String(queryStr)
+        .split(',')
+        .map(t => normalizeText(t.trim()))
+        .filter(Boolean);
+
+    if (termos.length === 0) return true;
+
+    const textoCompleto = fields
+        .map(f => normalizeText(String(item[f] || '')))
+        .join(' ');
+
+    return termos.every(termo => textoCompleto.includes(termo));
+}
+
+/**
+ * Verifica especificamente se o campo BNCC de um material contém todas as habilidades especificadas na busca.
+ * @param {string} materialBnccStr 
+ * @param {string} queryStr 
+ * @returns {boolean}
+ */
+export function matchBNCC(materialBnccStr, queryStr) {
+    if (!queryStr || !String(queryStr).trim()) return true;
+    if (!materialBnccStr || !String(materialBnccStr).trim()) return false;
+
+    const bnccTexto = normalizeText(String(materialBnccStr));
+    const termos = String(queryStr)
+        .split(',')
+        .map(t => normalizeText(t.trim()))
+        .filter(Boolean);
+
+    if (termos.length === 0) return true;
+
+    return termos.every(termo => bnccTexto.includes(termo));
+}
+
 if (typeof window !== 'undefined') {
     window.escapeHTML = escapeHTML;
     window.sanitizeComLatex = sanitizeComLatex;
@@ -1101,6 +1173,9 @@ if (typeof window !== 'undefined') {
     window.ordenarEstudantes = ordenarEstudantes;
     window.comprimirERedimensionarImagem = comprimirERedimensionarImagem;
     window.processarFiltroDocumentScanner = processarFiltroDocumentScanner;
+    window.adicionarCodigoBNCC = adicionarCodigoBNCC;
+    window.matchMultiTermos = matchMultiTermos;
+    window.matchBNCC = matchBNCC;
 }
 
 
