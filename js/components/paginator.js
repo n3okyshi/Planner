@@ -1,3 +1,5 @@
+import { EventDelegator } from '../utils/eventDelegator.js';
+
 /**
  * Componente Reutilizável de Paginador Reativo (Vanilla JS ES6+)
  * Permite paginar coleções de dados no frontend de forma eficiente e acessível.
@@ -14,6 +16,7 @@ export class PaginatorComponent {
         this.totalItems = 0;
         this.items = [];
         this.onPageChange = options.onPageChange || (() => {});
+        this._cleanupDelegators = null;
     }
 
     setItems(items = []) {
@@ -48,6 +51,11 @@ export class PaginatorComponent {
     }
 
     renderControls() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+
         const totalPages = this.getTotalPages();
         const container = document.createElement('div');
         container.className = 'paginator-controls';
@@ -72,24 +80,29 @@ export class PaginatorComponent {
         const prevBtn = document.createElement('button');
         prevBtn.type = 'button';
         prevBtn.className = 'btn-secondary';
+        prevBtn.setAttribute('data-action', 'paginator-prev');
         prevBtn.disabled = this.currentPage <= 1;
         prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i> Anteriores';
         prevBtn.style.cssText = `padding: 0.4rem 0.75rem; font-size: 0.8125rem; font-weight: 700; cursor: pointer;`;
-        prevBtn.onclick = () => this.prevPage();
 
         const nextBtn = document.createElement('button');
         nextBtn.type = 'button';
         nextBtn.className = 'btn-secondary';
+        nextBtn.setAttribute('data-action', 'paginator-next');
         nextBtn.disabled = this.currentPage >= totalPages;
         nextBtn.innerHTML = 'Próximos <i class="fas fa-chevron-right"></i>';
         nextBtn.style.cssText = `padding: 0.4rem 0.75rem; font-size: 0.8125rem; font-weight: 700; cursor: pointer;`;
-        nextBtn.onclick = () => this.nextPage();
 
         buttons.appendChild(prevBtn);
         buttons.appendChild(nextBtn);
 
         container.appendChild(info);
         container.appendChild(buttons);
+
+        this._cleanupDelegators = EventDelegator.bind(container, {
+            'paginator-prev': () => this.prevPage(),
+            'paginator-next': () => this.nextPage()
+        }, 'click');
 
         return container;
     }
@@ -100,6 +113,13 @@ export class PaginatorComponent {
                 totalPages: this.getTotalPages(),
                 totalItems: this.totalItems
             });
+        }
+    }
+
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
         }
     }
 }

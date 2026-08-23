@@ -1,10 +1,14 @@
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { uiController } from '../controllers/uiController.js';
+import { turmaController } from '../controllers/turmaController.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
+
 export const turmasView = {
     confirmandoExclusao: null,
     periodoAtivo: 1,
     criterioOrdenacao: 'chamada_asc',
+    _cleanupDelegators: null,
 
     mudarOrdenacao(criterio, turmaId) {
         this.criterioOrdenacao = criterio;
@@ -27,6 +31,11 @@ export const turmasView = {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
 
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+
         this.confirmandoExclusao = null;
         const turmas = model.state.turmas || [];
 
@@ -39,7 +48,7 @@ export const turmasView = {
                         </h2>
                         <p class="view-header__subtitle">Gerencie alunos, notas e avaliações.</p>
                     </div>
-                    <button type="button" onclick="controller.openAddTurma()" class="btn-primary interactive-element" style="background-color: #4f46e5; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.25);">
+                    <button type="button" data-action="open-add-turma" class="btn-primary interactive-element" style="background-color: #4f46e5; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.25);">
                         <i class="fas fa-plus"></i> <span>Nova Turma</span>
                     </button>
                 </div>
@@ -50,7 +59,7 @@ export const turmasView = {
                           </div>
                           <h3 class="tool-empty-state__title">Nenhuma turma encontrada</h3>
                           <p class="tool-empty-state__desc">Comece criando sua primeira turma para registrar alunos e notas.</p>
-                          <button type="button" onclick="controller.openAddTurma()" class="btn-primary interactive-element" style="background-color: #4f46e5;">Criar Turma Agora</button>
+                          <button type="button" data-action="open-add-turma" class="btn-primary interactive-element" style="background-color: #4f46e5;">Criar Turma Agora</button>
                         </div>`
                 : `<div class="stat-grid stat-grid--3 animate-enter">
                             ${turmas.map(t => this._renderCardTurma(t)).join('')}
@@ -60,13 +69,22 @@ export const turmasView = {
         `;
 
         container.innerHTML = html;
+
+        this._cleanupDelegators = EventDelegator.bind(container, {
+            'open-add-turma': () => controller.openAddTurma(),
+            'ver-detalhes-turma': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) this.renderDetalhesTurma(container, id);
+            }
+        }, 'click');
+
         uiController.initAllDropdowns(container);
     },
     _renderCardTurma(turma) {
         const serieNum = turma.serie ? turma.serie.replace(/\D/g, '') : '?';
 
         return `
-            <div onclick="controller.views['turmas'].renderDetalhesTurma('view-container', '${turma.id}')"
+            <div data-action="ver-detalhes-turma" data-id="${turma.id}"
                   class="stat-card interactive-element cursor-pointer group relative overflow-hidden">
                 <div class="flex justify-between items-start mb-4">
                     <div style="background-color: #eef2ff; color: #4f46e5; width: 3rem; height: 3rem; border-radius: 0.75rem; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 700;">
@@ -95,17 +113,17 @@ export const turmasView = {
         if (this.confirmandoExclusao === turmaId) {
             return `
                 <div style="display: flex; align-items: center; gap: var(--spacing-2); animation: bounceIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;">
-                    <button onclick="controller.deleteTurma('${turmaId}')" class="btn-primary" style="background-color: #ef4444; box-shadow: var(--shadow-md); display: flex; align-items: center; gap: var(--spacing-2);">
+                    <button type="button" data-action="confirmar-exclusao-turma" data-id="${turmaId}" class="btn-primary" style="background-color: #ef4444; box-shadow: var(--shadow-md); display: flex; align-items: center; gap: var(--spacing-2);">
                         <i class="fas fa-exclamation-circle"></i> Confirmar?
                     </button>
-                    <button onclick="turmasView.cancelarExclusao('${turmaId}')" class="btn-icon" style="background-color: var(--color-slate-100); color: var(--color-slate-500);" title="Cancelar">
+                    <button type="button" data-action="cancelar-exclusao-turma" data-id="${turmaId}" class="btn-icon" style="background-color: var(--color-slate-100); color: var(--color-slate-500);" title="Cancelar">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
             `;
         }
         return `
-            <button onclick="turmasView.iniciarExclusao('${turmaId}')" class="btn-icon" style="background-color: #fef2f2; color: #ef4444;" title="Excluir Turma">
+            <button type="button" data-action="iniciar-exclusao-turma" data-id="${turmaId}" class="btn-icon" style="background-color: #fef2f2; color: #ef4444;" title="Excluir Turma">
                 <i class="fas fa-trash-alt"></i>
             </button>
         `;
@@ -116,6 +134,12 @@ export const turmasView = {
         const turmas = model.state.turmas || [];
         const turma = turmas.find(t => String(t.id) === String(turmaId));
         if (!turma) return controller.navigate('turmas');
+
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+
         const tipoConfig = (model.state.userConfig && model.state.userConfig.periodType) || 'bimestre';
         const numPeriodos = tipoConfig === 'bimestre' ? 4 : tipoConfig === 'trimestre' ? 3 : 2;
         const avaliacoesFiltradas = (turma.avaliacoes || []).filter(av => Number(av.periodo || 1) === this.periodoAtivo);
@@ -128,11 +152,11 @@ export const turmasView = {
             <div class="fade-in" style="padding-bottom: 5rem;">
                 <div style="display: flex; flex-direction: row; gap: var(--spacing-4); justify-content: space-between; align-items: center; margin-bottom: var(--spacing-8); flex-wrap: wrap;">
                     <div style="display: flex; align-items: center; gap: var(--spacing-3);">
-                        <button onclick="controller.navigate('turmas')" style="color: var(--color-slate-400); font-weight: 700; display: flex; align-items: center; gap: var(--spacing-2); font-size: 0.875rem; background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='var(--color-slate-700)'" onmouseout="this.style.color='var(--color-slate-400)'">
+                        <button type="button" data-action="nav-turmas" style="color: var(--color-slate-400); font-weight: 700; display: flex; align-items: center; gap: var(--spacing-2); font-size: 0.875rem; background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='var(--color-slate-700)'" onmouseout="this.style.color='var(--color-slate-400)'">
                             <i class="fas fa-arrow-left"></i> Voltar
                         </button>
                         <div class="custom-dropdown" style="min-width: 200px;">
-                            <input type="hidden" id="select-turma-detalhe" onchange="turmasView.renderDetalhesTurma('view-container', this.value)" value="${turma.id}">
+                            <input type="hidden" id="select-turma-detalhe" data-action="select-turma-detalhe-change" value="${turma.id}">
                             <button type="button" class="dropdown-button" style="padding: 0.4rem 0.75rem; font-size: 0.8125rem;">
                                 <i class="fas fa-users" style="color: var(--color-primary); margin-right: 0.5rem;"></i>
                                 <span class="dropdown-label font-bold">${window.escapeHTML(turma.nome)}</span>
@@ -151,16 +175,16 @@ export const turmasView = {
                         </div>
                     </div>
                     <div style="display: flex; gap: var(--spacing-2); align-items: center; flex-wrap: wrap;">
-                         <button onclick="controller.navigate('notas-anuais')" class="btn-outline" style="height: 2.5rem; color: #4f46e5; background-color: #eef2ff; border-color: #e0e7ff;" onmouseover="this.style.backgroundColor='#e0e7ff'" onmouseout="this.style.backgroundColor='#eef2ff'">
+                         <button type="button" data-action="nav-notas-anuais" class="btn-outline" style="height: 2.5rem; color: #4f46e5; background-color: #eef2ff; border-color: #e0e7ff;" onmouseover="this.style.backgroundColor='#e0e7ff'" onmouseout="this.style.backgroundColor='#eef2ff'">
                             <i class="fas fa-award" style="margin-right: 0.5rem;"></i> Notas Anuais
                         </button>
-                        <button onclick="turmaController.abrirModalReplicarAvaliacao('${turmaId}')" class="btn-outline" style="height: 2.5rem;" title="Copiar estrutura de avaliação para outras turmas">
+                        <button type="button" data-action="replicar-avaliacao" data-id="${turmaId}" class="btn-outline" style="height: 2.5rem;" title="Copiar estrutura de avaliação para outras turmas">
                             <i class="fas fa-copy" style="margin-right: 0.5rem;"></i> Replicar Avaliação
                         </button>
-                         <button onclick="controller.openAddAvaliacao('${turmaId}')" class="btn-outline" style="height: 2.5rem;">
+                         <button type="button" data-action="open-add-avaliacao" data-id="${turmaId}" class="btn-outline" style="height: 2.5rem;">
                             <i class="fas fa-file-alt" style="margin-right: 0.5rem;"></i> Nova Avaliação
                         </button>
-                        <button onclick="controller.openAddAluno('${turmaId}')" class="btn-primary" style="height: 2.5rem;">
+                        <button type="button" data-action="open-add-aluno" data-id="${turmaId}" class="btn-primary" style="height: 2.5rem;">
                             <i class="fas fa-user-plus" style="margin-right: 0.5rem;"></i> Novo Aluno
                         </button>
                         ${this.gerarBotaoExcluir(turmaId)}
@@ -168,7 +192,7 @@ export const turmasView = {
                 </div>
                 <div style="display: flex; align-items: center; gap: var(--spacing-2); margin-bottom: var(--spacing-6); padding: var(--spacing-1); background-color: var(--color-slate-100); border-radius: var(--radius-2xl); width: fit-content; border: 1px solid var(--color-slate-200); overflow-x: auto;">
                     ${Array.from({ length: numPeriodos }, (_, i) => `
-                        <button onclick="turmasView.mudarPeriodo('${turmaId}', ${i + 1})"
+                        <button type="button" data-action="mudar-periodo-turma" data-id="${turmaId}" data-periodo="${i + 1}"
                                  style="padding: 0.5rem 1.5rem; border-radius: var(--radius-xl); font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; transition: all var(--transition-fast); cursor: pointer; border: none; white-space: nowrap; ${this.periodoAtivo === (i + 1) ? 'background-color: var(--color-white); color: var(--color-primary); box-shadow: var(--shadow-sm);' : 'background-color: transparent; color: var(--color-slate-500);'}"
                                  onmouseover="if(${this.periodoAtivo !== (i + 1)}) this.style.color='var(--color-slate-700)'"
                                  onmouseout="if(${this.periodoAtivo !== (i + 1)}) this.style.color='var(--color-slate-500)'">
@@ -241,7 +265,7 @@ export const turmasView = {
                             <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 0.25rem;">
                                 <i class="fas fa-sort-amount-down"></i> Ordenar:
                             </label>
-                            <select onchange="turmasView.mudarOrdenacao(this.value, '${turmaId}')" class="form-input" style="padding: 0.35rem 0.625rem; font-size: 0.75rem; width: auto; border-radius: var(--radius-lg); background: var(--bg-surface); font-weight: 600;">
+                            <select data-action="mudar-ordenacao-select" data-id="${turmaId}" class="form-input" style="padding: 0.35rem 0.625rem; font-size: 0.75rem; width: auto; border-radius: var(--radius-lg); background: var(--bg-surface); font-weight: 600;">
                                 <option value="chamada_asc" ${this.criterioOrdenacao === 'chamada_asc' ? 'selected' : ''}>Nº Chamada (1, 2, 3...)</option>
                                 <option value="chamada_desc" ${this.criterioOrdenacao === 'chamada_desc' ? 'selected' : ''}>Nº Chamada Inverso</option>
                                 <option value="nome_asc" ${this.criterioOrdenacao === 'nome_asc' ? 'selected' : ''}>Nome (A - Z)</option>
@@ -255,10 +279,10 @@ export const turmasView = {
                         <table style="width: 100%; text-align: left; border-collapse: collapse;">
                             <thead>
                                 <tr style="background-color: rgba(248, 250, 252, 0.5);">
-                                    <th onclick="turmasView.toggleOrdenacaoColuna('chamada', '${turmaId}')" style="padding: var(--spacing-4); font-size: 0.75rem; font-weight: 700; color: var(--color-slate-500); text-transform: uppercase; width: 3.5rem; cursor: pointer;" title="Clique para inverter ordem da chamada">
+                                    <th data-action="toggle-ordenacao-chamada" data-id="${turmaId}" style="padding: var(--spacing-4); font-size: 0.75rem; font-weight: 700; color: var(--color-slate-500); text-transform: uppercase; width: 3.5rem; cursor: pointer;" title="Clique para inverter ordem da chamada">
                                         # <i class="fas fa-sort" style="font-size: 0.625rem; opacity: 0.5;"></i>
                                     </th>
-                                    <th onclick="turmasView.toggleOrdenacaoColuna('nome', '${turmaId}')" style="padding: var(--spacing-4); font-size: 0.75rem; font-weight: 700; color: var(--color-slate-500); text-transform: uppercase; min-width: 200px; cursor: pointer;" title="Clique para ordenar alfabeticamente">
+                                    <th data-action="toggle-ordenacao-nome" data-id="${turmaId}" style="padding: var(--spacing-4); font-size: 0.75rem; font-weight: 700; color: var(--color-slate-500); text-transform: uppercase; min-width: 200px; cursor: pointer;" title="Clique para ordenar alfabeticamente">
                                         Nome do Aluno <i class="fas fa-sort" style="font-size: 0.625rem; opacity: 0.5;"></i>
                                     </th>
                                     ${avaliacoesFiltradas.map(av => `
@@ -270,7 +294,7 @@ export const turmasView = {
                                                     <span style="font-size: 0.5625rem; color: var(--color-slate-300);">Max: ${av.max}</span>
                                                 </div>
                                             </div>
-                                            <button onclick="controller.deleteAvaliacao('${turmaId}', '${av.id}')" style="position: absolute; top: 0.25rem; right: 0.25rem; color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" class="hover-show" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--color-slate-300)'">
+                                            <button type="button" data-action="delete-avaliacao" data-turma="${turmaId}" data-av="${av.id}" style="position: absolute; top: 0.25rem; right: 0.25rem; color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" class="hover-show" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--color-slate-300)'">
                                                 <i class="fas fa-times"></i>
                                             </button>
                                         </th>
@@ -288,7 +312,6 @@ export const turmasView = {
                     const chamada = aluno.chamada || (idx + 1);
                     const matricula = aluno.matricula || '';
                     let statusBadge = '';
-                    let rowStyle = 'transition: background-color var(--transition-fast);';
                     let opacityInputs = '';
                     let rowClass = 'hover-row-default';
                     if (status === 'transferido') {
@@ -335,31 +358,31 @@ export const turmasView = {
                                                                     ${status !== 'cursando' ? 'disabled title="Aluno inativo"' : ''}
                                                                     value="${nota}" 
                                                                     placeholder="-"
-                                                                    onchange="controller.updateNota('${turmaId}', '${aluno.id}', '${av.id}', this.value)"
-                                                                    class="input-notas" style="width: 4rem; text-align: center; background-color: var(--color-white); border: 1px solid var(--color-slate-200); border-radius: var(--radius-lg); padding: 0.375rem 0; font-size: 0.875rem; font-weight: 700; color: var(--color-slate-700); transition: all var(--transition-fast); outline: none; ${opacityInputs}">
+                                                                    data-action="update-nota-aluno"
+                                                                    data-turma="${turmaId}"
+                                                                    data-aluno="${aluno.id}"
+                                                                    data-av="${av.id}"
+                                                                    class="input-notas" style="width: 4rem; text-align: center; background-color: var(--color-white); border: 1px solid var(--color-slate-200); border-radius: var(--radius-lg); padding: 0.375rem 0; font-size: 0.8875rem; font-weight: 700; color: var(--color-slate-700); transition: all var(--transition-fast); outline: none; ${opacityInputs}">
                                                         </td>
                                                     `;
                     }).join('')}
                                                 
                                                 <td style="padding: var(--spacing-2); text-align: center; border-left: 1px solid var(--color-slate-100); background-color: rgba(248, 250, 252, 0.3);">
-                                                    <!-- ID soma-ALUNO_ID adicionado aqui -->
                                                     <div id="soma-${aluno.id}" style="width: 3rem; margin: 0 auto; padding: 0.25rem 0; border-radius: var(--radius-lg); font-weight: 900; font-size: 0.875rem; transition: all 0.3s; ${status === 'cursando' ? 'color: var(--color-primary);' : 'color: var(--color-slate-400);'}">
-                                                        ${somaPeriodo.toFixed(1)}
-                                                    </div>
-                                                </td>
-                                                
-                                                <td style="padding: var(--spacing-4); text-align: center;">
-                                                    <div style="display: flex; align-items: center; justify-content: center; gap: var(--spacing-2);">
-                                                        <button onclick="turmaController.abrirModalDossieComportamental('${turmaId}', '${aluno.id}')" style="color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='#8b5cf6'" onmouseout="this.style.color='var(--color-slate-300)'" title="Linha do Tempo / Dossiê Comportamental">
+                    <div style="display: flex; align-items: center; justify-content: center; gap: var(--spacing-2);">
+                                                        <button type="button" data-action="registrar-ocorrencia" data-turma="${turmaId}" data-aluno="${aluno.id}" style="color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='#f59e0b'" onmouseout="this.style.color='var(--color-slate-300)'" title="Registrar Ocorrência / Notificação aos Pais">
+                                                            <i class="fas fa-exclamation-triangle"></i>
+                                                        </button>
+                                                        <button type="button" data-action="dossie-comportamental" data-turma="${turmaId}" data-aluno="${aluno.id}" style="color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='#8b5cf6'" onmouseout="this.style.color='var(--color-slate-300)'" title="Linha do Tempo / Dossiê Comportamental">
                                                             <i class="fas fa-stream"></i>
                                                         </button>
-                                                        <button onclick="uiController.gerarDossieAluno('${turmaId}', '${aluno.id}')" style="color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='#10b981'" onmouseout="this.style.color='var(--color-slate-300)'" title="Gerar Ficha Individual (PDF)">
+                                                        <button type="button" data-action="ficha-individual" data-turma="${turmaId}" data-aluno="${aluno.id}" style="color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='#10b981'" onmouseout="this.style.color='var(--color-slate-300)'" title="Gerar Ficha Individual (PDF)">
                                                             <i class="fas fa-file-invoice"></i>
                                                         </button>
-                                                        <button onclick="controller.openAddAluno('${turmaId}', '${aluno.id}')" style="color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='#3b82f6'" onmouseout="this.style.color='var(--color-slate-300)'" title="Editar Estudante">
+                                                        <button type="button" data-action="editar-aluno" data-turma="${turmaId}" data-aluno="${aluno.id}" style="color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='#3b82f6'" onmouseout="this.style.color='var(--color-slate-300)'" title="Editar Estudante">
                                                             <i class="fas fa-edit"></i>
                                                         </button>
-                                                        <button onclick="controller.deleteAluno('${turmaId}', '${aluno.id}')" style="color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--color-slate-300)'" title="Excluir Estudante">
+                                                        <button type="button" data-action="delete-aluno" data-turma="${turmaId}" data-aluno="${aluno.id}" style="color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--color-slate-300)'" title="Excluir Estudante">
                                                             <i class="fas fa-trash-alt"></i>
                                                         </button>
                                                     </div>
@@ -372,7 +395,7 @@ export const turmasView = {
                         </table>
                     </div>
                     <div style="padding: var(--spacing-4); background-color: var(--color-slate-50); border-top: 1px solid var(--color-slate-200); display: flex; justify-content: flex-end;">
-                         <button onclick="controller.openAddAlunoLote('${turmaId}')" style="font-size: 0.75rem; font-weight: 700; color: var(--color-primary); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='#1d4ed8'" onmouseout="this.style.color='var(--color-primary)'">
+                         <button type="button" data-action="open-add-aluno-lote" data-id="${turmaId}" style="font-size: 0.75rem; font-weight: 700; color: var(--color-primary); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='#1d4ed8'" onmouseout="this.style.color='var(--color-primary)'">
                             <i class="fas fa-file-import" style="margin-right: 0.25rem;"></i> Importar Lista
                          </button>
                     </div>
@@ -381,7 +404,115 @@ export const turmasView = {
         `;
 
         container.innerHTML = html;
+
+        const unbindClick = EventDelegator.bind(container, {
+            'nav-turmas': () => controller.navigate('turmas'),
+            'nav-notas-anuais': () => controller.navigate('notas-anuais'),
+            'open-add-turma': () => controller.openAddTurma(),
+            'confirmar-exclusao-turma': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) controller.deleteTurma(id);
+            },
+            'cancelar-exclusao-turma': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) this.cancelarExclusao(id);
+            },
+            'iniciar-exclusao-turma': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) this.iniciarExclusao(id);
+            },
+            'replicar-avaliacao': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) turmaController.abrirModalReplicarAvaliacao(id);
+            },
+            'open-add-avaliacao': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) controller.openAddAvaliacao(id);
+            },
+            'open-add-aluno': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) controller.openAddAluno(id);
+            },
+            'mudar-periodo-turma': (e, target) => {
+                const id = target.getAttribute('data-id');
+                const p = Number(target.getAttribute('data-periodo'));
+                if (id && p) this.mudarPeriodo(id, p);
+            },
+            'toggle-ordenacao-chamada': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) this.toggleOrdenacaoColuna('chamada', id);
+            },
+            'toggle-ordenacao-nome': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) this.toggleOrdenacaoColuna('nome', id);
+            },
+            'delete-avaliacao': (e, target) => {
+                const turmaId = target.getAttribute('data-turma');
+                const avId = target.getAttribute('data-av');
+                if (turmaId && avId) controller.deleteAvaliacao(turmaId, avId);
+            },
+            'registrar-ocorrencia': (e, target) => {
+                const turmaId = target.getAttribute('data-turma');
+                const alunoId = target.getAttribute('data-aluno');
+                if (turmaId && alunoId) this.abrirModalOcorrencia(turmaId, alunoId);
+            },
+            'dossie-comportamental': (e, target) => {
+                const turmaId = target.getAttribute('data-turma');
+                const alunoId = target.getAttribute('data-aluno');
+                if (turmaId && alunoId) turmaController.abrirModalDossieComportamental(turmaId, alunoId);
+            },
+            'ficha-individual': (e, target) => {
+                const turmaId = target.getAttribute('data-turma');
+                const alunoId = target.getAttribute('data-aluno');
+                if (turmaId && alunoId) uiController.gerarDossieAluno(turmaId, alunoId);
+            },
+            'editar-aluno': (e, target) => {
+                const turmaId = target.getAttribute('data-turma');
+                const alunoId = target.getAttribute('data-aluno');
+                if (turmaId && alunoId) controller.openAddAluno(turmaId, alunoId);
+            },
+            'delete-aluno': (e, target) => {
+                const turmaId = target.getAttribute('data-turma');
+                const alunoId = target.getAttribute('data-aluno');
+                if (turmaId && alunoId) controller.deleteAluno(turmaId, alunoId);
+            },
+            'open-add-aluno-lote': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) controller.openAddAlunoLote(id);
+            }
+        }, 'click');
+
+        const unbindChange = EventDelegator.bind(container, {
+            'update-nota-aluno': (e, target) => {
+                const turmaId = target.getAttribute('data-turma');
+                const alunoId = target.getAttribute('data-aluno');
+                const avId = target.getAttribute('data-av');
+                if (turmaId && alunoId && avId) controller.updateNota(turmaId, alunoId, avId, target.value);
+            },
+            'select-turma-detalhe-change': (e, target) => {
+                this.renderDetalhesTurma('view-container', target.value);
+            },
+            'mudar-ordenacao-select': (e, target) => {
+                const turmaId = target.getAttribute('data-id');
+                if (turmaId) this.mudarOrdenacao(target.value, turmaId);
+            }
+        }, 'change');
+
+        this._cleanupDelegators = () => {
+            if (typeof unbindClick === 'function') unbindClick();
+            if (typeof unbindChange === 'function') unbindChange();
+        };
+
         uiController.initAllDropdowns(container);
+    },
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+    },
+    onLeave() {
+        this.destroy();
     },
     mudarPeriodo(turmaId, num) {
         this.periodoAtivo = num;
@@ -530,6 +661,205 @@ export const turmasView = {
             </tbody>
         </table>
     `;
+    },
+
+    // =========================================================================
+    // REGISTRO DE OCORRÊNCIA ESCOLAR E NOTIFICAÇÃO FAMILIAR (A4)
+    // =========================================================================
+
+    abrirModalOcorrencia(turmaId, alunoId) {
+        const turma = (model.state.turmas || []).find(t => String(t.id) === String(turmaId));
+        if (!turma) return;
+        const aluno = (turma.alunos || []).find(a => String(a.id) === String(alunoId));
+        if (!aluno) return;
+
+        const modalHtml = `
+            <div id="modal-ocorrencia" class="modal-overlay modal-enter" style="display: flex; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; z-index: 9999;">
+                <div class="card p-6" style="max-width: 520px; width: 90%; background: var(--color-white); border-radius: var(--radius-2xl); box-shadow: var(--shadow-2xl); border: 1px solid var(--color-slate-200);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+                        <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i> Registro de Ocorrência Escolar
+                        </h3>
+                        <button type="button" onclick="document.getElementById('modal-ocorrencia').remove()" class="btn-icon" style="border: none; background: none; cursor: pointer; color: var(--color-slate-400);">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <p style="font-size: 0.875rem; color: var(--color-slate-600); margin-bottom: 1rem;">
+                        Estudante: <strong>${window.escapeHTML(aluno.nome)}</strong> — Turma <strong>${window.escapeHTML(turma.nome)}</strong>
+                    </p>
+
+                    <form id="form-ocorrencia" onsubmit="event.preventDefault(); turmasView.salvarOcorrencia('${turmaId}', '${alunoId}');">
+                        <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
+                            <div>
+                                <label class="form-label" style="font-weight: 700;">Tipo de Ocorrência</label>
+                                <select id="oc-tipo" class="form-select" style="font-weight: 600;">
+                                    <option value="indisciplina">Indisciplina em Sala de Aula</option>
+                                    <option value="material">Falta de Material / Dever de Casa</option>
+                                    <option value="conflito">Conflito ou Agressão Verbal/Física</option>
+                                    <option value="celular">Uso Indevido de Aparelho Eletrônico</option>
+                                    <option value="positivo">Elogio / Destaque Pedagógico Positivo</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label class="form-label" style="font-weight: 700;">Descrição dos Fatos</label>
+                                <textarea id="oc-desc" class="form-input" rows="3" required placeholder="Descreva detalhadamente o ocorrido em sala..."></textarea>
+                            </div>
+
+                            <div>
+                                <label class="form-label" style="font-weight: 700;">Providência / Encaminhamento Adotado</label>
+                                <input type="text" id="oc-providencia" class="form-input" required placeholder="Ex: Advertência Verbal, Convocação dos Responsáveis..." />
+                            </div>
+                        </div>
+
+                        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                            <button type="button" onclick="document.getElementById('modal-ocorrencia').remove()" class="btn-secondary">Cancelar</button>
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-save"></i> Salvar & Imprimir Termo A4
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    },
+
+    salvarOcorrencia(turmaId, alunoId) {
+        const turma = (model.state.turmas || []).find(t => String(t.id) === String(turmaId));
+        if (!turma) return;
+        const aluno = (turma.alunos || []).find(a => String(a.id) === String(alunoId));
+        if (!aluno) return;
+
+        const tipoSelect = document.getElementById('oc-tipo');
+        const descInput = document.getElementById('oc-desc');
+        const provInput = document.getElementById('oc-providencia');
+
+        const tipoVal = tipoSelect ? tipoSelect.value : 'indisciplina';
+        const descVal = descInput ? descInput.value.trim() : '';
+        const provVal = provInput ? provInput.value.trim() : '';
+
+        if (!descVal) return Toast.show("Descreva o ocorrido.", "warning");
+
+        if (!Array.isArray(aluno.dossie)) aluno.dossie = [];
+
+        const novaOcorrencia = {
+            id: Date.now(),
+            tipo: tipoVal,
+            descricao: descVal,
+            providencia: provVal,
+            data: new Date().toLocaleDateString('pt-BR')
+        };
+
+        aluno.dossie.push(novaOcorrencia);
+
+        if (model.currentUser && firebaseService?.saveAluno) {
+            dataProxy.saveAluno(model.currentUser.uid, turma.id, aluno);
+        }
+        if (model.saveTurma) {
+            model.saveTurma(turma);
+        } else {
+            model.saveLocal();
+        }
+
+        const modal = document.getElementById('modal-ocorrencia');
+        if (modal) modal.remove();
+
+        Toast.show("Ocorrência registrada com sucesso!", "success");
+        this.gerarTermoOcorrenciaA4(turma, aluno, novaOcorrencia);
+    },
+
+    gerarTermoOcorrenciaA4(turma, aluno, ocorrencia) {
+        const config = model.state.userConfig || {};
+        const escola = config.school || config.escola || 'Unidade Escolar';
+        const anoLetivo = config.anoLetivo || new Date().getFullYear();
+
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return Toast.show("Permita pop-ups para visualizar o termo.", "warning");
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Termo de Ocorrência Escolar — ${window.escapeHTML(aluno.nome)}</title>
+                <style>
+                    @page { size: A4 portrait; margin: 12mm; }
+                    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; margin: 0; padding: 0; }
+                    .header { text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 16px; }
+                    .header h2 { margin: 0; font-size: 1.1rem; text-transform: uppercase; }
+                    .header p { margin: 2px 0 0 0; font-size: 0.8rem; color: #475569; }
+                    .title-box { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px; text-align: center; font-weight: 800; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 16px; color: #1e293b; }
+                    .section { margin-bottom: 16px; }
+                    .section-title { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 8px; color: #1e293b; }
+                    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; }
+                    .field { background: #f8fafc; border: 1px solid #e2e8f0; padding: 6px 10px; border-radius: 4px; }
+                    .field label { font-size: 0.65rem; font-weight: 800; color: #64748b; text-transform: uppercase; display: block; }
+                    .field span { font-weight: 700; color: #0f172a; }
+                    .content-box { border: 1px solid #cbd5e1; padding: 10px; border-radius: 4px; font-size: 0.8rem; color: #334155; line-height: 1.5; min-height: 80px; }
+                    .assinaturas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 50px; text-align: center; font-size: 0.75rem; }
+                    .linha-ass { border-top: 1px solid #0f172a; padding-top: 4px; font-weight: 700; }
+                    .footer { font-size: 0.65rem; color: #94a3b8; margin-top: 30px; text-align: center; border-top: 1px dashed #cbd5e1; padding-top: 6px; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h2>${window.escapeHTML(escola)}</h2>
+                    <p>Ano Letivo: ${anoLetivo} &nbsp;|&nbsp; Registro Oficial de Acompanhamento Comportamental</p>
+                </div>
+
+                <div class="title-box">
+                    TERMO DE OCORRÊNCIA ESCOLAR E NOTIFICAÇÃO FAMILIAR
+                </div>
+
+                <div class="section">
+                    <div class="section-title">1. Dados do Estudante</div>
+                    <div class="grid">
+                        <div class="field"><label>Estudante</label><span>${window.escapeHTML(aluno.nome)}</span></div>
+                        <div class="field"><label>Turma</label><span>${window.escapeHTML(turma.nome)}</span></div>
+                        <div class="field"><label>Data da Ocorrência</label><span>${ocorrencia.data}</span></div>
+                        <div class="field"><label>Tipo de Ocorrência</label><span>${ocorrencia.tipo.toUpperCase()}</span></div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">2. Relato dos Fatos Registrados pelo Docente</div>
+                    <div class="content-box">
+                        ${window.escapeHTML(ocorrencia.descricao)}
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">3. Providência Adotada / Encaminhamento</div>
+                    <div class="content-box">
+                        ${window.escapeHTML(ocorrencia.providencia)}
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">4. Termo de Ciente do Responsável</div>
+                    <p style="font-size: 0.75rem; color: #475569; margin: 0;">
+                        Declaramos que fomos devidamente informados a respeito do ocorrido acima registrado e assumimos o compromisso de orientar o estudante para o cumprimento das normas regimentais da escola.
+                    </p>
+                </div>
+
+                <div class="assinaturas">
+                    <div><div class="linha-ass">Professor(a) Titular</div></div>
+                    <div><div class="linha-ass">Orientação / Coordenação</div></div>
+                    <div><div class="linha-ass">Pai / Mãe / Responsável</div></div>
+                </div>
+
+                <div class="footer">
+                    Documento emitido via Planner Pro Docente em ${new Date().toLocaleDateString('pt-BR')}
+                </div>
+
+                <script>
+                    window.onload = function() { window.print(); };
+                </script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
     }
 };
 if (typeof window !== 'undefined') {

@@ -8,6 +8,7 @@ import { uiController } from '../controllers/uiController.js';
 export const estudosVisuaisView = {
     abaAtiva: 'flashcards', // 'flashcards' | 'mindmaps'
     contextoDocumentoTemp: '',
+    pastaAtualId: null,
     
     // Estado Flashcards
     currentDeck: null,
@@ -127,12 +128,13 @@ export const estudosVisuaisView = {
             return this.renderEditorDeck();
         }
 
-        const decks = (model.state.flashcards || []).filter(d => !d.naLixeira);
+        const todosDecks = (model.state.flashcards || []).filter(d => !d.naLixeira);
+        const decks = todosDecks.filter(d => String(d.pastaId || '') === String(this.pastaAtualId || ''));
         const selecionadosCount = this.baralhosSelecionados.size;
 
         // Calcular total de cartas selecionadas
         let totalCartasSelecionadas = 0;
-        decks.forEach(d => {
+        todosDecks.forEach(d => {
             if (this.baralhosSelecionados.has(d.id)) {
                 totalCartasSelecionadas += (d.cards?.length || 0);
             }
@@ -144,7 +146,7 @@ export const estudosVisuaisView = {
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-3);">
                     <div>
                         <h3 style="font-size: 1.125rem; font-weight: 800; color: var(--color-slate-800);">Meus Baralhos de Flashcards</h3>
-                        <p style="font-size: 0.8125rem; color: var(--color-slate-500);">${decks.length} baralho(s) cadastrado(s)</p>
+                        <p style="font-size: 0.8125rem; color: var(--color-slate-500);">${decks.length} baralho(s) nesta visualização</p>
                     </div>
                     <div style="display: flex; gap: var(--spacing-3);">
                         <button type="button" onclick="estudosVisuaisView.abrirModalIAFlashcards()" class="btn-secondary" style="background-color: #f8fafc; border-color: #cbd5e1;">
@@ -155,6 +157,8 @@ export const estudosVisuaisView = {
                         </button>
                     </div>
                 </div>
+
+                ${this.renderBarraPastas('flashcards')}
 
                 <!-- BANNER DE SELEÇÃO MULTI-BARALHOS -->
                 ${selecionadosCount > 0 ? `
@@ -203,6 +207,9 @@ export const estudosVisuaisView = {
                             </span>
                         </div>
                         <div style="display: flex; gap: 0.25rem;">
+                            <button type="button" onclick="estudosVisuaisView.moverParaPastaModal('flashcards', '${deck.id}')" class="btn-icon" title="Mover para Pasta">
+                                <i class="fas fa-folder" style="font-size: 0.875rem; color: #f59e0b;"></i>
+                            </button>
                             <button type="button" onclick="estudosVisuaisView.editarDeck('${deck.id}')" class="btn-icon" title="Editar Cartas">
                                 <i class="fas fa-pencil-alt" style="font-size: 0.875rem;"></i>
                             </button>
@@ -942,7 +949,8 @@ export const estudosVisuaisView = {
             return this.renderVisualizadorMindmap();
         }
 
-        const mindmaps = (model.state.mindmaps || []).filter(m => !m.naLixeira);
+        const todosMindmaps = (model.state.mindmaps || []).filter(m => !m.naLixeira);
+        const mindmaps = todosMindmaps.filter(m => String(m.pastaId || '') === String(this.pastaAtualId || ''));
 
         return `
             <div style="display: flex; flex-direction: column; gap: var(--spacing-6);">
@@ -950,7 +958,7 @@ export const estudosVisuaisView = {
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-3);">
                     <div>
                         <h3 style="font-size: 1.125rem; font-weight: 800; color: var(--color-slate-800);">Meus Mapas Mentais & Conceituais</h3>
-                        <p style="font-size: 0.8125rem; color: var(--color-slate-500);">${mindmaps.length} mapa(s) estruturado(s)</p>
+                        <p style="font-size: 0.8125rem; color: var(--color-slate-500);">${mindmaps.length} mapa(s) nesta visualização</p>
                     </div>
                     <div style="display: flex; gap: var(--spacing-3);">
                         <button type="button" onclick="estudosVisuaisView.abrirModalIAMindmap()" class="btn-secondary" style="background-color: #f8fafc; border-color: #cbd5e1;">
@@ -961,6 +969,8 @@ export const estudosVisuaisView = {
                         </button>
                     </div>
                 </div>
+
+                ${this.renderBarraPastas('mindmaps')}
 
                 <!-- GRID DE MAPAS MENTAIS -->
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--spacing-6);">
@@ -980,6 +990,9 @@ export const estudosVisuaisView = {
                             ${window.escapeHTML(mapa.disciplina || 'Geral')}
                         </span>
                         <div style="display: flex; gap: 0.25rem;">
+                            <button type="button" onclick="estudosVisuaisView.moverParaPastaModal('mindmaps', '${mapa.id}')" class="btn-icon" title="Mover para Pasta">
+                                <i class="fas fa-folder" style="font-size: 0.875rem; color: #f59e0b;"></i>
+                            </button>
                             <button type="button" onclick="estudosVisuaisView.abrirMindmap('${mapa.id}')" class="btn-icon" title="Abrir Mapa">
                                 <i class="fas fa-external-link-alt" style="font-size: 0.875rem;"></i>
                             </button>
@@ -1848,6 +1861,111 @@ export const estudosVisuaisView = {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
         Toast.show("SVG vetorial completo exportado com sucesso!", "success");
+    },
+
+    // =========================================================================
+    // SEÇÃO: GESTÃO DE PASTAS DE ESTUDOS
+    // =========================================================================
+
+    renderBarraPastas(tipoAba) {
+        const todasPastas = model.state.pastasEstudos || [];
+        const pastaAtual = todasPastas.find(p => String(p.id) === String(this.pastaAtualId));
+        const pastasNoNivel = todasPastas.filter(p => String(p.parentId || '') === String(this.pastaAtualId || ''));
+        const colecaoNome = tipoAba === 'mindmaps' ? 'mindmaps' : 'flashcards';
+        const totalItensGlobal = (model.state[colecaoNome] || []).filter(i => !i.naLixeira).length;
+
+        return `
+            <div class="card" style="padding: 1rem 1.25rem; background: var(--color-slate-50); border: 1px solid var(--color-slate-200); border-radius: var(--radius-xl); margin-bottom: 0.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                        <button type="button" onclick="estudosVisuaisView.setPastaAtual(null)" class="btn-secondary" style="padding: 0.4rem 0.75rem; font-size: 0.8125rem; font-weight: 700; ${!this.pastaAtualId ? 'background-color: var(--color-primary); color: #fff; border-color: var(--color-primary);' : ''}">
+                            <i class="fas fa-home"></i> Raiz (${totalItensGlobal})
+                        </button>
+                        ${pastaAtual ? `
+                            <span style="color: var(--color-slate-400); font-weight: 800;">/</span>
+                            <div style="display: flex; align-items: center; gap: 0.5rem; background: var(--color-white); padding: 0.35rem 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--color-slate-300); font-size: 0.8125rem; font-weight: 700; color: var(--color-slate-800);">
+                                <i class="fas fa-folder-open" style="color: #f59e0b;"></i> ${sanitizeComLatex(pastaAtual.nome)}
+                                <button type="button" onclick="estudosVisuaisView.excluirPasta('${pastaAtual.id}')" class="btn-icon" style="color: #ef4444; margin-left: 0.25rem;" title="Excluir Pasta">
+                                    <i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>
+                                </button>
+                            </div>
+                        ` : ''}
+                    </div>
+                    <button type="button" onclick="estudosVisuaisView.criarPastaModal()" class="btn-secondary" style="padding: 0.4rem 0.75rem; font-size: 0.8125rem;">
+                        <i class="fas fa-folder-plus" style="color: #f59e0b;"></i> <span>Nova Pasta</span>
+                    </button>
+                </div>
+
+                ${pastasNoNivel.length > 0 ? `
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.75rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--color-slate-200);">
+                        ${pastasNoNivel.map(p => {
+                            const qtd = (model.state[colecaoNome] || []).filter(i => String(i.pastaId) === String(p.id) && !i.naLixeira).length;
+                            return `
+                                <div onclick="estudosVisuaisView.setPastaAtual('${p.id}')" class="interactive-element" style="padding: 0.75rem; background: var(--color-white); border: 1px solid var(--color-slate-200); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.2s;">
+                                    <div style="display: flex; align-items: center; gap: 0.625rem; overflow: hidden;">
+                                        <i class="fas fa-folder" style="font-size: 1.25rem; color: #f59e0b; flex-shrink: 0;"></i>
+                                        <span style="font-size: 0.8125rem; font-weight: 700; color: var(--color-slate-700); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${sanitizeComLatex(p.nome)}</span>
+                                    </div>
+                                    <span style="font-size: 0.75rem; font-weight: 800; color: var(--color-slate-400); background: var(--color-slate-100); padding: 0.125rem 0.375rem; border-radius: 0.375rem;">${qtd}</span>
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                ` : ''}
+            </div>
+        `;
+    },
+
+    setPastaAtual(pastaId) {
+        this.pastaAtualId = pastaId || null;
+        this.render(this._getContainer());
+    },
+
+    criarPastaModal() {
+        const nome = prompt("Digite o nome da nova pasta de estudos (ex: Biologia 2026, Provas ENEM):");
+        if (nome && nome.trim()) {
+            model.criarPastaEstudo(nome.trim(), this.pastaAtualId, this.abaAtiva);
+            this.render(this._getContainer());
+        }
+    },
+
+    excluirPasta(pastaId) {
+        if (confirm("Tem certeza que deseja excluir esta pasta? Os itens dentro dela retornarão para a raiz.")) {
+            model.excluirPastaEstudo(pastaId);
+            this.pastaAtualId = null;
+            this.render(this._getContainer());
+        }
+    },
+
+    moverParaPastaModal(colecao, itemId) {
+        const pastas = model.state.pastasEstudos || [];
+        let optionsHtml = `<option value="">📁 Raiz (Nenhuma Pasta)</option>`;
+        pastas.forEach(p => {
+            optionsHtml += `<option value="${p.id}">📁 ${window.escapeHTML(p.nome)}</option>`;
+        });
+
+        const modalHtml = `
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <p style="font-size: 0.9375rem; color: #475569; font-weight: 600;">Selecione a pasta de destino para organizar este item:</p>
+                <select id="select-dest-pasta-estudo" class="form-select" style="font-size: 0.9375rem; padding: 0.6rem;">
+                    ${optionsHtml}
+                </select>
+                <div style="display: flex; justify-content: flex-end; gap: var(--spacing-3); margin-top: var(--spacing-6); padding-top: var(--spacing-4); border-top: 1px solid var(--color-slate-200);">
+                    <button type="button" onclick="controller.closeModal()" class="btn-secondary">Cancelar</button>
+                    <button type="button" onclick="estudosVisuaisView.confirmarMoverParaPasta('${colecao}', '${itemId}')" class="btn-primary" style="background-color: #4f46e5;">
+                        Mover Item
+                    </button>
+                </div>
+            </div>
+        `;
+        controller.openModal('Organizar em Pasta de Estudos', modalHtml, 'md');
+    },
+
+    confirmarMoverParaPasta(colecao, itemId) {
+        const pId = document.getElementById('select-dest-pasta-estudo')?.value;
+        model.moverEstudoParaPasta(colecao, itemId, pId);
+        controller.closeModal();
+        this.render(this._getContainer());
     }
 };
 

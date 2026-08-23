@@ -1,4 +1,5 @@
 import { sanitizeComLatex } from '../utils.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 
 /**
  * Componente Reutilizável de Modal Acessível (Vanilla JS ES6+)
@@ -28,6 +29,7 @@ export class ModalComponent {
         };
 
         this.element = null;
+        this._cleanupDelegators = null;
         this._keydownHandler = this._handleKeydown.bind(this);
     }
 
@@ -99,6 +101,7 @@ export class ModalComponent {
         const closeBtn = document.createElement('button');
         closeBtn.type = 'button';
         closeBtn.className = 'btn-close-modal';
+        closeBtn.setAttribute('data-action', 'modal-close');
         closeBtn.innerHTML = '<i class="fas fa-times"></i>';
         closeBtn.style.cssText = `
             background: transparent;
@@ -110,7 +113,6 @@ export class ModalComponent {
             border-radius: var(--radius-lg, 0.5rem);
             transition: all 0.2s;
         `;
-        closeBtn.onclick = () => this.close();
 
         header.appendChild(titleBox);
         header.appendChild(closeBtn);
@@ -135,6 +137,10 @@ export class ModalComponent {
         card.appendChild(header);
         card.appendChild(body);
 
+        const handlersMap = {
+            'modal-close': () => this.close()
+        };
+
         // Rodapé com ações
         if (this.options.actions && this.options.actions.length > 0) {
             const footer = document.createElement('div');
@@ -148,10 +154,12 @@ export class ModalComponent {
                 background-color: var(--color-slate-50, #f8fafc);
             `;
 
-            this.options.actions.forEach(action => {
+            this.options.actions.forEach((action, idx) => {
+                const actionKey = `modal-action-${idx}`;
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = action.class || 'btn-secondary';
+                btn.setAttribute('data-action', actionKey);
                 btn.textContent = action.label || 'OK';
                 btn.style.cssText = `
                     padding: 0.5rem 1rem;
@@ -160,7 +168,7 @@ export class ModalComponent {
                     font-weight: 700;
                     cursor: pointer;
                 `;
-                btn.onclick = (e) => {
+                handlersMap[actionKey] = (e) => {
                     if (typeof action.onClick === 'function') {
                         action.onClick(e, this);
                     } else {
@@ -174,6 +182,8 @@ export class ModalComponent {
         }
 
         backdrop.appendChild(card);
+
+        this._cleanupDelegators = EventDelegator.bind(backdrop, handlersMap, 'click');
         
         // Fechar ao clicar no backdrop
         backdrop.onclick = (e) => {
@@ -208,6 +218,10 @@ export class ModalComponent {
     }
 
     destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
         window.removeEventListener('keydown', this._keydownHandler);
         document.body.style.overflow = '';
         if (this.element && this.element.parentNode) {

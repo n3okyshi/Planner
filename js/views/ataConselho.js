@@ -80,13 +80,18 @@ export const ataConselhoView = {
                         </div>
 
                         <!-- Botão Imprimir / Gerar PDF Nativo -->
-                        <button type="button" onclick="window.print()" class="btn-primary" title="Imprimir Ata Oficial ou Salvar como PDF">
+                        <button type="button" onclick="ataConselhoView.imprimir()" class="btn-primary" title="Imprimir Ata Oficial ou Salvar como PDF">
                             <i class="fas fa-print"></i> <span>Imprimir Ata Oficial</span>
                         </button>
 
                         <!-- Botão Exportar CSV (SED/SIGE) -->
                         <button type="button" onclick="ataConselhoView.exportarCSV()" class="btn-secondary" title="Exportar CSV compatível com Excel e SED/SIGE">
                             <i class="fas fa-file-csv text-emerald-600"></i> <span>Exportar CSV (SED)</span>
+                        </button>
+
+                        <!-- Botão Ata de Reunião de Pais -->
+                        <button type="button" onclick="ataConselhoView.abrirModalAtaReuniaoPais()" class="btn-secondary" title="Gerar Ata de Reunião de Pais com Lista de Presença para Assinatura (A4)">
+                            <i class="fas fa-users" style="color: var(--color-primary);"></i> <span>Ata Reunião de Pais</span>
                         </button>
 
                         <!-- Botão Exportar JSON -->
@@ -372,6 +377,285 @@ export const ataConselhoView = {
             }
         });
         Toast.show("Arquivo JSON gerado para interoperabilidade.", "success");
+    },
+
+    // =========================================================================
+    // IMPRESSÃO DE ATA OFICIAL DO CONSELHO DE CLASSE (A4 LANDSCAPE)
+    // =========================================================================
+
+    imprimir() {
+        const turma = (model.state.turmas || []).find(t => String(t.id) === String(this.turmaIdSelecionada));
+        if (!turma) return Toast.show("Selecione uma turma para imprimir a Ata do Conselho.", "warning");
+
+        const config = model.state.userConfig || {};
+        const escola = config.school || config.escola || 'Unidade Escolar';
+        const anoLetivo = config.anoLetivo || new Date().getFullYear();
+        const dados = this._calcularDadosConselho(turma);
+
+        let linhasHtml = '';
+        dados.forEach((d, idx) => {
+            const numChamada = idx + 1;
+            const corStatus = d.situacao === 'Aprovado' ? '#15803d' : '#dc2626';
+
+            linhasHtml += `
+                <tr>
+                    <td style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; font-weight: 700; font-size: 0.75rem;">${numChamada}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 4px; font-weight: 600; font-size: 0.75rem;">${window.escapeHTML(d.nome)}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; font-size: 0.75rem;">${d.mediaFinal.toFixed(1)}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; font-size: 0.75rem;">${d.totalFaltas}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; font-size: 0.75rem;">${d.freqPct}%</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; font-weight: 700; font-size: 0.75rem; color: ${corStatus};">${d.situacao}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 4px; font-size: 0.7rem; color: #475569;">${window.escapeHTML(d.deliberacao)}</td>
+                </tr>
+            `;
+        });
+
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return Toast.show("Permita pop-ups para visualizar a impressão.", "warning");
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Ata Eletrônica do Conselho de Classe — ${window.escapeHTML(turma.nome)}</title>
+                <style>
+                    @page { size: A4 landscape; margin: 10mm; }
+                    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; margin: 0; padding: 0; }
+                    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 6px; margin-bottom: 12px; }
+                    .header h2 { margin: 0; font-size: 1.1rem; text-transform: uppercase; }
+                    .header p { margin: 2px 0 0 0; font-size: 0.8rem; color: #475569; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 14px; }
+                    th { background-color: #f1f5f9; color: #1e293b; font-weight: 800; }
+                    .assinaturas { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin-top: 20px; text-align: center; font-size: 0.75rem; color: #475569; }
+                    .linha-ass { border-top: 1px solid #0f172a; margin-top: 25px; padding-top: 4px; font-weight: 700; }
+                    .footer { display: flex; justify-content: space-between; font-size: 0.7rem; color: #64748b; margin-top: 14px; border-top: 1px dashed #cbd5e1; padding-top: 6px; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <div>
+                        <h2>${window.escapeHTML(escola)} — Ata de Resultados Finais do Conselho de Classe</h2>
+                        <p><strong>Turma:</strong> ${window.escapeHTML(turma.nome)} &nbsp;|&nbsp; <strong>Ano Letivo:</strong> ${anoLetivo}</p>
+                    </div>
+                    <div style="text-align: right; font-size: 0.75rem; color: #475569;">
+                        <p>Data de Emissão: ${new Date().toLocaleDateString('pt-BR')}</p>
+                    </div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; width: 35px;">Nº</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; text-align: left; width: 180px;">Estudante</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; width: 55px;">Média</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; width: 55px;">Faltas</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; width: 60px;">Freq %</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; width: 110px;">Resultado</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; text-align: left;">Parecer / Deliberação do Conselho</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${linhasHtml}
+                    </tbody>
+                </table>
+
+                <div class="assinaturas">
+                    <div>
+                        <div class="linha-ass">Professor(a) Regente / Titular</div>
+                    </div>
+                    <div>
+                        <div class="linha-ass">Coordenação Pedagógica</div>
+                    </div>
+                    <div>
+                        <div class="linha-ass">Direção Escolar</div>
+                    </div>
+                </div>
+
+                <div class="footer">
+                    <span>Documento Oficial Registrado via Planner Pro Docente</span>
+                    <span>Página 1 de 1</span>
+                </div>
+
+                <script>
+                    window.onload = function() { window.print(); };
+                </script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+    },
+
+    // =========================================================================
+    // ATA OFICIAL DE REUNIÃO DE PAIS E MESTRES (A4 PORTRAIT)
+    // =========================================================================
+
+    abrirModalAtaReuniaoPais() {
+        const turma = (model.state.turmas || []).find(t => String(t.id) === String(this.turmaIdSelecionada));
+        if (!turma) return Toast.show("Selecione uma turma.", "warning");
+
+        const modalHtml = `
+            <div id="modal-ata-pais" class="modal-overlay modal-enter" style="display: flex; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; z-index: 9999;">
+                <div class="card p-6" style="max-width: 560px; width: 90%; background: var(--color-white); border-radius: var(--radius-2xl); box-shadow: var(--shadow-2xl); border: 1px solid var(--color-slate-200);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+                        <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-users" style="color: var(--color-primary);"></i> Ata de Reunião de Pais & Mestres
+                        </h3>
+                        <button type="button" onclick="document.getElementById('modal-ata-pais').remove()" class="btn-icon" style="border: none; background: none; cursor: pointer; color: var(--color-slate-400);">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <p style="font-size: 0.875rem; color: var(--color-slate-600); margin-bottom: 1rem;">
+                        Turma: <strong>${window.escapeHTML(turma.nome)}</strong>
+                    </p>
+
+                    <form id="form-ata-pais" onsubmit="event.preventDefault(); ataConselhoView.gerarAtaPaisA4('${turma.id}');">
+                        <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div>
+                                    <label class="form-label" style="font-weight: 700;">Data da Reunião</label>
+                                    <input type="date" id="ap-data" class="form-input" required value="${new Date().toISOString().split('T')[0]}" />
+                                </div>
+                                <div>
+                                    <label class="form-label" style="font-weight: 700;">Bimestre / Período</label>
+                                    <input type="text" id="ap-periodo" class="form-input" required placeholder="Ex: 1º Bimestre" value="1º Bimestre" />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="form-label" style="font-weight: 700;">Pauta & Assuntos Tratados</label>
+                                <textarea id="ap-pauta" class="form-input" rows="3" required placeholder="Descreva os pontos principais apresentados aos pais..."></textarea>
+                            </div>
+
+                            <div>
+                                <label class="form-label" style="font-weight: 700;">Combinados com as Famílias</label>
+                                <textarea id="ap-combinados" class="form-input" rows="2" placeholder="Ex: Acompanhamento das tarefas de casa, horários de chegada..."></textarea>
+                            </div>
+                        </div>
+
+                        <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                            <button type="button" onclick="document.getElementById('modal-ata-pais').remove()" class="btn-secondary">Cancelar</button>
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-print"></i> Imprimir Ata A4 (com Lista)
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    },
+
+    gerarAtaPaisA4(turmaId) {
+        const turma = (model.state.turmas || []).find(t => String(t.id) === String(turmaId));
+        if (!turma) return;
+
+        const dataVal = document.getElementById('ap-data')?.value || new Date().toISOString().split('T')[0];
+        const periodoVal = document.getElementById('ap-periodo')?.value.trim() || '1º Bimestre';
+        const pautaVal = document.getElementById('ap-pauta')?.value.trim() || '';
+        const combinadosVal = document.getElementById('ap-combinados')?.value.trim() || '';
+
+        if (!pautaVal) return Toast.show("Preencha a pauta da reunião.", "warning");
+
+        const config = model.state.userConfig || {};
+        const escola = config.school || config.escola || 'Unidade Escolar';
+        const anoLetivo = config.anoLetivo || new Date().getFullYear();
+        const alunos = turma.alunos || [];
+
+        const dataFormatada = new Date(dataVal + 'T00:00:00').toLocaleDateString('pt-BR');
+
+        const modal = document.getElementById('modal-ata-pais');
+        if (modal) modal.remove();
+
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return Toast.show("Permita pop-ups para visualizar a impressão.", "warning");
+
+        const linhasAlunos = alunos.map((a, idx) => `
+            <tr>
+                <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: center;">${idx + 1}</td>
+                <td style="border: 1px solid #cbd5e1; padding: 6px; font-weight: 700;">${window.escapeHTML(a.nome)}</td>
+                <td style="border: 1px solid #cbd5e1; padding: 6px; color: #64748b;">${window.escapeHTML(a.responsavel || 'Pai / Mãe / Responsável')}</td>
+                <td style="border: 1px solid #cbd5e1; padding: 6px; width: 220px;"></td>
+            </tr>
+        `).join('');
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Ata de Reunião de Pais — ${window.escapeHTML(turma.nome)}</title>
+                <style>
+                    @page { size: A4 portrait; margin: 12mm; }
+                    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; margin: 0; padding: 0; }
+                    .header { text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 14px; }
+                    .header h2 { margin: 0; font-size: 1.1rem; text-transform: uppercase; }
+                    .header p { margin: 2px 0 0 0; font-size: 0.8rem; color: #475569; }
+                    .title-box { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 8px; text-align: center; font-weight: 800; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 14px; color: #1e293b; }
+                    .section { margin-bottom: 14px; }
+                    .section-title { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 6px; color: #1e293b; }
+                    .box { border: 1px solid #cbd5e1; padding: 8px; border-radius: 4px; font-size: 0.78rem; color: #334155; line-height: 1.4; background: #f8fafc; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.75rem; }
+                    th { background: #f1f5f9; font-weight: 800; border: 1px solid #cbd5e1; padding: 6px; text-align: center; }
+                    .assinaturas { display: grid; grid-template-columns: repeat(2, 1fr); gap: 40px; margin-top: 40px; text-align: center; font-size: 0.75rem; }
+                    .linha-ass { border-top: 1px solid #0f172a; padding-top: 4px; font-weight: 700; }
+                    .footer { font-size: 0.65rem; color: #94a3b8; margin-top: 20px; text-align: center; border-top: 1px dashed #cbd5e1; padding-top: 6px; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h2>${window.escapeHTML(escola)}</h2>
+                    <p>Ano Letivo: ${anoLetivo} &nbsp;|&nbsp; Turma: ${window.escapeHTML(turma.nome)} &nbsp;|&nbsp; Data: ${dataFormatada} (${periodoVal})</p>
+                </div>
+
+                <div class="title-box">
+                    ATA OFICIAL DE REUNIÃO DE PAIS E MESTRES
+                </div>
+
+                <div class="section">
+                    <div class="section-title">1. Pauta & Assuntos Tratados</div>
+                    <div class="box">${window.escapeHTML(pautaVal)}</div>
+                </div>
+
+                ${combinadosVal ? `
+                <div class="section">
+                    <div class="section-title">2. Combinados Pedagógicos com as Famílias</div>
+                    <div class="box">${window.escapeHTML(combinadosVal)}</div>
+                </div>
+                ` : ''}
+
+                <div class="section">
+                    <div class="section-title">3. Lista de Presença e Termo de Ciência dos Responsáveis</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th style="width: 35px;">Nº</th>
+                                <th style="text-align: left;">Estudante</th>
+                                <th style="text-align: left;">Responsável Legal</th>
+                                <th>Assinatura do Responsável</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${linhasAlunos}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="assinaturas">
+                    <div><div class="linha-ass">Professor(a) Regente</div></div>
+                    <div><div class="linha-ass">Coordenação Pedagógica</div></div>
+                </div>
+
+                <div class="footer">
+                    Ata emitida via Planner Pro Docente em ${new Date().toLocaleDateString('pt-BR')}
+                </div>
+
+                <script>
+                    window.onload = function() { window.print(); };
+                </script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
     }
 };
 

@@ -1,10 +1,18 @@
 import { model } from '../model.js';
 import { controller } from '../controller.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 
 export const estatisticasProvaView = {
+    _cleanupDelegators: null,
+
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
 
         const minhas = (model.state && model.state.questoes) ? model.state.questoes : [];
         const sistema = (model.state && model.state.questoesSistema) ? model.state.questoesSistema : [];
@@ -20,7 +28,7 @@ export const estatisticasProvaView = {
                 
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-4);">
                     <div style="display: flex; align-items: center; gap: var(--spacing-4);">
-                        <button onclick="controller.navigate('provas')" class="btn-icon" title="Voltar para Provas">
+                        <button type="button" data-action="nav-provas" class="btn-icon" title="Voltar para Provas">
                             <i class="fas fa-arrow-left"></i>
                         </button>
                         <div>
@@ -85,6 +93,10 @@ export const estatisticasProvaView = {
         `;
 
         container.innerHTML = html;
+
+        this._cleanupDelegators = EventDelegator.bind(container, {
+            'nav-provas': () => controller.navigate('provas')
+        }, 'click');
     },
 
     agruparPor(lista, campo, defaultLabel) {
@@ -130,6 +142,16 @@ export const estatisticasProvaView = {
                 </div>
             </div>
         `;
+    },
+
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+    },
+    onLeave() {
+        this.destroy();
     }
 };
 

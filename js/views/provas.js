@@ -5,6 +5,7 @@ import { ModalComponent } from '../components/modal.js';
 import { PaginatorComponent } from '../components/paginator.js';
 import { aiService } from '../ai-service.js';
 import { renderKatex, formatarTextoComLatex, sanitizeComLatex, alternarModoEdicaoPreview, lerArquivoTexto } from '../utils.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 
 export const provasView = {
     selecionadas: new Set(),
@@ -13,6 +14,7 @@ export const provasView = {
     tempDados: null,
     contextoQuestaoArquivo: '',
     abaAtiva: 'minhas',
+    _cleanupDelegators: null,
     filtros: {
         materia: '',
         ano: '',
@@ -25,8 +27,13 @@ export const provasView = {
     paginaAtual: 1,
     disciplinas: [
         "Língua Portuguesa", "Matemática", "Ciências", "História", "Geografia",
-        "Arte", "Educação Física", "Língua Inglesa", "Física", "Química",
+        "Arte", "Educação Física", "Língua Inglesa", "Ensino Religioso", "Física", "Química",
         "Biologia", "Filosofia", "Sociologia"
+    ],
+    seriesDisponiveis: [
+        "Berçário I", "Berçário II", "Maternal I", "Maternal II", "Jardim I", "Jardim II",
+        "1º Ano", "2º Ano", "3º Ano", "4º Ano", "5º Ano", "6º Ano", "7º Ano", "8º Ano", "9º Ano",
+        "1ª Série (EM)", "2ª Série (EM)", "3ª Série (EM)"
     ],
     bimestresDisponiveis: [
         "1º Bimestre", "2º Bimestre", "3º Bimestre", "4º Bimestre"
@@ -97,7 +104,8 @@ export const provasView = {
             const matchEscola = !this.filtros.escola || (q.escola && q.escola.toLowerCase().includes(this.filtros.escola.toLowerCase()));
             const matchBimestre = !this.filtros.bimestre || q.bimestre === this.filtros.bimestre;
             const matchUnidade = !this.filtros.unidade || q.bncc?.unidade_tematica === this.filtros.unidade;
-            return matchBusca && matchMateria && matchAno && matchTipo && matchEscola && matchBimestre && matchUnidade;
+            const matchSaeb = !this.filtros.saeb || (q.descritorSaeb && q.descritorSaeb.toLowerCase().includes(this.filtros.saeb.toLowerCase()));
+            return matchBusca && matchMateria && matchAno && matchTipo && matchEscola && matchBimestre && matchUnidade && matchSaeb;
         });
     },
     async verificarImagem(url) {
@@ -108,9 +116,73 @@ export const provasView = {
             return false;
         }
     },
+    _renderFiltros(lista) {
+        const descritores = model.state.descritoresSaeb || [];
+        return `
+            <div class="dynamic-box" style="padding: 1.25rem; margin-bottom: 1rem;">
+                <div class="provas-filters-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem;">
+                    <div>
+                        <label class="form-label">Disciplina</label>
+                        <select onchange="provasView.atualizarFiltro('materia', this.value)" class="form-select">
+                            <option value="">Todas as Matérias</option>
+                            ${this.disciplinas.map(d => `<option value="${d}" ${this.filtros.materia === d ? 'selected' : ''}>${d}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Série/Ano</label>
+                        <select onchange="provasView.atualizarFiltro('ano', this.value)" class="form-select">
+                            <option value="">Todos os Anos</option>
+                            ${this.seriesDisponiveis.map(s => `<option value="${s}" ${this.filtros.ano === s ? 'selected' : ''}>${s}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Bimestre</label>
+                        <select onchange="provasView.atualizarFiltro('bimestre', this.value)" class="form-select">
+                            <option value="">Todos os Bimestres</option>
+                            ${this.bimestresDisponiveis.map(b => `<option value="${b}" ${this.filtros.bimestre === b ? 'selected' : ''}>${b}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Descritor SAEB</label>
+                        <select onchange="provasView.atualizarFiltro('saeb', this.value)" class="form-select">
+                            <option value="">Todos os Descritores</option>
+                            ${descritores.map(d => `<option value="${d.codigo}" ${this.filtros.saeb === d.codigo ? 'selected' : ''}>${d.codigo} - ${window.escapeHTML(d.disciplina)}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Escola</label>
+                        <select onchange="provasView.atualizarFiltro('escola', this.value)" class="form-select">
+                            <option value="">Todas as Escolas</option>
+                            ${this.obterListaEscolas().map(esc => `<option value="${window.escapeHTML(esc)}" ${this.filtros.escola === esc ? 'selected' : ''}>${window.escapeHTML(esc)}</option>`).join('')}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Tipo</label>
+                        <select onchange="provasView.atualizarFiltro('tipo', this.value)" class="form-select">
+                            <option value="">Todos os Tipos</option>
+                            <option value="multipla" ${this.filtros.tipo === 'multipla' ? 'selected' : ''}>Múltipla Escolha</option>
+                            <option value="aberta" ${this.filtros.tipo === 'aberta' ? 'selected' : ''}>Dissertativa</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div style="position: relative; margin-top: 1rem;">
+                    <i class="fas fa-search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--color-slate-400);"></i>
+                    <input type="text" id="input-busca-provas" placeholder="Pesquisar por enunciado, código BNCC, Descritor SAEB ou escola..." 
+                        class="form-input" style="padding-left: 2.75rem; width: 100%;"
+                        oninput="provasView.atualizarBusca(this.value)" value="${this.termoBusca}">
+                </div>
+            </div>`;
+    },
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+
         const minhasQuestoes = model.state.questoes || [];
         const questoesSistema = model.state.questoesSistema || [];
         const questoesEnem = model.state.questoesEnem || [];
@@ -139,7 +211,7 @@ export const provasView = {
                 <div>
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
                         <h2 class="text-3xl font-bold text-slate-800 tracking-tight">Gerador de Avaliações</h2>
-                        <button type="button" onclick="controller.navigate('stats-provas')" 
+                        <button type="button" data-action="nav-stats-provas" 
                                 class="interactive-element"
                                 style="width: 2.5rem; height: 2.5rem; border-radius: 0.75rem; background-color: #ffffff; border: 1px solid #e2e8f0; color: #94a3b8; display: flex; align-items: center; justify-content: center; box-shadow: var(--shadow-sm); cursor: pointer; transition: all var(--transition-fast);"
                                 onmouseover="this.style.color='#4f46e5'; this.style.borderColor='#c7d2fe'; this.style.backgroundColor='#eff6ff';" onmouseout="this.style.color='#94a3b8'; this.style.borderColor='#e2e8f0'; this.style.backgroundColor='#ffffff';"
@@ -150,12 +222,12 @@ export const provasView = {
                     <p class="text-slate-500 mt-1">Selecione questões e gere provas (Aluno ou Gabarito).</p>
                 </div>
                 <div style="display: flex; align-items: center; gap: 0.75rem;">
-                    <button type="button" onclick="controller.navigate('comunidade')" 
+                    <button type="button" data-action="nav-comunidade" 
                             class="btn-secondary interactive-element"
                             style="background-color: #4f46e5; color: #ffffff; padding: 0.75rem 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.25);">
                         <i class="fas fa-globe"></i> Explorar Comunidade
                     </button>
-                    <button type="button" onclick="provasView.openAddQuestao()" 
+                    <button type="button" data-action="open-add-questao" 
                             class="btn-primary interactive-element" style="padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.25);">
                         <i class="fas fa-plus"></i> Nova Questão
                     </button>
@@ -164,71 +236,22 @@ export const provasView = {
             <div class="provas-layout">
                 <div class="provas-main-content">
                     <div class="mode-toggle-group" style="width: fit-content;">
-                        <button type="button" onclick="provasView.mudarAba('minhas')" 
+                        <button type="button" data-action="mudar-aba-provas" data-aba="minhas" 
                                 class="mode-toggle-btn interactive-element ${this.abaAtiva === 'minhas' ? 'mode-toggle-btn--active' : ''}">
                             Minhas Questões (${minhasQuestoes.length})
                         </button>
-                        <button type="button" onclick="provasView.mudarAba('sistema')" 
+                        <button type="button" data-action="mudar-aba-provas" data-aba="sistema" 
                                 class="mode-toggle-btn interactive-element ${this.abaAtiva === 'sistema' ? 'mode-toggle-btn--active' : ''}">
                             Banco do Sistema (${questoesSistema.length})
                         </button>
-                        <button type="button" onclick="provasView.mudarAba('enem')" 
+                        <button type="button" data-action="mudar-aba-provas" data-aba="enem" 
                                 class="mode-toggle-btn interactive-element ${this.abaAtiva === 'enem' ? 'mode-toggle-btn--active' : ''}">
                             Banco ENEM (${questoesEnem.length})
                         </button>
                     </div>
                     
-                    <div class="dynamic-box" style="padding: 1.25rem;">
-                        <div class="provas-filters-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem;">
-                            <div>
-                                <label class="form-label">Disciplina</label>
-                                <select onchange="provasView.atualizarFiltro('materia', this.value)" class="form-select">
-                                    <option value="">Todas as Matérias</option>
-                                    ${this.disciplinas.map(d => `<option value="${d}" ${this.filtros.materia === d ? 'selected' : ''}>${d}</option>`).join('')}
-                                </select>
-                            </div>
-                            <div>
-                                <label class="form-label">Série/Ano</label>
-                                <select onchange="provasView.atualizarFiltro('ano', this.value)" class="form-select">
-                                    <option value="">Todos os Anos</option>
-                                    <option value="6º Ano" ${this.filtros.ano === '6º Ano' ? 'selected' : ''}>6º Ano</option>
-                                    <option value="7º Ano" ${this.filtros.ano === '7º Ano' ? 'selected' : ''}>7º Ano</option>
-                                    <option value="8º Ano" ${this.filtros.ano === '8º Ano' ? 'selected' : ''}>8º Ano</option>
-                                    <option value="9º Ano" ${this.filtros.ano === '9º Ano' ? 'selected' : ''}>9º Ano</option>
-                                    <option value="Ensino Médio" ${this.filtros.ano === 'Ensino Médio' ? 'selected' : ''}>Ensino Médio</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="form-label">Bimestre</label>
-                                <select onchange="provasView.atualizarFiltro('bimestre', this.value)" class="form-select">
-                                    <option value="">Todos os Bimestres</option>
-                                    ${this.bimestresDisponiveis.map(b => `<option value="${b}" ${this.filtros.bimestre === b ? 'selected' : ''}>${b}</option>`).join('')}
-                                </select>
-                            </div>
-                            <div>
-                                <label class="form-label">Escola</label>
-                                <select onchange="provasView.atualizarFiltro('escola', this.value)" class="form-select">
-                                    <option value="">Todas as Escolas</option>
-                                    ${this.obterListaEscolas().map(esc => `<option value="${window.escapeHTML(esc)}" ${this.filtros.escola === esc ? 'selected' : ''}>${window.escapeHTML(esc)}</option>`).join('')}
-                                </select>
-                            </div>
-                            <div>
-                                <label class="form-label">Tipo</label>
-                                <select onchange="provasView.atualizarFiltro('tipo', this.value)" class="form-select">
-                                    <option value="">Todos os Tipos</option>
-                                    <option value="multipla" ${this.filtros.tipo === 'multipla' ? 'selected' : ''}>Múltipla Escolha</option>
-                                    <option value="aberta" ${this.filtros.tipo === 'aberta' ? 'selected' : ''}>Dissertativa</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        <div style="position: relative; margin-top: 1rem;">
-                            <i class="fas fa-search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--color-slate-400);"></i>
-                            <input type="text" id="input-busca-provas" placeholder="Pesquisar por enunciado, código BNCC ou escola..." 
-                                class="form-input" style="padding-left: 2.75rem; width: 100%;"
-                                oninput="provasView.atualizarBusca(this.value)" value="${this.termoBusca}">
-                        </div>
-                    </div>
+                    ${this._renderFiltros(listaParaFiltrar)}
+
                     <!-- BARRA SUPERIOR DE PAGINAÇÃO -->
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; margin-top: 1.5rem;">
                         <span style="font-size: 0.75rem; font-weight: 700; color: #94a3b8;">Mostrando <strong style="color: #475569;">${questoesPaginadas.length}</strong> de <strong style="color: #475569;">${totalItens}</strong> questões</span>
@@ -254,13 +277,13 @@ export const provasView = {
                     <!-- LISTA DE QUESTÕES (usando questoesPaginadas) -->
                     <div style="display: flex; flex-direction: column; gap: 1rem;" id="lista-questoes">
                         ${questoesPaginadas.length > 0
-                ? questoesPaginadas.map(q => provasView.cardQuestao(q)).join('')
+                ? questoesPaginadas.map(q => this.cardQuestao(q)).join('')
                 : this.estadoVazio()}
                     </div>
                     
                     <!-- CONTROLES INFERIORES DE PAGINAÇÃO -->
                     <div id="pagination-controls" style="display: ${totalPaginas <= 1 ? 'none' : 'flex'}; margin-top: 2rem; justify-content: space-between; align-items: center; background-color: var(--color-white); padding: 1rem; border-radius: var(--radius-2xl); border: 1px solid var(--color-slate-200); box-shadow: var(--shadow-sm);">
-                        <button onclick="provasView.paginaAnterior()" ${this.paginaAtual === 1 ? 'disabled' : ''}
+                        <button type="button" data-action="pagina-anterior" ${this.paginaAtual === 1 ? 'disabled' : ''}
                                 style="padding: 0.5rem 1rem; border-radius: var(--radius-lg); border: 1px solid var(--color-slate-200); color: var(--color-slate-500); font-weight: 700; font-size: 0.875rem; background-color: transparent; cursor: ${this.paginaAtual === 1 ? 'not-allowed' : 'pointer'}; opacity: ${this.paginaAtual === 1 ? '0.5' : '1'}; transition: all var(--transition-fast); display: flex; align-items: center; gap: 0.5rem;"
                                 ${this.paginaAtual !== 1 ? 'onmouseover="this.style.backgroundColor=\'var(--color-slate-50)\'" onmouseout="this.style.backgroundColor=\'transparent\'"' : ''}>
                             <i class="fas fa-chevron-left"></i> Anterior
@@ -270,7 +293,7 @@ export const provasView = {
                             Página <span style="color: #4f46e5; font-size: 0.875rem; margin: 0 0.25rem;">${this.paginaAtual}</span> de ${totalPaginas}
                         </span>
                         
-                        <button onclick="provasView.proximaPagina()" ${this.paginaAtual === totalPaginas ? 'disabled' : ''}
+                        <button type="button" data-action="proxima-pagina" ${this.paginaAtual === totalPaginas ? 'disabled' : ''}
                                 style="padding: 0.5rem 1rem; border-radius: var(--radius-lg); background-color: #e0e7ff; color: #4f46e5; border: 1px solid #c7d2fe; font-weight: 700; font-size: 0.875rem; cursor: ${this.paginaAtual === totalPaginas ? 'not-allowed' : 'pointer'}; opacity: ${this.paginaAtual === totalPaginas ? '0.5' : '1'}; transition: all var(--transition-fast); display: flex; align-items: center; gap: 0.5rem;"
                                 ${this.paginaAtual !== totalPaginas ? 'onmouseover="this.style.backgroundColor=\'#c7d2fe\'" onmouseout="this.style.backgroundColor=\'#e0e7ff\'"' : ''}>
                             Próxima <i class="fas fa-chevron-right"></i>
@@ -293,14 +316,14 @@ export const provasView = {
                             <p style="font-size: 0.75rem; font-weight: 700; color: var(--color-slate-400); text-transform: uppercase; letter-spacing: 0.1em;">Selecionadas</p>
                         </div>
                         <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                            <button onclick="provasView.abrirOpcoesImpressao()" 
+                            <button type="button" data-action="abrir-opcoes-impressao" 
                                     style="width: 100%; padding: 0.75rem 0; background-color: var(--color-slate-800); color: var(--color-white); border-radius: var(--radius-xl); font-weight: 700; transition: background-color var(--transition-fast); display: flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: var(--shadow-md); border: none; cursor: ${this.selecionadas.size === 0 ? 'not-allowed' : 'pointer'}; opacity: ${this.selecionadas.size === 0 ? '0.5' : '1'};" 
                                     ${this.selecionadas.size === 0 ? 'disabled' : ''}
                                     ${this.selecionadas.size > 0 ? 'onmouseover="this.style.backgroundColor=\'var(--color-slate-900)\'" onmouseout="this.style.backgroundColor=\'var(--color-slate-800)\'"' : ''}>
                                 <i class="fas fa-print"></i> Gerar Prova
                             </button>
                             ${this.selecionadas.size > 0 ? `
-                                <button onclick="provasView.limparSelecao()" style="width: 100%; padding: 0.5rem 0; color: #ef4444; font-size: 0.75rem; font-weight: 700; border-radius: var(--radius-lg); transition: background-color var(--transition-fast); background-color: transparent; border: none; cursor: pointer;" onmouseover="this.style.backgroundColor='#fef2f2'" onmouseout="this.style.backgroundColor='transparent'">
+                                <button type="button" data-action="limpar-selecao" style="width: 100%; padding: 0.5rem 0; color: #ef4444; font-size: 0.75rem; font-weight: 700; border-radius: var(--radius-lg); transition: background-color var(--transition-fast); background-color: transparent; border: none; cursor: pointer;" onmouseover="this.style.backgroundColor='#fef2f2'" onmouseout="this.style.backgroundColor='transparent'">
                                     Limpar Seleção
                                 </button>
                             ` : ''}
@@ -311,6 +334,57 @@ export const provasView = {
         </div>
         `;
         container.innerHTML = html;
+
+        this._cleanupDelegators = EventDelegator.bind(container, {
+            'nav-stats-provas': () => controller.navigate('stats-provas'),
+            'nav-comunidade': () => controller.navigate('comunidade'),
+            'open-add-questao': () => this.openAddQuestao(),
+            'mudar-aba-provas': (e, target) => {
+                const aba = target.getAttribute('data-aba');
+                if (aba) this.mudarAba(aba);
+            },
+            'pagina-anterior': () => this.paginaAnterior(),
+            'proxima-pagina': () => this.proximaPagina(),
+            'abrir-opcoes-impressao': () => this.abrirOpcoesImpressao(),
+            'limpar-selecao': () => this.limparSelecao(),
+            'remover-comunidade': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) model.removerDaComunidade(id);
+            },
+            'compartilhar-questao': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) model.compartilharQuestao(id);
+            },
+            'toggle-gabarito-card': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) this.toggleGabaritoCard(id);
+            },
+            'copiar-questao': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) this.copiarQuestao(id);
+            },
+            'clonar-questao': (e, target) => {
+                const raw = target.getAttribute('data-json');
+                if (raw) {
+                    try { this.clonarQuestaoParaProfessor(JSON.parse(raw)); } catch (err) { }
+                }
+            },
+            'editar-questao': (e, target) => {
+                const raw = target.getAttribute('data-json');
+                if (raw) {
+                    try { this.openAddQuestao(JSON.parse(raw)); } catch (err) { }
+                }
+            },
+            'excluir-questao': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) this.excluirQuestao(id);
+            },
+            'toggle-selecao': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) this.toggleSelecao(id);
+            }
+        }, 'click');
+
         this.renderizarLatex(container);
         questoesPaginadas.forEach(async (q) => {
             if (q.suporte && q.suporte.tem_imagem) {
@@ -355,7 +429,7 @@ export const provasView = {
         const tipoCor = (q.tipo === 'multipla') ? 'color: #9333ea; background-color: #faf5ff; border-color: #f3e8ff;' : 'color: #059669; background-color: #ecfdf5; border-color: #d1fae5;';
         tagsHtml += `<span style="padding: 0.25rem 0.5rem; font-size: 0.625rem; font-weight: 700; border-radius: 0.25rem; text-transform: uppercase; border: 1px solid; ${tipoCor}">${tipoLabel}</span>`;
         tagsHtml += this._renderEstrelasDificuldade(q.dificuldade);
-        
+
         const gabaritoOculto = this.gabaritosOcultos.has(String(q.id));
         let conteudoGabarito = '';
         if (q.tipo === 'multipla' && q.alternativas) {
@@ -363,14 +437,14 @@ export const provasView = {
             conteudoGabarito = `
             <div id="gabarito-questao-${q.id}" style="margin-top: 1rem; display: ${gabaritoOculto ? 'none' : 'flex'}; flex-direction: column; gap: 0.375rem; padding-left: 0.75rem; border-left: 2px solid var(--color-slate-100);">
                 ${q.alternativas.map((alt, i) => {
-                    const isCorreta = q.correta == i;
-                    const styleCor = isCorreta ? 'color: #059669; font-weight: 700;' : 'color: var(--color-slate-500);';
-                    const iconCorreta = isCorreta ? '<i class="fas fa-check-circle" style="font-size: 0.625rem; margin-top: 0.125rem;"></i>' : '';
-                    return '<div style="font-size: 0.75rem; display: flex; gap: 0.5rem; ' + styleCor + '">' +
-                        '<span style="text-transform: uppercase; font-weight: 700;">' + letras[i] + ')</span>' +
-                        '<span>' + this.formatarHTMLQuestao(alt) + '</span>' + iconCorreta +
+                const isCorreta = q.correta == i;
+                const styleCor = isCorreta ? 'color: #059669; font-weight: 700;' : 'color: var(--color-slate-500);';
+                const iconCorreta = isCorreta ? '<i class="fas fa-check-circle" style="font-size: 0.625rem; margin-top: 0.125rem;"></i>' : '';
+                return '<div style="font-size: 0.75rem; display: flex; gap: 0.5rem; ' + styleCor + '">' +
+                    '<span style="text-transform: uppercase; font-weight: 700;">' + letras[i] + ')</span>' +
+                    '<span>' + this.formatarHTMLQuestao(alt) + '</span>' + iconCorreta +
                     '</div>';
-                }).join('')}
+            }).join('')}
             </div>`;
         } else if (q.gabarito || q.gabarito_comentado) {
             const textoGabarito = q.gabarito || q.gabarito_comentado;
@@ -391,7 +465,7 @@ export const provasView = {
         const dataJson = JSON.stringify(q).replace(/'/g, "&#39;").replace(/"/g, '&quot;');
         const btnComunidade = isCompartilhada ?
             `
-            <button onclick="model.removerDaComunidade('${q.id}')" 
+            <button type="button" data-action="remover-comunidade" data-id="${q.id}" 
                     style="width: 2rem; height: 2rem; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; color: #4f46e5; background-color: #e0e7ff; border: 1px solid #c7d2fe; cursor: pointer; transition: all var(--transition-fast);" 
                     onmouseover="this.style.backgroundColor='#fef2f2'; this.style.color='#ef4444'; this.style.borderColor='#fecaca';" onmouseout="this.style.backgroundColor='#e0e7ff'; this.style.color='#4f46e5'; this.style.borderColor='#c7d2fe';"
                     title="Remover da Comunidade">
@@ -399,7 +473,7 @@ export const provasView = {
             </button>
             ` :
             `
-            <button onclick="model.compartilharQuestao('${q.id}')" 
+            <button type="button" data-action="compartilhar-questao" data-id="${q.id}" 
                     style="width: 2rem; height: 2rem; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; color: var(--color-slate-300); background-color: transparent; border: none; cursor: pointer; transition: all var(--transition-fast);" 
                     onmouseover="this.style.color='#4f46e5'; this.style.backgroundColor='#e0e7ff';" onmouseout="this.style.color='var(--color-slate-300)'; this.style.backgroundColor='transparent';"
                     title="Compartilhar com a Comunidade">
@@ -408,17 +482,17 @@ export const provasView = {
             `;
         const botoesAcao = isSistema ?
             `
-            <button onclick="provasView.toggleGabaritoCard('${q.id}')" 
+            <button type="button" data-action="toggle-gabarito-card" data-id="${q.id}" 
                     style="width: 2rem; height: 2rem; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; color: var(--color-slate-400); background-color: transparent; border: none; cursor: pointer; transition: all var(--transition-fast);"
                     title="${gabaritoOculto ? 'Mostrar Gabarito' : 'Ocultar Gabarito'}">
                 <i id="btn-eye-${q.id}" class="${gabaritoOculto ? 'far fa-eye-slash' : 'far fa-eye'}"></i>
             </button>
-            <button onclick="provasView.copiarQuestao('${q.id}')" 
+            <button type="button" data-action="copiar-questao" data-id="${q.id}" 
                     style="width: 2rem; height: 2rem; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; color: var(--color-slate-400); background-color: transparent; border: none; cursor: pointer; transition: all var(--transition-fast);"
                     title="Copiar texto da questão">
                 <i class="far fa-copy"></i>
             </button>
-            <button onclick='provasView.clonarQuestaoParaProfessor(${dataJson})' 
+            <button type="button" data-action="clonar-questao" data-json="${dataJson}" 
                     style="width: 2rem; height: 2rem; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; color: var(--color-slate-400); background-color: transparent; border: none; cursor: pointer; transition: all var(--transition-fast);" 
                     onmouseover="this.style.color='var(--color-primary)'; this.style.backgroundColor='rgba(59, 130, 246, 0.1)';" onmouseout="this.style.color='var(--color-slate-400)'; this.style.backgroundColor='transparent';"
                     title="Clonar e Editar">
@@ -427,24 +501,24 @@ export const provasView = {
             <span style="font-size: 0.5625rem; font-weight: 700; color: var(--color-slate-400); background-color: var(--color-slate-50); padding: 0.25rem 0.5rem; border-radius: 0.25rem; border: 1px solid var(--color-slate-100); text-transform: uppercase; letter-spacing: -0.05em;">Global</span>
             ` :
             `
-            <button onclick="provasView.toggleGabaritoCard('${q.id}')" 
+            <button type="button" data-action="toggle-gabarito-card" data-id="${q.id}" 
                     style="width: 2rem; height: 2rem; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; color: var(--color-slate-400); background-color: transparent; border: none; cursor: pointer; transition: all var(--transition-fast);"
                     title="${gabaritoOculto ? 'Mostrar Gabarito' : 'Ocultar Gabarito'}">
                 <i id="btn-eye-${q.id}" class="${gabaritoOculto ? 'far fa-eye-slash' : 'far fa-eye'}"></i>
             </button>
-            <button onclick="provasView.copiarQuestao('${q.id}')" 
+            <button type="button" data-action="copiar-questao" data-id="${q.id}" 
                     style="width: 2rem; height: 2rem; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; color: var(--color-slate-400); background-color: transparent; border: none; cursor: pointer; transition: all var(--transition-fast);"
                     title="Copiar texto da questão">
                 <i class="far fa-copy"></i>
             </button>
             ${btnComunidade}
-            <button onclick='provasView.openAddQuestao(${dataJson})' 
+            <button type="button" data-action="editar-questao" data-json="${dataJson}" 
                     style="width: 2rem; height: 2rem; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; color: var(--color-slate-300); background-color: transparent; border: none; cursor: pointer; transition: all var(--transition-fast);" 
                     onmouseover="this.style.color='#3b82f6'; this.style.backgroundColor='#eff6ff';" onmouseout="this.style.color='var(--color-slate-300)'; this.style.backgroundColor='transparent';"
                     title="Editar">
                 <i class="fas fa-pencil-alt"></i>
             </button>
-            ${!isSelected ? `<button onclick="provasView.excluirQuestao('${q.id}')" style="width: 2rem; height: 2rem; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; color: var(--color-slate-300); background-color: transparent; border: none; cursor: pointer; transition: all var(--transition-fast);" onmouseover="this.style.color='#ef4444'; this.style.backgroundColor='#fef2f2';" onmouseout="this.style.color='var(--color-slate-300)'; this.style.backgroundColor='transparent';" title="Excluir"><i class="fas fa-trash-alt"></i></button>` : ''}
+            ${!isSelected ? `<button type="button" data-action="excluir-questao" data-id="${q.id}" style="width: 2rem; height: 2rem; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; color: var(--color-slate-300); background-color: transparent; border: none; cursor: pointer; transition: all var(--transition-fast);" onmouseover="this.style.color='#ef4444'; this.style.backgroundColor='#fef2f2';" onmouseout="this.style.color='var(--color-slate-300)'; this.style.backgroundColor='transparent';" title="Excluir"><i class="fas fa-trash-alt"></i></button>` : ''}
             `;
         return `
         <div id="card-questao-${q.id}" class="stat-card interactive-element animate-enter" style="min-height: auto; padding: 1.5rem; transition: all 0.2s; position: relative; ${isSelected ? 'border-color: #4f46e5; box-shadow: 0 0 0 2px #4f46e5; background-color: rgba(238, 242, 255, 0.3);' : 'border-color: #e2e8f0; background-color: #ffffff;'}">
@@ -452,7 +526,7 @@ export const provasView = {
                 <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;">${tagsHtml}</div>
                 <div style="display: flex; gap: 0.375rem; flex-shrink: 0; align-items: center;">
                     ${botoesAcao}
-                    <button type="button" onclick="provasView.toggleSelecao('${q.id}')" class="interactive-element" style="width: 2.25rem; height: 2.25rem; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; transition: all var(--transition-fast); box-shadow: var(--shadow-sm); cursor: pointer; border: none; ${isSelected ? 'background-color: #fee2e2; color: #ef4444;' : 'background-color: #f1f5f9; color: #64748b;'}"
+                    <button type="button" data-action="toggle-selecao" data-id="${q.id}" class="interactive-element" style="width: 2.25rem; height: 2.25rem; border-radius: 0.5rem; display: flex; align-items: center; justify-content: center; transition: all var(--transition-fast); box-shadow: var(--shadow-sm); cursor: pointer; border: none; ${isSelected ? 'background-color: #fee2e2; color: #ef4444;' : 'background-color: #f1f5f9; color: #64748b;'}"
                             title="${isSelected ? 'Desmarcar da Prova' : 'Selecionar para a Prova'}">
                         <i class="fas ${isSelected ? 'fa-minus' : 'fa-plus'}"></i>
                     </button>
@@ -582,11 +656,7 @@ export const provasView = {
                         <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--color-slate-400); text-transform: uppercase; margin-bottom: 0.25rem;">Ano / Série</label>
                         <select id="q-ano" class="input-default" style="width: 100%; border: 2px solid var(--color-slate-100); padding: 0.625rem; border-radius: var(--radius-xl); outline: none; background-color: var(--color-white); font-size: 0.875rem;">
                             <option value="">Selecione...</option>
-                            <option value="6º Ano" ${dados.ano === '6º Ano' ? 'selected' : ''}>6º Ano</option>
-                            <option value="7º Ano" ${dados.ano === '7º Ano' ? 'selected' : ''}>7º Ano</option>
-                            <option value="8º Ano" ${dados.ano === '8º Ano' ? 'selected' : ''}>8º Ano</option>
-                            <option value="9º Ano" ${dados.ano === '9º Ano' ? 'selected' : ''}>9º Ano</option>
-                            <option value="Ensino Médio" ${dados.ano === 'Ensino Médio' ? 'selected' : ''}>Ensino Médio</option>
+                            ${this.seriesDisponiveis.map(s => `<option value="${s}" ${dados.ano === s ? 'selected' : ''}>${s}</option>`).join('')}
                         </select>
                     </div>
                 </div>
@@ -1141,7 +1211,12 @@ export const provasView = {
             </html>
         `;
         const win = window.open('', '_blank');
-        win.document.write(conteudoFinal);
+        if (win) {
+            const safeHtml = window.sanitizeComLatex ? window.sanitizeComLatex(conteudoFinal) : conteudoFinal;
+            win.document.open();
+            win.document.write(safeHtml);
+            win.document.close();
+        }
         win.document.close();
     }
 };

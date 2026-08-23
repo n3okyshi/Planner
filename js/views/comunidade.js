@@ -270,6 +270,14 @@ export const comunidadeView = {
             'importar-material-comunidade': (e, target) => {
                 const id = target.getAttribute('data-id');
                 if (id) this.importarMaterialComunidade(id);
+            },
+            'copiar-questao-comunidade': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) this.copiarQuestao(id);
+            },
+            'importar-questao-comunidade': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) this.importarQuestao(id);
             }
         }, 'click');
 
@@ -545,10 +553,10 @@ export const comunidadeView = {
                     </div>
 
                     <div style="margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--color-slate-100); display: flex; gap: 0.5rem; align-items: center;">
-                        <button type="button" onclick="comunidadeView.copiarQuestao(${idEscaped})" class="btn-secondary interactive-element" style="padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 700;" title="Copiar texto da questão">
+                        <button type="button" data-action="copiar-questao-comunidade" data-id="${q.id}" class="btn-secondary interactive-element" style="padding: 0.5rem 0.75rem; font-size: 0.75rem; font-weight: 700;" title="Copiar texto da questão">
                             <i class="far fa-copy"></i> <span>Copiar</span>
                         </button>
-                        <button type="button" onclick="comunidadeView.importarQuestao(${idEscaped})" class="btn-primary interactive-element" style="flex: 1; justify-content: center; padding: 0.5rem 0.875rem; font-size: 0.8125rem; font-weight: 700; background-color: #4f46e5;">
+                        <button type="button" data-action="importar-questao-comunidade" data-id="${q.id}" class="btn-primary interactive-element" style="flex: 1; justify-content: center; padding: 0.5rem 0.875rem; font-size: 0.8125rem; font-weight: 700; background-color: #4f46e5;">
                             <i class="fas fa-download"></i> <span>Importar para meu Banco</span>
                         </button>
                     </div>

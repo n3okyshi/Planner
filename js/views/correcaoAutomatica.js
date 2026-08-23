@@ -1615,11 +1615,14 @@ export const correcaoAutomaticaView = {
             } catch (e) {
                 console.warn("Fallback de impressão por janela popup:", e);
                 const win = window.open('', '_blank');
-                win.document.open();
-                win.document.write(htmlDoc);
-                win.document.close();
-                win.focus();
-                win.print();
+                if (win) {
+                    const safeHtml = window.sanitizeComLatex ? window.sanitizeComLatex(htmlDoc) : htmlDoc;
+                    win.document.open();
+                    win.document.write(safeHtml);
+                    win.document.close();
+                    win.focus();
+                    win.print();
+                }
             }
         }, 300);
     },

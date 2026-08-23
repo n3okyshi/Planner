@@ -2,10 +2,20 @@
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { calendarioView } from './calendario.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
+
 export const dashboardView = {
+    _cleanupDelegators: null,
+
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+
         const saudacao = this.getSaudacao();
         const pendencias = this.calcularPendencias();
         const aniversariantes = this.buscarAniversariantes();
@@ -33,7 +43,7 @@ export const dashboardView = {
                         </p>
                     </div>
                     <div style="display: flex; gap: var(--spacing-2);">
-                         <button onclick="controller.navigate('dia')" class="btn-primary" style="box-shadow: 0 10px 15px -3px rgba(var(--color-primary-rgb), 0.2);">
+                         <button type="button" data-action="nav-dia" class="btn-primary" style="box-shadow: 0 10px 15px -3px rgba(var(--color-primary-rgb), 0.2);">
                             <i class="fas fa-plus"></i> Novo Diário
                          </button>
                     </div>
@@ -52,7 +62,7 @@ export const dashboardView = {
                                 </p>
                             </div>
                         </div>
-                        <button onclick="controller.navigate('frequencia')" class="btn-primary" style="background: #ef4444; border-color: #ef4444; font-size: 0.8125rem; font-weight: 800; padding: 0.5rem 1rem; border-radius: 0.75rem;">
+                        <button type="button" data-action="nav-frequencia" class="btn-primary" style="background: #ef4444; border-color: #ef4444; font-size: 0.8125rem; font-weight: 800; padding: 0.5rem 1rem; border-radius: 0.75rem;">
                             <i class="fas fa-clipboard-check"></i> Ver Frequência
                         </button>
                     </div>
@@ -76,7 +86,7 @@ export const dashboardView = {
                 ? '<span style="font-size: 0.75rem; color: #f97316; font-weight: 600;">Nenhuma turma cadastrada.</span>'
                 : aulasHoje.length === turmas.length
                     ? '<span style="font-size: 0.75rem; color: #059669; font-weight: 700; display: flex; align-items: center; gap: 0.25rem;"><i class="fas fa-check-circle"></i> Tudo pronto para hoje!</span>'
-                    : `<button onclick="controller.navigate('dia')" style="font-size: 0.75rem; color: var(--color-primary); font-weight: 700; cursor: pointer; text-align: left; background: none; border: none; padding: 0; display: flex; align-items: center; gap: 0.375rem;">
+                    : `<button type="button" data-action="nav-dia" style="font-size: 0.75rem; color: var(--color-primary); font-weight: 700; cursor: pointer; text-align: left; background: none; border: none; padding: 0; display: flex; align-items: center; gap: 0.375rem;">
                                              <i class="fas fa-arrow-right"></i> Planejar ${turmas.length - aulasHoje.length} turmas restantes
                                            </button>`
             }
@@ -98,7 +108,7 @@ export const dashboardView = {
                             
                             <div class="stat-card__footer">
                                 ${pendencias.total > 0
-                ? `<button onclick="controller.navigate('mensal')" style="font-size: 0.75rem; font-weight: 700; color: #ea580c; background-color: #fff7ed; border: 1px solid #ffedd5; padding: 0.375rem 0.75rem; border-radius: var(--radius-lg); width: fit-content; cursor: pointer; transition: background-color var(--transition-fast);" onmouseover="this.style.backgroundColor='#ffedd5'" onmouseout="this.style.backgroundColor='#fff7ed'">
+                ? `<button type="button" data-action="nav-mensal" style="font-size: 0.75rem; font-weight: 700; color: #ea580c; background-color: #fff7ed; border: 1px solid #ffedd5; padding: 0.375rem 0.75rem; border-radius: var(--radius-lg); width: fit-content; cursor: pointer; transition: background-color var(--transition-fast);" onmouseover="this.style.backgroundColor='#ffedd5'" onmouseout="this.style.backgroundColor='#fff7ed'">
                                          Ver pendências
                                        </button>`
                 : '<span style="font-size: 0.75rem; color: #059669; font-weight: 700; display: flex; align-items: center; gap: 0.25rem;"><i class="fas fa-check-circle"></i> Você está em dia!</span>'
@@ -142,6 +152,12 @@ export const dashboardView = {
         `;
         container.innerHTML = html;
 
+        this._cleanupDelegators = EventDelegator.bind(container, {
+            'nav-dia': () => controller.navigate('dia'),
+            'nav-frequencia': () => controller.navigate('frequencia'),
+            'nav-mensal': () => controller.navigate('mensal')
+        }, 'click');
+
         setTimeout(() => {
             const calContainer = document.getElementById('calendar-wrapper');
             if (calContainer) {
@@ -153,6 +169,24 @@ export const dashboardView = {
                 if (oldHello && oldHello.parentElement) oldHello.parentElement.parentElement.style.display = 'none';
             }
         }, 0);
+    },
+    /**
+     * Renderiza um gráfico de rosca em SVG nativo para o Dashboard.
+     * @param {number} percentual (0 a 100)
+     * @param {string} corHex
+     */
+    _renderGraficoSVG(percentual = 100, corHex = 'var(--color-primary)') {
+        const pct = Math.min(100, Math.max(0, Number(percentual) || 0));
+        const strokeDash = `${pct} ${100 - pct}`;
+        return `
+            <div style="position: relative; display: inline-flex; align-items: center; justify-content: center;">
+                <svg viewBox="0 0 36 36" style="width: 4rem; height: 4rem; transform: rotate(-90deg);">
+                    <path stroke="var(--color-slate-200)" stroke-width="3.8" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path stroke="${corHex}" stroke-dasharray="${strokeDash}" stroke-width="3.8" stroke-linecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                </svg>
+                <span style="position: absolute; font-size: 0.75rem; font-weight: 800; color: var(--color-slate-700);">${pct}%</span>
+            </div>
+        `;
     },
     getSaudacao() {
         const hora = new Date().getHours();
@@ -221,5 +255,14 @@ export const dashboardView = {
         });
 
         return totalAlunosRisco;
+    },
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+    },
+    onLeave() {
+        this.destroy();
     }
 };

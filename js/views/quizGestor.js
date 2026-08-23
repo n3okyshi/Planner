@@ -4,14 +4,21 @@ import { Toast } from '../components/toast.js';
 import { aiService } from '../ai-service.js';
 import { renderKatex, formatarTextoComLatex, sanitizeComLatex, alternarModoEdicaoPreview, lerArquivoTexto } from '../utils.js';
 import { uiController } from '../controllers/uiController.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 
 export const quizGestorView = {
     currentQuiz: null,
     contextoDocumentoTemp: '',
+    _cleanupDelegators: null,
 
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
 
         const quizzes = model.state.quizzes || [];
 
@@ -28,13 +35,13 @@ export const quizGestorView = {
                     </div>
 
                     <div style="display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap;">
-                        <button type="button" onclick="window.open('aluno.html', '_blank')" class="btn-secondary interactive-element" style="background-color: #f0fdf4; border-color: #bbf7d0; color: #15803d; font-weight: 800;" title="Abrir portal do estudante">
+                        <button type="button" data-action="portal-aluno" class="btn-secondary interactive-element" style="background-color: #f0fdf4; border-color: #bbf7d0; color: #15803d; font-weight: 800;" title="Abrir portal do estudante">
                             <i class="fas fa-external-link-alt"></i> <span>Portal do Aluno (aluno.html)</span>
                         </button>
-                        <button type="button" onclick="quizGestorView.abrirGeradorIA()" class="btn-secondary interactive-element" style="background-color: #f8fafc; border-color: #cbd5e1;">
+                        <button type="button" data-action="abrir-gerador-ia" class="btn-secondary interactive-element" style="background-color: #f8fafc; border-color: #cbd5e1;">
                             <i class="fas fa-robot" style="color: var(--color-primary);"></i> <span>Gerar com IA / Arquivo</span>
                         </button>
-                        <button type="button" onclick="quizGestorView.criarNovoQuiz()" class="btn-primary interactive-element">
+                        <button type="button" data-action="criar-novo-quiz" class="btn-primary interactive-element">
                             <i class="fas fa-plus"></i> <span>Novo Quiz</span>
                         </button>
                     </div>
@@ -49,6 +56,62 @@ export const quizGestorView = {
 
         container.innerHTML = html;
         uiController.initAllDropdowns(container);
+        this._setupListeners(container);
+    },
+
+    _setupListeners(container) {
+        this._cleanupDelegators = EventDelegator.bind(container, {
+            'portal-aluno': () => window.open('aluno.html', '_blank'),
+            'abrir-gerador-ia': () => this.abrirGeradorIA(),
+            'criar-novo-quiz': () => this.criarNovoQuiz(),
+            'imprimir-quiz': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) this.imprimirQuiz(id);
+            },
+            'editar-quiz': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) this.editarQuiz(id);
+            },
+            'excluir-quiz': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) this.excluirQuiz(id);
+            },
+            'iniciar-quiz-player': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) {
+                    controller.navigate('quiz-player');
+                    setTimeout(() => window.quizPlayerView?.start(id), 100);
+                }
+            },
+            'voltar-render': () => this.render('view-container'),
+            'add-pergunta-multipla': () => this.adicionarPerguntaVazia('multipla'),
+            'add-pergunta-lacuna': () => this.adicionarPerguntaVazia('lacuna'),
+            'add-pergunta-identificacao': () => this.adicionarPerguntaVazia('identificacao'),
+            'add-pergunta-vf': () => this.adicionarPerguntaVazia('verdadeiro_falso'),
+            'editar-pergunta': (e, target) => {
+                const idx = parseInt(target.getAttribute('data-index'), 10);
+                if (!isNaN(idx)) this.editarPergunta(idx);
+            },
+            'excluir-pergunta': (e, target) => {
+                e.stopPropagation();
+                const idx = parseInt(target.getAttribute('data-index'), 10);
+                if (!isNaN(idx)) this.excluirPergunta(idx);
+            },
+            'salvar-edicao-pergunta': (e, target) => {
+                const idx = parseInt(target.getAttribute('data-index'), 10);
+                if (!isNaN(idx)) this.salvarEdicaoPergunta(idx);
+            }
+        }, 'click');
+    },
+
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+    },
+    onLeave() {
+        this.destroy();
     },
 
     cardQuiz(quiz) {
@@ -77,13 +140,13 @@ export const quizGestorView = {
                             ${window.escapeHTML(quiz.disciplina || 'Geral')}
                         </span>
                         <div style="display: flex; gap: 0.25rem;">
-                            <button type="button" onclick="quizGestorView.imprimirQuiz('${quiz.id}')" class="btn-icon" title="Imprimir Lista / Prova em PDF">
+                            <button type="button" data-action="imprimir-quiz" data-id="${quiz.id}" class="btn-icon" title="Imprimir Lista / Prova em PDF">
                                 <i class="fas fa-print" style="font-size: 0.875rem; color: var(--color-slate-500);"></i>
                             </button>
-                            <button type="button" onclick="quizGestorView.editarQuiz('${quiz.id}')" class="btn-icon" title="Editar Quiz">
+                            <button type="button" data-action="editar-quiz" data-id="${quiz.id}" class="btn-icon" title="Editar Quiz">
                                 <i class="fas fa-pencil-alt" style="font-size: 0.875rem;"></i>
                             </button>
-                            <button type="button" onclick="quizGestorView.excluirQuiz('${quiz.id}')" class="btn-icon" style="color: #ef4444;" title="Excluir Quiz">
+                            <button type="button" data-action="excluir-quiz" data-id="${quiz.id}" class="btn-icon" style="color: #ef4444;" title="Excluir Quiz">
                                 <i class="fas fa-trash-alt" style="font-size: 0.875rem;"></i>
                             </button>
                         </div>
@@ -101,7 +164,7 @@ export const quizGestorView = {
                 </div>
 
                 <div style="display: flex; gap: 0.5rem; flex-direction: column;">
-                    <button type="button" onclick="controller.navigate('quiz-player'); setTimeout(() => window.quizPlayerView?.start('${quiz.id}'), 100);" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem; background: linear-gradient(135deg, #4f46e5, #7c3aed);">
+                    <button type="button" data-action="iniciar-quiz-player" data-id="${quiz.id}" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem; background: linear-gradient(135deg, #4f46e5, #7c3aed);">
                         <i class="fas fa-gamepad mr-1"></i> <span>Apresentar ao Vivo (com PIN)</span>
                     </button>
                 </div>
@@ -118,10 +181,10 @@ export const quizGestorView = {
                 <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); margin-bottom: 0.5rem;">Nenhum Quiz criado ainda</h3>
                 <p style="color: var(--color-slate-500); font-size: 0.875rem; max-width: 450px; margin-bottom: 1.5rem;">Crie quizzes em vários formatos pedagógicos (Alternativas, Lacunas, V/F, Identificação) ou gere automaticamente via IA a partir de arquivos ou notas do NotebookLM.</p>
                 <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center;">
-                    <button type="button" onclick="quizGestorView.abrirGeradorIA()" class="btn-secondary">
+                    <button type="button" data-action="abrir-gerador-ia" class="btn-secondary">
                         <i class="fas fa-robot"></i> <span>Gerar com IA / Upload</span>
                     </button>
-                    <button type="button" onclick="quizGestorView.criarNovoQuiz()" class="btn-primary">
+                    <button type="button" data-action="criar-novo-quiz" class="btn-primary">
                         <i class="fas fa-plus"></i> <span>Criar Manualmente</span>
                     </button>
                 </div>
@@ -425,7 +488,7 @@ export const quizGestorView = {
                 </div>
 
                 <!-- SIDE-BY-SIDE EDITOR (QUESTIONS LIST + EDIT PANE) -->
-                <div style="display: grid; grid-template-columns: minmax(280px, 320px) 1fr; gap: var(--spacing-6); align-items: start;">
+                <div class="layout-2col-responsive">
                     
                     <!-- LEFT COLUMN: QUESTIONS LIST (320px) -->
                     <div class="card" style="padding: var(--spacing-4); max-height: 75vh; overflow-y: auto;" class="custom-scrollbar">
@@ -805,7 +868,9 @@ export const quizGestorView = {
             </html>
         `;
 
-        janela.document.write(docHtml);
+        const safeHtml = window.sanitizeComLatex ? window.sanitizeComLatex(docHtml) : docHtml;
+        janela.document.open();
+        janela.document.write(safeHtml);
         janela.document.close();
     }
 };

@@ -26,6 +26,8 @@ import { estudosVisuaisView } from '../views/estudosVisuais.js';
 import { ataConselhoView } from '../views/ataConselho.js';
 import { apresentacoesView } from '../views/apresentacoes.js';
 import { apresentadorPlayerView } from '../views/apresentadorPlayer.js';
+import { coordenacaoView } from '../views/coordenacao.js';
+import { pdiView } from '../views/pdi.js';
 
 export const viewRegistry = {
     dashboard: dashboardView,
@@ -65,7 +67,11 @@ export const viewRegistry = {
     slides: apresentacoesView,
     powerpoint: apresentacoesView,
     pptx: apresentacoesView,
-    'apresentador-player': apresentadorPlayerView
+    'apresentador-player': apresentadorPlayerView,
+    coordenacao: coordenacaoView,
+    coordenador: coordenacaoView,
+    pdi: pdiView,
+    pei: pdiView
 };
 
 export const publicViewAliases = {
@@ -96,7 +102,9 @@ export const publicViewAliases = {
     correcaoAutomaticaView,
     simuladoresView,
     apresentacoesView,
-    apresentadorPlayerView
+    apresentadorPlayerView,
+    coordenacaoView,
+    pdiView
 };
 
 if (typeof window !== 'undefined') {

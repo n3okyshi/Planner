@@ -3,20 +3,29 @@ import { model } from '../model.js';
 import { Toast } from '../components/toast.js';
 import { controller } from '../controller.js';
 import { renderMath } from '../utils.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 
 export const uiController = {
+    _modalCleanup: null,
+
     openModal(titulo, conteudo, tamanho = 'medium') {
         const modal = document.getElementById('global-modal');
         if (!modal) return;
+
+        if (typeof this._modalCleanup === 'function') {
+            this._modalCleanup();
+            this._modalCleanup = null;
+        }
+
         const headerHtml = titulo ? `
             <div class="modal__header">
                 <h3 class="modal__title">${window.escapeHTML(titulo)}</h3>
-                <button onclick="uiController.closeModal()" class="modal__close" title="Fechar">
+                <button type="button" data-action="close-modal" class="modal__close" title="Fechar">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
         ` : `
-            <button onclick="uiController.closeModal()" class="modal__close" style="position: absolute; top: 1rem; right: 1rem; z-index: 20;" title="Fechar">
+            <button type="button" data-action="close-modal" class="modal__close" style="position: absolute; top: 1rem; right: 1rem; z-index: 20;" title="Fechar">
                 <i class="fas fa-times"></i>
             </button>
         `;
@@ -30,6 +39,13 @@ export const uiController = {
         `;
         modal.classList.remove('hidden');
         document.body.style.overflow = 'hidden';
+
+        this._modalCleanup = EventDelegator.bind(modal, {
+            'close-modal': () => uiController.closeModal(),
+            'export-backup': () => controller.exportData(),
+            'executar-forcar-sync': () => uiController.executarForcarSincronizacao()
+        }, 'click');
+
         setTimeout(() => {
             uiController.initAllDropdowns();
             renderMath(modal);
@@ -39,6 +55,10 @@ export const uiController = {
         }, 200);
     },
     closeModal() {
+        if (typeof this._modalCleanup === 'function') {
+            this._modalCleanup();
+            this._modalCleanup = null;
+        }
         const modal = document.getElementById('global-modal');
         if (modal) {
             modal.classList.add('hidden');
@@ -55,7 +75,7 @@ export const uiController = {
                 <h3 class="confirm-dialog__title">${titulo}</h3>
                 <p class="confirm-dialog__text">${mensagem}</p>
                 <div class="confirm-dialog__actions">
-                    <button onclick="uiController.closeModal()" class="btn-secondary">Cancelar</button>
+                    <button type="button" data-action="close-modal" class="btn-secondary">Cancelar</button>
                     <button id="btn-confirm-action" class="btn-danger">Confirmar</button>
                 </div>
             </div>
@@ -508,9 +528,22 @@ export const uiController = {
                 <!-- Parecer Pedagógico -->
                 <div>
                     <h4 style="font-size: 0.875rem; font-weight: 800; margin-bottom: 0.375rem;">Parecer Descritivo e Observações do Docente</h4>
-                    <div style="border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 0.75rem; min-height: 70px; font-size: 0.8125rem; line-height: 1.5; color: var(--text-main); background: var(--bg-surface);">
+                    <div style="border: 1px solid var(--border-color); border-radius: var(--radius-lg); padding: 0.75rem; min-height: 60px; font-size: 0.8125rem; line-height: 1.5; color: var(--text-main); background: var(--bg-surface);">
                         ${window.escapeHTML(estudante.observacoes || 'Estudante com participação e engajamento registrados nas atividades curriculares.')}
                     </div>
+                </div>
+
+                <!-- PEI / AEE - Educação Inclusiva (LDB Art. 59) -->
+                <div style="border: 1px solid #c7d2fe; background: #f5f3ff; border-radius: var(--radius-lg); padding: 0.75rem;">
+                    <h4 style="font-size: 0.8125rem; font-weight: 800; color: #5b21b6; margin: 0 0 0.35rem 0; display: flex; align-items: center; gap: 0.35rem;">
+                        <i class="fas fa-universal-access"></i> Plano Educacional Individualizado (PEI / AEE - Educação Inclusiva)
+                    </h4>
+                    <p style="font-size: 0.75rem; color: #4c1d95; margin: 0;">
+                        <strong>Laudo / Diagnóstico / CID:</strong> ${window.escapeHTML(estudante.pei?.laudo || 'Acompanhamento Pedagógico Regular / AEE')}
+                    </p>
+                    <p style="font-size: 0.75rem; color: #4c1d95; margin: 0.25rem 0 0 0;">
+                        <strong>Adaptações Curriculares & Recursos:</strong> ${window.escapeHTML(estudante.pei?.adaptacao || 'Tempo estendido em avaliações, recursos visuais e apoio individualizado.')}
+                    </p>
                 </div>
 
                 <div class="dossie-signatures-grid">
@@ -711,12 +744,12 @@ export const uiController = {
 
                 <!-- AÇÕES -->
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--color-slate-100);">
-                    <button type="button" onclick="controller.exportData()" class="btn-secondary" style="font-size: 0.8125rem;">
+                    <button type="button" data-action="export-backup" class="btn-secondary" style="font-size: 0.8125rem;">
                         <i class="fas fa-download mr-1"></i> Fazer Backup JSON
                     </button>
                     <div style="display: flex; gap: 0.5rem;">
-                        <button type="button" onclick="uiController.closeModal()" class="btn-secondary">Fechar</button>
-                        <button type="button" onclick="uiController.executarForcarSincronizacao()" class="btn-primary" style="font-size: 0.8125rem;">
+                        <button type="button" data-action="close-modal" class="btn-secondary">Fechar</button>
+                        <button type="button" data-action="executar-forcar-sync" class="btn-primary" style="font-size: 0.8125rem;">
                             <i class="fas fa-sync-alt mr-1"></i> Forçar Sincronização
                         </button>
                     </div>

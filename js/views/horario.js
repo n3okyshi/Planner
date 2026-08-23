@@ -39,10 +39,15 @@ export const horarioView = {
 
                 <!-- CONTROLS & ACTIONS TOOLBAR -->
                 <div class="card" style="padding: var(--spacing-3) var(--spacing-6); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-3); background-color: var(--color-slate-50);">
-                    <button type="button" onclick="horarioView.toggleModoEdicao()" class="btn-secondary" style="padding: 0.5rem 1rem;">
-                        <i class="fas ${this.modoEdicao ? 'fa-table' : 'fa-cog'}"></i>
-                        <span>${this.modoEdicao ? 'Voltar para Grade' : 'Configurar Horários'}</span>
-                    </button>
+                    <div style="display: flex; gap: var(--spacing-3);">
+                        <button type="button" onclick="horarioView.toggleModoEdicao()" class="btn-secondary" style="padding: 0.5rem 1rem;">
+                            <i class="fas ${this.modoEdicao ? 'fa-table' : 'fa-cog'}"></i>
+                            <span>${this.modoEdicao ? 'Voltar para Grade' : 'Configurar Horários'}</span>
+                        </button>
+                        <button type="button" onclick="horarioView.imprimir()" class="btn-secondary" style="padding: 0.5rem 1rem;" title="Imprimir Grade Horária (Encaixa em 1 Folha A4)">
+                            <i class="fas fa-print"></i> <span>Imprimir Horário (A4)</span>
+                        </button>
+                    </div>
 
                     <div style="display: flex; align-items: center; gap: var(--spacing-3);">
                         ${this.hasUnsavedChanges ? `
@@ -402,6 +407,155 @@ export const horarioView = {
                 </div>
             </div>
         `;
+    },
+
+    // =========================================================================
+    // IMPRESSÃO DE HORÁRIOS SEMANAIS (ENCAIXA 1 ATÉ 3 TURNOS EM 1 FOLHA A4)
+    // =========================================================================
+
+    imprimir() {
+        const modalHtml = `
+            <div id="modal-imprimir-horario" class="modal-overlay modal-enter" style="display: flex; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; z-index: 9999;">
+                <div class="card p-6" style="max-width: 440px; width: 90%; background: var(--color-white); border-radius: var(--radius-2xl); box-shadow: var(--shadow-2xl); border: 1px solid var(--color-slate-200);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+                        <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-print" style="color: var(--color-primary);"></i> Imprimir Grade Horária
+                        </h3>
+                        <button type="button" onclick="document.getElementById('modal-imprimir-horario').remove()" class="btn-icon" style="border: none; background: none; cursor: pointer; color: var(--color-slate-400);">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <p style="font-size: 0.875rem; color: var(--color-slate-600); margin-bottom: 1.5rem;">
+                        Escolha como deseja emitir a folha A4 da grade horária semanal:
+                    </p>
+
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <button type="button" onclick="document.getElementById('modal-imprimir-horario').remove(); horarioView.gerarImpressaoHorario('atual');" class="btn-primary" style="padding: 0.875rem; justify-content: center; font-weight: 700; font-size: 0.9375rem;">
+                            <i class="fas fa-clock" style="margin-right: 0.5rem;"></i> Imprimir Apenas Turno Atual (${this.turnoAtual.toUpperCase()})
+                        </button>
+                        <button type="button" onclick="document.getElementById('modal-imprimir-horario').remove(); horarioView.gerarImpressaoHorario('todos');" class="btn-secondary" style="padding: 0.875rem; justify-content: center; font-weight: 700; font-size: 0.9375rem;">
+                            <i class="fas fa-layer-group" style="margin-right: 0.5rem;"></i> Imprimir Todos os Turnos em 1 Folha A4
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    },
+
+    gerarImpressaoHorario(modo) {
+        if (!this.tempState) this.carregarDoModel();
+
+        const configUser = model.state.userConfig || {};
+        const escola = configUser.school || configUser.escola || 'Unidade Escolar';
+        const anoLetivo = configUser.anoLetivo || new Date().getFullYear();
+
+        const turnos = modo === 'atual' ? [this.turnoAtual] : ['matutino', 'vespertino', 'noturno'];
+        const turnosNomes = { matutino: 'Manhã (Matutino)', vespertino: 'Tarde (Vespertino)', noturno: 'Noite (Noturno)' };
+        const diasSemana = ['segunda', 'terca', 'quarta', 'quinta', 'sexta'];
+        const diasNomes = { segunda: 'Segunda', terca: 'Terça', quarta: 'Quarta', quinta: 'Quinta', sexta: 'Sexta' };
+
+        let turnosHtml = '';
+
+        turnos.forEach(turno => {
+            const configTurno = (this.tempState.config && this.tempState.config[turno]) || [];
+            const gradeTurno = (this.tempState.grade && this.tempState.grade[turno]) || {};
+
+            if (configTurno.length === 0) return;
+
+            let headerDias = '<th style="border: 1px solid #cbd5e1; padding: 4px; font-size: 0.7rem; width: 85px;">Horário</th>';
+            diasSemana.forEach(d => {
+                headerDias += `<th style="border: 1px solid #cbd5e1; padding: 4px; font-size: 0.7rem;">${diasNomes[d]}</th>`;
+            });
+
+            let linhasTurno = '';
+            configTurno.forEach((slot, slotIdx) => {
+                let celulas = `<td style="border: 1px solid #cbd5e1; padding: 3px; font-size: 0.65rem; font-weight: 700; text-align: center; background: #f8fafc;">
+                    ${slot.inicio || ''} - ${slot.fim || ''}
+                </td>`;
+
+                diasSemana.forEach(d => {
+                    const aula = (gradeTurno[d] && gradeTurno[d][slotIdx]) || null;
+                    const turmaId = aula?.turmaId || "";
+                    const disciplina = aula?.disciplina || "";
+                    const turmaNome = turmaId ? this.getTurmaNome(turmaId) : "";
+                    const sala = aula?.sala ? ` [${aula.sala}]` : '';
+                    const cor = disciplina ? ((model.coresComponentes && model.coresComponentes[disciplina]) || '#3b82f6') : 'transparent';
+
+                    celulas += `
+                        <td style="border: 1px solid #cbd5e1; padding: 3px; font-size: 0.65rem; text-align: center;">
+                            ${turmaId || disciplina ? `
+                                <div style="display: flex; align-items: center; justify-content: center; gap: 4px;">
+                                    ${disciplina ? `<span style="display: inline-block; width: 7px; height: 7px; border-radius: 50%; background-color: ${cor};"></span>` : ''}
+                                    <strong style="color: #0f172a;">${window.escapeHTML(turmaNome || 'Turma')}</strong>
+                                </div>
+                                ${disciplina || sala ? `<div style="font-size: 0.6rem; color: #475569; font-weight: 700;">${window.escapeHTML(disciplina)}${window.escapeHTML(sala)}</div>` : ''}
+                            ` : '<span style="color: #cbd5e1; font-style: italic;">-</span>'}
+                        </td>
+                    `;
+                });
+                linhasTurno += `<tr>${celulas}</tr>`;
+            });
+
+            turnosHtml += `
+                <div style="margin-bottom: 12px; break-inside: avoid;">
+                    <h3 style="margin: 0 0 4px 0; font-size: 0.8rem; font-weight: 800; text-transform: uppercase; color: #1e293b; border-bottom: 2px solid #3b82f6; display: inline-block; padding-bottom: 2px;">
+                        Turno: ${turnosNomes[turno]}
+                    </h3>
+                    <table style="width: 100%; border-collapse: collapse; table-layout: fixed;">
+                        <thead>
+                            <tr style="background-color: #f1f5f9;">${headerDias}</tr>
+                        </thead>
+                        <tbody>${linhasTurno}</tbody>
+                    </table>
+                </div>
+            `;
+        });
+
+        if (!turnosHtml) {
+            turnosHtml = '<p style="text-align: center; color: #64748b; margin: 2rem 0;">Nenhum horário configurado para os turnos selecionados.</p>';
+        }
+
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return Toast.show("Permita pop-ups para visualizar a impressão.", "warning");
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Grade Horária Semanal — ${window.escapeHTML(escola)}</title>
+                <style>
+                    @page { size: A4 portrait; margin: 8mm; }
+                    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; margin: 0; padding: 0; }
+                    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 6px; margin-bottom: 10px; }
+                    .header h2 { margin: 0; font-size: 1.1rem; text-transform: uppercase; }
+                    .header p { margin: 2px 0 0 0; font-size: 0.75rem; color: #475569; }
+                    .footer { display: flex; justify-content: space-between; font-size: 0.7rem; color: #64748b; margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 4px; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <div>
+                        <h2>${window.escapeHTML(escola)} — Grade Horária Semanal</h2>
+                        <p><strong>Ano Letivo:</strong> ${anoLetivo} &nbsp;|&nbsp; Emissão Oficial Planner Pro</p>
+                    </div>
+                </div>
+
+                ${turnosHtml}
+
+                <div class="footer">
+                    <span>Impresso em ${new Date().toLocaleDateString('pt-BR')} via Planner Pro Docente</span>
+                    <span>Assinatura do Docente: _________________________________________</span>
+                </div>
+
+                <script>
+                    window.onload = function() { window.print(); };
+                </script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
     }
 };
 

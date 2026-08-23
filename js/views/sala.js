@@ -69,7 +69,7 @@ export const salaView = {
                             <i class="fas fa-random"></i> <span>Embaralhar</span>
                         </button>
                         
-                        <button type="button" onclick="window.print()" class="btn-secondary interactive-element" title="Imprimir Mapa">
+                        <button type="button" onclick="salaView.imprimir()" class="btn-secondary interactive-element" title="Imprimir Mapa">
                             <i class="fas fa-print"></i> <span>Imprimir</span>
                         </button>
 
@@ -465,11 +465,139 @@ export const salaView = {
         const posicoes = secureShuffle(Array.from({ length: total }, (_, i) => i + 1));
         turma.alunos.forEach((aluno, index) => {
             aluno.posicao = posicoes[index] || (index + 1);
+            if (model.currentUser && firebaseService?.saveAluno) {
+                dataProxy.saveAluno(model.currentUser.uid, turma.id, aluno);
+            }
         });
 
-        model.saveLocal();
-        Toast.show("Assentos sorteados com sucesso!", "success");
+        if (model.saveTurma) {
+            model.saveTurma(turma);
+        } else {
+            model.saveLocal();
+        }
+        Toast.show("Assentos sorteados e salvos com sucesso!", "success");
         this.carregarMapa(this.currentTurmaId);
+    },
+
+    // =========================================================================
+    // IMPRESSÃO DE MAPA DE SALA (A4 LANDSCAPE)
+    // =========================================================================
+
+    imprimir() {
+        const turma = (model.state.turmas || []).find(t => String(t.id) === String(this.currentTurmaId));
+        if (!turma) return Toast.show("Selecione uma turma para imprimir o mapa de sala.", "warning");
+
+        const modalHtml = `
+            <div id="modal-imprimir-sala" class="modal-overlay modal-enter" style="display: flex; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; z-index: 9999;">
+                <div class="card p-6" style="max-width: 440px; width: 90%; background: var(--color-white); border-radius: var(--radius-2xl); box-shadow: var(--shadow-2xl); border: 1px solid var(--color-slate-200);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+                        <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-print" style="color: var(--color-primary);"></i> Imprimir Mapa de Sala
+                        </h3>
+                        <button type="button" onclick="document.getElementById('modal-imprimir-sala').remove()" class="btn-icon" style="border: none; background: none; cursor: pointer; color: var(--color-slate-400);">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <p style="font-size: 0.875rem; color: var(--color-slate-600); margin-bottom: 1.5rem;">
+                        Escolha como deseja emitir a folha A4 do mapa de sala da turma <strong>${window.escapeHTML(turma.nome)}</strong>:
+                    </p>
+
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                        <button type="button" onclick="document.getElementById('modal-imprimir-sala').remove(); salaView.gerarImpressaoMapa('preenchido');" class="btn-primary" style="padding: 0.875rem; justify-content: center; font-weight: 700; font-size: 0.9375rem;">
+                            <i class="fas fa-users" style="margin-right: 0.5rem;"></i> Imprimir Mapa Preenchido (com Alunos)
+                        </button>
+                        <button type="button" onclick="document.getElementById('modal-imprimir-sala').remove(); salaView.gerarImpressaoMapa('branco');" class="btn-secondary" style="padding: 0.875rem; justify-content: center; font-weight: 700; font-size: 0.9375rem;">
+                            <i class="far fa-square" style="margin-right: 0.5rem;"></i> Imprimir Mapa em Branco (em Papel)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    },
+
+    gerarImpressaoMapa(modo) {
+        const turma = (model.state.turmas || []).find(t => String(t.id) === String(this.currentTurmaId));
+        if (!turma) return;
+
+        const config = model.state.userConfig || {};
+        const escola = config.school || config.escola || 'Unidade Escolar';
+        const linhas = turma.mapaConfig?.linhas || 6;
+        const colunas = turma.mapaConfig?.colunas || 6;
+        const alunos = turma.alunos || [];
+
+        let gridHtml = '';
+        for (let l = 0; l < linhas; l++) {
+            let celulas = '';
+            for (let c = 0; c < colunas; c++) {
+                const posIndex = (l * colunas) + c + 1;
+                const aluno = modo === 'preenchido' ? alunos.find(a => Number(a.posicao) === posIndex) : null;
+                const nomeExibicao = aluno ? this.obterNomeExibicaoMapa(aluno, alunos) : '';
+
+                celulas += `
+                    <div style="border: 1px solid #94a3b8; border-radius: 6px; padding: 6px; min-height: 48px; background: #fff; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+                        ${aluno ? `
+                            <span style="font-size: 0.65rem; font-weight: 800; color: #475569;">Assento ${posIndex}</span>
+                            <strong style="font-size: 0.75rem; color: #0f172a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;">${window.escapeHTML(nomeExibicao)}</strong>
+                        ` : `
+                            <span style="font-size: 0.65rem; color: #cbd5e1; font-style: italic;">Assento ${posIndex}</span>
+                        `}
+                    </div>
+                `;
+            }
+            gridHtml += `<div style="display: grid; grid-template-columns: repeat(${colunas}, 1fr); gap: 6px; margin-bottom: 6px;">${celulas}</div>`;
+        }
+
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return Toast.show("Permita pop-ups para visualizar a impressão.", "warning");
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Mapa de Sala — ${window.escapeHTML(turma.nome)}</title>
+                <style>
+                    @page { size: A4 landscape; margin: 10mm; }
+                    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; margin: 0; padding: 0; }
+                    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 6px; margin-bottom: 12px; }
+                    .header h2 { margin: 0; font-size: 1.1rem; text-transform: uppercase; }
+                    .header p { margin: 2px 0 0 0; font-size: 0.8rem; color: #475569; }
+                    .quadro { width: 80%; margin: 0 auto 16px auto; height: 28px; background: #e2e8f0; border: 1px solid #94a3b8; border-radius: 6px; text-align: center; font-weight: 800; font-size: 0.75rem; color: #334155; line-height: 28px; letter-spacing: 0.1em; text-transform: uppercase; }
+                    .footer { display: flex; justify-content: space-between; font-size: 0.75rem; color: #64748b; margin-top: 14px; border-top: 1px dashed #cbd5e1; padding-top: 6px; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <div>
+                        <h2>${window.escapeHTML(escola)} — Mapa de Sala de Aula ${modo === 'branco' ? '(Em Branco)' : ''}</h2>
+                        <p><strong>Turma:</strong> ${window.escapeHTML(turma.nome)} &nbsp;|&nbsp; <strong>Grade:</strong> ${linhas} Linhas × ${colunas} Colunas (${alunos.length} alunos)</p>
+                    </div>
+                    <div style="text-align: right; font-size: 0.75rem; color: #475569;">
+                        <p>Data: ${new Date().toLocaleDateString('pt-BR')}</p>
+                    </div>
+                </div>
+
+                <div class="quadro">
+                    [ QUADRO DA SALA DE AULA / MESA DO PROFESSOR ]
+                </div>
+
+                <div style="width: 100%;">
+                    ${gridHtml}
+                </div>
+
+                <div class="footer">
+                    <span>Organização de Carteiras gerada via Planner Pro Docente</span>
+                    <span>Visto do Professor: _____________________________________</span>
+                </div>
+
+                <script>
+                    window.onload = function() { window.print(); };
+                </script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
     }
 };
 

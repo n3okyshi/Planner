@@ -1,12 +1,15 @@
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { uiController } from '../controllers/uiController.js';
-import { renderKatex, formatarTextoComLatex, anexarPreviewLatex } from '../utils.js';
+import { planejamentoController } from '../controllers/planejamentoController.js';
+import { renderKatex } from '../utils.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 
 export const diarioView = {
     currentDate: new Date().toISOString().split('T')[0],
     viewDate: new Date(),
     currentTurmaId: null,
+    _cleanupDelegators: null,
 
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
@@ -25,6 +28,11 @@ export const diarioView = {
         }
 
         if (!container) return;
+
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
 
         const turmas = (model.state && model.state.turmas) ? model.state.turmas : [];
 
@@ -50,12 +58,12 @@ export const diarioView = {
                         </div>
                     </div>
 
-                        <button type="button" onclick="planejamentoController.abrirModalReplicarPlanoDiario(diarioView.currentDate, diarioView.currentTurmaId)" class="btn-secondary interactive-element" title="Replicar este plano de aula para outras turmas da mesma série">
+                        <button type="button" data-action="replicar-plano-diario" class="btn-secondary interactive-element" title="Replicar este plano de aula para outras turmas da mesma série">
                             <i class="fas fa-copy"></i> <span>Replicar Plano</span>
                         </button>
 
                         <div class="custom-dropdown" style="min-width: 240px;">
-                            <input type="hidden" id="select-turma-global" onchange="controller.mudarTurmaDiario(this.value)" value="${this.currentTurmaId || ''}">
+                            <input type="hidden" id="select-turma-global" data-action="mudar-turma-diario-change" value="${this.currentTurmaId || ''}">
                             <button type="button" class="dropdown-button">
                                 <i class="fas fa-users" style="color: var(--color-slate-400); margin-right: var(--spacing-2);"></i>
                                 <span class="dropdown-label">${turmas.find(t => String(t.id) === String(this.currentTurmaId))?.nome || 'Selecionar Turma...'}</span>
@@ -74,7 +82,7 @@ export const diarioView = {
 
                 <!-- MAIN SIDE-BY-SIDE GRID (CALENDAR + LESSON PLAN EDITOR) -->
                 ${turmas.length === 0 ? this.estadoVazio() : `
-                    <div style="display: grid; grid-template-columns: minmax(320px, 360px) 1fr; gap: var(--spacing-4); align-items: start;">
+                    <div class="layout-2col-responsive--wide">
                         
                         <!-- LEFT COLUMN: MINI CALENDAR & TIPS (360px) -->
                         <div style="display: flex; flex-direction: column; gap: var(--spacing-4); width: 100%;">
@@ -104,6 +112,39 @@ export const diarioView = {
         `;
 
         container.innerHTML = html;
+
+        const unbindClick = EventDelegator.bind(container, {
+            'replicar-plano-diario': () => planejamentoController.abrirModalReplicarPlanoDiario(this.currentDate, this.currentTurmaId),
+            'selecionar-data-diario': (e, target) => {
+                const dt = target.getAttribute('data-date');
+                if (dt) this.selecionarData(dt);
+            },
+            'selecionar-data-hoje': () => this.selecionarData(new Date().toISOString().split('T')[0]),
+            'mudar-mes-diario': (e, target) => {
+                const delta = Number(target.getAttribute('data-delta') || 0);
+                if (delta) this.mudarMes(delta);
+            },
+            'add-habilidade-diario': (e, target) => {
+                const texto = target.getAttribute('data-texto');
+                if (texto) this.adicionarHabilidadeTexto(texto);
+            },
+            'imprimir-diario': () => this.imprimirPlano(),
+            'salvar-diario': () => controller.salvarDiario(),
+            'open-seletor-bncc-diario': () => controller.openSeletorBnccDiario(this.currentTurmaId),
+            'nav-turmas': () => controller.navigate('turmas')
+        }, 'click');
+
+        const unbindChange = EventDelegator.bind(container, {
+            'mudar-turma-diario-change': (e, target) => {
+                controller.mudarTurmaDiario(target.value);
+            }
+        }, 'change');
+
+        this._cleanupDelegators = () => {
+            if (typeof unbindClick === 'function') unbindClick();
+            if (typeof unbindChange === 'function') unbindChange();
+        };
+
         uiController.initAllDropdowns(container);
 
         if (turmas.length > 0) {
@@ -148,7 +189,7 @@ export const diarioView = {
                 : 'background-color: var(--color-white); color: var(--color-slate-700); border: 1px solid var(--color-slate-100);';
 
             diasHtml += `
-                <button type="button" onclick="diarioView.selecionarData('${dataIso}')" 
+                <button type="button" data-action="selecionar-data-diario" data-date="${dataIso}"
                         class="interactive-element"
                         style="height: 2.5rem; width: 100%; border-radius: var(--radius-lg); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; font-size: 0.8125rem; font-weight: 700; cursor: pointer; ${bgStyle}"
                         onmouseover="if(!${isSelected}) this.style.backgroundColor='var(--color-slate-50)'"
@@ -162,20 +203,20 @@ export const diarioView = {
         return `
             <div class="card" style="padding: var(--spacing-4); display: flex; flex-direction: column; gap: var(--spacing-3);">
                 <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: var(--spacing-3); border-bottom: 1px solid var(--color-slate-100);">
-                    <button type="button" onclick="diarioView.mudarMes(-1)" class="btn-icon" style="width: 2rem; height: 2rem;" title="Mês Anterior">
+                    <button type="button" data-action="mudar-mes-diario" data-delta="-1" class="btn-icon" style="width: 2rem; height: 2rem;" title="Mês Anterior">
                         <i class="fas fa-chevron-left" style="font-size: 0.75rem;"></i>
                     </button>
                     
                     <div style="display: flex; align-items: center; gap: var(--spacing-2);">
                         <span style="font-size: 0.9375rem; font-weight: 800; color: var(--color-slate-800);">${nomesMeses[mes]} ${ano}</span>
-                        <button type="button" onclick="diarioView.selecionarData(new Date().toISOString().split('T')[0])" 
+                        <button type="button" data-action="selecionar-data-hoje" 
                                 class="badge" style="background-color: var(--color-primary-light); color: var(--color-primary); font-weight: 800; cursor: pointer; border: none;"
                                 title="Voltar para Hoje">
                             Hoje
                         </button>
                     </div>
 
-                    <button type="button" onclick="diarioView.mudarMes(1)" class="btn-icon" style="width: 2rem; height: 2rem;" title="Próximo Mês">
+                    <button type="button" data-action="mudar-mes-diario" data-delta="1" class="btn-icon" style="width: 2rem; height: 2rem;" title="Próximo Mês">
                         <i class="fas fa-chevron-right" style="font-size: 0.75rem;"></i>
                     </button>
                 </div>
@@ -243,7 +284,7 @@ export const diarioView = {
                     </h4>
                     <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
                         ${sugestoes.map(h => `
-                            <button type="button" onclick="diarioView.adicionarHabilidadeTexto('${window.escapeHTML(h.codigo)} - ${window.escapeHTML(h.descricao)}')"
+                            <button type="button" data-action="add-habilidade-diario" data-texto="${window.escapeHTML(h.codigo)} - ${window.escapeHTML(h.descricao)}"
                                     class="pill-item" style="font-size: 0.75rem; background-color: white; border: 1px solid #fde047; color: #854d0e;">
                                 <i class="fas fa-plus-circle" style="margin-right: 0.25rem;"></i> ${window.escapeHTML(h.codigo)}
                             </button>
@@ -270,7 +311,7 @@ export const diarioView = {
                     </div>
                     <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
                         ${periodInfo.habilidades.map(h => `
-                            <button type="button" onclick="diarioView.adicionarHabilidadeTexto('${window.escapeHTML(h.codigo)} - ${window.escapeHTML(h.descricao)}')"
+                            <button type="button" data-action="add-habilidade-diario" data-texto="${window.escapeHTML(h.codigo)} - ${window.escapeHTML(h.descricao)}"
                                     class="pill-item interactive-element" 
                                     style="font-size: 0.75rem; background-color: #ffffff; border: 1px solid #86efac; color: #14532d; font-weight: 700; padding: 0.35rem 0.65rem; border-radius: var(--radius-lg); text-align: left; cursor: pointer;"
                                     title="${window.escapeHTML(h.descricao)}">
@@ -339,10 +380,10 @@ export const diarioView = {
                     </div>
 
                     <div style="display: flex; align-items: center; gap: var(--spacing-2);">
-                        <button type="button" onclick="diarioView.imprimirPlano()" class="btn-secondary" style="padding: 0.5rem 0.875rem; font-size: 0.8125rem;">
+                        <button type="button" data-action="imprimir-diario" class="btn-secondary" style="padding: 0.5rem 0.875rem; font-size: 0.8125rem;">
                             <i class="fas fa-print"></i> <span>Imprimir</span>
                         </button>
-                        <button type="button" onclick="controller.salvarDiario()" class="btn-primary" style="padding: 0.5rem 1.25rem; font-size: 0.8125rem;">
+                        <button type="button" data-action="salvar-diario" class="btn-primary" style="padding: 0.5rem 1.25rem; font-size: 0.8125rem;">
                             <i class="fas fa-save"></i> <span>Salvar</span>
                         </button>
                     </div>
@@ -359,7 +400,7 @@ export const diarioView = {
                     <div>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-2);">
                             <label class="form-label" style="margin-bottom: 0;">Habilidades BNCC</label>
-                            <button type="button" onclick="controller.openSeletorBnccDiario('${this.currentTurmaId}')" 
+                            <button type="button" data-action="open-seletor-bncc-diario" 
                                     class="btn-primary interactive-element" style="padding: 0.375rem 0.75rem; font-size: 0.75rem; border-radius: var(--radius-lg);">
                                 <i class="fas fa-search"></i> <span>Consultar BNCC</span>
                             </button>
@@ -378,7 +419,7 @@ export const diarioView = {
                             </div>
                             <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
                                 ${periodInfo.habilidades.map(h => `
-                                    <button type="button" onclick="diarioView.adicionarHabilidadeTexto('${window.escapeHTML(h.codigo)} - ${window.escapeHTML(h.descricao)}')"
+                                    <button type="button" data-action="add-habilidade-diario" data-texto="${window.escapeHTML(h.codigo)} - ${window.escapeHTML(h.descricao)}"
                                             class="pill-item interactive-element" 
                                             style="font-size: 0.75rem; background-color: #ffffff; border: 1px solid #86efac; color: #14532d; font-weight: 700; padding: 0.35rem 0.65rem; border-radius: var(--radius-lg); text-align: left; cursor: pointer;"
                                             title="${window.escapeHTML(h.descricao)}">
@@ -398,7 +439,7 @@ export const diarioView = {
                             </h4>
                             <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
                                 ${sugestoes.map(h => `
-                                    <button type="button" onclick="diarioView.adicionarHabilidadeTexto('${window.escapeHTML(h.codigo)} - ${window.escapeHTML(h.descricao)}')"
+                                    <button type="button" data-action="add-habilidade-diario" data-texto="${window.escapeHTML(h.codigo)} - ${window.escapeHTML(h.descricao)}"
                                             class="pill-item" style="font-size: 0.75rem; background-color: white; border: 1px solid #fde047; color: #854d0e;">
                                         <i class="fas fa-plus-circle" style="margin-right: 0.25rem;"></i> ${window.escapeHTML(h.codigo)}
                                     </button>
@@ -471,10 +512,21 @@ export const diarioView = {
                 </div>
                 <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); margin-bottom: 0.5rem;">Nenhuma turma selecionada</h3>
                 <p style="color: var(--color-slate-500); font-size: 0.875rem; margin-bottom: 1.5rem;">Cadastre suas turmas para iniciar o diário de classe.</p>
-                <button onclick="controller.navigate('turmas')" class="btn-primary">
+                <button type="button" data-action="nav-turmas" class="btn-primary">
                     <i class="fas fa-plus"></i> <span>Cadastrar Turmas</span>
                 </button>
             </div>
         `;
+    },
+
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+    },
+
+    onLeave() {
+        this.destroy();
     }
 };

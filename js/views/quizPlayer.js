@@ -3,6 +3,7 @@ import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
 import { renderKatex, formatarTextoComLatex, sanitizeComLatex, generateSecurePIN, secureRandomInt } from '../utils.js';
 import { firebaseService } from '../firebase-service.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 
 export const quizPlayerView = {
     quiz: null,
@@ -15,8 +16,13 @@ export const quizPlayerView = {
     tempoRestante: 0,
     intervaloTimer: null,
     coresAlternativas: ['#dc2626', '#2563eb', '#d97706', '#059669', '#7c3aed'],
+    _cleanupDelegators: null,
 
     async render(container, quizId = null) {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
         if (quizId) {
             return this.start(quizId);
         }
@@ -34,7 +40,7 @@ export const quizPlayerView = {
                     <i class="fas fa-gamepad" style="font-size: 3rem; color: var(--color-slate-300); margin-bottom: 1rem;"></i>
                     <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-700); margin-bottom: 0.5rem;">Nenhum Quiz em Execução</h3>
                     <p style="font-size: 0.875rem; color: var(--color-slate-500); margin-bottom: 1.5rem;">Selecione ou crie um quiz no Gestor de Quizzes para iniciar a apresentação ao vivo.</p>
-                    <button onclick="controller.navigate('quiz-gestor')" class="btn-primary">
+                    <button type="button" data-action="ir-gestor-quizzes" class="btn-primary">
                         <i class="fas fa-arrow-left"></i> <span>Ir para Gestor de Quizzes</span>
                     </button>
                 </div>
@@ -238,6 +244,38 @@ export const quizPlayerView = {
                 break;
         }
         renderKatex(gameContainer);
+        this._bindDelegators(gameContainer);
+    },
+
+    _bindDelegators(container) {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+        }
+        this._cleanupDelegators = EventDelegator.bind(container, {
+            'ir-gestor-quizzes': () => controller.navigate('quiz-gestor'),
+            'copiar-link-sala': () => this.copiarLinkSala(),
+            'encerrar-quiz': () => this.encerrar(),
+            'iniciar-partida': () => this.iniciarPartida(),
+            'forcar-pulo': () => this.forcarPulo(),
+            'confirmar-encerramento': () => this.confirmarEncerramentoAntecipado(),
+            'avancar-leaderboard': () => this.avancarParaLeaderboard(),
+            'proxima-pergunta': () => this.proximaPergunta(),
+            'abrir-modal-notas': () => this.abrirModalLancarNotas(),
+            'fechar-modal': () => controller.closeModal(),
+            'salvar-notas': () => this.salvarLancamentoNotas()
+        }, 'click');
+    },
+
+    destroy() {
+        if (this.intervaloTimer) clearInterval(this.intervaloTimer);
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+    },
+
+    onLeave() {
+        this.destroy();
     },
 
     obterUrlAluno() {
@@ -280,10 +318,10 @@ export const quizPlayerView = {
                     </div>
 
                     <div style="display: flex; gap: 0.75rem;">
-                        <button onclick="quizPlayerView.copiarLinkSala()" class="btn-secondary" style="background-color: rgba(255,255,255,0.1); color: white; border: none; padding: 0.5rem 1.25rem;">
+                        <button type="button" data-action="copiar-link-sala" class="btn-secondary" style="background-color: rgba(255,255,255,0.1); color: white; border: none; padding: 0.5rem 1.25rem;">
                             <i class="fas fa-link mr-2"></i> Copiar Link do Aluno
                         </button>
-                        <button onclick="quizPlayerView.encerrar()" class="btn-secondary" style="background-color: rgba(239,68,68,0.2); color: #fca5a5; border: none; padding: 0.5rem 1.25rem;">
+                        <button type="button" data-action="encerrar-quiz" class="btn-secondary" style="background-color: rgba(239,68,68,0.2); color: #fca5a5; border: none; padding: 0.5rem 1.25rem;">
                             <i class="fas fa-times mr-2"></i> Encerrar Quiz
                         </button>
                     </div>
@@ -340,7 +378,7 @@ export const quizPlayerView = {
 
                 <!-- CONTROLE INFERIOR -->
                 <div>
-                    <button onclick="quizPlayerView.iniciarPartida()" class="btn-primary" style="padding: 1.25rem 4rem; font-size: 1.5rem; font-weight: 900; background: linear-gradient(135deg, #4f46e5, #7c3aed); border-radius: 1.5rem; box-shadow: 0 10px 30px rgba(79,70,229,0.5);">
+                    <button type="button" data-action="iniciar-partida" class="btn-primary" style="padding: 1.25rem 4rem; font-size: 1.5rem; font-weight: 900; background: linear-gradient(135deg, #4f46e5, #7c3aed); border-radius: 1.5rem; box-shadow: 0 10px 30px rgba(79,70,229,0.5);">
                         <i class="fas fa-play mr-2"></i> Iniciar Quiz
                     </button>
                 </div>
@@ -453,10 +491,10 @@ export const quizPlayerView = {
                     </div>
 
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <button onclick="quizPlayerView.forcarPulo()" class="btn-secondary" style="background-color: rgba(255,255,255,0.1); border: none; color: white; padding: 0.65rem 1.25rem; font-weight: 800; font-size: 0.875rem;">
+                        <button type="button" data-action="forcar-pulo" class="btn-secondary" style="background-color: rgba(255,255,255,0.1); border: none; color: white; padding: 0.65rem 1.25rem; font-weight: 800; font-size: 0.875rem;">
                             Pular <i class="fas fa-forward ml-1"></i>
                         </button>
-                        <button onclick="quizPlayerView.confirmarEncerramentoAntecipado()" class="btn-secondary" style="background-color: rgba(239, 68, 68, 0.25); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; padding: 0.65rem 1.25rem; font-weight: 800; font-size: 0.875rem;" title="Encerrar jogo e mostrar pódio atual">
+                        <button type="button" data-action="confirmar-encerramento" class="btn-secondary" style="background-color: rgba(239, 68, 68, 0.25); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; padding: 0.65rem 1.25rem; font-weight: 800; font-size: 0.875rem;" title="Encerrar jogo e mostrar pódio atual">
                             <i class="fas fa-stop-circle mr-1"></i> Encerrar Jogo
                         </button>
                     </div>
@@ -619,7 +657,7 @@ export const quizPlayerView = {
                             ${formatarTextoComLatex(sanitizeComLatex(pergunta.enunciado))}
                         </h2>
                     </div>
-                    <button onclick="quizPlayerView.confirmarEncerramentoAntecipado()" class="btn-secondary" style="background-color: rgba(239, 68, 68, 0.25); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; padding: 0.65rem 1.25rem; font-weight: 800; font-size: 0.875rem;">
+                    <button type="button" data-action="confirmar-encerramento" class="btn-secondary" style="background-color: rgba(239, 68, 68, 0.25); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; padding: 0.65rem 1.25rem; font-weight: 800; font-size: 0.875rem;">
                         <i class="fas fa-stop-circle mr-1"></i> Encerrar Jogo
                     </button>
                 </div>
@@ -639,7 +677,7 @@ export const quizPlayerView = {
 
                 <!-- BOTÃO PRÓXIMO -->
                 <div>
-                    <button onclick="quizPlayerView.avancarParaLeaderboard()" class="btn-primary" style="padding: 1rem 3rem; font-size: 1.25rem; font-weight: 900; background: linear-gradient(135deg, #4f46e5, #7c3aed); border-radius: 1.25rem; box-shadow: 0 10px 25px rgba(79,70,229,0.4);">
+                    <button type="button" data-action="avancar-leaderboard" class="btn-primary" style="padding: 1rem 3rem; font-size: 1.25rem; font-weight: 900; background: linear-gradient(135deg, #4f46e5, #7c3aed); border-radius: 1.25rem; box-shadow: 0 10px 25px rgba(79,70,229,0.4);">
                         Ver Placar de Líderes <i class="fas fa-trophy ml-2"></i>
                     </button>
                 </div>
@@ -673,7 +711,7 @@ export const quizPlayerView = {
                             Placar de Líderes
                         </h1>
                     </div>
-                    <button onclick="quizPlayerView.confirmarEncerramentoAntecipado()" class="btn-secondary" style="background-color: rgba(239, 68, 68, 0.25); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; padding: 0.65rem 1.25rem; font-weight: 800; font-size: 0.875rem;">
+                    <button type="button" data-action="confirmar-encerramento" class="btn-secondary" style="background-color: rgba(239, 68, 68, 0.25); border: 1px solid rgba(239, 68, 68, 0.4); color: #fca5a5; padding: 0.65rem 1.25rem; font-weight: 800; font-size: 0.875rem;">
                         <i class="fas fa-stop-circle mr-1"></i> Encerrar Jogo
                     </button>
                 </div>
@@ -701,7 +739,7 @@ export const quizPlayerView = {
 
                 <!-- CONTROLE -->
                 <div>
-                    <button onclick="quizPlayerView.proximaPergunta()" class="btn-primary" style="padding: 1rem 3.5rem; font-size: 1.25rem; font-weight: 900; background: linear-gradient(135deg, #4f46e5, #7c3aed); border-radius: 1.25rem; box-shadow: 0 10px 25px rgba(79,70,229,0.4);">
+                    <button type="button" data-action="proxima-pergunta" class="btn-primary" style="padding: 1rem 3.5rem; font-size: 1.25rem; font-weight: 900; background: linear-gradient(135deg, #4f46e5, #7c3aed); border-radius: 1.25rem; box-shadow: 0 10px 25px rgba(79,70,229,0.4);">
                         ${this.indicePerguntaAtual < this.quiz.perguntas.length - 1 ? 'Próxima Questão <i class="fas fa-chevron-right ml-2"></i>' : 'Ver Grande Pódio Final <i class="fas fa-trophy ml-2"></i>'}
                     </button>
                 </div>
@@ -784,11 +822,11 @@ export const quizPlayerView = {
                 </div>
 
                 <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-                    <button onclick="quizPlayerView.abrirModalLancarNotas()" class="btn-primary" 
+                    <button type="button" data-action="abrir-modal-notas" class="btn-primary" 
                             style="padding: 1rem 2.5rem; font-size: 1.125rem; font-weight: 900; background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; border-radius: 1.25rem; box-shadow: 0 10px 25px rgba(16,185,129,0.4); display: inline-flex; align-items: center; gap: 0.5rem; border: none; cursor: pointer;">
                         <i class="fas fa-file-invoice"></i> Lançar Resultados no Diário
                     </button>
-                    <button onclick="quizPlayerView.encerrar()" class="btn-secondary" 
+                    <button type="button" data-action="encerrar-quiz" class="btn-secondary" 
                             style="padding: 1rem 2.5rem; font-size: 1.125rem; font-weight: 900; background-color: rgba(255,255,255,0.15); color: #ffffff; border: 1px solid rgba(255,255,255,0.25); border-radius: 1.25rem; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                         <i class="fas fa-times-circle"></i> Encerrar Partida
                     </button>
@@ -859,10 +897,10 @@ export const quizPlayerView = {
                 </div>
 
                 <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
-                    <button type="button" onclick="controller.closeModal()" class="btn-secondary" style="padding: 0.625rem 1.25rem;">
+                    <button type="button" data-action="fechar-modal" class="btn-secondary" style="padding: 0.625rem 1.25rem;">
                         Cancelar
                     </button>
-                    <button type="button" onclick="quizPlayerView.salvarLancamentoNotas()" class="btn-primary" style="background: #059669; border-color: #059669; padding: 0.625rem 1.5rem; font-weight: 800;">
+                    <button type="button" data-action="salvar-notas" class="btn-primary" style="background: #059669; border-color: #059669; padding: 0.625rem 1.5rem; font-weight: 800;">
                         <i class="fas fa-check"></i> Confirmar e Gravar Notas
                     </button>
                 </div>

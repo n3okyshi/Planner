@@ -278,5 +278,88 @@ export const planejamentoMethods = {
             }
         }
         return sucesso;
+    },
+    // ---- Módulos de Gestão de PDI / PEI (Educação Inclusiva) ----
+    savePdi(pdiData) {
+        if (!pdiData || typeof pdiData !== 'object') return null;
+        if (!Array.isArray(this.state.pdis)) this.state.pdis = [];
+        
+        let pdiItem;
+        if (pdiData.id) {
+            const idx = this.state.pdis.findIndex(p => String(p.id) === String(pdiData.id));
+            if (idx !== -1) {
+                pdiItem = { ...this.state.pdis[idx], ...pdiData, updatedAt: new Date().toISOString() };
+                this.state.pdis[idx] = pdiItem;
+            }
+        }
+        if (!pdiItem) {
+            pdiItem = {
+                id: 'pdi_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6),
+                alunoId: pdiData.alunoId || '',
+                alunoNome: pdiData.alunoNome || '',
+                turmaId: pdiData.turmaId || '',
+                turmaNome: pdiData.turmaNome || '',
+                diagnostico: pdiData.diagnostico || '',
+                habilidadesPrioritarias: pdiData.habilidadesPrioritarias || '',
+                metasAprendizagem: pdiData.metasAprendizagem || '',
+                adaptacoesMetodologicas: pdiData.adaptacoesMetodologicas || '',
+                recursosAee: pdiData.recursosAee || '',
+                parecerEvolutivo: pdiData.parecerEvolutivo || '',
+                status: pdiData.status || 'ativo',
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            this.state.pdis.unshift(pdiItem);
+        }
+        this.saveLocal();
+        if (this.currentUser && firebaseService?.saveRoot) {
+            dataProxy.saveRoot(this.currentUser.uid, { pdis: this.state.pdis });
+        }
+        return pdiItem;
+    },
+    getPdi(id) {
+        if (!Array.isArray(this.state.pdis)) return null;
+        return this.state.pdis.find(p => String(p.id) === String(id)) || null;
+    },
+    getPdisPorTurma(turmaId) {
+        if (!Array.isArray(this.state.pdis)) return [];
+        return this.state.pdis.filter(p => String(p.turmaId) === String(turmaId));
+    },
+    removePdi(id) {
+        if (!Array.isArray(this.state.pdis)) return false;
+        const countAntes = this.state.pdis.length;
+        this.state.pdis = this.state.pdis.filter(p => String(p.id) !== String(id));
+        if (this.state.pdis.length !== countAntes) {
+            this.saveLocal();
+            if (this.currentUser && firebaseService?.saveRoot) {
+                dataProxy.saveRoot(this.currentUser.uid, { pdis: this.state.pdis });
+            }
+            return true;
+        }
+        return false;
+    },
+    // ---- Workflow de Validação de Planos pela Coordenação ----
+    submeterPlanoValidacao(dataIso, turmaId, mensagemProf = '') {
+        const plano = this.getPlanoDiario(dataIso, turmaId);
+        if (!plano) return false;
+        const planoObj = (typeof plano === 'string') ? { conteudo: plano } : { ...plano };
+        planoObj.validacao = {
+            status: 'enviado', // 'rascunho' | 'enviado' | 'aprovado' | 'com_ressalvas'
+            enviadoEm: new Date().toISOString(),
+            mensagemProf: mensagemProf || ''
+        };
+        this.savePlanoDiario(dataIso, turmaId, planoObj);
+        return true;
+    },
+    avaliarPlanoValidacao(dataIso, turmaId, status, parecerCoordenador = '') {
+        const plano = this.getPlanoDiario(dataIso, turmaId);
+        if (!plano) return false;
+        const planoObj = (typeof plano === 'string') ? { conteudo: plano } : { ...plano };
+        if (!planoObj.validacao) planoObj.validacao = {};
+        planoObj.validacao.status = status; // 'aprovado' | 'com_ressalvas' | 'rascunho'
+        planoObj.validacao.parecerCoordenador = parecerCoordenador || '';
+        planoObj.validacao.avaliadoEm = new Date().toISOString();
+        this.savePlanoDiario(dataIso, turmaId, planoObj);
+        return true;
     }
 };

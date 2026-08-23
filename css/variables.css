@@ -76,7 +76,10 @@
 }
 
 /* Dark Mode Overrides */
-[data-theme="dark"] {
+[data-theme="dark"],
+body.dark-mode,
+body.dark-theme {
+  --color-white: #1e293b;
   --color-slate-50: #0f172a;
   --color-slate-100: #1e293b;
   --color-slate-200: #334155;

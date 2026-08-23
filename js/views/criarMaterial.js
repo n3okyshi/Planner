@@ -28,8 +28,9 @@ export const criarMaterialView = {
         "Biologia", "Filosofia", "Sociologia"
     ],
     seriesDisponiveis: [
-        "Educação Infantil", "1º Ano EF", "2º Ano EF", "3º Ano EF", "4º Ano EF",
-        "5º Ano EF", "6º Ano EF", "7º Ano EF", "8º Ano EF", "9º Ano EF", "Ensino Médio"
+        "Berçário I", "Berçário II", "Maternal I", "Maternal II", "Jardim I", "Jardim II",
+        "1º Ano", "2º Ano", "3º Ano", "4º Ano", "5º Ano", "6º Ano", "7º Ano", "8º Ano", "9º Ano",
+        "1ª Série (EM)", "2ª Série (EM)", "3ª Série (EM)"
     ],
     categoriasMenu: [
         {
@@ -44,8 +45,7 @@ export const criarMaterialView = {
                 { id: 'dinamica-jogo', label: 'Dinâmica e Jogo', icone: 'fas fa-users', cor: 'text-blue-500' },
                 { id: 'jogos-rpg', label: 'Jogos, RPGs & Escape Rooms', icone: 'fas fa-dice-d20', cor: 'text-rose-500' },
                 { id: 'situacao-problema', label: 'Situação-Problema', icone: 'far fa-lightbulb', cor: 'text-amber-500' },
-                { id: 'atividade-imprimivel', label: 'Atividade Imprimível', icone: 'fas fa-print', cor: 'text-emerald-500' },
-                { id: 'apresentacao', label: 'Apresentação Animada', icone: 'fas fa-desktop', cor: 'text-slate-300', badge: 'EM BREVE', disabled: true }
+                { id: 'atividade-imprimivel', label: 'Atividade Imprimível', icone: 'fas fa-print', cor: 'text-emerald-500' }
             ]
         },
         {
@@ -492,9 +492,12 @@ export const criarMaterialView = {
         `;
 
         const printWin = window.open('', '_blank');
-        printWin.document.open();
-        printWin.document.write(htmlDocumento);
-        printWin.document.close();
+        if (printWin) {
+            const safeHtml = window.sanitizeComLatex ? window.sanitizeComLatex(htmlDocumento) : htmlDocumento;
+            printWin.document.open();
+            printWin.document.write(safeHtml);
+            printWin.document.close();
+        }
     },
 
     compartilharSelecionados() {
@@ -572,10 +575,10 @@ export const criarMaterialView = {
                 <select id="select-dest-pasta" class="form-select" style="font-size: 0.9375rem; padding: 0.6rem;">
                     ${optionsHtml}
                 </select>
-                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem;">
-                    <button type="button" onclick="controller.closeModal()" class="btn-secondary">Cancelar</button>
-                    <button type="button" onclick="const pId = document.getElementById('select-dest-pasta').value; model.moverMaterialParaPasta('${materialId}', pId); controller.closeModal(); criarMaterialView.render('view-container');" class="btn-primary" style="background-color: #4f46e5;">
-                        <i class="fas fa-folder-open"></i> Mover Material
+                <div style="display: flex; justify-content: flex-end; gap: var(--spacing-3); margin-top: var(--spacing-6); padding-top: var(--spacing-4); border-top: 1px solid var(--color-slate-200);">
+                    <button type="button" data-action="fechar-modal" class="btn-secondary">Cancelar</button>
+                    <button type="button" data-action="mover-para-pasta-modal" data-id="${materialId}" class="btn-primary" style="background-color: #4f46e5;">
+                        Mover Material
                     </button>
                 </div>
             </div>
@@ -642,6 +645,7 @@ export const criarMaterialView = {
         const serieSafe = window.escapeHTML ? window.escapeHTML(m.serie || 'Série não informada') : (m.serie || 'Série não informada');
         const tipoLabel = (m.tipo || 'geral').replace(/-/g, ' ').toUpperCase();
         const dataFormatada = new Date(m.createdAt || Date.now()).toLocaleDateString('pt-BR');
+        const naLixeira = Boolean(m.naLixeira);
 
         const colorMap = {
             'planejamento': { i: 'far fa-calendar-alt', c: '#4f46e5', bg: '#eef2ff' },
@@ -710,21 +714,15 @@ export const criarMaterialView = {
                     </span>
                     
                     <div style="display: flex; align-items: center; gap: 0.375rem;">
-                        <button type="button" onclick="conteudoGeradoView.setMaterial('${m.id}'); controller.navigate('conteudo-gerado');" 
-                                class="btn-primary interactive-element" 
-                                style="padding: 0.45rem 0.875rem; font-size: 0.75rem; background-color: #4f46e5; border-radius: 0.625rem; box-shadow: 0 2px 4px rgba(79, 70, 229, 0.2);">
-                            <i class="fas fa-eye"></i> Abrir
-                        </button>
-
-                        ${m.naLixeira ? `
-                            <button type="button" onclick="criarMaterialView.restaurarMaterial('${m.id}')" 
+                        ${naLixeira ? `
+                            <button type="button" onclick="model.restaurarMaterialDaLixeira('${m.id}')" 
                                     class="interactive-element" 
-                                    style="padding: 0.45rem 0.75rem; font-size: 0.75rem; font-weight: 700; background-color: #10b981; color: #ffffff; border-radius: 0.625rem; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.25rem;" 
-                                    title="Restaurar da Lixeira">
-                                <i class="fas fa-rotate-left"></i> Restaurar
+                                    style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #bbf7d0; background: #f0fdf4; color: #16a34a; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
+                                    title="Restaurar Material">
+                                <i class="fas fa-undo" style="font-size: 0.75rem;"></i>
                             </button>
 
-                            <button type="button" onclick="criarMaterialView.excluirPermanente('${m.id}')" 
+                            <button type="button" onclick="criarMaterialView.excluirMaterialDefinitivo('${m.id}')" 
                                     class="interactive-element" 
                                     style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #fee2e2; background: #fef2f2; color: #ef4444; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
                                     title="Excluir Definitivamente">
@@ -1072,14 +1070,16 @@ export const criarMaterialView = {
 
     cardFlashcardLixeira(deck) {
         return `
-            <div class="card interactive-element animate-enter" style="padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid #fecdd3; background: #fff1f2;">
+            <div class="card interactive-element animate-enter" style="padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid var(--color-slate-200); background: var(--color-white); box-shadow: var(--shadow-sm);">
                 <div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                        <span class="badge" style="background: #ffe4e6; color: #e11d48; font-weight: 800;">Flashcard</span>
-                        <span style="font-size: 0.75rem; color: #9f1239;">${deck.cards?.length || 0} cartas</span>
+                        <span class="badge" style="background: #fee2e2; color: #dc2626; font-weight: 800;">
+                            <i class="fas fa-layer-group"></i> Flashcard (Lixeira)
+                        </span>
+                        <span style="font-size: 0.75rem; color: var(--color-slate-500); font-weight: 700;">${deck.cards?.length || 0} cartas</span>
                     </div>
-                    <h3 style="font-size: 1rem; font-weight: 800; color: #881337; margin-bottom: 0.25rem;">${window.escapeHTML(deck.titulo)}</h3>
-                    <p style="font-size: 0.75rem; color: #9f1239;">${window.escapeHTML(deck.disciplina || 'Geral')} ${deck.serie ? `• ${window.escapeHTML(deck.serie)}` : ''}</p>
+                    <h3 style="font-size: 1rem; font-weight: 800; color: var(--color-slate-800); margin-bottom: 0.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${window.escapeHTML(deck.titulo)}</h3>
+                    <p style="font-size: 0.75rem; color: var(--color-slate-500); font-weight: 600;">${window.escapeHTML(deck.disciplina || 'Geral')} ${deck.serie ? `• ${window.escapeHTML(deck.serie)}` : ''}</p>
                 </div>
                 <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
                     <button type="button" onclick="model.restaurarFlashcardDaLixeira('${deck.id}')" class="btn-secondary interactive-element" style="flex: 1; padding: 0.4rem; font-size: 0.75rem; font-weight: 700; color: #15803d; border-color: #bbf7d0; background: #f0fdf4;">
@@ -1095,14 +1095,16 @@ export const criarMaterialView = {
 
     cardMindmapLixeira(mapa) {
         return `
-            <div class="card interactive-element animate-enter" style="padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid #fecdd3; background: #fff1f2;">
+            <div class="card interactive-element animate-enter" style="padding: 1.25rem; display: flex; flex-direction: column; justify-content: space-between; border: 1px solid var(--color-slate-200); background: var(--color-white); box-shadow: var(--shadow-sm);">
                 <div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                        <span class="badge" style="background: #ffe4e6; color: #e11d48; font-weight: 800;">Mapa Mental</span>
-                        <span style="font-size: 0.75rem; color: #9f1239;">Árvore Conceitual</span>
+                        <span class="badge" style="background: #fee2e2; color: #dc2626; font-weight: 800;">
+                            <i class="fas fa-project-diagram"></i> Mapa Mental (Lixeira)
+                        </span>
+                        <span style="font-size: 0.75rem; color: var(--color-slate-500); font-weight: 700;">Árvore Conceitual</span>
                     </div>
-                    <h3 style="font-size: 1rem; font-weight: 800; color: #881337; margin-bottom: 0.25rem;">${window.escapeHTML(mapa.titulo)}</h3>
-                    <p style="font-size: 0.75rem; color: #9f1239;">${window.escapeHTML(mapa.disciplina || 'Geral')} ${mapa.serie ? `• ${window.escapeHTML(mapa.serie)}` : ''}</p>
+                    <h3 style="font-size: 1rem; font-weight: 800; color: var(--color-slate-800); margin-bottom: 0.25rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${window.escapeHTML(mapa.titulo)}</h3>
+                    <p style="font-size: 0.75rem; color: var(--color-slate-500); font-weight: 600;">${window.escapeHTML(mapa.disciplina || 'Geral')} ${mapa.serie ? `• ${window.escapeHTML(mapa.serie)}` : ''}</p>
                 </div>
                 <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
                     <button type="button" onclick="model.restaurarMindmapDaLixeira('${mapa.id}')" class="btn-secondary interactive-element" style="flex: 1; padding: 0.4rem; font-size: 0.75rem; font-weight: 700; color: #15803d; border-color: #bbf7d0; background: #f0fdf4;">
@@ -1735,6 +1737,7 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
             disciplina,
             serie,
             bncc,
+            pastaId: this.pastaAtualId || null,
             conteudo_html: conteudoHtml,
             raw_markdown: rawConteudo,
             criadoManualmente: true,
@@ -2000,6 +2003,9 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
         const todosMateriais = model.state.materiaisGerados || [];
         const meusMateriais = todosMateriais.filter(m => !m.naLixeira);
         const lixeiraMateriais = todosMateriais.filter(m => m.naLixeira);
+        const lixeiraFlashcards = (model.state.flashcards || []).filter(d => d.naLixeira);
+        const lixeiraMindmaps = (model.state.mindmaps || []).filter(m => m.naLixeira);
+        const totalLixeira = lixeiraMateriais.length + lixeiraFlashcards.length + lixeiraMindmaps.length;
 
         const materiaisFiltrados = this.filtrarMateriais(todosMateriais);
         const totalItens = materiaisFiltrados.length;
@@ -2051,12 +2057,12 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                         <p class="text-slate-500 mt-1">Crie materiais pedagógicos com IA ou manualmente, consulte o acervo e organize seus arquivos.</p>
                     </div>
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <button type="button" onclick="criarMaterialView.mudarAba('comunidade')" 
+                        <button type="button" data-action="mudar-aba" data-aba="comunidade" 
                                 class="btn-secondary interactive-element"
                                 style="background-color: #4f46e5; color: #ffffff; padding: 0.75rem 1.25rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.25);">
                             <i class="fas fa-globe"></i> Explorar Comunidade
                         </button>
-                        <button type="button" onclick="criarMaterialView.abrirModalCriarMaterial()" 
+                        <button type="button" data-action="abrir-modal-criar-material" 
                                 class="btn-primary interactive-element" style="padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 0.5rem; box-shadow: 0 4px 6px -1px rgba(59, 130, 246, 0.25);">
                             <i class="fas fa-magic"></i> + Criar Material
                         </button>
@@ -2064,25 +2070,25 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                 </div>
 
                 <div class="mode-toggle-group" style="width: fit-content; margin-bottom: 1.5rem;">
-                    <button type="button" onclick="criarMaterialView.mudarAba('meus')" 
+                    <button type="button" data-action="mudar-aba" data-aba="meus" 
                             class="mode-toggle-btn interactive-element ${this.abaAtiva === 'meus' ? 'mode-toggle-btn--active' : ''}">
                         <i class="fas fa-folder-open" style="margin-right: 0.375rem;"></i> Meus Materiais (${meusMateriais.length})
                     </button>
-                    <button type="button" onclick="criarMaterialView.mudarAba('estudos-visuais')" 
+                    <button type="button" data-action="mudar-aba" data-aba="estudos-visuais" 
                             class="mode-toggle-btn interactive-element ${this.abaAtiva === 'estudos-visuais' ? 'mode-toggle-btn--active' : ''}">
                         <i class="fas fa-brain" style="margin-right: 0.375rem;"></i> Flashcards & Mapas
                     </button>
-                    <button type="button" onclick="criarMaterialView.mudarAba('templates')" 
+                    <button type="button" data-action="mudar-aba" data-aba="templates" 
                             class="mode-toggle-btn interactive-element ${this.abaAtiva === 'templates' ? 'mode-toggle-btn--active' : ''}">
                         <i class="fas fa-wand-magic-sparkles" style="margin-right: 0.375rem;"></i> Gerar com IA / Templates
                     </button>
-                    <button type="button" onclick="criarMaterialView.mudarAba('comunidade')" 
+                    <button type="button" data-action="mudar-aba" data-aba="comunidade" 
                             class="mode-toggle-btn interactive-element ${this.abaAtiva === 'comunidade' ? 'mode-toggle-btn--active' : ''}">
                         <i class="fas fa-users-rectangle" style="margin-right: 0.375rem;"></i> Acervo da Comunidade
                     </button>
-                    <button type="button" onclick="criarMaterialView.mudarAba('lixeira')" 
+                    <button type="button" data-action="mudar-aba" data-aba="lixeira" 
                             class="mode-toggle-btn interactive-element ${this.abaAtiva === 'lixeira' ? 'mode-toggle-btn--active' : ''}">
-                        <i class="fas fa-trash-alt" style="margin-right: 0.375rem;"></i> Lixeira (${lixeiraMateriais.length})
+                        <i class="fas fa-trash-alt" style="margin-right: 0.375rem;"></i> Lixeira (${totalLixeira})
                     </button>
                 </div>
 
@@ -2097,6 +2103,63 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
         if (window.renderKatex) {
             window.renderKatex(container);
         }
+
+        this._setupListeners(container);
+    },
+
+    _setupListeners(container) {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+        }
+        this._cleanupDelegators = EventDelegator.bind(container, {
+            'mudar-aba': (e, target) => {
+                const aba = target.getAttribute('data-aba');
+                if (aba) this.mudarAba(aba);
+            },
+            'abrir-modal-criar-material': () => this.abrirModalCriarMaterial(),
+            'excluir-pasta': (e, target) => {
+                e.stopPropagation();
+                const id = target.getAttribute('data-id');
+                if (id) {
+                    model.excluirPastaMaterial(id);
+                    this.render('view-container');
+                }
+            },
+            'ver-material': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) {
+                    if (window.conteudoGeradoView) window.conteudoGeradoView.setMaterial(id);
+                    controller.navigate('conteudo-gerado');
+                }
+            },
+            'restaurar-material': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) this.restaurarMaterial(id);
+            },
+            'excluir-permanente': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) this.excluirPermanente(id);
+            },
+            'mover-para-pasta-modal': (e, target) => {
+                const materialId = target.getAttribute('data-id');
+                const pId = document.getElementById('select-dest-pasta')?.value;
+                model.moverMaterialParaPasta(materialId, pId);
+                controller.closeModal();
+                this.render('view-container');
+            },
+            'fechar-modal': () => controller.closeModal()
+        }, 'click');
+    },
+
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+    },
+
+    onLeave() {
+        this.destroy();
     },
     gerarMenuLateral() {
         return this.categoriasMenu.map(categoria => `
@@ -2525,9 +2588,12 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
             </html>
         `;
         const printWindow = window.open('', '_blank');
-        printWindow.document.open();
-        printWindow.document.write(conteudo);
-        printWindow.document.close();
+        if (printWindow) {
+            const safeHtml = window.sanitizeComLatex ? window.sanitizeComLatex(conteudo) : conteudo;
+            printWindow.document.open();
+            printWindow.document.write(safeHtml);
+            printWindow.document.close();
+        }
     },
     gerarHtmlInput(campo) {
         if (campo.tipo === 'row') return `<div class="form-row-grid" data-cols="${campo.colunas.length}">${campo.colunas.map(col => this.gerarHtmlInput(col)).join('')}</div>`;
@@ -2544,12 +2610,23 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                 <span class="dropdown-label truncate">Ciências</span>
                 <i class="fas fa-chevron-down text-slate-400 text-xs ml-2"></i>
             </button>
-            <ul class="dropdown-menu hidden absolute z-50 w-full mt-1 bg-white border border-slate-100 rounded-xl shadow-xl max-h-48 overflow-y-auto custom-scrollbar p-1.5 animate-enter origin-top text-left font-normal">
-                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Ciências">Ciências</li>
-                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Biologia">Biologia</li>
-                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Física">Física</li>
+            <ul class="dropdown-menu hidden absolute z-50 w-full mt-1 bg-white border border-slate-100 rounded-xl shadow-xl max-h-56 overflow-y-auto custom-scrollbar p-1.5 animate-enter origin-top text-left font-normal">
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Língua Portuguesa">Língua Portuguesa</li>
                 <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Matemática">Matemática</li>
-                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Educação Infantil">Educação Infantil</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Ciências">Ciências</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="História">História</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Geografia">Geografia</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Arte">Arte</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Educação Física">Educação Física</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Língua Inglesa">Língua Inglesa</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Física">Física</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Química">Química</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Biologia">Biologia</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Filosofia">Filosofia</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Sociologia">Sociologia</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Educação Infantil">Educação Infantil / Geral</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Ensino Religioso">Ensino Religioso</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Tecnologia & Computação">Tecnologia & Computação</li>
             </ul>
         </div>
     </div>`; break;
@@ -2559,15 +2636,44 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
         <div class="custom-dropdown relative w-full">
             <input type="hidden" data-field="Série" value="6º Ano EF">
             <button type="button" class="dropdown-button w-full flex items-center justify-between p-3.5 bg-slate-50 hover:bg-white border border-slate-200 hover:border-indigo-300 rounded-xl shadow-sm text-sm font-medium text-slate-700 transition-all focus:outline-none focus:ring-4 focus:ring-indigo-50">
-                <span class="dropdown-label truncate">6º Ano — EF II</span>
+                <span class="dropdown-label truncate">6º Ano — EF II (11 anos)</span>
                 <i class="fas fa-chevron-down text-slate-400 text-xs ml-2"></i>
             </button>
-            <ul class="dropdown-menu hidden absolute z-50 w-full mt-1 bg-white border border-slate-100 rounded-xl shadow-xl max-h-48 overflow-y-auto custom-scrollbar p-1.5 animate-enter origin-top text-left font-normal">
-                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Educação Infantil">Educação Infantil (Maternal/Pré)</li>
-                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="6º Ano EF">6º Ano — EF II</li>
-                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="7º Ano EF">7º Ano — EF II</li>
-                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="8º Ano EF">8º Ano — EF II</li>
-                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="9º Ano EF">9º Ano — EF II</li>
+            <ul class="dropdown-menu hidden absolute z-50 w-full mt-1 bg-white border border-slate-100 rounded-xl shadow-xl max-h-64 overflow-y-auto custom-scrollbar p-1.5 animate-enter origin-top text-left font-normal">
+                <!-- EDUCAÇÃO INFANTIL (0 A 5 ANOS) -->
+                <li class="dropdown-item-header p-1.5 font-bold text-xs text-indigo-600 bg-indigo-50/70 rounded uppercase">Educação Infantil (0 a 5 anos)</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Berçário (0 a 1 ano)">Berçário (0 a 1 ano)</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Maternal I (1 a 2 anos)">Maternal I (1 a 2 anos)</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Maternal II (2 a 3 anos)">Maternal II (2 a 3 anos)</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Pré-Escola I (4 anos)">Pré-Escola I / Infantil 4 (4 anos)</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="Pré-Escola II (5 anos)">Pré-Escola II / Infantil 5 (5 anos)</li>
+                
+                <!-- ENSINO FUNDAMENTAL I (6 A 10 ANOS) -->
+                <li class="dropdown-item-header p-1.5 font-bold text-xs text-indigo-600 bg-indigo-50/70 rounded uppercase mt-1">Ensino Fundamental I (Anos Iniciais)</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="1º Ano EF">1º Ano — EF I (6 anos)</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="2º Ano EF">2º Ano — EF I (7 anos)</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="3º Ano EF">3º Ano — EF I (8 anos)</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="4º Ano EF">4º Ano — EF I (9 anos)</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="5º Ano EF">5º Ano — EF I (10 anos)</li>
+                
+                <!-- ENSINO FUNDAMENTAL II (11 A 14 ANOS) -->
+                <li class="dropdown-item-header p-1.5 font-bold text-xs text-indigo-600 bg-indigo-50/70 rounded uppercase mt-1">Ensino Fundamental II (Anos Finais)</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="6º Ano EF">6º Ano — EF II (11 anos)</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="7º Ano EF">7º Ano — EF II (12 anos)</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="8º Ano EF">8º Ano — EF II (13 anos)</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="9º Ano EF">9º Ano — EF II (14 anos)</li>
+                
+                <!-- ENSINO MÉDIO (15 A 17 ANOS) -->
+                <li class="dropdown-item-header p-1.5 font-bold text-xs text-indigo-600 bg-indigo-50/70 rounded uppercase mt-1">Ensino Médio (15 a 17 anos)</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="1º Ano EM">1º Ano — Ensino Médio (15 anos)</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="2º Ano EM">2º Ano — Ensino Médio (16 anos)</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="3º Ano EM">3º Ano — Ensino Médio (17 anos)</li>
+                
+                <!-- EJA & EDUCAÇÃO INCLUSIVA -->
+                <li class="dropdown-item-header p-1.5 font-bold text-xs text-indigo-600 bg-indigo-50/70 rounded uppercase mt-1">EJA & Educação Inclusiva</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="EJA - Fund.">EJA — Ensino Fundamental</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="EJA - Médio">EJA — Ensino Médio</li>
+                <li class="dropdown-item p-2.5 hover:bg-slate-50 rounded-lg text-sm cursor-pointer transition-colors text-slate-600" data-value="AEE / PEI">AEE / Educação Inclusiva (Adaptado)</li>
             </ul>
         </div>
     </div>`; break;
@@ -2783,6 +2889,9 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                 });
             } else {
                 materialPronto = await aiService.gerarMaterial(this.ferramentaAtiva, dadosExtrahidos, contextoFinal);
+            }
+            if (materialPronto && this.pastaAtualId) {
+                materialPronto.pastaId = this.pastaAtualId;
             }
 
             const salvo = await model.saveMaterial(materialPronto);

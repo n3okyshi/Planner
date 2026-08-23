@@ -1,3 +1,5 @@
+import { DISCIPLINAS_EDUCACAO_BASICA, SERIES_EDUCACAO_BASICA } from '../config.js';
+
 /**
  * Componente Reutilizável de Barra de Filtros e Busca (Vanilla JS ES6+)
  * Padroniza os filtros por Disciplina, Série, Bimestre e Campo de Busca em todo o App.
@@ -12,14 +14,8 @@ export class FilterBarComponent {
      * @param {Function} options.onFilterChange - Callback acionado quando qualquer filtro muda `(filters)`
      */
     constructor(options = {}) {
-        this.disciplinas = options.disciplinas || [
-            'Língua Portuguesa', 'Matemática', 'Ciências', 'História', 'Geografia', 
-            'Arte', 'Educação Física', 'Inglês', 'Física', 'Química', 'Biologia', 'Filosofia', 'Sociologia'
-        ];
-        this.series = options.series || [
-            '1º Ano', '2º Ano', '3º Ano', '4º Ano', '5º Ano',
-            '6º Ano', '7º Ano', '8º Ano', '9º Ano', 'Ensino Médio'
-        ];
+        this.disciplinas = options.disciplinas || DISCIPLINAS_EDUCACAO_BASICA;
+        this.series = options.series || SERIES_EDUCACAO_BASICA;
         this.bimestres = options.bimestres || [
             '1º Bimestre', '2º Bimestre', '3º Bimestre', '4º Bimestre'
         ];

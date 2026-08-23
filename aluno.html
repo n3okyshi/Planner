@@ -223,7 +223,7 @@
             <span>Planner Pro • Quiz</span>
         </div>
         <div style="display: flex; align-items: center; gap: 0.75rem;">
-            <button type="button" onclick="QuizAlunoApp.alternarFullscreen()" id="btn-fullscreen-toggle" 
+            <button type="button" data-action="toggle-fullscreen" id="btn-fullscreen-toggle" 
                     title="Alternar Modo Foco / Tela Cheia" 
                     style="background: #f1f5f9; border: 1px solid #e2e8f0; color: #475569; width: 2.25rem; height: 2.25rem; border-radius: 0.625rem; display: flex; align-items: center; justify-content: center; font-size: 0.875rem; cursor: pointer; transition: all 0.2s;">
                 <i class="fas fa-expand"></i>
@@ -490,7 +490,7 @@
                                 <div class="avatar-grid">
                                     ${this.avatares.map(av => `
                                         <button type="button" class="avatar-btn ${this.avatar === av ? 'selected' : ''}" 
-                                                data-avatar="${av}" onclick="QuizAlunoApp.escolherAvatar('${av}')">
+                                                data-avatar="${av}" data-action="escolher-avatar">
                                             ${av}
                                         </button>
                                     `).join('')}
@@ -680,11 +680,11 @@
                         if (tipo === 'verdadeiro_falso') {
                             root.innerHTML = `
                                 <div class="answer-grid-2">
-                                    <button onclick="QuizAlunoApp.enviarResposta(0, true)" class="ans-btn ans-btn--vf" style="background: linear-gradient(135deg, #059669, #10b981);">
+                                    <button data-action="enviar-resposta" data-index="0" data-is-correct="true" class="ans-btn ans-btn--vf" style="background: linear-gradient(135deg, #059669, #10b981);">
                                         <i class="fas fa-check-circle" style="font-size: 2.25rem;"></i>
                                         <span>VERDADEIRO</span>
                                     </button>
-                                    <button onclick="QuizAlunoApp.enviarResposta(1, false)" class="ans-btn ans-btn--vf" style="background: linear-gradient(135deg, #dc2626, #ef4444);">
+                                    <button data-action="enviar-resposta" data-index="1" data-is-correct="false" class="ans-btn ans-btn--vf" style="background: linear-gradient(135deg, #dc2626, #ef4444);">
                                         <i class="fas fa-times-circle" style="font-size: 2.25rem;"></i>
                                         <span>FALSO</span>
                                     </button>
@@ -704,7 +704,7 @@
                             root.innerHTML = `
                                 <div class="answer-grid-4">
                                     ${altsExibidas.map(b => `
-                                        <button onclick="QuizAlunoApp.enviarResposta(${b.index})" class="ans-btn ans-btn--alt" style="background-color: ${b.bg};">
+                                        <button data-action="enviar-resposta" data-index="${b.index}" class="ans-btn ans-btn--alt" style="background-color: ${b.bg};">
                                             <span>${b.icon}</span>
                                             <span style="font-size: 0.8125rem; opacity: 0.9;">${b.label}</span>
                                         </button>
@@ -857,6 +857,22 @@
 
         window.addEventListener('DOMContentLoaded', () => {
             window.QuizAlunoApp.init();
+            document.addEventListener('click', (e) => {
+                const target = e.target.closest('[data-action]');
+                if (!target) return;
+                const action = target.getAttribute('data-action');
+                if (action === 'toggle-fullscreen') {
+                    QuizAlunoApp.alternarFullscreen();
+                } else if (action === 'escolher-avatar') {
+                    const avatar = target.getAttribute('data-avatar');
+                    if (avatar) QuizAlunoApp.escolherAvatar(avatar);
+                } else if (action === 'enviar-resposta') {
+                    const idx = Number(target.getAttribute('data-index'));
+                    const isCorrectAttr = target.getAttribute('data-is-correct');
+                    const isCorr = isCorrectAttr === 'true' ? true : (isCorrectAttr === 'false' ? false : null);
+                    QuizAlunoApp.enviarResposta(idx, isCorr);
+                }
+            });
         });
     </script>
 </body>

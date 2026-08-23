@@ -24,10 +24,24 @@ export const bimestralizacaoView = {
     ],
 
     anosDisponiveis: [
+        'Berçário I',
+        'Berçário II',
+        'Maternal I',
+        'Maternal II',
+        'Jardim I',
+        'Jardim II',
+        '1º Ano',
+        '2º Ano',
+        '3º Ano',
+        '4º Ano',
+        '5º Ano',
         '6º Ano',
         '7º Ano',
         '8º Ano',
-        '9º Ano'
+        '9º Ano',
+        '1ª Série (EM)',
+        '2ª Série (EM)',
+        '3ª Série (EM)'
     ],
 
     bimestresDisponiveis: [
@@ -177,8 +191,8 @@ export const bimestralizacaoView = {
                     
                     <div class="mode-toggle-group" style="width: fit-content;">
                         ${this.bimestresDisponiveis.map(b => {
-                            const isAtivo = b.valor === this.bimestreSelecionado;
-                            return `
+            const isAtivo = b.valor === this.bimestreSelecionado;
+            return `
                                 <button type="button" 
                                         onclick="bimestralizacaoView.setBimestre('${b.valor}')" 
                                         class="mode-toggle-btn interactive-element ${isAtivo ? 'mode-toggle-btn--active' : ''}">
@@ -186,7 +200,7 @@ export const bimestralizacaoView = {
                                     ${b.label}
                                 </button>
                             `;
-                        }).join('')}
+        }).join('')}
                     </div>
 
                     <!-- PAINEL DE FILTROS ELEGANTE (DYNAMIC-BOX / CARD) -->
@@ -307,25 +321,25 @@ export const bimestralizacaoView = {
 
     _extrairEixo(item) {
         if (!item) return '';
-        return item['Unidades Temáticas'] || 
-               item['Unidade Temática'] || 
-               item['Eixos/Unidades Temáticas'] || 
-               item['Campo de atuação'] || 
-               item['Prática de Linguagem'] || 
-               item['Linguagem'] || 
-               item['Eixo temático'] || 
-               item['Eixo Temático'] || 
-               '';
+        return item['Unidades Temáticas'] ||
+            item['Unidade Temática'] ||
+            item['Eixos/Unidades Temáticas'] ||
+            item['Campo de atuação'] ||
+            item['Prática de Linguagem'] ||
+            item['Linguagem'] ||
+            item['Eixo temático'] ||
+            item['Eixo Temático'] ||
+            '';
     },
 
     _extrairConteudos(item) {
         if (!item) return [];
-        const raw = item['Conteúdos/ Objetos de conhecimento'] || 
-                    item['Conteúdos / Objetos de conhecimento'] || 
-                    item['Conteúdos/Objetos de conhecimento'] || 
-                    item['Conteúdo'] || 
-                    item['Objetos de conhecimento'] || 
-                    [];
+        const raw = item['Conteúdos/ Objetos de conhecimento'] ||
+            item['Conteúdos / Objetos de conhecimento'] ||
+            item['Conteúdos/Objetos de conhecimento'] ||
+            item['Conteúdo'] ||
+            item['Objetos de conhecimento'] ||
+            [];
         if (Array.isArray(raw)) return raw;
         if (typeof raw === 'string' && raw.trim()) return [raw.trim()];
         return [];

@@ -26,6 +26,39 @@ export const provaMethods = {
             console.error("❌ Erro ao carregar banco de questões do sistema:", e);
         }
     },
+    async carregarDescritoresSaeb() {
+        try {
+            const res = await fetch('./assets/SAEB/saeb_todos.json');
+            if (!res.ok) return;
+            const dados = await res.json();
+            const descritoresAchatados = [];
+            dados.forEach(disc => {
+                const disciplina = disc.disciplina;
+                (disc.etapas || []).forEach(etapaObj => {
+                    const etapa = etapaObj.etapa;
+                    (etapaObj.topicos || []).forEach(topicoObj => {
+                        const topico = topicoObj.topico;
+                        (topicoObj.descritores || []).forEach(d => {
+                            descritoresAchatados.push({
+                                id: `${d.codigo}_${disciplina}_${etapa}`.replace(/\s+/g, '_'),
+                                codigo: d.codigo,
+                                descricao: d.descricao,
+                                disciplina,
+                                etapa,
+                                topico
+                            });
+                        });
+                    });
+                });
+            });
+            if (descritoresAchatados.length > 0) {
+                this.state.descritoresSaeb = descritoresAchatados;
+                console.log(`✅ Descritores SAEB: ${descritoresAchatados.length} descritores carregados dos arquivos JSON.`);
+            }
+        } catch (e) {
+            console.warn("Aviso ao carregar JSONs do SAEB:", e);
+        }
+    },
     async saveQuestao(questaoRecebida) {
         const questaoSalvar = {
             ...questaoRecebida,

@@ -28,6 +28,8 @@ export const routeRegistry = {
     'estudos-visuais': { label: 'Flashcards & Mapas Mentais', navId: 'nav-estudos-visuais' },
     apresentacoes: { label: 'Apresentações Animadas', navId: 'nav-apresentacoes' },
     'apresentador-player': { label: 'Player de Apresentação', navId: 'nav-apresentacoes' },
+    coordenacao: { label: 'Coordenação Pedagógica', navId: 'nav-coordenacao' },
+    pdi: { label: 'Plano de Desenvolvimento Individual (PDI/PEI)', navId: 'nav-pdi' },
     config: { label: 'Configurações', navId: 'nav-config' }
 };
 
@@ -39,6 +41,8 @@ export const routeAliases = {
     'mapa-sala': 'mapa',
     'conselho-classe': 'ata-conselho',
     'conselho': 'ata-conselho',
+    coordenador: 'coordenacao',
+    pei: 'pdi',
     bimestralizacoes: 'bimestralizacao',
     'bimestralizacao-formosa': 'bimestralizacao',
     'material-gerado': 'conteudo-gerado',
@@ -61,10 +65,30 @@ export const viewModuleMap = {
     'criar-material': () => import('./views/criarMaterial.js'),
     turmas: () => import('./views/turmas.js'),
     provas: () => import('./views/provas.js'),
-    comunidade: () => import('./views/comunidade.js'),
+    'stats-provas': () => import('./views/estatisticasProva.js'),
     correcao: () => import('./views/correcaoAutomatica.js'),
+    simuladores: () => import('./views/simuladores.js'),
+    periodo: () => import('./views/planejamento.js'),
+    mensal: () => import('./views/mensal.js'),
+    dia: () => import('./views/diario.js'),
     bncc: () => import('./views/bncc.js'),
-    config: () => import('./views/config.js')
+    bimestralizacao: () => import('./views/bimestralizacao.js'),
+    comunidade: () => import('./views/comunidade.js'),
+    frequencia: () => import('./views/frequencia.js'),
+    horario: () => import('./views/horario.js'),
+    mapa: () => import('./views/sala.js'),
+    'notas-anuais': () => import('./views/notasAnuais.js'),
+    'ata-conselho': () => import('./views/ataConselho.js'),
+    'conteudo-gerado': () => import('./views/conteudoGerado.js'),
+    'quiz-gestor': () => import('./views/quizGestor.js'),
+    'quiz-player': () => import('./views/quizPlayer.js'),
+    'quiz-aluno': () => import('./views/quizAluno.js'),
+    'estudos-visuais': () => import('./views/estudosVisuais.js'),
+    apresentacoes: () => import('./views/apresentacoes.js'),
+    'apresentador-player': () => import('./views/apresentadorPlayer.js'),
+    coordenacao: () => import('./views/coordenacao.js'),
+    pdi: () => import('./views/pdi.js'),
+    config: () => import('./views/settings.js')
 };
 
 export const router = {

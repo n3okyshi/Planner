@@ -2,10 +2,12 @@ import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
 import { renderKatex, formatarTextoComLatex, sanitizeComLatex, alternarModoEdicaoPreview } from '../utils.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 
 export const conteudoGeradoView = {
     materialIdAtual: null,
     modoVisualizacao: 'professor', // 'professor' (com gabarito) ou 'aluno' (sem gabarito)
+    _cleanupDelegators: null,
 
     setMaterial(id) {
         this.materialIdAtual = id;
@@ -20,6 +22,11 @@ export const conteudoGeradoView = {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
 
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+
         if (!this.materialIdAtual && model.state.materiaisGerados && model.state.materiaisGerados.length > 0) {
             this.materialIdAtual = model.state.materiaisGerados[model.state.materiaisGerados.length - 1].id;
         }
@@ -33,7 +40,7 @@ export const conteudoGeradoView = {
                     </div>
                     <h2 style="font-size: 1.35rem; font-weight: 800; color: var(--color-slate-700); margin-bottom: 0.5rem;">Material não encontrado</h2>
                     <p style="color: var(--color-slate-500); font-size: 0.875rem; margin-bottom: 1.5rem;">O material selecionado pode ter sido removido ou ainda não foi gerado.</p>
-                    <button type="button" onclick="controller.navigate('biblioteca')" class="btn-primary interactive-element">
+                    <button type="button" data-action="ir-biblioteca" class="btn-primary interactive-element">
                         <i class="fas fa-arrow-left"></i> <span>Ir para a Biblioteca</span>
                     </button>
                 </div>
@@ -56,7 +63,7 @@ export const conteudoGeradoView = {
                 
                 <!-- TOP HEADER & NAVEGAÇÃO -->
                 <div>
-                    <button type="button" onclick="controller.navigate('biblioteca')" class="btn-secondary interactive-element text-xs mb-3" style="padding: 0.375rem 0.75rem; font-size: 0.8125rem;">
+                    <button type="button" data-action="ir-biblioteca" class="btn-secondary interactive-element text-xs mb-3" style="padding: 0.375rem 0.75rem; font-size: 0.8125rem;">
                         <i class="fas fa-arrow-left"></i> <span>Voltar para a Biblioteca</span>
                     </button>
                     <div style="display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; flex-wrap: wrap;">
@@ -72,12 +79,12 @@ export const conteudoGeradoView = {
 
                         <!-- SELETOR DE MODO (PADRÃO BANCO DE QUESTÕES) -->
                         <div class="mode-toggle-group" style="width: fit-content;">
-                            <button type="button" onclick="conteudoGeradoView.setModo('aluno')" 
+                            <button type="button" data-action="modo-aluno" 
                                     class="mode-toggle-btn interactive-element ${isAluno ? 'mode-toggle-btn--active' : ''}">
                                 <i class="fas fa-user-graduate" style="margin-right: 0.375rem; color: ${isAluno ? 'var(--color-primary)' : 'inherit'};"></i>
                                 Versão Aluno (Sem Gabarito)
                             </button>
-                            <button type="button" onclick="conteudoGeradoView.setModo('professor')" 
+                            <button type="button" data-action="modo-professor" 
                                     class="mode-toggle-btn interactive-element ${!isAluno ? 'mode-toggle-btn--active' : ''}">
                                 <i class="fas fa-chalkboard-teacher" style="margin-right: 0.375rem; color: ${!isAluno ? '#059669' : 'inherit'};"></i>
                                 Versão Professor (Com Gabarito)
@@ -89,45 +96,45 @@ export const conteudoGeradoView = {
                 <!-- BARRA DE AÇÕES (TOOLBAR) -->
                 <div class="card" style="padding: 0.875rem 1.25rem; display: flex; flex-wrap: wrap; items-center; justify-content: space-between; gap: 0.75rem; border-radius: var(--radius-xl); border: 1px solid var(--color-slate-200);">
                     <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;">
-                        <button type="button" onclick="conteudoGeradoView.baixarWord('${material.id}', ${!isAluno})" 
+                        <button type="button" data-action="baixar-word" data-id="${material.id}" data-prof="${!isAluno}" 
                                 class="btn-primary interactive-element" 
                                 style="background-color: ${isAluno ? '#2563eb' : '#059669'}; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15);">
                             <i class="far fa-file-word"></i> <span>Baixar Word (${isAluno ? 'Aluno' : 'Professor'})</span>
                         </button>
                         
                         ${(material.tipo === 'rubrica-avaliacao' || (material.conteudo_html || '').includes('table')) ? `
-                            <button type="button" onclick="conteudoGeradoView.abrirAvaliadorRubrica()" 
+                            <button type="button" data-action="abrir-rubrica" 
                                     class="btn-primary interactive-element" 
                                     style="background: linear-gradient(135deg, #c026d3, #9333ea); box-shadow: 0 4px 10px rgba(192, 38, 211, 0.25);">
                                 <i class="fas fa-calculator"></i> <span>Avaliador de Rubrica Interativo</span>
                             </button>
                         ` : ''}
 
-                        <button type="button" onclick="conteudoGeradoView.abrirOpcoesImpressao()" class="btn-secondary interactive-element">
+                        <button type="button" data-action="opcoes-impressao" class="btn-secondary interactive-element">
                             <i class="fas fa-print"></i> <span>Imprimir / PDF</span>
                         </button>
 
-                        <button type="button" onclick="conteudoGeradoView.copiarTextoFormatado()" class="btn-secondary interactive-element" title="Copiar texto para colar em outro aplicativo">
+                        <button type="button" data-action="copiar-texto" class="btn-secondary interactive-element" title="Copiar texto para colar em outro aplicativo">
                             <i class="far fa-copy"></i> <span>Copiar Texto</span>
                         </button>
 
-                        <button type="button" onclick="conteudoGeradoView.abrirEditorModal()" class="btn-secondary interactive-element" style="color: var(--color-slate-700); font-weight: 700;">
+                        <button type="button" data-action="abrir-editor-modal" class="btn-secondary interactive-element" style="color: var(--color-slate-700); font-weight: 700;">
                             <i class="fas fa-edit" style="color: var(--color-primary);"></i> <span>Editar Material</span>
                         </button>
 
                         ${material.compartilhado ? `
-                            <button type="button" onclick="model.removerMaterialDaComunidade('${material.id}')" class="btn-secondary interactive-element" style="color: #7c3aed; background-color: #f3e8ff; border-color: #ddd6fe; font-weight: 700;" title="Material Público na Comunidade (Clique para retirar)">
+                            <button type="button" data-action="remover-comunidade" data-id="${material.id}" class="btn-secondary interactive-element" style="color: #7c3aed; background-color: #f3e8ff; border-color: #ddd6fe; font-weight: 700;" title="Material Público na Comunidade (Clique para retirar)">
                                 <i class="fas fa-globe"></i> <span>Público na Comunidade</span>
                             </button>
                         ` : `
-                            <button type="button" onclick="model.compartilharMaterial('${material.id}')" class="btn-secondary interactive-element" style="color: #7c3aed; font-weight: 700;" title="Compartilhar com a comunidade de professores">
+                            <button type="button" data-action="compartilhar-comunidade" data-id="${material.id}" class="btn-secondary interactive-element" style="color: #7c3aed; font-weight: 700;" title="Compartilhar com a comunidade de professores">
                                 <i class="fas fa-share-nodes"></i> <span>Tornar Público / Comunidade</span>
                             </button>
                         `}
                     </div>
 
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <button type="button" onclick="controller.navigate('criar-material')" class="btn-secondary interactive-element" style="color: var(--color-slate-600);">
+                        <button type="button" data-action="criar-material" class="btn-secondary interactive-element" style="color: var(--color-slate-600);">
                             <i class="fas fa-magic"></i> <span>Gerar Novo Material</span>
                         </button>
                     </div>
@@ -205,9 +212,11 @@ export const conteudoGeradoView = {
                             <p style="font-size: 0.8125rem; color: var(--color-slate-600); line-height: 1.5; margin-bottom: 1rem;">
                                 ${isAluno ? 'Utilize a <strong>Versão Aluno</strong> para imprimir provas ou enviar no Classroom sem revelar as respostas.' : 'A <strong>Versão Professor</strong> inclui o gabarito comentado para agilizar a correção e fornecer feedback à turma.'}
                             </p>
-                            <button type="button" onclick="conteudoGeradoView.setModo('${isAluno ? 'professor' : 'aluno'}')" 
-                                    class="btn-secondary interactive-element" style="width: 100%; justify-content: center; font-size: 0.75rem;">
-                                <i class="fas fa-sync-alt"></i> <span>Alternar para ${isAluno ? 'Versão Professor' : 'Versão Aluno'}</span>
+                            <button type="button" data-action="${isAluno ? 'modo-professor' : 'modo-aluno'}" 
+                                    class="btn-primary interactive-element w-full justify-center" 
+                                    style="background-color: ${isAluno ? '#059669' : '#2563eb'}; border-radius: var(--radius-xl); padding: 0.75rem 1rem; font-size: 0.875rem;">
+                                <i class="${isAluno ? 'fas fa-chalkboard-teacher' : 'fas fa-user-graduate'}"></i>
+                                <span>Alternar para ${isAluno ? 'Versão Professor' : 'Versão Aluno'}</span>
                             </button>
                         </div>
 
@@ -226,6 +235,57 @@ export const conteudoGeradoView = {
         if (docContent) {
             renderKatex(docContent);
         }
+        this._setupListeners(container, material);
+    },
+
+    _setupListeners(container, material) {
+        this._cleanupDelegators = EventDelegator.bind(container, {
+            'ir-biblioteca': () => controller.navigate('biblioteca'),
+            'modo-aluno': () => this.setModo('aluno'),
+            'modo-professor': () => this.setModo('professor'),
+            'baixar-word': (e, target) => {
+                const id = target.getAttribute('data-id') || material?.id;
+                const prof = target.getAttribute('data-prof') === 'true';
+                this.baixarWord(id, prof);
+            },
+            'abrir-rubrica': () => this.abrirAvaliadorRubrica(),
+            'opcoes-impressao': () => this.abrirOpcoesImpressao(),
+            'copiar-texto': () => this.copiarTextoFormatado(),
+            'abrir-editor-modal': () => this.abrirEditorModal(),
+            'remover-comunidade': (e, target) => {
+                const id = target.getAttribute('data-id') || material?.id;
+                model.removerMaterialDaComunidade(id);
+            },
+            'compartilhar-comunidade': (e, target) => {
+                const id = target.getAttribute('data-id') || material?.id;
+                model.compartilharMaterial(id);
+            },
+            'criar-material': () => controller.navigate('criar-material'),
+            'alternar-modo-visual': (e, target) => {
+                const mode = target.getAttribute('data-mode');
+                this.alternarModoEdicaoVisual(mode);
+            },
+            'seletor-bncc-modal': () => this.abrirSeletorBnccModal(),
+            'salvar-edicao-material': () => this.salvarEdicaoMaterial(),
+            'fechar-modal': () => controller.closeModal(),
+            'gerar-impressao': (e, target) => {
+                const tipo = target.getAttribute('data-tipo');
+                controller.closeModal();
+                this.gerarDocumentoImpressao(tipo);
+            },
+            'copiar-rubrica': () => this.copiarResultadoRubrica()
+        }, 'click');
+    },
+
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+    },
+
+    onLeave() {
+        this.destroy();
     },
 
     processarHTMLParaModo(rawHtml, modo) {
@@ -327,9 +387,9 @@ export const conteudoGeradoView = {
         }
 
         const seriesLista = [
-            "Todas as Turmas", "Educação Infantil", "1º Ano EF", "2º Ano EF", "3º Ano EF", "4º Ano EF",
-            "5º Ano EF", "6º Ano EF", "7º Ano EF", "8º Ano EF", "9º Ano EF",
-            "1º Ano EM", "2º Ano EM", "3º Ano EM", "Ensino Médio"
+            "Todas as Turmas", "Berçário I", "Berçário II", "Maternal I", "Maternal II", "Jardim I", "Jardim II",
+            "1º Ano", "2º Ano", "3º Ano", "4º Ano", "5º Ano", "6º Ano", "7º Ano", "8º Ano", "9º Ano",
+            "1ª Série (EM)", "2ª Série (EM)", "3ª Série (EM)"
         ];
         if (serieAtual && !seriesLista.includes(serieAtual)) {
             seriesLista.unshift(serieAtual);
@@ -352,12 +412,12 @@ export const conteudoGeradoView = {
                         </div>
                         <div>
                             <label class="form-label" style="font-weight: 800; font-size: 0.8125rem; color: var(--color-slate-700);">Modo de Edição</label>
-                            <div style="display: flex; gap: 0.25rem; background: var(--color-slate-100); padding: 0.25rem; border-radius: var(--radius-xl); border: 1px solid var(--color-slate-200);">
-                                <button type="button" id="btn-mode-mat-code" onclick="conteudoGeradoView.alternarModoEdicaoVisual('code')" class="btn-primary" style="flex: 1; padding: 0.45rem 0.5rem; font-size: 0.75rem; font-weight: 800; justify-content: center; background: var(--color-primary);" title="Editor de Texto e Fórmulas LaTeX com Pré-Visualização KaTeX ao vivo">
-                                    <i class="fas fa-square-root-alt"></i> Texto / LaTeX
+                            <div style="display: flex; background: var(--color-slate-100); padding: 0.2rem; border-radius: var(--radius-lg); gap: 0.25rem; width: 100%;">
+                                <button type="button" id="btn-mode-mat-code" data-action="alternar-modo-visual" data-mode="code" class="btn-primary" style="flex: 1; padding: 0.45rem 0.5rem; font-size: 0.75rem; font-weight: 800; justify-content: center; background: var(--color-primary);" title="Editor de Texto e Fórmulas LaTeX com Pré-Visualização KaTeX ao vivo">
+                                    <i class="fas fa-code mr-1"></i> Editor de Código / LaTeX
                                 </button>
-                                <button type="button" id="btn-mode-mat-visual" onclick="conteudoGeradoView.alternarModoEdicaoVisual('visual')" class="btn-secondary" style="flex: 1; padding: 0.45rem 0.5rem; font-size: 0.75rem; font-weight: 800; justify-content: center; background: transparent;" title="Editor Visual em Folha Mestre">
-                                    <i class="fas fa-file-alt"></i> Folha Mestre
+                                <button type="button" id="btn-mode-mat-visual" data-action="alternar-modo-visual" data-mode="visual" class="btn-secondary" style="flex: 1; padding: 0.45rem 0.5rem; font-size: 0.75rem; font-weight: 800; justify-content: center; background: transparent;" title="Editor Visual em Folha Mestre">
+                                    <i class="fas fa-eye mr-1"></i> Pré-visualização Visual
                                 </button>
                             </div>
                         </div>
@@ -389,8 +449,8 @@ export const conteudoGeradoView = {
                             </label>
                             <div style="display: flex; gap: 0.5rem; align-items: center;">
                                 <input type="text" id="editor-mat-bncc" class="form-input" value="${window.escapeHTML(bnccAtual)}" placeholder="Ex: EF06MA01, EF06MA02, EF09MA07" style="font-weight: 700; font-size: 0.875rem; flex: 1;">
-                                <button type="button" onclick="conteudoGeradoView.abrirSeletorBnccModal()" class="btn-secondary interactive-element" style="padding: 0.45rem 0.75rem; font-size: 0.75rem; white-space: nowrap; background: #fff8f0; border-color: #fde68a; color: #b45309;" title="Buscar e Anexar Habilidades da BNCC">
-                                    <i class="fas fa-search-plus"></i> BNCC
+                                <button type="button" data-action="seletor-bncc-modal" class="btn-secondary interactive-element" style="padding: 0.45rem 0.75rem; font-size: 0.75rem; white-space: nowrap; background: #fff8f0; border-color: #fde68a; color: #b45309;" title="Buscar e Anexar Habilidades da BNCC">
+                                    <i class="fas fa-bookmark" style="color: #d97706;"></i> <span>Anexar BNCC</span>
                                 </button>
                             </div>
                         </div>
@@ -509,10 +569,10 @@ export const conteudoGeradoView = {
                         <span><strong>Edição Mestre:</strong> As alterações são salvas diretamente no documento final da sua biblioteca.</span>
                     </div>
 
-                    <div style="display: flex; gap: 0.75rem;">
-                        <button type="button" onclick="controller.closeModal()" class="btn-secondary" style="padding: 0.625rem 1.5rem; font-weight: 700;">Cancelar</button>
-                        <button type="button" onclick="conteudoGeradoView.salvarEdicaoMaterial()" class="btn-primary" style="padding: 0.625rem 2.25rem; font-weight: 800; background: linear-gradient(135deg, #4f46e5, #4338ca); border-radius: var(--radius-xl); box-shadow: 0 4px 14px rgba(79,70,229,0.35);">
-                            <i class="fas fa-save" style="margin-right: 0.375rem;"></i> <span>Salvar Alterações</span>
+                    <div style="display: flex; justify-content: flex-end; gap: var(--spacing-3); margin-top: var(--spacing-6); padding-top: var(--spacing-4); border-top: 1px solid var(--color-slate-200);">
+                        <button type="button" data-action="fechar-modal" class="btn-secondary" style="padding: 0.625rem 1.5rem; font-weight: 700;">Cancelar</button>
+                        <button type="button" data-action="salvar-edicao-material" class="btn-primary" style="padding: 0.625rem 2.25rem; font-weight: 800; background: linear-gradient(135deg, #4f46e5, #4338ca); border-radius: var(--radius-xl); box-shadow: 0 4px 14px rgba(79,70,229,0.35);">
+                            <i class="fas fa-save mr-1"></i> Salvar Alterações
                         </button>
                     </div>
                 </div>
@@ -862,38 +922,36 @@ export const conteudoGeradoView = {
                 <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); margin: 0;">Imprimir / Exportar Documento Pedagógico</h3>
                 <p style="font-size: 0.8125rem; color: var(--color-slate-500); margin: 0;">Escolha o formato de diagramação adequado para a aplicação em sala de aula ou arquivo do professor:</p>
                 
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem; margin-top: 1rem;">
+                <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem;">
                     
-                    <!-- OPÇÃO 1: PADRÃO ALUNO -->
-                    <button type="button" onclick="controller.closeModal(); conteudoGeradoView.gerarDocumentoImpressao('aluno')" 
-                            class="interactive-element"
-                            style="padding: 1.25rem 0.75rem; border: 2px solid var(--color-slate-100); border-radius: var(--radius-2xl); cursor: pointer; transition: all var(--transition-fast); background-color: var(--color-white); display: flex; flex-direction: column; align-items: center; gap: 0.5rem;"
-                            onmouseover="this.style.borderColor='var(--color-primary)'; this.style.backgroundColor='#eff6ff';" onmouseout="this.style.borderColor='var(--color-slate-100)'; this.style.backgroundColor='var(--color-white)';">
-                        <div style="width: 2.75rem; height: 2.75rem; border-radius: 50%; background: #eff6ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                    <button type="button" data-action="gerar-impressao" data-tipo="aluno" 
+                            class="card interactive-element" 
+                            style="padding: var(--spacing-4); display: flex; align-items: center; gap: var(--spacing-4); border: 2px solid var(--color-slate-200); text-align: left; width: 100%; cursor: pointer;">
+                        <div style="width: 2.5rem; height: 2.5rem; border-radius: var(--radius-lg); background: #dbeafe; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;">
                             <i class="fas fa-user-graduate"></i>
                         </div>
-                        <div style="font-weight: 800; font-size: 0.875rem; color: var(--color-slate-700);">Padrão Aluno</div>
-                        <div style="font-size: 0.6875rem; color: var(--color-slate-400);">Sem gabaritos, com cabeçalho de identificação</div>
+                        <div>
+                            <h4 style="font-weight: 800; color: var(--color-slate-800); font-size: 0.9375rem; margin: 0;">Versão Aluno (Sem Gabarito)</h4>
+                            <p style="font-size: 0.75rem; color: var(--color-slate-500); margin: 0.125rem 0 0 0;">Oculta respostas e resoluções. Ideal para aplicar em sala de aula.</p>
+                        </div>
                     </button>
 
-                    <!-- OPÇÃO 2: ACESSÍVEL AEE / INCLUSÃO -->
-                    <button type="button" onclick="controller.closeModal(); conteudoGeradoView.gerarDocumentoImpressao('acessivel')" 
-                            class="interactive-element"
-                            style="padding: 1.25rem 0.75rem; border: 2px solid var(--color-slate-100); border-radius: var(--radius-2xl); cursor: pointer; transition: all var(--transition-fast); background-color: var(--color-white); display: flex; flex-direction: column; align-items: center; gap: 0.5rem;"
-                            onmouseover="this.style.borderColor='#3b82f6'; this.style.backgroundColor='#eff6ff';" onmouseout="this.style.borderColor='var(--color-slate-100)'; this.style.backgroundColor='var(--color-white)';">
-                        <div style="width: 2.75rem; height: 2.75rem; border-radius: 50%; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                    <button type="button" data-action="gerar-impressao" data-tipo="acessivel" 
+                            class="card interactive-element" 
+                            style="padding: var(--spacing-4); display: flex; align-items: center; gap: var(--spacing-4); border: 2px solid #fed7aa; background-color: #fff7ed; text-align: left; width: 100%; cursor: pointer;">
+                        <div style="width: 2.5rem; height: 2.5rem; border-radius: var(--radius-lg); background: #ffedd5; color: #c2410c; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;">
                             <i class="fas fa-universal-access"></i>
                         </div>
-                        <div style="font-weight: 800; font-size: 0.875rem; color: var(--color-slate-700);">Acessível (AEE)</div>
-                        <div style="font-size: 0.6875rem; color: var(--color-slate-400);">Tipografia Atkinson, alto contraste e entrelinhas 1.85</div>
+                        <div>
+                            <h4 style="font-weight: 800; color: #9a3412; font-size: 0.9375rem; margin: 0;">Versão Adaptada / Acessível (PCD)</h4>
+                            <p style="font-size: 0.75rem; color: #c2410c; margin: 0.125rem 0 0 0;">Fonte maior (16pt OpenDyslexic/Arial), espaçamento duplo e contraste alto.</p>
+                        </div>
                     </button>
 
-                    <!-- OPÇÃO 3: GUIA DO PROFESSOR (COM GABARITO) -->
-                    <button type="button" onclick="controller.closeModal(); conteudoGeradoView.gerarDocumentoImpressao('professor')" 
-                            class="interactive-element"
-                            style="padding: 1.25rem 0.75rem; border: 2px solid var(--color-slate-100); border-radius: var(--radius-2xl); cursor: pointer; transition: all var(--transition-fast); background-color: var(--color-white); display: flex; flex-direction: column; align-items: center; gap: 0.5rem;"
-                            onmouseover="this.style.borderColor='#10b981'; this.style.backgroundColor='#ecfdf5';" onmouseout="this.style.borderColor='var(--color-slate-100)'; this.style.backgroundColor='var(--color-white)';">
-                        <div style="width: 2.75rem; height: 2.75rem; border-radius: 50%; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
+                    <button type="button" data-action="gerar-impressao" data-tipo="professor" 
+                            class="card interactive-element" 
+                            style="padding: var(--spacing-4); display: flex; align-items: center; gap: var(--spacing-4); border: 2px solid var(--color-slate-200); text-align: left; width: 100%; cursor: pointer;">
+                        <div style="width: 2.5rem; height: 2.5rem; border-radius: var(--radius-lg); background: #dcfce7; color: #15803d; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;">
                             <i class="fas fa-chalkboard-teacher"></i>
                         </div>
                         <div style="font-weight: 800; font-size: 0.875rem; color: var(--color-slate-700);">Guia do Professor</div>
@@ -1120,7 +1178,9 @@ export const conteudoGeradoView = {
 
         const win = window.open('', '_blank');
         if (win) {
-            win.document.write(conteudoFinal);
+            const safeHtml = window.sanitizeComLatex ? window.sanitizeComLatex(conteudoFinal) : conteudoFinal;
+            win.document.open();
+            win.document.write(safeHtml);
             win.document.close();
         } else {
             Toast.show("Permita pop-ups no seu navegador para abrir a tela de impressão.", "warning");
@@ -1233,8 +1293,8 @@ export const conteudoGeradoView = {
                 </div>
 
                 <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
-                    <button type="button" onclick="window.controller.closeModal()" class="btn-secondary">Fechar</button>
-                    <button type="button" onclick="conteudoGeradoView.copiarResultadoRubrica()" class="btn-primary" style="background: #10b981;">
+                    <button type="button" data-action="fechar-modal" class="btn-secondary">Fechar</button>
+                    <button type="button" data-action="copiar-rubrica" class="btn-primary" style="background: #10b981;">
                         <i class="fas fa-copy mr-1"></i> Copiar Parecer / Nota
                     </button>
                 </div>

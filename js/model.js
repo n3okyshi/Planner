@@ -144,7 +144,7 @@ export const model = {
             return Array.from(map.values());
         };
 
-        const COLECOES_ARRAY = ['questoes', 'materiaisGerados', 'quizzes', 'flashcards', 'mindmaps', 'apresentacoes'];
+        const COLECOES_ARRAY = ['questoes', 'materiaisGerados', 'quizzes', 'flashcards', 'mindmaps', 'apresentacoes', 'pdis', 'pastasEstudos'];
         COLECOES_ARRAY.forEach(key => {
             merged[key] = mergeColecaoPorId(local[key] || [], cloud[key] || []);
         });
@@ -526,9 +526,57 @@ export const model = {
         const mat = this.state.materiaisGerados.find(m => String(m.id) === String(materialId));
         if (mat) {
             mat.pastaId = pastaId || null;
+            mat.updatedAt = new Date().toISOString();
             this.saveLocal();
+            if (this.currentUser && typeof syncService !== 'undefined' && syncService.persistMaterialDoc) {
+                syncService.persistMaterialDoc(this.currentUser.uid, mat);
+            }
             if (Toast) Toast.show('Material movido com sucesso.', 'success');
             this._atualizarViewsMaterial();
+        }
+    },
+
+    criarPastaEstudo(nome, parentId = null, tipo = 'flashcard') {
+        if (!this.state.pastasEstudos) this.state.pastasEstudos = [];
+        const novaPasta = {
+            id: 'pasta_estudo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+            nome: nome || 'Nova Pasta',
+            parentId: parentId || null,
+            tipo: tipo || 'flashcard',
+            createdAt: new Date().toISOString()
+        };
+        this.state.pastasEstudos.push(novaPasta);
+        this.saveLocal();
+        if (Toast) Toast.show('Pasta de estudos criada com sucesso.', 'success');
+        return novaPasta;
+    },
+
+    excluirPastaEstudo(pastaId) {
+        if (!this.state.pastasEstudos) this.state.pastasEstudos = [];
+        ['flashcards', 'mindmaps'].forEach(colecao => {
+            if (this.state[colecao]) {
+                this.state[colecao].forEach(item => {
+                    if (String(item.pastaId) === String(pastaId)) {
+                        item.pastaId = null;
+                    }
+                });
+            }
+        });
+
+        this.state.pastasEstudos = this.state.pastasEstudos.filter(p => String(p.id) !== String(pastaId));
+        this.saveLocal();
+        if (Toast) Toast.show('Pasta de estudos removida.', 'info');
+    },
+
+    moverEstudoParaPasta(colecao, itemId, pastaId) {
+        const colecaoAlvo = colecao === 'mindmaps' ? 'mindmaps' : 'flashcards';
+        if (!this.state[colecaoAlvo]) return;
+        const item = this.state[colecaoAlvo].find(i => String(i.id) === String(itemId));
+        if (item) {
+            item.pastaId = pastaId || null;
+            item.updatedAt = new Date().toISOString();
+            this.saveLocal();
+            if (Toast) Toast.show('Item movido para a pasta com sucesso.', 'success');
         }
     },
 

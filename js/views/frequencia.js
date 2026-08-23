@@ -29,19 +29,45 @@ export const frequenciaView = {
         const diasNoMes = new Date(ano, mes + 1, 0).getDate();
         const diaSelecionadoStr = this.currentDate.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
 
+        const todasDatasUnicas = new Set();
+        if (turmaSelecionada && turmaSelecionada.alunos) {
+            turmaSelecionada.alunos.forEach(a => {
+                Object.keys(a.frequencia || {}).forEach(k => todasDatasUnicas.add(k));
+            });
+        }
+        const totalDiasRegistrados = todasDatasUnicas.size;
+        const pctCargaLDB = Math.min(100, Math.round((totalDiasRegistrados / 200) * 100));
+
         const html = `
             <div class="animate-enter" style="display: flex; flex-direction: column; gap: var(--spacing-6); padding-bottom: var(--spacing-8); height: 100%;">
                 
                 <!-- TOP HEADER & CONTROLS TOOLBAR -->
                 <div class="card" style="padding: var(--spacing-4) var(--spacing-6); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-4);">
                     <div>
-                        <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--color-slate-800); letter-spacing: -0.025em; display: flex; align-items: center; gap: var(--spacing-2);">
-                            <i class="fas fa-clipboard-check" style="color: var(--color-primary);"></i> Controle de Frequência
-                        </h2>
-                        <p style="font-size: 0.875rem; color: var(--color-slate-500);">Registro de presença diária e histórico mensal por estudante.</p>
+                        <div style="display: flex; align-items: center; gap: 0.75rem;">
+                            <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--color-slate-800); letter-spacing: -0.025em; display: flex; align-items: center; gap: var(--spacing-2);">
+                                <i class="fas fa-clipboard-check" style="color: var(--color-primary);"></i> Controle de Frequência
+                            </h2>
+                            <span class="badge" style="background-color: #e0e7ff; color: #3730a3; font-weight: 800; padding: 0.35rem 0.75rem; border-radius: 9999px; font-size: 0.75rem; border: 1px solid #c7d2fe;" title="Meta LDB Art. 24, I: 200 dias / 800 horas letivas">
+                                <i class="fas fa-calendar-check" style="margin-right: 0.25rem;"></i> LDB: ${totalDiasRegistrados}/200 dias (${pctCargaLDB}%)
+                            </span>
+                        </div>
+                        <p style="font-size: 0.875rem; color: var(--color-slate-500); margin-top: 0.25rem;">Registro de presença diária e histórico mensal por estudante.</p>
                     </div>
 
                     <div style="display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap;">
+                        <button type="button" onclick="frequenciaView.abrirModalConteudoMinistrado()" 
+                                class="btn-secondary" style="white-space: nowrap; flex-shrink: 0;"
+                                title="Registrar Conteúdo Lecionado e Habilidade BNCC da Aula">
+                            <i class="fas fa-pen-nib" style="color: var(--color-primary);"></i> <span>Conteúdo Ministrado</span>
+                        </button>
+
+                        <button type="button" onclick="frequenciaView.abrirModalImprimirChamada()" 
+                                class="btn-secondary" style="white-space: nowrap; flex-shrink: 0;"
+                                title="Imprimir Folha de Chamada Mensal">
+                            <i class="fas fa-print"></i> <span>Imprimir Chamada</span>
+                        </button>
+
                         <button type="button" onclick="frequenciaView.iniciarChamada()" 
                                 class="btn-primary" style="background-color: #059669; border-color: #059669; white-space: nowrap; flex-shrink: 0;"
                                 title="Iniciar chamada rápida interativa">
@@ -471,9 +497,11 @@ export const frequenciaView = {
             if (totalReg >= 5 && pctFaltas >= 25) {
                 alunosEmRiscoLDB++;
                 badgeRisco = `
-                    <span style="background-color: #fee2e2; color: #dc2626; border: 1px solid #fecaca; font-size: 0.625rem; font-weight: 900; padding: 0.125rem 0.375rem; border-radius: 0.375rem; margin-left: auto; display: inline-flex; align-items: center; gap: 0.25rem; flex-shrink: 0;" title="Risco LDB: ${pctFaltas}% de faltas (Limite máximo da lei: 25%)">
-                        <i class="fas fa-exclamation-triangle"></i> LDB ${pctFaltas}%
-                    </span>
+                    <button type="button" onclick="frequenciaView.gerarFichaBuscaAtiva('${aluno.id}')" 
+                            style="background-color: #fee2e2; color: #dc2626; border: 1px solid #fecaca; font-size: 0.625rem; font-weight: 900; padding: 0.15rem 0.375rem; border-radius: 0.375rem; margin-left: auto; display: inline-flex; align-items: center; gap: 0.25rem; flex-shrink: 0; cursor: pointer;" 
+                            title="Clique para emitir Notificação do Conselho Tutelar (Busca Ativa)">
+                        <i class="fas fa-file-export"></i> Busca Ativa (${pctFaltas}%)
+                    </button>
                 `;
             } else if (totalReg >= 5 && pctFaltas >= 18) {
                 badgeRisco = `
@@ -587,5 +615,471 @@ export const frequenciaView = {
         }
 
         el.innerHTML = this.getIconeStatus(novoStatus);
+    },
+
+    // =========================================================================
+    // IMPRESSÃO DE CHAMADA MENSAL (A4 LANDSCAPE)
+    // =========================================================================
+
+    imprimir() {
+        this.abrirModalImprimirChamada();
+    },
+
+    abrirModalImprimirChamada() {
+        const html = `
+            <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                <p style="font-size: 0.9375rem; color: #475569; font-weight: 600;">Selecione o tipo de impressão da Folha de Chamada Mensal A4:</p>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+                    <div onclick="frequenciaView.gerarImpressaoMensal('branco')" class="card interactive-element" style="padding: 1.25rem; cursor: pointer; border: 2px solid var(--color-slate-200); text-align: center; background: #fff;">
+                        <i class="fas fa-print" style="font-size: 2rem; color: #3b82f6; margin-bottom: 0.75rem;"></i>
+                        <h4 style="font-size: 1rem; font-weight: 800; color: #1e293b; margin-bottom: 0.25rem;">Folha em Branco (Manual)</h4>
+                        <p style="font-size: 0.8125rem; color: #64748b;">Para imprimir e realizar a chamada em sala com lápis/caneta.</p>
+                    </div>
+                    <div onclick="frequenciaView.gerarImpressaoMensal('preenchido')" class="card interactive-element" style="padding: 1.25rem; cursor: pointer; border: 2px solid var(--color-slate-200); text-align: center; background: #fff;">
+                        <i class="fas fa-file-invoice" style="font-size: 2rem; color: #059669; margin-bottom: 0.75rem;"></i>
+                        <h4 style="font-size: 1rem; font-weight: 800; color: #1e293b; margin-bottom: 0.25rem;">Folha Preenchida (Sistema)</h4>
+                        <p style="font-size: 0.8125rem; color: #64748b;">Imprime os registros de presença/falta já lançados neste mês.</p>
+                    </div>
+                </div>
+            </div>
+        `;
+        controller.openModal('Imprimir Diário / Chamada Mensal', html, 'lg');
+    },
+
+    gerarImpressaoMensal(modo) {
+        controller.closeModal();
+        const turma = (model.state.turmas || []).find(t => String(t.id) === String(this.currentTurmaId));
+        if (!turma) return Toast.show("Selecione uma turma.", "warning");
+
+        const alunos = window.ordenarEstudantes ? window.ordenarEstudantes(turma.alunos || [], 'chamada_asc') : (turma.alunos || []);
+        const ano = this.currentDate.getFullYear();
+        const mes = this.currentDate.getMonth();
+        const nomeMes = new Intl.DateTimeFormat('pt-BR', { month: 'long' }).format(this.currentDate);
+        const diasNoMes = new Date(ano, mes + 1, 0).getDate();
+        const config = model.state.userConfig || {};
+        const escola = config.school || config.escola || 'Unidade Escolar';
+
+        let diasHeader = '';
+        for (let d = 1; d <= diasNoMes; d++) {
+            diasHeader += `<th style="border: 1px solid #cbd5e1; padding: 2px; text-align: center; font-size: 0.65rem; width: 22px;">${d}</th>`;
+        }
+
+        let linhasHtml = '';
+        alunos.forEach((aluno, idx) => {
+            const numChamada = aluno.chamada || (idx + 1);
+            let celulasDias = '';
+
+            for (let d = 1; d <= diasNoMes; d++) {
+                let val = '';
+                if (modo === 'preenchido') {
+                    const diaFormatted = String(d).padStart(2, '0');
+                    const mesFormatted = String(mes + 1).padStart(2, '0');
+                    const dataIso = `${ano}-${mesFormatted}-${diaFormatted}`;
+                    const st = (aluno.frequencia || {})[dataIso];
+                    if (st === 'P') val = '<span style="color: #059669; font-weight: 800;">P</span>';
+                    else if (st === 'F') val = '<span style="color: #dc2626; font-weight: 800;">F</span>';
+                    else if (st === 'J') val = '<span style="color: #d97706; font-weight: 800;">J</span>';
+                }
+                celulasDias += `<td style="border: 1px solid #cbd5e1; text-align: center; font-size: 0.7rem; height: 22px;">${val}</td>`;
+            }
+
+            linhasHtml += `
+                <tr>
+                    <td style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; font-weight: 700; font-size: 0.75rem;">${numChamada}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 4px; font-weight: 600; font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 200px;">${window.escapeHTML(aluno.nome)}</td>
+                    ${celulasDias}
+                </tr>
+            `;
+        });
+
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return Toast.show("Permita pop-ups para visualizar a impressão.", "warning");
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Folha de Chamada Mensal — ${window.escapeHTML(turma.nome)}</title>
+                <style>
+                    @page { size: A4 landscape; margin: 10mm; }
+                    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; margin: 0; padding: 0; }
+                    .header { display: flex; justify-content: space-between; border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 12px; }
+                    .header h2 { margin: 0; font-size: 1.1rem; text-transform: uppercase; }
+                    .header p { margin: 2px 0 0 0; font-size: 0.8rem; color: #475569; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; table-layout: fixed; }
+                    th { background-color: #f1f5f9; color: #1e293b; font-weight: 800; }
+                    .footer { display: flex; justify-content: space-between; font-size: 0.75rem; color: #64748b; margin-top: 10px; border-top: 1px dashed #cbd5e1; padding-top: 6px; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <div>
+                        <h2>${window.escapeHTML(escola)} — Folha de Chamada Mensal</h2>
+                        <p><strong>Turma:</strong> ${window.escapeHTML(turma.nome)} &nbsp;|&nbsp; <strong>Mês/Ano:</strong> ${nomeMes.toUpperCase()} / ${ano}</p>
+                    </div>
+                    <div style="text-align: right; font-size: 0.75rem; color: #475569;">
+                        <p><strong>Modo:</strong> ${modo === 'branco' ? 'Preenchimento Manual (Papel)' : 'Registros do Sistema'}</p>
+                        <p>Legenda: P = Presença | F = Falta | J = Justificada</p>
+                    </div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; width: 35px;">Nº</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; width: 190px; text-align: left;">Estudante</th>
+                            ${diasHeader}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${linhasHtml}
+                    </tbody>
+                </table>
+
+                <div class="footer">
+                    <span>Documento emitido via Planner Pro Docente em ${new Date().toLocaleDateString('pt-BR')}</span>
+                    <span>Assinatura do Professor: _____________________________________________</span>
+                </div>
+
+                <script>
+                    window.onload = function() { window.print(); };
+                </script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+    },
+
+    // =========================================================================
+    // RELATÓRIO OFICIAL DE BUSCA ATIVA ESCOLAR (CONSELHO TUTELAR A4)
+    // =========================================================================
+
+    gerarFichaBuscaAtiva(alunoId) {
+        const turma = (model.state.turmas || []).find(t => String(t.id) === String(this.currentTurmaId));
+        if (!turma) return Toast.show("Selecione uma turma.", "warning");
+
+        const aluno = (turma.alunos || []).find(a => String(a.id) === String(alunoId));
+        if (!aluno) return Toast.show("Estudante não encontrado.", "warning");
+
+        const config = model.state.userConfig || {};
+        const escola = config.school || config.escola || 'Unidade Escolar';
+        const anoLetivo = config.anoLetivo || new Date().getFullYear();
+
+        const freqObj = aluno.frequencia || {};
+        let totalReg = 0, totalFaltas = 0, totalPresencas = 0, totalJustificadas = 0;
+        Object.values(freqObj).forEach(val => {
+            if (val === 'P' || val === 'F' || val === 'J') totalReg++;
+            if (val === 'P') totalPresencas++;
+            if (val === 'F') totalFaltas++;
+            if (val === 'J') totalJustificadas++;
+        });
+
+        const pctFaltas = totalReg > 0 ? Math.round((totalFaltas / totalReg) * 100) : 0;
+        const pctFreq = totalReg > 0 ? Math.round(((totalReg - totalFaltas) / totalReg) * 100) : 100;
+
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return Toast.show("Permita pop-ups para visualizar a notificação.", "warning");
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Ficha de Notificação de Busca Ativa Escolar — ${window.escapeHTML(aluno.nome)}</title>
+                <style>
+                    @page { size: A4 portrait; margin: 12mm; }
+                    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; margin: 0; padding: 0; }
+                    .header { text-align: center; border-bottom: 2px solid #0f172a; padding-bottom: 10px; margin-bottom: 16px; }
+                    .header h1 { font-size: 1.1rem; margin: 0; text-transform: uppercase; letter-spacing: 0.05em; }
+                    .header h2 { font-size: 0.9rem; margin: 4px 0 0 0; color: #475569; font-weight: 700; text-transform: uppercase; }
+                    .alert-box { background: #fef2f2; border: 1.5px solid #ef4444; border-radius: 6px; padding: 10px; margin-bottom: 16px; font-size: 0.8rem; color: #991b1b; }
+                    .section { margin-bottom: 16px; }
+                    .section-title { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; border-bottom: 1px solid #cbd5e1; padding-bottom: 4px; margin-bottom: 8px; color: #1e293b; }
+                    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.8rem; }
+                    .field { background: #f8fafc; border: 1px solid #e2e8f0; padding: 6px 10px; border-radius: 4px; }
+                    .field label { font-size: 0.65rem; font-weight: 800; color: #64748b; text-transform: uppercase; display: block; }
+                    .field span { font-weight: 700; color: #0f172a; }
+                    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.75rem; }
+                    th, td { border: 1px solid #cbd5e1; padding: 6px; text-align: center; }
+                    th { background: #f1f5f9; font-weight: 800; }
+                    .assinaturas { display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 40px; text-align: center; font-size: 0.75rem; }
+                    .linha-ass { border-top: 1px solid #0f172a; padding-top: 4px; font-weight: 700; }
+                    .footer { font-size: 0.65rem; color: #94a3b8; margin-top: 20px; text-align: center; border-top: 1px dashed #cbd5e1; padding-top: 6px; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <h1>ESTADO / MUNICÍPIO — SECRETARIA DE EDUCAÇÃO</h1>
+                    <h2>${window.escapeHTML(escola)} — RELATÓRIO OFICIAL DE BUSCA ATIVA ESCOLAR</h2>
+                    <p style="font-size: 0.75rem; margin: 4px 0 0 0; color: #64748b;">Notificação Formal de Infrequência Escolar Grave (Lei Nº 13.803/2019 e LDB Art. 24, VI)</p>
+                </div>
+
+                <div class="alert-box">
+                    <strong>⚠️ ALERTA LEGAL DE EVASÃO ESCOLAR:</strong> O estudante abaixo identificado atingiu um índice de faltas de <strong>${pctFaltas}%</strong> (Frequência acumulada de ${pctFreq}%), ultrapassando o limite legal de infrequência permitido por lei. Este relatório deve ser encaminhado com urgência ao Conselho Tutelar e à Equipe de Busca Ativa.
+                </div>
+
+                <div class="section">
+                    <div class="section-title">1. Identificação do Estudante e da Turma</div>
+                    <div class="grid">
+                        <div class="field"><label>Nome do Estudante</label><span>${window.escapeHTML(aluno.nome)}</span></div>
+                        <div class="field"><label>Matrícula / ID</label><span>${aluno.matricula || aluno.id}</span></div>
+                        <div class="field"><label>Turma / Ano Letivo</label><span>${window.escapeHTML(turma.nome)} (${anoLetivo})</span></div>
+                        <div class="field"><label>Responsável Legal</label><span>${window.escapeHTML(aluno.responsavel || 'Não cadastrado')}</span></div>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">2. Consolidado da Frequência Escolar</div>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Aulas Registradas</th>
+                                <th>Presenças (P)</th>
+                                <th>Faltas (F)</th>
+                                <th>Faltas Justificadas (J)</th>
+                                <th>% Frequência</th>
+                                <th>Status LDB</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>${totalReg}</td>
+                                <td>${totalPresencas}</td>
+                                <td style="color: #dc2626; font-weight: 800;">${totalFaltas}</td>
+                                <td>${totalJustificadas}</td>
+                                <td style="font-weight: 800;">${pctFreq}%</td>
+                                <td style="color: #dc2626; font-weight: 800;">Infrequência Crítica (${pctFaltas}% Faltas)</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">3. Providências e Contatos Prévios da Escola</div>
+                    <div style="border: 1px solid #cbd5e1; padding: 10px; border-radius: 4px; font-size: 0.75rem; color: #334155; min-height: 80px;">
+                        <p style="margin: 0 0 6px 0;"><strong>Tentativas de Contato com a Família / Responsável:</strong></p>
+                        <p style="margin: 0; color: #64748b;">( &nbsp; ) Ligação telefônica &nbsp;&nbsp;&nbsp; ( &nbsp; ) Mensagem por aplicativo &nbsp;&nbsp;&nbsp; ( &nbsp; ) Visita domiciliar &nbsp;&nbsp;&nbsp; ( &nbsp; ) Reunião presencial</p>
+                        <br>
+                        <p style="margin: 0;"><strong>Observações do Docente / Orientação Pedagógica:</strong> __________________________________________________________________________________________________________________________________________________________________</p>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <div class="section-title">4. Encaminhamento ao Conselho Tutelar</div>
+                    <p style="font-size: 0.75rem; color: #475569; margin: 0;">
+                        Solicita-se a intervenção do Conselho Tutelar competente para a realização de visita domiciliar e aplicação das medidas de proteção previstas no Estatuto da Criança e do Adolescente (ECA, Lei nº 8.069/1990).
+                    </p>
+                </div>
+
+                <div class="assinaturas">
+                    <div>
+                        <div class="linha-ass">Professor(a) Titular / Regente</div>
+                    </div>
+                    <div>
+                        <div class="linha-ass">Direção / Coordenação Pedagógica</div>
+                    </div>
+                </div>
+
+                <div class="footer">
+                    Documento gerado automaticamente em ${new Date().toLocaleDateString('pt-BR')} via Planner Pro Docente — Sistema de Gestão de Ensino Integrado
+                </div>
+
+                <script>
+                    window.onload = function() { window.print(); };
+                </script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+    },
+
+    // =========================================================================
+    // REGISTRO DE CONTEÚDO MINISTRADO E HABILIDADE BNCC POR AULA
+    // =========================================================================
+
+    abrirModalConteudoMinistrado() {
+        const turma = (model.state.turmas || []).find(t => String(t.id) === String(this.currentTurmaId));
+        if (!turma) return Toast.show("Selecione uma turma.", "warning");
+
+        const dataStr = this.currentDate.toISOString().split('T')[0];
+
+        const modalHtml = `
+            <div id="modal-conteudo-aula" class="modal-overlay modal-enter" style="display: flex; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; z-index: 9999;">
+                <div class="card p-6" style="max-width: 540px; width: 90%; background: var(--color-white); border-radius: var(--radius-2xl); box-shadow: var(--shadow-2xl); border: 1px solid var(--color-slate-200);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
+                        <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-pen-nib" style="color: var(--color-primary);"></i> Registro de Conteúdo Ministrado
+                        </h3>
+                        <button type="button" onclick="document.getElementById('modal-conteudo-aula').remove()" class="btn-icon" style="border: none; background: none; cursor: pointer; color: var(--color-slate-400);">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+
+                    <p style="font-size: 0.875rem; color: var(--color-slate-600); margin-bottom: 1rem;">
+                        Turma: <strong>${window.escapeHTML(turma.nome)}</strong>
+                    </p>
+
+                    <form id="form-conteudo-aula" onsubmit="event.preventDefault(); frequenciaView.salvarConteudoMinistrado('${turma.id}');">
+                        <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                                <div>
+                                    <label class="form-label" style="font-weight: 700;">Data da Aula</label>
+                                    <input type="date" id="ca-data" class="form-input" required value="${dataStr}" />
+                                </div>
+                                <div>
+                                    <label class="form-label" style="font-weight: 700;">Habilidade BNCC</label>
+                                    <input type="text" id="ca-bncc" class="form-input" placeholder="Ex: EF05LP01, EF09MA02" />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="form-label" style="font-weight: 700;">Conteúdo Lecionado / Objeto de Conhecimento</label>
+                                <textarea id="ca-conteudo" class="form-input" rows="3" required placeholder="Descreva os tópicos explicados e atividades realizadas na aula..."></textarea>
+                            </div>
+
+                            <div>
+                                <label class="form-label" style="font-weight: 700;">Tarefa de Casa / Orientação de Estudo (Opcional)</label>
+                                <input type="text" id="ca-tarefa" class="form-input" placeholder="Ex: Exercícios 1 a 5 da página 42 do livro..." />
+                            </div>
+                        </div>
+
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <button type="button" onclick="frequenciaView.imprimirDiarioConteudoA4('${turma.id}')" class="btn-secondary" style="font-size: 0.75rem;">
+                                <i class="fas fa-print"></i> Relatório A4 Diário
+                            </button>
+                            <div style="display: flex; gap: 0.75rem;">
+                                <button type="button" onclick="document.getElementById('modal-conteudo-aula').remove()" class="btn-secondary">Cancelar</button>
+                                <button type="submit" class="btn-primary">
+                                    <i class="fas fa-save"></i> Salvar Conteúdo
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        `;
+        document.body.insertAdjacentHTML('beforeend', modalHtml);
+    },
+
+    salvarConteudoMinistrado(turmaId) {
+        const turma = (model.state.turmas || []).find(t => String(t.id) === String(turmaId));
+        if (!turma) return;
+
+        const dataInput = document.getElementById('ca-data');
+        const bnccInput = document.getElementById('ca-bncc');
+        const contInput = document.getElementById('ca-conteudo');
+        const tarInput = document.getElementById('ca-tarefa');
+
+        const dataVal = dataInput ? dataInput.value : new Date().toISOString().split('T')[0];
+        const bnccVal = bnccInput ? bnccInput.value.trim() : '';
+        const contVal = contInput ? contInput.value.trim() : '';
+        const tarVal = tarInput ? tarInput.value.trim() : '';
+
+        if (!contVal) return Toast.show("Descreva o conteúdo lecionado.", "warning");
+
+        if (!Array.isArray(turma.diarioConteudo)) turma.diarioConteudo = [];
+
+        const novoRegistro = {
+            id: Date.now(),
+            data: dataVal,
+            bncc: bnccVal,
+            conteudo: contVal,
+            tarefa: tarVal
+        };
+
+        turma.diarioConteudo.push(novoRegistro);
+
+        if (model.saveTurma) {
+            model.saveTurma(turma);
+        } else {
+            model.saveLocal();
+        }
+
+        const modal = document.getElementById('modal-conteudo-aula');
+        if (modal) modal.remove();
+
+        Toast.show("Conteúdo ministrado registrado com sucesso!", "success");
+    },
+
+    imprimirDiarioConteudoA4(turmaId) {
+        const turma = (model.state.turmas || []).find(t => String(t.id) === String(turmaId));
+        if (!turma) return Toast.show("Selecione uma turma.", "warning");
+
+        const config = model.state.userConfig || {};
+        const escola = config.school || config.escola || 'Unidade Escolar';
+        const anoLetivo = config.anoLetivo || new Date().getFullYear();
+        const diario = turma.diarioConteudo || [];
+
+        if (diario.length === 0) return Toast.show("Nenhum conteúdo registrado para esta turma.", "info");
+
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return Toast.show("Permita pop-ups para visualizar a impressão.", "warning");
+
+        const linhasHtml = diario.map((d, i) => `
+            <tr>
+                <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: center;">${new Date(d.data + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
+                <td style="border: 1px solid #cbd5e1; padding: 6px; font-weight: 700;">${window.escapeHTML(d.conteudo)}</td>
+                <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: center; color: #4338ca; font-weight: 800;">${window.escapeHTML(d.bncc || '-')}</td>
+                <td style="border: 1px solid #cbd5e1; padding: 6px; color: #475569;">${window.escapeHTML(d.tarefa || '-')}</td>
+            </tr>
+        `).join('');
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Diário de Conteúdos Ministrados — ${window.escapeHTML(turma.nome)}</title>
+                <style>
+                    @page { size: A4 portrait; margin: 12mm; }
+                    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; margin: 0; padding: 0; }
+                    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 16px; }
+                    .header h2 { margin: 0; font-size: 1.1rem; text-transform: uppercase; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 0.75rem; }
+                    th { background: #f1f5f9; font-weight: 800; border: 1px solid #cbd5e1; padding: 6px; text-align: center; }
+                    .assinaturas { display: grid; grid-template-columns: repeat(2, 1fr); gap: 40px; margin-top: 40px; text-align: center; font-size: 0.75rem; }
+                    .linha-ass { border-top: 1px solid #0f172a; padding-top: 4px; font-weight: 700; }
+                    .footer { font-size: 0.65rem; color: #94a3b8; margin-top: 20px; text-align: center; border-top: 1px dashed #cbd5e1; padding-top: 6px; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <div>
+                        <h2>${window.escapeHTML(escola)} — DIÁRIO DE CONTEÚDOS MINISTRADOS</h2>
+                        <p style="margin: 2px 0 0 0; font-size: 0.8rem; color: #475569;"><strong>Turma:</strong> ${window.escapeHTML(turma.nome)} &nbsp;|&nbsp; <strong>Ano Letivo:</strong> ${anoLetivo}</p>
+                    </div>
+                    <div style="font-size: 0.75rem; color: #475569;">
+                        Emissão: ${new Date().toLocaleDateString('pt-BR')}
+                    </div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width: 80px;">Data</th>
+                            <th style="text-align: left;">Conteúdo Lecionado / Objeto de Conhecimento</th>
+                            <th style="width: 100px;">Habilidade BNCC</th>
+                            <th style="text-align: left;">Tarefa de Casa / Atividade</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${linhasHtml}
+                    </tbody>
+                </table>
+
+                <div class="assinaturas">
+                    <div><div class="linha-ass">Professor(a) Regente</div></div>
+                    <div><div class="linha-ass">Coordenação Pedagógica</div></div>
+                </div>
+
+                <div class="footer">
+                    Documento emitido via Planner Pro Docente
+                </div>
+
+                <script>
+                    window.onload = function() { window.print(); };
+                </script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
     }
 };

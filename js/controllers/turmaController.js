@@ -20,13 +20,14 @@ export const turmaController = {
         }
     },
     disciplinas: [
-        "Matemática", "Ciências", "Geografia", "História", "Língua Portuguesa",
-        "Inglês", "Arte", "Educação Física", "Física", "Química", "Biologia"
+        "Língua Portuguesa", "Matemática", "Ciências", "História", "Geografia",
+        "Arte", "Educação Física", "Língua Inglesa", "Ensino Religioso", "Física", "Química",
+        "Biologia", "Filosofia", "Sociologia"
     ],
     series: [
-        "Educação Infantil", "1º Ano — EF I", "2º Ano — EF I", "3º Ano — EF I",
-        "4º Ano — EF I", "5º Ano — EF I", "6º Ano — EF II", "7º Ano — EF II",
-        "8º Ano — EF II", "9º Ano — EF II", "1ª Série — EM", "2ª Série — EM", "3ª Série — EM"
+        "Berçário I", "Berçário II", "Maternal I", "Maternal II", "Jardim I", "Jardim II",
+        "1º Ano", "2º Ano", "3º Ano", "4º Ano", "5º Ano", "6º Ano", "7º Ano", "8º Ano", "9º Ano",
+        "1ª Série (EM)", "2ª Série (EM)", "3ª Série (EM)"
     ],
     openAddTurma() {
         this.wizard.step = 1;
@@ -574,7 +575,9 @@ export const turmaController = {
 
         const win = window.open('', '_blank');
         if (win) {
-            win.document.write(relatorioHtml);
+            const safeHtml = window.sanitizeComLatex ? window.sanitizeComLatex(relatorioHtml) : relatorioHtml;
+            win.document.open();
+            win.document.write(safeHtml);
             win.document.close();
         } else {
             Toast.show("Permita pop-ups para visualizar a impressão do relatório.", "warning");

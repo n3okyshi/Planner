@@ -40,6 +40,7 @@ const controllerCore = {
         this.setupGlobalListeners();
         authController.monitorAuth();
         model.carregarQuestoesSistema();
+        if (model.carregarDescritoresSaeb) model.carregarDescritoresSaeb();
         if (model.migrarAvaliacoesAntigas) model.migrarAvaliacoesAntigas();
     },
     bindViews: function () {
@@ -223,7 +224,18 @@ const controllerCore = {
             'toggle-zen': () => uiController.toggleZenMode(),
             'toggle-theme': () => uiController.toggleTema(),
             'open-sync': () => uiController.abrirCentroSincronizacao(),
-            'print': () => window.print(),
+            'print': () => {
+                const activeView = controller.views[controller.currentView];
+                if (activeView && typeof activeView.imprimir === 'function') {
+                    activeView.imprimir();
+                } else if (activeView && typeof activeView.imprimirPDF === 'function') {
+                    activeView.imprimirPDF();
+                } else if (activeView && typeof activeView.gerarPDF === 'function') {
+                    activeView.gerarPDF();
+                } else {
+                    window.print();
+                }
+            },
             'export-data': () => controller.exportData(),
             'command-palette': () => window.commandPaletteController?.open(),
             'toggle-notifications': () => window.notificationController?.toggle()

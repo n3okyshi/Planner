@@ -88,7 +88,7 @@ export const storageService = {
         // Fallback e Migração do localStorage
         const legacyData = this.load();
         if (legacyData) {
-            this.saveAsync(legacyData).catch(() => {});
+            this.saveAsync(legacyData).catch(() => { });
         }
         return legacyData;
     },
@@ -369,7 +369,7 @@ export const storageService = {
                 });
                 if (ops && ops.length > 0) return ops;
             }
-        } catch (e) {}
+        } catch (e) { }
 
         try {
             return JSON.parse(localStorage.getItem('planner_offline_queue') || '[]');
@@ -405,13 +405,13 @@ export const storageService = {
                     tx.onerror = () => resolve(false);
                 });
             }
-        } catch (e) {}
+        } catch (e) { }
 
         try {
             const fila = JSON.parse(localStorage.getItem('planner_offline_queue') || '[]');
             const filtrada = fila.filter(item => !setIds.has(String(item.id)));
             localStorage.setItem('planner_offline_queue', JSON.stringify(filtrada));
-        } catch (e) {}
+        } catch (e) { }
     },
 
     /**
@@ -425,10 +425,68 @@ export const storageService = {
                 const store = tx.objectStore(QUEUE_STORE_NAME);
                 store.clear();
             }
-        } catch (e) {}
+        } catch (e) { }
         try {
             localStorage.removeItem('planner_offline_queue');
-        } catch (e) {}
+        } catch (e) { }
+    },
+
+    /**
+     * Exporta todo o estado do armazenamento local (IndexedDB + localStorage) em um único objeto JSON para backup offline.
+     * @returns {Promise<string>} String JSON formatada contendo todo o estado.
+     */
+    async exportarBackupCompletoJSON() {
+        const dadosLocais = await this.loadAllLocalData();
+        const filaOffline = await this.obterFilaOffline();
+
+        const payloadBackup = {
+            versao: '2.4',
+            criadoEm: new Date().toISOString(),
+            app: 'Planner Pro Docente',
+            dados: dadosLocais || {},
+            filaOffline: filaOffline || []
+        };
+
+        return JSON.stringify(payloadBackup, null, 2);
+    },
+
+    /**
+     * Restaura os dados de um arquivo de backup JSON estruturado no armazenamento local.
+     * @param {string} jsonString 
+     * @returns {Promise<boolean>}
+     */
+    async importarBackupCompletoJSON(jsonString) {
+        if (!jsonString) throw new Error("Conteúdo do backup em branco.");
+        const parsed = JSON.parse(jsonString);
+
+        if (!parsed || !parsed.app || parsed.app !== 'Planner Pro Docente' || !parsed.dados) {
+            throw new Error("Formato de arquivo de backup inválido.");
+        }
+
+        await this.saveAllLocalData(parsed.dados);
+        return true;
+    },
+
+    /**
+     * Gera o download direto do arquivo de backup JSON no navegador.
+     * @param {Object} stateData 
+     */
+    async exportBackup(stateData) {
+        try {
+            const jsonStr = await this.exportarBackupCompletoJSON();
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(jsonStr);
+            const downloadAnchor = document.createElement('a');
+            const dataHoje = new Date().toISOString().split('T')[0];
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `planner_pro_backup_${dataHoje}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            if (window.Toast) window.Toast.show("📁 Backup JSON baixado com sucesso!", "success");
+        } catch (err) {
+            console.error("Erro ao gerar backup JSON:", err);
+            if (window.Toast) window.Toast.show("Erro ao gerar backup.", "error");
+        }
     }
 };
 

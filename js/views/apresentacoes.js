@@ -18,6 +18,11 @@ export const apresentacoesView = {
     selectedFileContext: '',
     selectedFileName: '',
 
+    setTab(tab) {
+        this.activeTab = tab;
+        this.render('view-container');
+    },
+
     async render(container) {
         if (typeof container === 'string') {
             container = document.getElementById(container);
@@ -48,62 +53,35 @@ export const apresentacoesView = {
                         </p>
                     </div>
 
-                    <div class="view-header__actions" style="display: flex; flex-wrap: wrap; gap: var(--spacing-3); margin-left: auto;">
-                        <button id="btn-import-pptx" class="btn-secondary" style="display: flex; align-items: center; gap: 0.5rem; background-color: var(--color-slate-800); color: var(--color-slate-200); border-color: var(--color-slate-700);">
-                            <i class="fas fa-file-powerpoint" style="color: #f97316;"></i>
-                            <span>Importar PPTX</span>
+                    <!-- BOTÕES DE AÇÃO DO HEADER -->
+                    <div style="display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap; margin-top: var(--spacing-4);">
+                        <button type="button" id="btn-nova-apres" class="btn-primary" style="background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); border: none;">
+                            <i class="fas fa-plus"></i> <span>Nova Apresentação</span>
                         </button>
 
-                        <button id="btn-gerar-ia" class="btn-primary" style="display: flex; align-items: center; gap: 0.5rem; background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); border: none;">
-                            <i class="fas fa-wand-magic-sparkles" style="color: #fde047;"></i>
-                            <span>Gerar com IA</span>
+                        <button type="button" id="btn-abrir-ia-modal" class="btn-secondary" style="background: rgba(147, 51, 234, 0.15); color: #c084fc; border: 1px solid rgba(147, 51, 234, 0.3);">
+                            <i class="fas fa-wand-magic-sparkles"></i> <span>Gerar com IA</span>
                         </button>
 
-                        <button id="btn-nova-apres" class="btn-primary" style="display: flex; align-items: center; gap: 0.5rem;">
-                            <i class="fas fa-plus"></i>
-                            <span>Nova Apresentação</span>
+                        <button type="button" id="btn-importar-pptx" class="btn-secondary" style="background: rgba(234, 88, 12, 0.15); color: #fb923c; border: 1px solid rgba(234, 88, 12, 0.3);">
+                            <i class="fas fa-file-powerpoint"></i> <span>Importar PPTX</span>
                         </button>
+
+                        <input type="file" id="input-pptx-file" accept=".pptx" style="display: none;">
                     </div>
                 </header>
 
-                <!-- SELETOR DE ABAS -->
-                <div style="display: flex; align-items: center; gap: var(--spacing-2); border-bottom: 1px solid var(--color-slate-200); padding-bottom: var(--spacing-2); margin-top: var(--spacing-4);">
-                    <button class="btn-secondary ${this.activeTab === 'todas' ? 'btn-primary' : ''}" data-tab="todas" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
-                        Todas (${apresList.length})
-                    </button>
-                    <button class="btn-secondary ${this.activeTab === 'nativo' ? 'btn-primary' : ''}" data-tab="nativo" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
-                        <i class="fas fa-layer-group" style="color: #6366f1; margin-right: 0.375rem;"></i>Nativas
-                    </button>
-                    <button class="btn-secondary ${this.activeTab === 'pptx' ? 'btn-primary' : ''}" data-tab="pptx" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
-                        <i class="fas fa-file-powerpoint" style="color: #f97316; margin-right: 0.375rem;"></i>PowerPoint (.pptx)
-                    </button>
-                    <button class="btn-secondary ${this.activeTab === 'ia' ? 'btn-primary' : ''}" data-tab="ia" style="padding: 0.5rem 1rem; font-size: 0.875rem;">
-                        <i class="fas fa-sparkles" style="color: #a855f7; margin-right: 0.375rem;"></i>Geradas por IA
-                    </button>
+                <!-- BARRA DE ABAS DE FILTRO -->
+                <div style="display: flex; align-items: center; gap: var(--spacing-2); margin-top: var(--spacing-6); border-bottom: 1px solid var(--color-slate-200); padding-bottom: var(--spacing-2); flex-wrap: wrap;">
+                    <button type="button" class="btn-secondary ${this.activeTab === 'todas' ? 'btn-primary' : ''}" onclick="apresentacoesView.setTab('todas')" style="padding: 0.4rem 0.85rem; font-size: 0.8125rem;">Todas (${apresList.length})</button>
+                    <button type="button" class="btn-secondary ${this.activeTab === 'nativo' ? 'btn-primary' : ''}" onclick="apresentacoesView.setTab('nativo')" style="padding: 0.4rem 0.85rem; font-size: 0.8125rem;">Nativas</button>
+                    <button type="button" class="btn-secondary ${this.activeTab === 'ia' ? 'btn-primary' : ''}" onclick="apresentacoesView.setTab('ia')" style="padding: 0.4rem 0.85rem; font-size: 0.8125rem;">✨ IA</button>
+                    <button type="button" class="btn-secondary ${this.activeTab === 'pptx' ? 'btn-primary' : ''}" onclick="apresentacoesView.setTab('pptx')" style="padding: 0.4rem 0.85rem; font-size: 0.8125rem;">📄 PowerPoint (.pptx)</button>
                 </div>
 
-                <!-- SEÇÃO PRINCIPAL (GRID OU EDITOR) -->
-                ${this.selectedApresId ? this._renderEditorHTML(this.selectedApresId) : this._renderGridHTML(filtradas)}
-            </div>
-
-            <!-- MODAL IMPORTAR PPTX -->
-            <div id="modal-pptx" class="modal-overlay hidden">
-                <div class="card" style="max-width: 500px; width: 100%; padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4);">
-                    <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--color-slate-200); padding-bottom: var(--spacing-3);">
-                        <h3 style="font-size: 1.125rem; font-weight: 700; color: var(--color-slate-900); display: flex; align-items: center; gap: 0.5rem; margin: 0;">
-                            <i class="fas fa-file-powerpoint" style="color: #ea580c;"></i> Importar Apresentação (.pptx)
-                        </h3>
-                        <button class="close-modal" style="background: none; border: none; font-size: 1.25rem; cursor: pointer; color: var(--color-slate-400);">&times;</button>
-                    </div>
-                    <p style="font-size: 0.875rem; color: var(--color-slate-600); margin: 0;">
-                        Selecione ou arraste seu arquivo PowerPoint <b>.pptx</b>. Nosso leitor client-side extrairá títulos, tópicos e imagens sem enviar dados a nenhum servidor externo.
-                    </p>
-                    <div id="pptx-dropzone" class="file-dropzone">
-                        <i class="fas fa-cloud-arrow-up" style="font-size: 2.5rem; color: var(--color-primary); margin-bottom: 0.75rem;"></i>
-                        <p style="font-size: 0.875rem; font-weight: 600; color: var(--color-slate-700); margin: 0;">Clique ou arraste seu arquivo .pptx aqui</p>
-                        <p style="font-size: 0.75rem; color: var(--color-slate-400); margin-top: 0.25rem;">Formato suportado: .pptx (Microsoft PowerPoint)</p>
-                        <input type="file" id="input-pptx-file" accept=".pptx" style="display: none;">
-                    </div>
+                <!-- MAIN GRID DE APRESENTAÇÕES -->
+                <div id="apres-grid-container" style="margin-top: var(--spacing-6);">
+                    ${this._renderGridHTML(filtradas)}
                 </div>
             </div>
 

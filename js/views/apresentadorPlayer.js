@@ -1,6 +1,7 @@
 import { model } from '../model.js';
 import { apresentacaoController } from '../controllers/apresentacaoController.js';
 import { escapeHTML, renderMath } from '../utils.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 
 /**
  * View do Player de Apresentação em Tela Cheia (Engine Nativa & PPTX)
@@ -10,8 +11,14 @@ export const apresentadorPlayerView = {
     showNotesPanel: false,
     canvasDrawing: false,
     ctx: null,
+    _cleanupDelegators: null,
 
     async render(container) {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+
         const apresId = apresentacaoController.activeApresentacaoId;
         const apres = model.getApresentacaoById(apresId);
 
@@ -19,6 +26,7 @@ export const apresentadorPlayerView = {
         if (!targetContainer) {
             targetContainer = document.createElement('div');
             targetContainer.id = 'apresentador-player-root';
+            targetContainer.style.cssText = "position: fixed; top: 0; left: 0; right: 0; bottom: 0; width: 100vw; height: 100vh; z-index: 999999; background: #090d16; overflow: hidden;";
             document.body.appendChild(targetContainer);
         }
 
@@ -28,20 +36,35 @@ export const apresentadorPlayerView = {
             targetContainer.innerHTML = `
                 <div class="apresentador-player" style="justify-content: center; align-items: center; text-align: center; padding: 2rem;">
                     <p style="font-size: 1.25rem; font-weight: 700; color: #f87171; margin-bottom: 1rem;">Nenhuma apresentação ativa para exibir.</p>
-                    <button onclick="apresentadorPlayerView.sairPlayer()" class="btn-primary">
+                    <button type="button" data-action="sair-player" class="btn-primary">
                         Voltar para Apresentações
                     </button>
                 </div>
             `;
+            this._bindDelegators(targetContainer);
             return;
         }
 
         targetContainer.innerHTML = this._buildFullPlayerHTML(apres);
+        this._bindDelegators(targetContainer);
         this._initListeners(targetContainer, apres);
         this._initCanvas(targetContainer);
 
         // Renderiza expressões KaTeX se houver
         setTimeout(() => renderMath(targetContainer), 100);
+    },
+
+    _bindDelegators(container) {
+        this._cleanupDelegators = EventDelegator.bind(container, {
+            'sair-player': () => this.sairPlayer(),
+            'toggle-blackout': () => apresentacaoController.toggleBlackout(),
+            'toggle-whiteboard': () => apresentacaoController.toggleWhiteboard(),
+            'toggle-notes': () => this.toggleNotes(),
+            'toggle-pointer': () => apresentacaoController.togglePointer(),
+            'limpar-desenhos': () => this.limparDesenhos(),
+            'passo-anterior': () => apresentacaoController.passoAnterior(),
+            'proximo-passo': () => apresentacaoController.proximoPasso()
+        }, 'click');
     },
 
     /**
@@ -64,7 +87,7 @@ export const apresentadorPlayerView = {
         // Estados de Blackout / Whiteboard / Pointer
         if (apresentacaoController.isBlackout) {
             return `
-                <div id="player-screen" class="apresentador-player" style="background-color: #000000; justify-content: center; align-items: center; cursor: pointer;" onclick="apresentacaoController.toggleBlackout()">
+                <div id="player-screen" class="apresentador-player" style="background-color: #000000; justify-content: center; align-items: center; cursor: pointer;" data-action="toggle-blackout">
                     <span style="font-size: 0.875rem; font-family: monospace; opacity: 0.5; color: #94a3b8;">TELA EM BLACKOUT (Pressione 'B' ou clique para voltar)</span>
                 </div>
             `;
@@ -72,7 +95,7 @@ export const apresentadorPlayerView = {
 
         if (apresentacaoController.isWhiteboard) {
             return `
-                <div id="player-screen" class="apresentador-player" style="background-color: #ffffff; color: #0f172a; justify-content: center; align-items: center; cursor: pointer;" onclick="apresentacaoController.toggleWhiteboard()">
+                <div id="player-screen" class="apresentador-player" style="background-color: #ffffff; color: #0f172a; justify-content: center; align-items: center; cursor: pointer;" data-action="toggle-whiteboard">
                     <span style="font-size: 0.875rem; font-family: monospace; opacity: 0.5;">LOUSA BRANCA (Pressione 'W' ou clique para voltar)</span>
                 </div>
             `;
@@ -97,7 +120,7 @@ export const apresentadorPlayerView = {
                             <span style="font-size: 0.75rem; font-weight: 700; color: #fbbf24; display: flex; align-items: center; gap: 0.375rem;">
                                 <i class="fas fa-clipboard-question"></i> Modo Apresentador
                             </span>
-                            <button onclick="apresentadorPlayerView.toggleNotes()" style="background: none; border: none; color: #94a3b8; font-size: 0.875rem; cursor: pointer;">&times;</button>
+                            <button type="button" data-action="toggle-notes" style="background: none; border: none; color: #94a3b8; font-size: 0.875rem; cursor: pointer;">&times;</button>
                         </div>
                         <div style="font-size: 0.75rem; color: #cbd5e1; max-height: 140px; overflow-y: auto; line-height: 1.5;">
                             ${escapeHTML(slide.notasProfessor || 'Sem notas para este slide.')}
@@ -114,7 +137,7 @@ export const apresentadorPlayerView = {
                 <!-- BARRA INFERIOR DE CONTROLE E NAVEGAÇÃO -->
                 <div class="apresentador-player__toolbar">
                     <div style="display: flex; align-items: center; gap: 1rem; font-size: 0.75rem; font-weight: 500; color: #94a3b8;">
-                        <button onclick="apresentadorPlayerView.sairPlayer()" class="btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem; background: transparent; border-color: rgba(255,255,255,0.2); color: #e2e8f0;">
+                        <button type="button" data-action="sair-player" class="btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem; background: transparent; border-color: rgba(255,255,255,0.2); color: #e2e8f0;">
                             <i class="fas fa-xmark"></i> Sair (Esc)
                         </button>
                         <span style="height: 1rem; width: 1px; background-color: rgba(255,255,255,0.15);"></span>
@@ -125,29 +148,29 @@ export const apresentadorPlayerView = {
 
                     <!-- BOTÕES DE ATALHO DA BARRA -->
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <button onclick="apresentacaoController.togglePointer()" class="btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem; ${apresentacaoController.isPointerActive ? 'background-color: #dc2626; color: #ffffff; border-color: #dc2626;' : 'background: rgba(255,255,255,0.08); color: #e2e8f0; border-color: rgba(255,255,255,0.15);'}" title="Caneta / Laser Pointer (L)">
+                        <button type="button" data-action="toggle-pointer" class="btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem; ${apresentacaoController.isPointerActive ? 'background-color: #dc2626; color: #ffffff; border-color: #dc2626;' : 'background: rgba(255,255,255,0.08); color: #e2e8f0; border-color: rgba(255,255,255,0.15);'}" title="Caneta / Laser Pointer (L)">
                             <i class="fas fa-pen-nib"></i> Caneta (L)
                         </button>
 
-                        <button onclick="apresentadorPlayerView.limparDesenhos()" class="btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem; background: rgba(255,255,255,0.08); color: #e2e8f0; border-color: rgba(255,255,255,0.15);" title="Limpar Anotações na Tela">
+                        <button type="button" data-action="limpar-desenhos" class="btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem; background: rgba(255,255,255,0.08); color: #e2e8f0; border-color: rgba(255,255,255,0.15);" title="Limpar Anotações na Tela">
                             <i class="fas fa-eraser"></i>
                         </button>
 
-                        <button onclick="apresentacaoController.toggleBlackout()" class="btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem; background: rgba(255,255,255,0.08); color: #e2e8f0; border-color: rgba(255,255,255,0.15);" title="Tela Preta (B)">
+                        <button type="button" data-action="toggle-blackout" class="btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem; background: rgba(255,255,255,0.08); color: #e2e8f0; border-color: rgba(255,255,255,0.15);" title="Tela Preta (B)">
                             <i class="fas fa-moon"></i> Blackout (B)
                         </button>
 
-                        <button onclick="apresentadorPlayerView.toggleNotes()" class="btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem; ${this.showNotesPanel ? 'background-color: #d97706; color: #ffffff; border-color: #d97706;' : 'background: rgba(255,255,255,0.08); color: #e2e8f0; border-color: rgba(255,255,255,0.15);'}" title="Notas do Apresentador">
+                        <button type="button" data-action="toggle-notes" class="btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem; ${this.showNotesPanel ? 'background-color: #d97706; color: #ffffff; border-color: #d97706;' : 'background: rgba(255,255,255,0.08); color: #e2e8f0; border-color: rgba(255,255,255,0.15);'}" title="Notas do Apresentador">
                             <i class="fas fa-sticky-note"></i> Notas
                         </button>
                     </div>
 
                     <!-- SETAS DE CONTROLE -->
                     <div style="display: flex; align-items: center; gap: 0.5rem;">
-                        <button onclick="apresentacaoController.passoAnterior()" class="btn-secondary" style="padding: 0.5rem 0.75rem; background: rgba(255,255,255,0.1); color: #ffffff; border-color: rgba(255,255,255,0.2);">
+                        <button type="button" data-action="passo-anterior" class="btn-secondary" style="padding: 0.5rem 0.75rem; background: rgba(255,255,255,0.1); color: #ffffff; border-color: rgba(255,255,255,0.2);">
                             <i class="fas fa-chevron-left"></i>
                         </button>
-                        <button onclick="apresentacaoController.proximoPasso()" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <button type="button" data-action="proximo-passo" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
                             Próximo <i class="fas fa-chevron-right"></i>
                         </button>
                     </div>
@@ -352,6 +375,10 @@ export const apresentadorPlayerView = {
 
     destroy() {
         apresentacaoController.stopTimer();
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
         if (this._currentKeyHandler) {
             window.removeEventListener('keydown', this._currentKeyHandler);
             this._currentKeyHandler = null;
@@ -361,6 +388,10 @@ export const apresentadorPlayerView = {
         if (playerElem) {
             playerElem.remove();
         }
+    },
+
+    onLeave() {
+        this.destroy();
     },
 
     sairPlayer() {

@@ -48,7 +48,7 @@ export const bnccView = {
                 </header>
 
                 <!-- SIDE-BY-SIDE MAIN GRID (FILTERS SIDEBAR + RESULTS PANEL) -->
-                <div style="display: grid; grid-template-columns: minmax(280px, 320px) 1fr; gap: var(--spacing-4); align-items: start;">
+                <div class="layout-2col-responsive">
                     
                     <!-- LEFT COLUMN: ADVANCED FILTERS (320px) -->
                     <div class="card" style="padding: var(--spacing-5); display: flex; flex-direction: column; gap: var(--spacing-4); width: 100%; box-sizing: border-box;">

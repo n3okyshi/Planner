@@ -1,0 +1,338 @@
+{
+  "disciplina": "Língua Portuguesa",
+  "etapas": [
+    {
+      "etapa": "5º Ano",
+      "topicos": [
+        {
+          "topico": "Tópico I - PROCEDIMENTOS DE LEITURA",
+          "descritores": [
+            {
+              "codigo": "D1",
+              "descricao": "Localizar informações explícitas em um texto."
+            },
+            {
+              "codigo": "D3",
+              "descricao": "Inferir o sentido de uma palavra ou expressão."
+            },
+            {
+              "codigo": "D4",
+              "descricao": "Inferir uma informação implícita em um texto."
+            },
+            {
+              "codigo": "D6",
+              "descricao": "Identificar o tema de um texto"
+            },
+            {
+              "codigo": "D11",
+              "descricao": "Distinguir um fato da opinião relativa a esse fato."
+            }
+          ]
+        },
+        {
+          "topico": "Tópico II - IMPLICAÇÕES DO SUPORTE, DO GÊNERO E/OU DO ENUNCIADOR NA COMPREENSÃO DO TEXTO",
+          "descritores": [
+            {
+              "codigo": "D5",
+              "descricao": "Interpretar texto com auxílio de material gráfico diverso (propagandas, quadrinhos, fotos, etc.)."
+            },
+            {
+              "codigo": "D9",
+              "descricao": "Identificar a finalidade de textos de diferentes gêneros"
+            }
+          ]
+        },
+        {
+          "topico": "Tópico III - RELAÇÃO ENTRE TEXTOS",
+          "descritores": [
+            {
+              "codigo": "D15",
+              "descricao": "Reconhecer diferentes formas de tratar uma informação na comparação de textos que abordam o mesmo tema, em função das condições em que ele foi produzido equelas em que será recebido."
+            }
+          ]
+        },
+        {
+          "topico": "Tópico IV - COERÊNCIA E COESÃO NO PROCESSAMENTO DO TEXTO",
+          "descritores": [
+            {
+              "codigo": "D2",
+              "descricao": "Estabelecer relações entre partes de um texto, identificando repetições ou substituições que contribuem para a continuidade dele."
+            },
+            {
+              "codigo": "D7",
+              "descricao": "Identificar o conflito gerador do enredo e os elementos que constroem a narrativa."
+            },
+            {
+              "codigo": "D8",
+              "descricao": "Estabelecer relação causa/consequência entre partes e elementos do texto."
+            },
+            {
+              "codigo": "D12",
+              "descricao": "Estabelecer relações lógico-discursivas presentes no texto, marcadas por conjunções, advérbios etc."
+            }
+          ]
+        },
+        {
+          "topico": "Tópico V - RELAÇÕES ENTRE RECURSOS EXPRESSIVOS E EFEITOS DE SENTIDO",
+          "descritores": [
+            {
+              "codigo": "D13",
+              "descricao": "Identificar efeitos de ironia ou humor em textos variados."
+            },
+            {
+              "codigo": "D14",
+              "descricao": "Identificar o efeito de sentido decorrente do uso da pontuação e de outras notações."
+            }
+          ]
+        },
+        {
+          "topico": "Tópico VI - VARIAÇÃO LINGUÍSTICA",
+          "descritores": [
+            {
+              "codigo": "D10",
+              "descricao": "Identificar as marcas linguísticas que evidenciam o locutor e o interlocutor de um texto."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etapa": "9º Ano",
+      "topicos": [
+        {
+          "topico": "Tópico I - PROCEDIMENTOS DE LEITURA",
+          "descritores": [
+            {
+              "codigo": "D1",
+              "descricao": "Localizar informações explícitas em um texto."
+            },
+            {
+              "codigo": "D3",
+              "descricao": "Inferir o sentido de uma palavra ou expressão."
+            },
+            {
+              "codigo": "D4",
+              "descricao": "Inferir uma informação implícita em um texto."
+            },
+            {
+              "codigo": "D6",
+              "descricao": "Identificar o tema de um texto."
+            },
+            {
+              "codigo": "D14",
+              "descricao": "Distinguir um fato da opinião relativa a esse fato."
+            }
+          ]
+        },
+        {
+          "topico": "Tópico II - IMPLICAÇÕES DO SUPORTE, DO GÊNERO E/OU DO ENUNCIADOR NA COMPREENSÃO DO TEXTO",
+          "descritores": [
+            {
+              "codigo": "D5",
+              "descricao": "Interpretar texto com auxílio de material gráfico diverso (propagandas, quadrinhos, fotos, etc.)."
+            },
+            {
+              "codigo": "D12",
+              "descricao": "Identificar a finalidade de textos de diferentes gêneros."
+            }
+          ]
+        },
+        {
+          "topico": "Tópico III - RELAÇÃO ENTRE TEXTOS",
+          "descritores": [
+            {
+              "codigo": "D20",
+              "descricao": "Reconhecer diferentes formas de tratar uma informação na comparação de textos que abordam o mesmo tema, em função das condições em que ele foi produzido e daquelas em que será recebido."
+            },
+            {
+              "codigo": "D21",
+              "descricao": "Reconhecer posições distintas entre duas ou mais opiniões relativas ao mesmo fato ou ao mesmo tema."
+            }
+          ]
+        },
+        {
+          "topico": "Tópico IV - COERÊNCIA E COESÃO NO PROCESSAMENTO DO TEXTO",
+          "descritores": [
+            {
+              "codigo": "D2",
+              "descricao": "Estabelecer relações entre partes de um texto, identificando repetições ou substituições que contribuem para a continuidade dele."
+            },
+            {
+              "codigo": "D7",
+              "descricao": "Identificar a tese de um texto."
+            },
+            {
+              "codigo": "D8",
+              "descricao": "Estabelecer relação entre a tese e os argumentos oferecidos para sustentá-la."
+            },
+            {
+              "codigo": "D9",
+              "descricao": "Diferenciar as partes principais das secundárias em um texto."
+            },
+            {
+              "codigo": "D10",
+              "descricao": "Identificar o conflito gerador do enredo e os elementos que constroem a narrativa."
+            },
+            {
+              "codigo": "D11",
+              "descricao": "Estabelecer relação causa/consequência entre partes e elementos do texto."
+            },
+            {
+              "codigo": "D15",
+              "descricao": "Estabelecer relações lógico-discursivas presentes no texto, marcadas por conjunções, advérbios etc."
+            }
+          ]
+        },
+        {
+          "topico": "Tópico V - RELAÇÕES ENTRE RECURSOS EXPRESSIVOS E EFEITOS DE SENTIDO",
+          "descritores": [
+            {
+              "codigo": "D16",
+              "descricao": "Identificar efeitos de ironia ou humor em textos variados."
+            },
+            {
+              "codigo": "D17",
+              "descricao": "Reconhecer o efeito de sentido decorrente do uso da pontuação e de outrasnotações."
+            },
+            {
+              "codigo": "D18",
+              "descricao": "Reconhecer o efeito de sentido decorrente da escolha de uma determinada palavra ou expressão."
+            },
+            {
+              "codigo": "D19",
+              "descricao": "Reconhecer o efeito de sentido decorrente da exploração de recursos ortográficos e/ou morfossintáticos."
+            }
+          ]
+        },
+        {
+          "topico": "Tópico VI - VARIAÇÃO LINGUÍSTICA",
+          "descritores": [
+            {
+              "codigo": "D13",
+              "descricao": "Identificar as marcas linguísticas que evidenciam o locutor e o interlocutor deum texto."
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "etapa": "3ª Série EM",
+      "topicos": [
+        {
+          "topico": "Tópico I - PROCEDIMENTOS DE LEITURA",
+          "descritores": [
+            {
+              "codigo": "D1",
+              "descricao": "Localizar informações explícitas em um texto."
+            },
+            {
+              "codigo": "D3",
+              "descricao": "Inferir o sentido de uma palavra ou expressão."
+            },
+            {
+              "codigo": "D4",
+              "descricao": "Inferir uma informação implícita em um texto."
+            },
+            {
+              "codigo": "D6",
+              "descricao": "Identificar o tema de um texto."
+            },
+            {
+              "codigo": "D14",
+              "descricao": "Distinguir um fato da opinião relativa a esse fato."
+            }
+          ]
+        },
+        {
+          "topico": "Tópico II - IMPLICAÇÕES DO SUPORTE, DO GÊNERO E/OU DO ENUNCIADOR NA COMPREENSÃO DO TEXTO",
+          "descritores": [
+            {
+              "codigo": "D5",
+              "descricao": "Interpretar texto com auxílio de material gráfico diverso (propagandas, quadrinhos, fotos etc.)."
+            },
+            {
+              "codigo": "D12",
+              "descricao": "Identificar a finalidade de textos de diferentes gêneros."
+            }
+          ]
+        },
+        {
+          "topico": "Tópico III - RELAÇÃO ENTRE TEXTOS",
+          "descritores": [
+            {
+              "codigo": "D20",
+              "descricao": "Reconhecer diferentes formas de tratar uma informação na comparação de textos que abordam o mesmo tema, em função das condições em que ele foi produzido e daquelas em que será recebido."
+            },
+            {
+              "codigo": "D21",
+              "descricao": "Reconhecer posições distintas entre duas ou mais opiniões relativas ao mesmo fato ou ao mesmo tema."
+            }
+          ]
+        },
+        {
+          "topico": "Tópico IV - COERÊNCIA E COESÃO NO PROCESSAMENTO DO TEXTO",
+          "descritores": [
+            {
+              "codigo": "D2",
+              "descricao": "Estabelecer relações entre partes de um texto, identificando repetições ou substituições que contribuem para a continuidade dele."
+            },
+            {
+              "codigo": "D7",
+              "descricao": "Identificar a tese de um texto."
+            },
+            {
+              "codigo": "D8",
+              "descricao": "Estabelecer relação entre a tese e os argumentos oferecidos para sustentá-la."
+            },
+            {
+              "codigo": "D9",
+              "descricao": "Diferenciar as partes principais das secundárias em um texto."
+            },
+            {
+              "codigo": "D10",
+              "descricao": "Identificar o conflito gerador do enredo e os elementos que constroem a narrativa."
+            },
+            {
+              "codigo": "D11",
+              "descricao": "Estabelecer relação causa/consequência entre partes e elementos do texto."
+            },
+            {
+              "codigo": "D15",
+              "descricao": "Estabelecer relações lógico-discursivas presentes no texto, marcadas por conjunções, advérbios etc."
+            }
+          ]
+        },
+        {
+          "topico": "Tópico V - RELAÇÕES ENTRE RECURSOS EXPRESSIVOS E EFEITOS DE SENTIDO",
+          "descritores": [
+            {
+              "codigo": "D16",
+              "descricao": "Identificar efeitos de ironia ou humor em textos variados."
+            },
+            {
+              "codigo": "D17",
+              "descricao": "Reconhecer o efeito de sentido decorrente do uso da pontuação e de outras notações."
+            },
+            {
+              "codigo": "D18",
+              "descricao": "Reconhecer o efeito de sentido decorrente da escolha de uma determinada palavra ou expressão."
+            },
+            {
+              "codigo": "D19",
+              "descricao": "Reconhecer o efeito de sentido decorrente da exploração de recursos ortográficos e/ou morfossintáticos."
+            }
+          ]
+        },
+        {
+          "topico": "Tópico VI - VARIAÇÃO LINGUÍSTICA",
+          "descritores": [
+            {
+              "codigo": "D13",
+              "descricao": "Identificar as marcas linguísticas que evidenciam o locutor e o interlocutor de um texto."
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

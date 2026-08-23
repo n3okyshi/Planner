@@ -43,6 +43,10 @@ export const notasAnuaisView = {
                     </div>
 
                     <div style="display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap;">
+                        <button type="button" onclick="notasAnuaisView.imprimir()" class="btn-secondary" style="padding: 0.4rem 0.875rem; font-size: 0.8125rem;" title="Imprimir Consolidado Anual de Notas em A4">
+                            <i class="fas fa-print"></i> <span>Imprimir A4</span>
+                        </button>
+
                         <!-- SELETOR DE ORDENAÇÃO -->
                         <div style="display: flex; align-items: center; gap: 0.35rem;">
                             <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">
@@ -92,7 +96,49 @@ export const notasAnuaisView = {
         const tipo = config.tipoPeriodo || 'bimestre';
         const numPeriodos = tipo === 'bimestre' ? 4 : tipo === 'trimestre' ? 3 : 2;
 
+        const alunos = turma.alunos || [];
+        let somaMedias = 0;
+        let aprovados = 0;
+        alunos.forEach(a => {
+            const resumo = model.getResumoAcademico ? model.getResumoAcademico(turma.id, a.id, turma, a) : null;
+            const m = resumo?.mediaAnual || 0;
+            somaMedias += m;
+            if (m >= 6.0) aprovados++;
+        });
+
+        const totalAlunos = alunos.length || 1;
+        const mediaGeral = somaMedias / totalAlunos;
+        const taxaAprovacao = aprovados / totalAlunos;
+        const idebEstimado = mediaGeral * taxaAprovacao;
+
+        const idebBannerHtml = `
+            <div class="card p-4" style="margin-bottom: var(--spacing-4); background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%); border: 1px solid #c7d2fe; border-radius: var(--radius-xl);">
+                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 1rem;">
+                        <div style="width: 3.5rem; height: 3.5rem; border-radius: var(--radius-xl); background: #4338ca; color: white; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 900; box-shadow: 0 4px 12px rgba(67, 56, 202, 0.25);">
+                            ${idebEstimado.toFixed(1)}
+                        </div>
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <h3 style="font-size: 1rem; font-weight: 800; color: #1e1b4b; margin: 0;">Projeção do Índice IDEB da Turma</h3>
+                                <span class="badge" style="background: ${idebEstimado >= 6.0 ? '#d1fae5' : '#fee2e2'}; color: ${idebEstimado >= 6.0 ? '#047857' : '#b91c1c'}; font-weight: 800;">
+                                    ${idebEstimado >= 6.0 ? 'Meta Superada' : 'Abaixo da Meta Nacional'}
+                                </span>
+                            </div>
+                            <p style="font-size: 0.75rem; color: #4338ca; margin: 0.25rem 0 0 0;">
+                                Taxa de Aprovação: <strong>${(taxaAprovacao * 100).toFixed(0)}%</strong> &nbsp;|&nbsp; Proficiência Média: <strong>${mediaGeral.toFixed(1)}</strong>
+                            </p>
+                        </div>
+                    </div>
+                    <button type="button" onclick="notasAnuaisView.imprimirRelatorioIDEB()" class="btn-secondary" style="background: white; border: 1px solid #c7d2fe; color: #4338ca; font-weight: 800; font-size: 0.75rem;">
+                        <i class="fas fa-chart-line"></i> <span>Relatório A4 Metas IDEB</span>
+                    </button>
+                </div>
+            </div>
+        `;
+
         return `
+            ${idebBannerHtml}
             <div class="card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column;">
                 <div class="custom-scrollbar" style="overflow-x: auto;">
                     <table style="width: 100%; text-align: left; border-collapse: collapse;">
@@ -549,5 +595,210 @@ Escreva em texto corrido e formal, pronto para inserção no diário oficial ou 
                 </button>
             </div>
         `;
+    },
+
+    // =========================================================================
+    // IMPRESSÃO DO CONSOLIDADO ANUAL DE NOTAS (A4 PORTRAIT)
+    // =========================================================================
+
+    imprimir() {
+        const turma = (model.state.turmas || []).find(t => String(t.id) === String(this.turmaIdSelecionada));
+        if (!turma) return Toast.show("Selecione uma turma para imprimir o consolidado anual.", "warning");
+
+        const config = model.state.userConfig || {};
+        const escola = config.school || config.escola || 'Unidade Escolar';
+        const anoLetivo = config.anoLetivo || new Date().getFullYear();
+        const alunos = window.ordenarEstudantes ? window.ordenarEstudantes(turma.alunos || [], this.criterioOrdenacao) : (turma.alunos || []);
+
+        let linhasHtml = '';
+        alunos.forEach((aluno, idx) => {
+            const numChamada = aluno.chamada || (idx + 1);
+            const resumo = model.getResumoAcademico ? model.getResumoAcademico(turma.id, aluno.id, turma, aluno) : null;
+            const n1 = resumo?.periodos?.[1] || 0;
+            const n2 = resumo?.periodos?.[2] || 0;
+            const n3 = resumo?.periodos?.[3] || 0;
+            const n4 = resumo?.periodos?.[4] || 0;
+            const mediaVal = resumo?.mediaAnual || 0;
+            const media = Number(mediaVal).toFixed(1);
+            const isAprovado = Number(mediaVal) >= 6.0;
+            const status = isAprovado ? 'Aprovado' : 'Em Risco / Conselho';
+            const corStatus = isAprovado ? '#15803d' : '#dc2626';
+
+            linhasHtml += `
+                <tr>
+                    <td style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; font-weight: 700; font-size: 0.75rem;">${numChamada}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 4px; font-weight: 600; font-size: 0.75rem;">${window.escapeHTML(aluno.nome)}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; font-size: 0.75rem;">${n1 > 0 ? Number(n1).toFixed(1) : '-'}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; font-size: 0.75rem;">${n2 > 0 ? Number(n2).toFixed(1) : '-'}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; font-size: 0.75rem;">${n3 > 0 ? Number(n3).toFixed(1) : '-'}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; font-size: 0.75rem;">${n4 > 0 ? Number(n4).toFixed(1) : '-'}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; font-weight: 800; font-size: 0.8rem; background: #f8fafc;">${media}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; font-weight: 700; font-size: 0.75rem; color: ${corStatus};">${status}</td>
+                </tr>
+            `;
+        });
+
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return Toast.show("Permita pop-ups para visualizar a impressão.", "warning");
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Consolidado Anual de Notas — ${window.escapeHTML(turma.nome)}</title>
+                <style>
+                    @page { size: A4 portrait; margin: 10mm; }
+                    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; margin: 0; padding: 0; }
+                    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 6px; margin-bottom: 12px; }
+                    .header h2 { margin: 0; font-size: 1.1rem; text-transform: uppercase; }
+                    .header p { margin: 2px 0 0 0; font-size: 0.8rem; color: #475569; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+                    th { background-color: #f1f5f9; color: #1e293b; font-weight: 800; }
+                    .footer { display: flex; justify-content: space-between; font-size: 0.75rem; color: #64748b; margin-top: 14px; border-top: 1px dashed #cbd5e1; padding-top: 6px; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <div>
+                        <h2>${window.escapeHTML(escola)} — Consolidado Anual de Rendimento</h2>
+                        <p><strong>Turma:</strong> ${window.escapeHTML(turma.nome)} &nbsp;|&nbsp; <strong>Ano Letivo:</strong> ${anoLetivo}</p>
+                    </div>
+                    <div style="text-align: right; font-size: 0.75rem; color: #475569;">
+                        <p>Data: ${new Date().toLocaleDateString('pt-BR')}</p>
+                    </div>
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; width: 35px;">Nº</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; text-align: left;">Estudante</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; width: 50px;">1º B</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; width: 50px;">2º B</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; width: 50px;">3º B</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; width: 50px;">4º B</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; width: 60px;">Média</th>
+                            <th style="border: 1px solid #cbd5e1; padding: 4px; width: 120px;">Situação</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${linhasHtml}
+                    </tbody>
+                </table>
+
+                <div class="footer">
+                    <span>Emissão Oficial Planner Pro Docente</span>
+                    <span>Assinatura do Professor: _____________________________________</span>
+                </div>
+
+                <script>
+                    window.onload = function() { window.print(); };
+                </script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
+    },
+
+    // =========================================================================
+    // RELATÓRIO SINTÉTICO DE PROJEÇÃO DE METAS IDEB / SAEB (A4 PORTRAIT)
+    // =========================================================================
+
+    imprimirRelatorioIDEB() {
+        const turma = (model.state.turmas || []).find(t => String(t.id) === String(this.turmaIdSelecionada));
+        if (!turma) return Toast.show("Selecione uma turma.", "warning");
+
+        const config = model.state.userConfig || {};
+        const escola = config.school || config.escola || 'Unidade Escolar';
+        const anoLetivo = config.anoLetivo || new Date().getFullYear();
+        const alunos = turma.alunos || [];
+
+        let somaMedias = 0;
+        let aprovados = 0;
+        alunos.forEach(a => {
+            const resumo = model.getResumoAcademico ? model.getResumoAcademico(turma.id, a.id, turma, a) : null;
+            const m = resumo?.mediaAnual || 0;
+            somaMedias += m;
+            if (m >= 6.0) aprovados++;
+        });
+
+        const total = alunos.length || 1;
+        const proficiencia = (somaMedias / total);
+        const taxaAprovacao = (aprovados / total);
+        const idebEstimado = (proficiencia * taxaAprovacao);
+
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) return Toast.show("Permita pop-ups para visualizar o relatório.", "warning");
+
+        printWindow.document.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Relatório Sintético de Projeção IDEB — ${window.escapeHTML(turma.nome)}</title>
+                <style>
+                    @page { size: A4 portrait; margin: 12mm; }
+                    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; color: #0f172a; margin: 0; padding: 0; }
+                    .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #0f172a; padding-bottom: 8px; margin-bottom: 16px; }
+                    .header h2 { margin: 0; font-size: 1.1rem; text-transform: uppercase; }
+                    .kpi-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px; }
+                    .kpi-card { background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 12px; text-align: center; }
+                    .kpi-val { font-size: 1.8rem; font-weight: 900; color: #1e1b4b; }
+                    .kpi-lbl { font-size: 0.7rem; font-weight: 800; color: #64748b; text-transform: uppercase; margin-top: 4px; }
+                    .section-title { font-size: 0.85rem; font-weight: 800; text-transform: uppercase; border-bottom: 1.5px solid #0f172a; padding-bottom: 4px; margin-bottom: 10px; color: #0f172a; }
+                    table { width: 100%; border-collapse: collapse; margin-bottom: 16px; font-size: 0.75rem; }
+                    th, td { border: 1px solid #cbd5e1; padding: 6px; text-align: center; }
+                    th { background: #f1f5f9; font-weight: 800; }
+                    .footer { font-size: 0.7rem; color: #64748b; margin-top: 20px; border-top: 1px dashed #cbd5e1; padding-top: 6px; display: flex; justify-content: space-between; }
+                </style>
+            </head>
+            <body>
+                <div class="header">
+                    <div>
+                        <h2>${window.escapeHTML(escola)} — PROJEÇÃO DE DESEMPENHO IDEB / SAEB</h2>
+                        <p style="margin: 2px 0 0 0; font-size: 0.8rem; color: #475569;"><strong>Turma:</strong> ${window.escapeHTML(turma.nome)} &nbsp;|&nbsp; <strong>Ano Letivo:</strong> ${anoLetivo}</p>
+                    </div>
+                    <div style="text-align: right; font-size: 0.75rem; color: #475569;">
+                        Data: ${new Date().toLocaleDateString('pt-BR')}
+                    </div>
+                </div>
+
+                <div class="kpi-grid">
+                    <div class="kpi-card" style="border-color: #818cf8; background: #eef2ff;">
+                        <div class="kpi-val" style="color: #4338ca;">${idebEstimado.toFixed(1)}</div>
+                        <div class="kpi-lbl">IDEB Estimado da Turma</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-val">${(taxaAprovacao * 100).toFixed(0)}%</div>
+                        <div class="kpi-lbl">Taxa de Aprovação (P)</div>
+                    </div>
+                    <div class="kpi-card">
+                        <div class="kpi-val">${proficiencia.toFixed(1)}</div>
+                        <div class="kpi-lbl">Proficiência Média (N)</div>
+                    </div>
+                </div>
+
+                <div class="section-title">Diagnóstico Estratégico & Plano de Ação Pedagógica</div>
+                <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; font-size: 0.8rem; color: #334155; line-height: 1.5; margin-bottom: 20px;">
+                    <p style="margin: 0 0 8px 0;"><strong>Análise da Turma:</strong> A turma possui <strong>${aprovados} de ${total} estudantes</strong> com média dentro da meta estipulada ($\ge 6.0$). O indicador IDEB é diretamente influenciado pela retenção de alunos e lacunas nos descritores avaliados.</p>
+                    <p style="margin: 0 0 8px 0;"><strong>Recomendações da Equipe Pedagógica:</strong></p>
+                    <ul style="margin: 0; padding-left: 20px;">
+                        <li>Intensificar oficinas de reforço paralelo com os ${total - aprovados} estudantes em risco.</li>
+                        <li>Aplicar simulação periódica de descritores SAEB de Língua Portuguesa (Leitura/Inferência) e Matemática (Resolução de Problemas).</li>
+                        <li>Acompanhar assiduidade semanal para evitar evasão ou infrequência > 25%.</li>
+                    </ul>
+                </div>
+
+                <div class="footer">
+                    <span>Relatório emitido via Planner Pro Docente em ${new Date().toLocaleDateString('pt-BR')}</span>
+                    <span>Visto da Orientação Pedagógica: _____________________________________</span>
+                </div>
+
+                <script>
+                    window.onload = function() { window.print(); };
+                </script>
+            </body>
+            </html>
+        `);
+        printWindow.document.close();
     }
 };

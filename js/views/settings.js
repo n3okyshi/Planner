@@ -1,11 +1,19 @@
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 
 export const settingsView = {
+    _cleanupDelegators: null,
+
     render(container, userConfig) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
 
         const config = userConfig || (model.state && model.state.userConfig) || {};
         const user = model.currentUser || (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser);
@@ -50,7 +58,7 @@ export const settingsView = {
                         <p style="font-size: 0.8125rem; color: var(--color-slate-500);">Estes dados são injetados automaticamente na exportação de provas em PDF e Word.</p>
                     </div>
 
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--spacing-8); align-items: start;">
+                    <div class="layout-2col-responsive--equal">
                         
                         <!-- Coluna Esquerda: Formulário -->
                         <div style="display: flex; flex-direction: column; gap: var(--spacing-4);">
@@ -63,12 +71,12 @@ export const settingsView = {
                                     </div>
                                     <div style="display: flex; flex-direction: column; gap: 0.375rem;">
                                         <input type="file" id="upload-logo-input" style="display: none;" accept="image/png, image/jpeg, image/jpg" onchange="settingsView.processarUploadLogo(event)">
-                                        <button type="button" onclick="document.getElementById('upload-logo-input').click()" class="btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;">
+                                        <button type="button" data-action="upload-logo" class="btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;">
                                             <i class="fas fa-upload"></i> <span>Enviar Logo</span>
                                         </button>
                                         <div style="font-size: 0.6875rem; color: var(--color-slate-400); display: flex; gap: 0.5rem; align-items: center;">
                                             <span>PNG ou JPG até 5MB</span>
-                                            ${logoUrl ? `<button type="button" style="color: #ef4444; font-weight: 700; background: none; border: none; cursor: pointer; text-decoration: underline;" onclick="settingsView.removerLogo()">Remover</button>` : ''}
+                                            ${logoUrl ? `<button type="button" data-action="remover-logo" style="color: #ef4444; font-weight: 700; background: none; border: none; cursor: pointer; text-decoration: underline;">Remover</button>` : ''}
                                         </div>
                                     </div>
                                 </div>
@@ -96,7 +104,7 @@ export const settingsView = {
                                 ${this.gerarToggle('config-show-serie', 'Exibir campo de série/turma', showSerie)}
                             </div>
 
-                            <button type="button" onclick="settingsView.salvarCabecalho()" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem; margin-top: 0.5rem;">
+                            <button type="button" data-action="salvar-cabecalho" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem; margin-top: 0.5rem;">
                                 <i class="fas fa-save"></i> <span>Salvar Cabeçalho</span>
                             </button>
                         </div>
@@ -219,7 +227,7 @@ export const settingsView = {
                                 </h3>
                                 <p style="font-size: 0.75rem; color: var(--color-slate-500);">Personalize a paleta visual do Planner Pro com qualquer cor ou código hexadecimal.</p>
                             </div>
-                            <button type="button" onclick="controller.resetTheme()" class="btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.625rem;" title="Restaurar a cor padrão do sistema (Azul #3b82f6)">
+                            <button type="button" data-action="reset-theme" class="btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.625rem;" title="Restaurar a cor padrão do sistema (Azul #3b82f6)">
                                 <i class="fas fa-undo" style="margin-right: 0.25rem;"></i> Retornar ao Padrão
                             </button>
                         </div>
@@ -250,7 +258,7 @@ export const settingsView = {
                             </div>
 
                             <!-- BOTÃO APLICAR COR -->
-                            <button type="button" id="btn-aplicar-cor" onclick="settingsView.aplicarCorPersonalizada()" class="btn-primary interactive-element" style="padding: 0.5rem 1.25rem; font-size: 0.8125rem; font-weight: 700; background-color: var(--color-primary); box-shadow: var(--shadow-sm);">
+                            <button type="button" data-action="aplicar-cor" class="btn-primary interactive-element" style="padding: 0.5rem 1.25rem; font-size: 0.8125rem; font-weight: 700; background-color: var(--color-primary); box-shadow: var(--shadow-sm);">
                                 <i class="fas fa-check"></i> <span>Aplicar Cor</span>
                             </button>
                         </div>
@@ -280,7 +288,7 @@ export const settingsView = {
                             <p style="font-size: 0.75rem; color: var(--color-slate-500);">Baixe uma cópia de segurança completa de todas as suas turmas e notas.</p>
                         </div>
 
-                        <button onclick="controller.exportData()" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem; background-color: var(--color-slate-800);">
+                        <button type="button" data-action="export-backup" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.75rem; background-color: var(--color-slate-800);">
                             <i class="fas fa-download"></i> <span>Baixar Backup JSON</span>
                         </button>
                     </div>
@@ -289,6 +297,19 @@ export const settingsView = {
 
             </div>
         `;
+
+        this._cleanupDelegators = EventDelegator.bind(container, {
+            'upload-logo': () => document.getElementById('upload-logo-input')?.click(),
+            'remover-logo': () => this.removerLogo(),
+            'salvar-cabecalho': () => this.salvarCabecalho(),
+            'reset-theme': () => controller.resetTheme(),
+            'aplicar-cor': () => this.aplicarCorPersonalizada(),
+            'export-backup': () => controller.exportData(),
+            'handle-logout': () => controller.handleLogout(),
+            'handle-login': () => controller.handleLogin(),
+            'update-periodo': (e, target) => controller.updatePeriodType(target.dataset.valor),
+            'update-theme': (e, target) => controller.updateTheme(target.dataset.hex)
+        }, 'click');
 
         setTimeout(() => this.atualizarPreview(), 100);
     },
@@ -423,7 +444,7 @@ export const settingsView = {
                     </div>
                 </div>
 
-                <button onclick="controller.handleLogout()" class="btn-secondary" style="color: #ef4444; border-color: #fecaca;">
+                <button data-action="handle-logout" class="btn-secondary" style="color: #ef4444; border-color: #fecaca;">
                     <i class="fas fa-sign-out-alt"></i> <span>Encerrar Sessão</span>
                 </button>
             </div>
@@ -438,7 +459,7 @@ export const settingsView = {
                     <p style="font-size: 0.875rem; color: var(--color-slate-500); max-width: 480px; margin-top: 0.25rem;">Faça login com sua conta Google para sincronizar automaticamente turmas, avaliações e planejamentos.</p>
                 </div>
 
-                <button onclick="controller.handleLogin()" class="btn-primary" style="padding: 0.75rem 1.5rem;">
+                <button data-action="handle-login" class="btn-primary" style="padding: 0.75rem 1.5rem;">
                     <i class="fab fa-google"></i> <span>Fazer Login com Google</span>
                 </button>
             </div>
@@ -452,7 +473,7 @@ export const settingsView = {
             : 'background-color: var(--color-white); border: 1px solid var(--color-slate-200); color: var(--color-slate-700);';
 
         return `
-            <button onclick="controller.updatePeriodType('${valor}')" 
+            <button data-action="update-periodo" data-valor="${valor}" 
                     style="width: 100%; padding: var(--spacing-3) var(--spacing-4); border-radius: var(--radius-xl); text-align: left; display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: all var(--transition-fast); ${bgStyle}">
                 <span>${label}</span>
                 ${isSelected ? '<i class="fas fa-check-circle" style="color: var(--color-primary);"></i>' : ''}
@@ -465,7 +486,7 @@ export const settingsView = {
         const borderStyle = isSelected ? 'outline: 3px solid var(--color-slate-800); transform: scale(1.15);' : '';
 
         return `
-            <button onclick="controller.updateTheme('${hex}')" 
+            <button data-action="update-theme" data-hex="${hex}" 
                     style="width: 2.25rem; height: 2.25rem; border-radius: 50%; background-color: ${hex}; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: transform var(--transition-fast); ${borderStyle}" 
                     title="${nome}">
                 ${isSelected ? '<i class="fas fa-check" style="color: white; font-size: 0.75rem;"></i>' : ''}

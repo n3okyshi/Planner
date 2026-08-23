@@ -372,5 +372,97 @@ export const turmaMethods = {
             return true;
         }
         return false;
+    },
+    getBuscaAtivaAlertas(turmaId, limiteFaltasPercentual = 10) {
+        const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
+        if (!turma || !Array.isArray(turma.alunos)) return [];
+        
+        const alertas = [];
+        turma.alunos.forEach(aluno => {
+            if (!aluno.frequencia) return;
+            const entradas = Object.values(aluno.frequencia);
+            const totalRegistros = entradas.length;
+            if (totalRegistros === 0) return;
+            
+            const faltasNaoJustificadas = entradas.filter(status => status === 'F').length;
+            const percentualFaltas = (faltasNaoJustificadas / totalRegistros) * 100;
+            
+            if (percentualFaltas >= limiteFaltasPercentual) {
+                alertas.push({
+                    alunoId: aluno.id,
+                    nome: aluno.nome,
+                    totalRegistros,
+                    faltasNaoJustificadas,
+                    percentualFaltas: Math.round(percentualFaltas * 10) / 10,
+                    nivelRisco: percentualFaltas >= 25 ? 'CRÍTICO' : 'ALERTA'
+                });
+            }
+        });
+        return alertas.sort((a, b) => b.percentualFaltas - a.percentualFaltas);
+    },
+    getCumprimentoCurricular(turmaId) {
+        const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
+        if (!turma) return { diasMinistrados: 0, metaDias: 200, percentual: 0, horasMinistradas: 0, metaHoras: 800 };
+        
+        // Conta datas únicas registradas com presença/falta nos diários de todos os alunos da turma
+        const datasUnicas = new Set();
+        (turma.alunos || []).forEach(aluno => {
+            if (aluno.frequencia) {
+                Object.keys(aluno.frequencia).forEach(dataIso => datasUnicas.add(dataIso));
+            }
+        });
+        
+        const diasMinistrados = datasUnicas.size;
+        const metaDias = 200;
+        const percentual = Math.min(100, Math.round((diasMinistrados / metaDias) * 100));
+        const horasMinistradas = diasMinistrados * 4; // média 4h letivas por dia
+        
+        return {
+            diasMinistrados,
+            metaDias,
+            percentual,
+            horasMinistradas,
+            metaHoras: 800
+        };
+    },
+    getDadosAtaConselho(turmaId) {
+        const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
+        if (!turma) return null;
+        
+        const alunosProcessados = (turma.alunos || []).map(aluno => {
+            const resumo = this.getResumoAcademico(turma.id, aluno.id, turma, aluno);
+            const freqEntries = aluno.frequencia ? Object.values(aluno.frequencia) : [];
+            const totalAulas = freqEntries.length;
+            const faltas = freqEntries.filter(f => f === 'F').length;
+            const percentualFreq = totalAulas > 0 ? Math.round(((totalAulas - faltas) / totalAulas) * 100) : 100;
+            
+            let situacaoFinal = 'APROVADO';
+            if (resumo.mediaAnual < 6.0 && percentualFreq < 75) {
+                situacaoFinal = 'RETIDO POR NOTA E FREQUÊNCIA';
+            } else if (resumo.mediaAnual < 6.0) {
+                situacaoFinal = 'EM RECUPERAÇÃO FINAL';
+            } else if (percentualFreq < 75) {
+                situacaoFinal = 'RETIDO POR FREQUÊNCIA';
+            }
+            
+            return {
+                id: aluno.id,
+                nome: aluno.nome,
+                mediaAnual: Number(resumo.mediaAnual.toFixed(1)),
+                periodos: resumo.periodos,
+                totalAulas,
+                faltas,
+                percentualFreq,
+                situacaoFinal
+            };
+        });
+        
+        return {
+            turmaId: turma.id,
+            turmaNome: turma.nome,
+            serie: turma.serie,
+            nivel: turma.nivel,
+            alunos: alunosProcessados
+        };
     }
 };

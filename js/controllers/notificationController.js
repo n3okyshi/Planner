@@ -192,5 +192,37 @@ export const notificationController = {
         if (rota) {
             controller.navigate(rota);
         }
+    },
+
+    /**
+     * Solicita permissão para emissão de Web Notifications nativas do sistema operacional.
+     */
+    async solicitarPermissaoWebNotifications() {
+        if (typeof window !== 'undefined' && 'Notification' in window) {
+            if (Notification.permission === 'default') {
+                const result = await Notification.requestPermission();
+                return result === 'granted';
+            }
+            return Notification.permission === 'granted';
+        }
+        return false;
+    },
+
+    /**
+     * Dispara uma notificação nativa do sistema via Web Notification API.
+     * @param {string} titulo 
+     * @param {string} corpo 
+     */
+    dispararNotificacaoWeb(titulo, corpo) {
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+            try {
+                new Notification(titulo, {
+                    body: corpo,
+                    icon: './assets/icons/icon-192.png'
+                });
+            } catch (err) {
+                console.warn("[notificationController] Não foi possível disparar notificação Web nativa:", err);
+            }
+        }
     }
 };

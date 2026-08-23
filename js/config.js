@@ -16,3 +16,46 @@ export const firebaseConfig = {
     messagingSenderId: "196600313427",
     appId: "1:196600313427:web:8a8e76842163021d48b8a6"
 };
+
+export const DISCIPLINAS_EDUCACAO_BASICA = [
+    "Língua Portuguesa",
+    "Matemática",
+    "Ciências",
+    "História",
+    "Geografia",
+    "Arte",
+    "Educação Física",
+    "Língua Inglesa",
+    "Ensino Religioso",
+    "Física",
+    "Química",
+    "Biologia",
+    "Filosofia",
+    "Sociologia"
+];
+
+export const SERIES_EDUCACAO_BASICA = [
+    "Berçário I",
+    "Berçário II",
+    "Maternal I",
+    "Maternal II",
+    "Jardim I",
+    "Jardim II",
+    "1º Ano",
+    "2º Ano",
+    "3º Ano",
+    "4º Ano",
+    "5º Ano",
+    "6º Ano",
+    "7º Ano",
+    "8º Ano",
+    "9º Ano",
+    "1ª Série (EM)",
+    "2ª Série (EM)",
+    "3ª Série (EM)"
+];
+
+if (typeof window !== 'undefined') {
+    window.DISCIPLINAS_EDUCACAO_BASICA = DISCIPLINAS_EDUCACAO_BASICA;
+    window.SERIES_EDUCACAO_BASICA = SERIES_EDUCACAO_BASICA;
+}

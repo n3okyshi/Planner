@@ -85,48 +85,8 @@ export const aiService = {
     async _validarERefinarMaterial(resultadoInicial, idFerramenta, dados, qtdRequerida = 0) {
         if (!resultadoInicial || !resultadoInicial.conteudo_html) return resultadoInicial;
 
-        try {
-            console.log("🔍 Iniciando 2ª Camada de Auditoria e Refinamento de IA...");
-            const html = resultadoInicial.conteudo_html;
-            const qtdEncontrada = this._contarQuestoesNoHTML(html);
-
-            const temErroLatex = /hab\.\/km\^2\$|\$\s*\\text\{|\$\s*\d+(?:[\.,]\d+)?\s*(?=[^\$\d\w\\]|\s*$)/.test(html);
-            const precisaRefinarQtd = qtdRequerida > 0 && qtdEncontrada < qtdRequerida;
-
-            if (!precisaRefinarQtd && !temErroLatex) {
-                console.log(`✅ Material aprovado na 1ª camada com ${qtdEncontrada} questões encontradas.`);
-                return resultadoInicial;
-            }
-
-            console.warn(`⚠️ Auditoria IA detectou inconsistência: ${qtdEncontrada}/${qtdRequerida} questões encontradas. Executando 2ª camada de expansão e correção...`);
-
-            const promptAuditoria = `
-                Você é um auditor sênior de qualidade pedagógica e especialista em formatação HTML/LaTeX.
-                Examine o material gerado a seguir para a ferramenta ${idFerramenta.toUpperCase()}:
-
-                MATERIAL GERADO ORIGINAL (Contém apenas ${qtdEncontrada} questões):
-                ${JSON.stringify(resultadoInicial)}
-
-                SUA MISSÃO DE REFINAMENTO E EXPANSÃO (2ª CAMADA):
-                1. ${qtdRequerida > 0 ? `O professor solicitou EXATAMENTE ${qtdRequerida} questões completas. O material original continha apenas ${qtdEncontrada} questões. Você DEVE MANTÊ-LAS E ADICIONAR AS QUESTÕES FALTANTES (da Questão ${qtdEncontrada + 1} até a Questão ${qtdRequerida}), retornando o HTML completo contendo TODAS as ${qtdRequerida} questões com enunciado, opções e gabarito no final.` : 'Garanta que todas as questões e seções estejam completas e ricas.'}
-                2. Corrija qualquer erro de sintaxe LaTeX ou cifrões soltos. Todas as expressões matemáticas inline devem usar \(...\) e equações em destaque devem usar \[...\]. NUNCA use cifrões soltos. Escreva valores em dinheiro como texto simples (ex: R$ 100,00).
-                3. Garanta a tag <div class='gabarito-bloco'><h3>Gabarito e Expectativa de Resposta</h3>...</div> no final contemplando o gabarito de TODAS as ${qtdRequerida} questões.
-                
-                Retorne APENAS o JSON final corrigido na mesma estrutura exata.
-            `;
-
-            const resultadoRefinado = await this._executarPromptGemini(promptAuditoria, 8192);
-            if (resultadoRefinado && resultadoRefinado.conteudo_html) {
-                const qtdRefinada = this._contarQuestoesNoHTML(resultadoRefinado.conteudo_html);
-                console.log(`✅ 2ª Camada de Auditoria concluída! Contagem de questões: ${qtdRefinada}/${qtdRequerida}`);
-                if (qtdRefinada >= qtdEncontrada) {
-                    return resultadoRefinado;
-                }
-            }
-        } catch (err) {
-            console.warn("⚠️ Auditoria de 2ª camada encontrou um aviso, retornando resultado original:", err.message);
-        }
-
+        // Auditoria de 2ª camada de IA desativada para otimização do consumo de tokens do usuário.
+        console.log("ℹ️ Retornando resultado direto da IA (2ª camada de auditoria desativada para economia de tokens).");
         return resultadoInicial;
     },
     _esperar: (ms) => new Promise(res => setTimeout(res, ms)),
@@ -822,6 +782,28 @@ export const aiService = {
         `;
 
         return await this._executarPromptGemini(prompt, 4000);
+    },
+
+    async gerarPlanoAula5Es({ disciplina = 'Geral', anoSerie = 'Ensino Fundamental', tema = '', habilidadeBNCC = '' }) {
+        const prompt = `Atue como um Especialista Pedagógico especialista no Modelo 5Es de Metodologias Ativas (Engajar, Explorar, Explicar, Elaborar, Avaliar) e na BNCC.
+Crie um Plano de Aula completo e inovador para:
+- Disciplina: ${disciplina}
+- Ano/Série: ${anoSerie}
+- Tema Principal: ${tema}
+- Habilidade BNCC: ${habilidadeBNCC || 'Alinhada ao ano escolar'}
+
+Responda exclusivamente com um objeto JSON estruturado da seguinte forma:
+{
+  "titulo": "Título da Aula",
+  "habilidade": "Código e descrição da habilidade BNCC",
+  "engajar": "Atividade de sensibilização e gancho inicial (5-10 min)",
+  "explorar": "Desafio prático e investigação em grupos (15-20 min)",
+  "explicar": "Sintetização dos conceitos e mediação docente (15 min)",
+  "elaborar": "Aplicação em novo contexto ou projeto (15-20 min)",
+  "avaliar": "Critérios de avaliação formativa (10 min)"
+}`;
+
+        return await this._executarPromptGemini(prompt, 3000);
     }
 };
 

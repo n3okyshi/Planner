@@ -5,6 +5,25 @@ import { Toast } from '../components/toast.js';
 export const syncService = {
     _isProcessingQueue: false,
     _syncListenersInitialized: false,
+    _tentativasFalhas: 0,
+    _maxDelayMs: 30000,
+
+    /**
+     * Reseta a contagem de falhas do retry exponencial após sincronização bem-sucedida.
+     * @private
+     */
+    _resetarRetry() {
+        this._tentativasFalhas = 0;
+    },
+
+    /**
+     * Calcula o tempo de espera exponencial baseado no número de falhas consecutivas.
+     * @private
+     */
+    _obterDelayExponencial() {
+        this._tentativasFalhas++;
+        return Math.min(1000 * Math.pow(2, this._tentativasFalhas), this._maxDelayMs);
+    },
 
     /**
      * Inicializa os ouvintes de rede (online/offline) e mensagens do Service Worker (Background Sync).
@@ -131,9 +150,17 @@ export const syncService = {
 
                 if (ok) {
                     idsSucesso.push(op.id);
+                    this._resetarRetry();
                 }
             } catch (err) {
                 console.warn(`[syncService] Erro ao sincronizar operação ${op.id}:`, err);
+                const delayMs = this._obterDelayExponencial();
+                console.log(`[syncService] Reconexão oscilando. Próxima tentativa agendada em ${delayMs}ms.`);
+                setTimeout(() => {
+                    this._isProcessingQueue = false;
+                    this.processarFilaOffline();
+                }, delayMs);
+                break;
             }
         }
 
