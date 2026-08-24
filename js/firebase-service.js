@@ -46,16 +46,24 @@ export const firebaseService = {
         this.functions = firebase.functions();
         
         try {
-            this.db.enablePersistence({ synchronizeTabs: true })
-                .catch(err => {
-                    if (err.code == 'failed-precondition') {
-                        console.warn("Persistência falhou: Múltiplas abas abertas.");
-                    } else if (err.code == 'unimplemented') {
-                        console.warn("Navegador não suporta persistência offline.");
-                    }
+            if (firebase.firestore && typeof firebase.firestore.persistentLocalCache === 'function') {
+                this.db.settings({
+                    cache: firebase.firestore.persistentLocalCache({
+                        tabManager: firebase.firestore.persistentMultipleTabManager()
+                    })
                 });
+            } else {
+                this.db.enablePersistence({ synchronizeTabs: true })
+                    .catch(err => {
+                        if (err.code == 'failed-precondition') {
+                            console.warn("Persistência falhou: Múltiplas abas abertas.");
+                        } else if (err.code == 'unimplemented') {
+                            console.warn("Navegador não suporta persistência offline.");
+                        }
+                    });
+            }
         } catch (e) {
-            console.warn("Erro ao configurar persistência:", e);
+            console.warn("Aviso ao configurar persistência offline do Firestore:", e);
         }
         console.log("Firebase Service inicializado.");
 

@@ -1075,11 +1075,33 @@ export const frequenciaView = {
                 </div>
 
                 <script>
-                    window.onload = function() { window.print(); };
+                    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                        setTimeout(() => window.print(), 250);
+                    } else {
+                        window.addEventListener('DOMContentLoaded', () => setTimeout(() => window.print(), 250));
+                        setTimeout(() => window.print(), 800);
+                    }
                 </script>
             </body>
             </html>
         `);
         printWindow.document.close();
+    },
+
+    estadoVazio() {
+        return `
+            <div class="card" style="padding: 5rem 2rem; text-align: center; max-width: 32rem; margin: 3rem auto; border-radius: var(--radius-2xl);">
+                <div style="width: 4rem; height: 4rem; border-radius: 50%; background-color: var(--color-slate-100, #f1f5f9); color: var(--color-slate-400, #94a3b8); display: flex; align-items: center; justify-content: center; font-size: 1.75rem; margin: 0 auto 1.25rem;">
+                    <i class="fas fa-users-slash"></i>
+                </div>
+                <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-700, #334155); margin-bottom: 0.5rem;">Nenhuma turma selecionada</h3>
+                <p style="color: var(--color-slate-500, #64748b); font-size: 0.875rem; margin-bottom: 1.5rem; line-height: 1.5;">
+                    Selecione uma turma no menu superior ou cadastre novas turmas para gerenciar a frequência e chamadas dos estudantes.
+                </p>
+                <button type="button" onclick="controller.navigate('turmas')" class="btn-primary interactive-element" style="padding: 0.625rem 1.5rem; font-weight: 700; background-color: #4f46e5; margin: 0 auto; display: inline-flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-chalkboard-teacher"></i> <span>Gerenciar Turmas</span>
+                </button>
+            </div>
+        `;
     }
 };

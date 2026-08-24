@@ -1922,11 +1922,58 @@ export const estudosVisuaisView = {
     },
 
     criarPastaModal() {
-        const nome = prompt("Digite o nome da nova pasta de estudos (ex: Biologia 2026, Provas ENEM):");
-        if (nome && nome.trim()) {
-            model.criarPastaEstudo(nome.trim(), this.pastaAtualId, this.abaAtiva);
-            this.render(this._getContainer());
-        }
+        const modalHtml = `
+            <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                <p style="font-size: 0.9375rem; color: var(--color-slate-600); font-weight: 500; margin: 0;">
+                    Digite o nome da nova pasta para organizar seus baralhos e mapas de estudo:
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 0.375rem;">
+                    <label class="form-label" for="input-nome-pasta-estudo" style="font-size: 0.8125rem; font-weight: 700;">Nome da Pasta</label>
+                    <input type="text" id="input-nome-pasta-estudo" class="form-input" 
+                           placeholder="ex: Biologia 2026, Provas ENEM..." 
+                           style="width: 100%; padding: 0.625rem 0.875rem; font-size: 0.9375rem;" autofocus />
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem; padding-top: 1rem; border-top: 1px solid var(--color-slate-200);">
+                    <button type="button" data-action="fechar-modal" class="btn-secondary" style="padding: 0.5rem 1.25rem; font-weight: 700;">Cancelar</button>
+                    <button type="button" data-action="confirmar-criar-pasta-estudo" class="btn-primary" style="padding: 0.5rem 1.5rem; font-weight: 800; background-color: #4f46e5;">
+                        <i class="fas fa-folder-plus mr-1"></i> Criar Pasta
+                    </button>
+                </div>
+            </div>
+        `;
+        controller.openModal('Nova Pasta de Estudos', modalHtml, 'small');
+
+        setTimeout(() => {
+            const modalEl = document.getElementById('global-modal');
+            const inputEl = document.getElementById('input-nome-pasta-estudo');
+            if (inputEl) inputEl.focus();
+
+            if (modalEl) {
+                EventDelegator.bind(modalEl, {
+                    'confirmar-criar-pasta-estudo': () => {
+                        const val = inputEl ? inputEl.value.trim() : '';
+                        if (val) {
+                            model.criarPastaEstudo(val, this.pastaAtualId, this.abaAtiva);
+                            controller.closeModal();
+                            this.render(this._getContainer());
+                        } else {
+                            Toast.show('Por favor, informe um nome para a pasta de estudos.', 'warning');
+                        }
+                    },
+                    'fechar-modal': () => controller.closeModal()
+                }, 'click');
+
+                if (inputEl) {
+                    inputEl.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const btn = modalEl.querySelector('[data-action="confirmar-criar-pasta-estudo"]');
+                            if (btn) btn.click();
+                        }
+                    });
+                }
+            }
+        }, 50);
     },
 
     excluirPasta(pastaId) {

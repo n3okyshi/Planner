@@ -330,10 +330,19 @@ export const criarMaterialView = {
 
     filtrarMateriais(todas) {
         const isLixeiraTab = this.abaAtiva === 'lixeira';
+        const isMeusTab = this.abaAtiva === 'meus' || !this.abaAtiva;
+
         return (todas || []).filter(m => {
             const naLixeira = Boolean(m.naLixeira);
             if (isLixeiraTab && !naLixeira) return false;
             if (!isLixeiraTab && naLixeira) return false;
+
+            // Filtragem por pasta ativa na navegação de "Meus Materiais"
+            if (isMeusTab && !this.termoBusca) {
+                const matPastaId = String(m.pastaId || '');
+                const currPastaId = String(this.pastaAtualId || '');
+                if (matPastaId !== currPastaId) return false;
+            }
 
             const matchBusca = (window.matchMultiTermos || matchMultiTermos)(m, ['titulo', 'tema', 'disciplina', 'serie', 'bncc', 'habilidade_bncc', 'habilidade', 'codigo_bncc', 'conteudo_html'], this.termoBusca);
 
@@ -555,18 +564,57 @@ export const criarMaterialView = {
     },
 
     modalCriarPasta() {
-        const nome = prompt("Digite o nome da nova pasta (ex: Matemática 9º Ano, Avaliações):");
-        if (nome && nome.trim()) {
-            model.criarPastaMaterial(nome.trim(), this.pastaAtualId);
-            this.render('view-container');
-        }
+        const modalHtml = `
+            <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                <p style="font-size: 0.9375rem; color: var(--color-slate-600); font-weight: 500; margin: 0;">
+                    Digite o nome da nova pasta para organizar seus materiais pedagógicos:
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 0.375rem;">
+                    <label class="form-label" for="input-nome-pasta-material" style="font-size: 0.8125rem; font-weight: 700;">Nome da Pasta</label>
+                    <input type="text" id="input-nome-pasta-material" class="form-input" 
+                           placeholder="ex: Matemática 9º Ano, Avaliações 2026..." 
+                           style="width: 100%; padding: 0.625rem 0.875rem; font-size: 0.9375rem;" autofocus />
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem; padding-top: 1rem; border-top: 1px solid var(--color-slate-200);">
+                    <button type="button" data-action="fechar-modal" class="btn-secondary" style="padding: 0.5rem 1.25rem; font-weight: 700;">Cancelar</button>
+                    <button type="button" data-action="confirmar-criar-pasta-material" class="btn-primary" style="padding: 0.5rem 1.5rem; font-weight: 800; background-color: #059669;">
+                        <i class="fas fa-folder-plus mr-1"></i> Criar Pasta
+                    </button>
+                </div>
+            </div>
+        `;
+        controller.openModal('Nova Pasta de Materiais', modalHtml, 'small');
+
+        setTimeout(() => {
+            const modalEl = document.getElementById('global-modal');
+            const inputEl = document.getElementById('input-nome-pasta-material');
+            if (inputEl) inputEl.focus();
+
+            if (modalEl) {
+                EventDelegator.bind(modalEl, {
+                    'confirmar-criar-pasta-material': () => {
+                        const val = inputEl ? inputEl.value.trim() : '';
+                        if (val) {
+                            model.criarPastaMaterial(val, this.pastaAtualId);
+                            controller.closeModal();
+                            this.render('view-container');
+                        }
+                    },
+                    'fechar-modal': () => controller.closeModal()
+                }, 'click');
+            }
+        }, 50);
     },
 
     moverMaterialModal(materialId) {
+        const mat = (model.state.materiaisGerados || []).find(m => String(m.id) === String(materialId));
+        const currPastaId = mat ? String(mat.pastaId || '') : '';
         const pastas = model.state.pastasMateriais || [];
-        let optionsHtml = `<option value="">📁 Raiz (Nenhuma Pasta)</option>`;
+
+        let optionsHtml = `<option value="" ${!currPastaId ? 'selected' : ''}>📁 Raiz (Nenhuma Pasta)</option>`;
         pastas.forEach(p => {
-            optionsHtml += `<option value="${p.id}">📁 ${window.escapeHTML(p.nome)}</option>`;
+            const caminhoCompleto = model.obterCaminhoCompletoPasta ? model.obterCaminhoCompletoPasta(p.id) : p.nome;
+            optionsHtml += `<option value="${p.id}" ${String(p.id) === currPastaId ? 'selected' : ''}>📁 ${window.escapeHTML(caminhoCompleto)}</option>`;
         });
 
         const modalHtml = `
@@ -584,6 +632,22 @@ export const criarMaterialView = {
             </div>
         `;
         controller.openModal('Organizar em Pasta', modalHtml, 'md');
+
+        setTimeout(() => {
+            const modalEl = document.getElementById('global-modal');
+            if (modalEl) {
+                EventDelegator.bind(modalEl, {
+                    'mover-para-pasta-modal': (e, target) => {
+                        const mId = target.getAttribute('data-id');
+                        const pId = document.getElementById('select-dest-pasta')?.value;
+                        model.moverMaterialParaPasta(mId, pId);
+                        controller.closeModal();
+                        this.render('view-container');
+                    },
+                    'fechar-modal': () => controller.closeModal()
+                }, 'click');
+            }
+        }, 50);
     },
 
     esvaziarLixeira() {
@@ -696,8 +760,8 @@ export const criarMaterialView = {
                     ` : ''}
                 </div>
 
-                <!-- TÍTULO & DETALHES -->
-                <div>
+                <!-- TÍTULO & DETALHES (CLICÁVEL PARA ABRIR MATERIAL) -->
+                <div data-action="ver-material" data-id="${m.id}" style="cursor: pointer;" title="Clique para abrir este material">
                     <h4 style="font-weight: 800; color: #1e293b; font-size: 1.05rem; margin-bottom: 0.25rem; line-height: 1.3;">${tituloSafe}</h4>
                     <p style="font-size: 0.75rem; color: #64748b; font-weight: 600; margin-bottom: 0.5rem;">
                         <i class="fas fa-book-open" style="color: #94a3b8; margin-right: 0.25rem;"></i> ${disciplinaSafe} • ${serieSafe}
@@ -729,6 +793,13 @@ export const criarMaterialView = {
                                 <i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>
                             </button>
                         ` : `
+                            <button type="button" data-action="ver-material" data-id="${m.id}" 
+                                    class="interactive-element" 
+                                    style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #93c5fd; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
+                                    title="Visualizar / Abrir Material">
+                                <i class="fas fa-eye" style="font-size: 0.75rem;"></i>
+                            </button>
+
                             <button type="button" onclick="criarMaterialView.editarMaterialManual('${m.id}')" 
                                     class="interactive-element" 
                                     style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #c7d2fe; background: #eef2ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
@@ -820,22 +891,32 @@ export const criarMaterialView = {
         const todasPastas = model.state.pastasMateriais || [];
         const pastaAtual = todasPastas.find(p => String(p.id) === String(this.pastaAtualId));
         const pastasNoNivel = todasPastas.filter(p => String(p.parentId || '') === String(this.pastaAtualId || ''));
+        const cadeiaHierarquica = model.obterCadeiaHierarquicaPasta ? model.obterCadeiaHierarquicaPasta(this.pastaAtualId) : (pastaAtual ? [{ id: pastaAtual.id, nome: pastaAtual.nome }] : []);
 
         return `
             <div class="animate-enter">
                 <!-- BARRA DE GERENCIAMENTO DE PASTAS & BREADCRUMB -->
                 <div class="card" style="padding: 1rem 1.25rem; margin-bottom: 1.25rem; background: #ffffff; border-radius: var(--radius-xl); border: 1px solid var(--color-slate-200); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
                     <!-- BREADCRUMB -->
-                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; font-size: 0.9375rem; font-weight: 700; color: #334155;">
-                        <button type="button" onclick="criarMaterialView.setPastaAtual(null)" class="btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.8125rem; font-weight: 800; background-color: #f1f5f9; color: #475569;" title="Ir para a Raiz">
+                    <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; font-size: 0.9375rem; font-weight: 700; color: #334155;">
+                        <button type="button" onclick="criarMaterialView.setPastaAtual(null)" class="btn-secondary interactive-element" style="padding: 0.35rem 0.75rem; font-size: 0.8125rem; font-weight: 800; background-color: #f1f5f9; color: #475569;" title="Ir para a Raiz">
                             <i class="fas fa-folder"></i> Meus Materiais (Raiz)
                         </button>
-                        ${pastaAtual ? `
-                            <i class="fas fa-chevron-right" style="font-size: 0.75rem; color: #94a3b8;"></i>
-                            <span style="color: #4f46e5; font-weight: 800; background: #eef2ff; padding: 0.35rem 0.75rem; border-radius: var(--radius-lg); border: 1px solid #c7d2fe;">
-                                <i class="fas fa-folder-open"></i> ${window.escapeHTML(pastaAtual.nome)}
-                            </span>
-                        ` : ''}
+                        ${cadeiaHierarquica.map((p, idx) => {
+                            const isUltimo = idx === cadeiaHierarquica.length - 1;
+                            return `
+                                <i class="fas fa-chevron-right" style="font-size: 0.75rem; color: #94a3b8;"></i>
+                                ${isUltimo ? `
+                                    <span style="color: #4f46e5; font-weight: 800; background: #eef2ff; padding: 0.35rem 0.75rem; border-radius: var(--radius-lg); border: 1px solid #c7d2fe; display: inline-flex; align-items: center; gap: 0.35rem;">
+                                        <i class="fas fa-folder-open"></i> ${window.escapeHTML(p.nome)}
+                                    </span>
+                                ` : `
+                                    <button type="button" onclick="criarMaterialView.setPastaAtual('${p.id}')" class="btn-secondary interactive-element" style="padding: 0.35rem 0.75rem; font-size: 0.8125rem; font-weight: 800; background-color: #ffffff; color: #334155; border: 1px solid #cbd5e1; display: inline-flex; align-items: center; gap: 0.35rem;" title="Ir para ${window.escapeHTML(p.nome)}">
+                                        <i class="fas fa-folder" style="color: #d97706;"></i> ${window.escapeHTML(p.nome)}
+                                    </button>
+                                `}
+                            `;
+                        }).join('')}
                     </div>
 
                     <!-- BOTÃO NOVA PASTA -->
@@ -848,7 +929,7 @@ export const criarMaterialView = {
                 ${pastasNoNivel.length > 0 ? `
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
                         ${pastasNoNivel.map(p => {
-                            const qtdItens = (model.state.materiaisGerados || []).filter(m => String(m.pastaId) === String(p.id) && !m.naLixeira).length;
+                            const qtdItens = model.contarMateriaisPastaRecursivo ? model.contarMateriaisPastaRecursivo(p.id) : (model.state.materiaisGerados || []).filter(m => String(m.pastaId) === String(p.id) && !m.naLixeira).length;
                             return `
                                 <div class="interactive-element" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius-xl); padding: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; transition: all 0.2s;"
                                      onclick="criarMaterialView.setPastaAtual('${p.id}')">

@@ -108,56 +108,19 @@ export function normalizarDelimitadoresLatex(texto) {
     if (!texto) return '';
     let str = String(texto);
 
-    // PASSO 0: Normalização de espaçamentos em delimitadores TeX (ex: "\ (" -> "\(" e "\ )" -> "\)")
+    // 1. Normalização de múltiplos backslashes antes de delimitadores TeX (ex: "\\(" -> "\(" e "\\)" -> "\)")
+    str = str
+        .replace(/\\+\(/g, '\\(')
+        .replace(/\\+\)/g, '\\)')
+        .replace(/\\+\[/g, '\\[')
+        .replace(/\\+\]/g, '\\]');
+
+    // 2. Normalização de espaçamentos em delimitadores TeX (ex: "\ (" -> "\(" e "\ )" -> "\)")
     str = str
         .replace(/\\\s+\(/g, '\\(')
         .replace(/\\\s+\)/g, '\\)')
         .replace(/\\\s+\[/g, '\\[')
         .replace(/\\\s+\]/g, '\\]');
-
-    // PASSO 1: Limpeza imediata de todas as variações de R$ / US$ envolvidas em TeX/LaTeX (Casos 1 e 5)
-    // Exemplos: "\(\text{R\$}\)", "\( \text{R$} \)", "$ \text{R$} $", "\text{R\$}", "\text{R$}"
-    str = str
-        .replace(/\\\(\s*\\text\{\s*(?:R|US)\\?\$?\s*\}\s*\\\)/gi, 'R$')
-        .replace(/\$\s*\\text\{\s*(?:R|US)\\?\$?\s*\}\s*\$/gi, 'R$')
-        .replace(/\\text\{\s*(?:R|US)\\?\$?\s*\}/gi, 'R$')
-        .replace(/\\\(\s*\\text\{\s*(?:R|US)\s*\}\s*\\?\$?\s*\\\)/gi, 'R$')
-        .replace(/\\\(\s*(?:R|US)\\?\$?\s*\\\)/gi, 'R$');
-
-    // PASSO 2: Proteção de valores monetários legítimos com R$ ou US$ (Caso 4)
-    // Substitui "R$" ou "R$ " por token seguro para que o cifrão de R$ NUNCA seja confundido com delimitador TeX
-    const currencyTokens = [];
-    str = str.replace(/(?:R\\?\$|US\\?\$)\s*[\d\.,]*/gi, (match) => {
-        const idx = currencyTokens.length;
-        currencyTokens.push(match);
-        return `___CURRENCY_TOKEN_${idx}___`;
-    });
-
-    // PASSO 3: Normalização de delimitadores TeX legítimos
-    // 3.1 Bloco: $$ ... $$ -> \[ ... \]
-    str = str.replace(/\$\$([\s\S]*?)\$\$/g, (match, formula) => {
-        return `\\[${formula.trim()}\\]`;
-    });
-
-    // 3.2 Inline: $ ... $ (apenas quando pareados na mesma linha) -> \( ... \) (Casos 2 e 3)
-    str = str.replace(/\$([^\$\n\r]+?)\$/g, (match, formula) => {
-        const conteudo = formula.trim();
-        const temMath = /\\(?:dfrac|frac|sqrt|begin|end|alpha|beta|theta|pi|sum|int|lim|vec|hat|bar|times|div|pm|leq|geq|neq|approx|text)|[\^_\=\+\-\<\>\/\\]/.test(conteudo);
-        const palavras = conteudo.split(/\s+/).filter(Boolean);
-        if (!temMath && palavras.length > 3) {
-            return match; // Mantém original se for frase em prosa
-        }
-        return `\\(${conteudo}\\)`;
-    });
-
-    // PASSO 4: Limpeza de cifrões soltos residuais no final de palavras (Caso 3)
-    str = str.replace(/(?<=\w)\s*\$(?=[^\w\\]|$)/g, '');
-
-    // PASSO 5: Restauração dos tokens de moeda intactos
-    str = str.replace(/___CURRENCY_TOKEN_(\d+)___/g, (match, idxStr) => {
-        const idx = parseInt(idxStr, 10);
-        return currencyTokens[idx] !== undefined ? currencyTokens[idx] : match;
-    });
 
     return str;
 }
@@ -175,7 +138,7 @@ export function sanitizeComLatex(rawHtml) {
 
     // 1. Extração e proteção de expressões matemáticas em PASSO ÚNICO (elimina tokens aninhados)
     const tokens = [];
-    const UNIFIED_MATH_REGEX = /(?:\\\[([\s\S]*?)\\\]|\\\(([\s\S]*?)\\\)|\$\$\$([\s\S]*?)\$\$|(?:\$)?\\begin\{([a-zA-Z*]+)\}([\s\S]*?)\\end\{\4\}(?:\$)?|\$([^\$\n\r]+?)\$)/g;
+    const UNIFIED_MATH_REGEX = /(?:\\\[([\s\S]*?)\\\]|\\\(([\s\S]*?)\\\)|\\begin\{([a-zA-Z*]+)\}([\s\S]*?)\\end\{\3\})/g;
 
     str = str.replace(UNIFIED_MATH_REGEX, (match) => {
         const idx = tokens.length;
@@ -208,7 +171,7 @@ export function sanitizeComLatex(rawHtml) {
 
 /**
  * Aplica o KaTeX em um elemento DOM específico de forma segura, modular e resiliente.
- * Suporta delimitação de bloco (\[ ... \], $$ ... $$), em linha (\( ... \), $ ... $) e ambientes matriciais e algébricos.
+ * Suporta delimitação de bloco (\[ ... \]), em linha (\( ... \)) e ambientes matriciais e algébricos.
  * Desescapa entidades HTML (&lt;, &gt;, &amp;) dentro das fórmulas para evitar erros de parser.
  * @param {HTMLElement|string} element - O elemento DOM ou ID do elemento que contém o texto LaTeX.
  * @param {Object} [customOptions] - Opções adicionais para o renderMathInElement.
@@ -224,7 +187,6 @@ export function renderMath(element, customOptions = {}) {
         delimiters: [
             { left: '\\[', right: '\\]', display: true },
             { left: '\\(', right: '\\)', display: false },
-            { left: '$$', right: '$$', display: true },
             { left: '\\begin{equation}', right: '\\end{equation}', display: true },
             { left: '\\begin{align}', right: '\\end{align}', display: true },
             { left: '\\begin{alignat}', right: '\\end{alignat}', display: true },
@@ -292,12 +254,18 @@ export const renderKatex = renderMath;
 function desescaparEntidadesMatematicas(node) {
     if (!node) return;
     if (node.nodeType === Node.TEXT_NODE) {
-        if (node.nodeValue && (node.nodeValue.includes('$') || node.nodeValue.includes('\\'))) {
+        if (node.nodeValue && node.nodeValue.includes('\\')) {
             node.nodeValue = node.nodeValue
-                .replace(/\$\$([\s\S]*?)\$\$/g, (m, math) => `$$${math.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'").replace(/&quot;/g, '"')}$$`)
+                .replace(/\\+\(/g, '\\(')
+                .replace(/\\+\)/g, '\\)')
+                .replace(/\\+\[/g, '\\[')
+                .replace(/\\+\]/g, '\\]')
+                .replace(/\\\s+\(/g, '\\(')
+                .replace(/\\\s+\)/g, '\\)')
+                .replace(/\\\s+\[/g, '\\[')
+                .replace(/\\\s+\]/g, '\\]')
                 .replace(/\\\[([\s\S]*?)\\\]/g, (m, math) => `\\[${math.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'").replace(/&quot;/g, '"')}\\]`)
                 .replace(/\\begin\{([a-zA-Z*]+)\}([\s\S]*?)\\end\{\1\}/g, (m, env, math) => `\\begin{${env}}${math.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'").replace(/&quot;/g, '"')}\\end{${env}}`)
-                .replace(/\$([^\$\n\r]+?)\$/g, (m, math) => `$${math.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'").replace(/&quot;/g, '"')}$`)
                 .replace(/\\\(([\s\S]*?)\\\)/g, (m, math) => `\\(${math.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'").replace(/&quot;/g, '"')}\\)`);
         }
     } else if (node.nodeType === Node.ELEMENT_NODE && !['SCRIPT', 'STYLE', 'TEXTAREA'].includes(node.tagName)) {
@@ -317,13 +285,13 @@ function renderizarFallbackManual(target) {
         const walker = document.createTreeWalker(target, NodeFilter.SHOW_TEXT, null, false);
         let n;
         while ((n = walker.nextNode())) {
-            if (n.nodeValue && (n.nodeValue.includes('$') || n.nodeValue.includes('\\'))) {
+            if (n.nodeValue && n.nodeValue.includes('\\')) {
                 textNodes.push(n);
             }
         }
         textNodes.forEach(node => {
             const val = node.nodeValue;
-            if (/\$\$[\s\S]*?\$\$|\$[^\$\n\r]+?\$|\\\[[\s\S]*?\\\]|\\begin\{/.test(val)) {
+            if (/\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\\begin\{/.test(val)) {
                 const span = document.createElement('span');
                 span.innerHTML = formatarTextoComLatex(val);
                 if (node.parentNode) {
@@ -336,11 +304,6 @@ function renderizarFallbackManual(target) {
     }
 }
 
-/**
- * Formata um texto contendo fórmulas LaTeX ($...$, $$...$$, \[...\], \(...\), \begin{matrix}...) diretamente em HTML compilado com KaTeX.
- * @param {string} texto 
- * @returns {string} HTML com equações renderizadas
- */
 /**
  * Formata um texto contendo fórmulas LaTeX (\[...\], \(...\), \begin{matrix}...) diretamente em HTML compilado com KaTeX.
  * @param {string} texto 
@@ -365,7 +328,7 @@ export function formatarTextoComLatex(texto) {
                 .trim();
         };
 
-        // 1. Fórmulas em bloco modernas: \[ ... \]
+        // 1. Fórmulas em bloco: \[ ... \]
         resultado = resultado.replace(/\\\[([\s\S]*?)\\\]/g, (match, formula) => {
             try {
                 return window.katex.renderToString(normalizarFormula(formula), { displayMode: true, throwOnError: false });
@@ -374,17 +337,8 @@ export function formatarTextoComLatex(texto) {
             }
         });
 
-        // 2. Fórmulas em bloco legadas: $$ ... $$
-        resultado = resultado.replace(/\$\$([\s\S]*?)\$\$/g, (match, formula) => {
-            try {
-                return window.katex.renderToString(normalizarFormula(formula), { displayMode: true, throwOnError: false });
-            } catch (err) {
-                return match;
-            }
-        });
-
-        // 3. Ambientes matriciais e algébricos: \begin{...} ... \end{...}
-        resultado = resultado.replace(/(?:\$)?\\begin\{([a-zA-Z*]+)\}([\s\S]*?)\\end\{\1\}(?:\$)?/g, (match, envName, envContent) => {
+        // 2. Ambientes matriciais e algébricos: \begin{...} ... \end{...}
+        resultado = resultado.replace(/\\begin\{([a-zA-Z*]+)\}([\s\S]*?)\\end\{\1\}/g, (match, envName, envContent) => {
             try {
                 const formulaLimpa = `\\begin{${envName}}${normalizarFormula(envContent)}\\end{${envName}}`;
                 return window.katex.renderToString(formulaLimpa, { displayMode: true, throwOnError: false });
@@ -393,17 +347,8 @@ export function formatarTextoComLatex(texto) {
             }
         });
 
-        // 4. Fórmulas em linha modernas: \( ... \)
+        // 3. Fórmulas em linha: \( ... \)
         resultado = resultado.replace(/\\\(([\s\S]*?)\\\)/g, (match, formula) => {
-            try {
-                return window.katex.renderToString(normalizarFormula(formula), { displayMode: false, throwOnError: false });
-            } catch (err) {
-                return match;
-            }
-        });
-
-        // 5. Fallback para fórmulas em linha legadas em $ ... $
-        resultado = resultado.replace(/\$([^\$\n\r]+?)\$/g, (match, formula) => {
             try {
                 return window.katex.renderToString(normalizarFormula(formula), { displayMode: false, throwOnError: false });
             } catch (err) {
@@ -1155,6 +1100,19 @@ export function matchBNCC(materialBnccStr, queryStr) {
     return termos.every(termo => bnccTexto.includes(termo));
 }
 
+/**
+ * Sanitiza nomes de arquivos para download (PDF, Word), removendo caracteres proibidos por sistemas de arquivos.
+ * @param {string} nome - Nome bruto do arquivo
+ * @returns {string} Nome sanitizado seguro para o SO
+ */
+export function sanitizarNomeArquivo(nome) {
+    if (!nome) return 'documento_pedagogico';
+    return String(nome)
+        .replace(/[\/\\:\*\?"<>\|]/g, '_')
+        .replace(/\s+/g, '_')
+        .trim();
+}
+
 if (typeof window !== 'undefined') {
     window.escapeHTML = escapeHTML;
     window.sanitizeComLatex = sanitizeComLatex;
@@ -1176,6 +1134,7 @@ if (typeof window !== 'undefined') {
     window.adicionarCodigoBNCC = adicionarCodigoBNCC;
     window.matchMultiTermos = matchMultiTermos;
     window.matchBNCC = matchBNCC;
+    window.sanitizarNomeArquivo = sanitizarNomeArquivo;
 }
 
 

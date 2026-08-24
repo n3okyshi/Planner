@@ -42,6 +42,7 @@ export const uiController = {
 
         this._modalCleanup = EventDelegator.bind(modal, {
             'close-modal': () => uiController.closeModal(),
+            'fechar-modal': () => uiController.closeModal(),
             'export-backup': () => controller.exportData(),
             'executar-forcar-sync': () => uiController.executarForcarSincronizacao()
         }, 'click');

@@ -32,7 +32,17 @@ export const Toast = {
             console.error(`Erro ao adicionar o container de toasts ao DOM: ${error}`);
         }
     },
+    _lastToastKey: null,
+    _lastToastTime: 0,
     show(message, type = 'info', duration = 3000, action = null) {
+        const key = `${type}:${message}`;
+        const agora = Date.now();
+        if (this._lastToastKey === key && (agora - this._lastToastTime) < 400) {
+            return;
+        }
+        this._lastToastKey = key;
+        this._lastToastTime = agora;
+
         if (!this.container || !document.getElementById('toast-container')) {
             this.init();
         }

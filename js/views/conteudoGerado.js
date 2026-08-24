@@ -54,7 +54,7 @@ export const conteudoGeradoView = {
         const ferramentaSafe = window.escapeHTML ? window.escapeHTML(material.tipo || 'Gerador IA') : (material.tipo || 'Gerador IA');
 
         const isAluno = this.modoVisualizacao === 'aluno';
-        const conteudoProcessado = window.prepararHTMLParaExportacao 
+        const conteudoProcessado = window.prepararHTMLParaExportacao
             ? window.prepararHTMLParaExportacao(material.conteudo_html || '', this.modoVisualizacao)
             : this.processarHTMLParaModo(material.conteudo_html || '', this.modoVisualizacao);
 
@@ -322,14 +322,14 @@ export const conteudoGeradoView = {
             const headers = tempDiv.querySelectorAll('h1, h2, h3, h4, h5, strong, p');
             headers.forEach(h => {
                 const text = (h.textContent || '').trim().toLowerCase();
-                if (text.startsWith('gabarito') || 
-                    text.startsWith('respostas esperadas') || 
-                    text.startsWith('critérios de correção') || 
-                    text.startsWith('resolução comentada') || 
+                if (text.startsWith('gabarito') ||
+                    text.startsWith('respostas esperadas') ||
+                    text.startsWith('critérios de correção') ||
+                    text.startsWith('resolução comentada') ||
                     text.startsWith('gabarito comentado')) {
-                    
+
                     let next = h.nextElementSibling;
-                    while (next && !['H1','H2','H3','H4'].includes(next.tagName)) {
+                    while (next && !['H1', 'H2', 'H3', 'H4'].includes(next.tagName)) {
                         const toRemove = next;
                         next = next.nextElementSibling;
                         toRemove.remove();
@@ -343,19 +343,46 @@ export const conteudoGeradoView = {
     },
 
     abrirSeletorBnccModal() {
+        const tituloEl = document.getElementById('editor-mat-titulo');
+        const temaEl = document.getElementById('editor-mat-tema');
         const bnccInput = document.getElementById('editor-mat-bncc');
         const serieEl = document.getElementById('editor-mat-serie');
         const discEl = document.getElementById('editor-mat-disciplina');
+        const wysiwyg = document.getElementById('editor-mat-wysiwyg');
+        const textarea = document.getElementById('editor-mat-conteudo');
+
+        // Preserva o rascunho em andamento do editor
+        if (tituloEl || wysiwyg || textarea) {
+            const isCodeMode = textarea && textarea.style.display !== 'none';
+            const conteudoHtml = isCodeMode ? (textarea ? textarea.value : '') : (wysiwyg ? wysiwyg.innerHTML : '');
+            this._rascunhoEditor = {
+                titulo: tituloEl ? tituloEl.value : '',
+                tema: temaEl ? temaEl.value : '',
+                serie: serieEl ? serieEl.value : '',
+                disciplina: discEl ? discEl.value : '',
+                bncc: bnccInput ? bnccInput.value : '',
+                conteudoHtml: conteudoHtml,
+                modo: isCodeMode ? 'code' : 'visual'
+            };
+        }
 
         const callback = (habilidade) => {
-            if (bnccInput && habilidade && habilidade.codigo) {
+            if (habilidade && habilidade.codigo) {
                 const fn = window.adicionarCodigoBNCC || adicionarCodigoBNCC;
-                bnccInput.value = fn(bnccInput.value, habilidade.codigo);
+                const bnccAtual = this._rascunhoEditor ? this._rascunhoEditor.bncc : (bnccInput ? bnccInput.value : '');
+                const novaBncc = fn(bnccAtual, habilidade.codigo);
+                if (this._rascunhoEditor) {
+                    this._rascunhoEditor.bncc = novaBncc;
+                }
                 Toast.show(`Habilidade ${habilidade.codigo} anexada ao material!`, 'success');
+            }
+            // Reabre o editor com o rascunho preservado
+            if (this._rascunhoEditor) {
+                this.abrirEditorModal(this._rascunhoEditor);
             }
         };
 
-        const serie = serieEl ? serieEl.value : null;
+        const serie = serieEl ? serieEl.value : (this._rascunhoEditor ? this._rascunhoEditor.serie : null);
         const nivel = 'Fundamental';
 
         if (window.controller && window.controller.openModal) {
@@ -366,16 +393,22 @@ export const conteudoGeradoView = {
         }
     },
 
-    abrirEditorModal() {
-        const material = (model.state.materiaisGerados || []).find(m => m.id === this.materialIdAtual);
-        if (!material) return Toast.show("Nenhum material carregado para edição.", "error");
+    abrirEditorModal(rascunho = null) {
+        if (typeof this._editorCleanup === 'function') {
+            this._editorCleanup();
+            this._editorCleanup = null;
+        }
 
-        const tituloAtual = material.titulo || material.tema || '';
-        const temaAtual = material.tema || '';
-        const conteudoAtual = material.conteudo_html || '';
-        const disciplinaAtual = material.disciplina || material.materia || 'Geral';
-        const serieAtual = material.serie || material.turma || material.turma_ano || 'Todas as Turmas';
-        const bnccAtual = material.bncc || material.habilidade_bncc || material.habilidade || material.codigo_bncc || '';
+        const material = (model.state.materiaisGerados || []).find(m => m.id === this.materialIdAtual);
+        if (!material && !rascunho) return Toast.show("Nenhum material carregado para edição.", "error");
+
+        const tituloAtual = rascunho ? rascunho.titulo : (material?.titulo || material?.tema || '');
+        const temaAtual = rascunho ? rascunho.tema : (material?.tema || '');
+        const conteudoAtual = rascunho ? rascunho.conteudoHtml : (material?.conteudo_html || '');
+        const disciplinaAtual = rascunho ? rascunho.disciplina : (material?.disciplina || material?.materia || 'Geral');
+        const serieAtual = rascunho ? rascunho.serie : (material?.serie || material?.turma || material?.turma_ano || 'Todas as Turmas');
+        const bnccAtual = rascunho ? rascunho.bncc : (material?.bncc || material?.habilidade_bncc || material?.habilidade || material?.codigo_bncc || '');
+        const modoInicial = rascunho ? (rascunho.modo || 'visual') : 'visual';
 
         const disciplinasLista = [
             "Geral", "Língua Portuguesa", "Matemática", "Ciências", "História", "Geografia",
@@ -396,7 +429,7 @@ export const conteudoGeradoView = {
         }
 
         const modalHtml = `
-            <div style="display: flex; flex-direction: column; gap: 1rem; width: 100%;">
+            <div style="display: flex; flex-direction: column; gap: 0.875rem; width: 100%; max-height: 82vh; overflow-y: auto;" class="custom-scrollbar">
                 
                 <!-- BLOCO SUPERIOR: METADADOS E SELETOR DE VISÃO -->
                 <div style="display: flex; flex-direction: column; gap: 0.75rem; background: #ffffff; padding: 1.25rem; border-radius: var(--radius-xl); border: 1px solid var(--color-slate-200); box-shadow: var(--shadow-sm);">
@@ -413,10 +446,10 @@ export const conteudoGeradoView = {
                         <div>
                             <label class="form-label" style="font-weight: 800; font-size: 0.8125rem; color: var(--color-slate-700);">Modo de Edição</label>
                             <div style="display: flex; background: var(--color-slate-100); padding: 0.2rem; border-radius: var(--radius-lg); gap: 0.25rem; width: 100%;">
-                                <button type="button" id="btn-mode-mat-code" data-action="alternar-modo-visual" data-mode="code" class="btn-primary" style="flex: 1; padding: 0.45rem 0.5rem; font-size: 0.75rem; font-weight: 800; justify-content: center; background: var(--color-primary);" title="Editor de Texto e Fórmulas LaTeX com Pré-Visualização KaTeX ao vivo">
+                                <button type="button" id="btn-mode-mat-code" data-action="alternar-modo-visual" data-mode="code" class="${modoInicial === 'code' ? 'btn-primary' : 'btn-secondary'}" style="flex: 1; padding: 0.45rem 0.5rem; font-size: 0.75rem; font-weight: 800; justify-content: center; background: ${modoInicial === 'code' ? 'var(--color-primary)' : 'transparent'};" title="Editor de Texto e Fórmulas LaTeX com Pré-Visualização KaTeX ao vivo">
                                     <i class="fas fa-code mr-1"></i> Editor de Código / LaTeX
                                 </button>
-                                <button type="button" id="btn-mode-mat-visual" data-action="alternar-modo-visual" data-mode="visual" class="btn-secondary" style="flex: 1; padding: 0.45rem 0.5rem; font-size: 0.75rem; font-weight: 800; justify-content: center; background: transparent;" title="Editor Visual em Folha Mestre">
+                                <button type="button" id="btn-mode-mat-visual" data-action="alternar-modo-visual" data-mode="visual" class="${modoInicial === 'visual' ? 'btn-primary' : 'btn-secondary'}" style="flex: 1; padding: 0.45rem 0.5rem; font-size: 0.75rem; font-weight: 800; justify-content: center; background: ${modoInicial === 'visual' ? 'var(--color-primary)' : 'transparent'};" title="Editor Visual em Folha Mestre">
                                     <i class="fas fa-eye mr-1"></i> Pré-visualização Visual
                                 </button>
                             </div>
@@ -550,26 +583,26 @@ export const conteudoGeradoView = {
                     <div style="width: 100%; display: flex; flex-direction: column; gap: 1rem; position: relative;">
                         <!-- CONTAINER VISUAL PRINCIPAL (CONTENTEDITABLE) -->
                         <div id="editor-mat-wysiwyg" contenteditable="true" class="custom-scrollbar" 
-                             style="display: block; width: 100%; min-height: 380px; max-height: 55vh; overflow-y: auto; background: #ffffff; padding: 1.75rem; border-radius: var(--radius-xl); border: 2px solid var(--color-slate-200); box-shadow: var(--shadow-sm); line-height: 1.75; font-size: 1rem; color: #1e293b; outline: none;">
+                             style="display: ${modoInicial === 'visual' ? 'block' : 'none'}; width: 100%; min-height: 280px; max-height: 44vh; overflow-y: auto; background: #ffffff; padding: 1.5rem; border-radius: var(--radius-xl); border: 2px solid var(--color-slate-200); box-shadow: var(--shadow-sm); line-height: 1.75; font-size: 1rem; color: #1e293b; outline: none;">
                             ${conteudoAtual}
                         </div>
 
                         <!-- TEXTAREA DE CÓDIGO (OCULTA POR PADRÃO - SUPORTE AVANÇADO) -->
                         <textarea id="editor-mat-conteudo" class="custom-scrollbar" 
-                                  style="display: none; width: 100%; min-height: 260px; max-height: 45vh; font-family: monospace; font-size: 0.9rem; background-color: #ffffff; color: #0f172a; padding: 1rem; border-radius: var(--radius-xl); border: 2px solid var(--color-slate-200);">${window.escapeHTML(conteudoAtual)}</textarea>
+                                  style="display: ${modoInicial === 'code' ? 'block' : 'none'}; width: 100%; min-height: 280px; max-height: 44vh; font-family: monospace; font-size: 0.9rem; background-color: #ffffff; color: #0f172a; padding: 1rem; border-radius: var(--radius-xl); border: 2px solid var(--color-slate-200);">${window.escapeHTML(conteudoAtual)}</textarea>
 
                         <div id="editor-mat-preview" style="display: none; width: 100%;"></div>
                     </div>
                 </div>
 
                 <!-- RODAPÉ E ALERTA DE SINCRONIZAÇÃO MESTRE -->
-                <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.5rem; flex-wrap: wrap; gap: 1rem;">
-                    <div style="padding: 0.5rem 0.875rem; background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-lg); font-size: 0.8125rem; color: #1e40af; display: flex; align-items: center; gap: 0.5rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.75rem; border-top: 1px solid var(--color-slate-200); flex-wrap: wrap; gap: 0.75rem; margin-top: 0.25rem;">
+                    <div style="padding: 0.4rem 0.75rem; background-color: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-lg); font-size: 0.8125rem; color: #1e40af; display: flex; align-items: center; gap: 0.5rem;">
                         <i class="fas fa-sync-alt" style="color: #3b82f6;"></i>
                         <span><strong>Edição Mestre:</strong> As alterações são salvas diretamente no documento final da sua biblioteca.</span>
                     </div>
 
-                    <div style="display: flex; justify-content: flex-end; gap: var(--spacing-3); margin-top: var(--spacing-6); padding-top: var(--spacing-4); border-top: 1px solid var(--color-slate-200);">
+                    <div style="display: flex; justify-content: flex-end; gap: var(--spacing-3);">
                         <button type="button" data-action="fechar-modal" class="btn-secondary" style="padding: 0.625rem 1.5rem; font-weight: 700;">Cancelar</button>
                         <button type="button" data-action="salvar-edicao-material" class="btn-primary" style="padding: 0.625rem 2.25rem; font-weight: 800; background: linear-gradient(135deg, #4f46e5, #4338ca); border-radius: var(--radius-xl); box-shadow: 0 4px 14px rgba(79,70,229,0.35);">
                             <i class="fas fa-save mr-1"></i> Salvar Alterações
@@ -582,6 +615,22 @@ export const conteudoGeradoView = {
         controller.openModal('Editar Material Pedagógico', modalHtml, 'xl');
 
         setTimeout(() => {
+            const modalEl = document.getElementById('global-modal');
+            if (modalEl) {
+                if (typeof this._editorCleanup === 'function') {
+                    this._editorCleanup();
+                }
+                this._editorCleanup = EventDelegator.bind(modalEl, {
+                    'salvar-edicao-material': () => this.salvarEdicaoMaterial(),
+                    'fechar-modal': () => controller.closeModal(),
+                    'alternar-modo-visual': (e, target) => {
+                        const mode = target.getAttribute('data-mode');
+                        this.alternarModoEdicaoVisual(mode);
+                    },
+                    'seletor-bncc-modal': () => this.abrirSeletorBnccModal()
+                }, 'click');
+            }
+
             const wysiwyg = document.getElementById('editor-mat-wysiwyg');
             if (wysiwyg) {
                 if (typeof renderKatex === 'function') renderKatex(wysiwyg);
@@ -734,7 +783,7 @@ export const conteudoGeradoView = {
         const start = target.selectionStart || 0;
         const end = target.selectionEnd || 0;
         const selectedText = target.value ? (target.value.substring(start, end) || 'Digite a resposta esperada ou resolução detalhada aqui...') : 'Digite a resposta esperada ou resolução detalhada aqui...';
-        
+
         const bloco = `\n<div class="gabarito-bloco" data-gabarito="true">\n  <h3>Gabarito e Expectativa de Resposta</h3>\n  <p>${selectedText}</p>\n</div>\n`;
 
         target.setRangeText(bloco, start, end, 'end');
@@ -821,6 +870,10 @@ export const conteudoGeradoView = {
                 Object.assign(material, dadosAtualizados);
             }
 
+            if (typeof this._editorCleanup === 'function') {
+                this._editorCleanup();
+                this._editorCleanup = null;
+            }
             controller.closeModal();
             Toast.show("Material e metadados organizacionais atualizados com sucesso!", "success");
             this.render('view-container');
@@ -845,7 +898,7 @@ export const conteudoGeradoView = {
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = htmlLimpo;
         renderKatex(tempDiv);
-        
+
         // Remove elementos ocultos MathML do KaTeX que o MS Word renderiza duplicados em texto
         tempDiv.querySelectorAll('.katex-mathml').forEach(el => el.remove());
 
@@ -960,6 +1013,20 @@ export const conteudoGeradoView = {
                 </div>
             </div>`;
         controller.openModal('Impressão & Exportação em PDF', html);
+
+        setTimeout(() => {
+            const modalEl = document.getElementById('global-modal');
+            if (modalEl) {
+                EventDelegator.bind(modalEl, {
+                    'gerar-impressao': (e, target) => {
+                        const tipo = target.getAttribute('data-tipo');
+                        controller.closeModal();
+                        this.gerarDocumentoImpressao(tipo);
+                    },
+                    'fechar-modal': () => controller.closeModal()
+                }, 'click');
+            }
+        }, 50);
     },
 
     gerarDocumentoImpressao(tipo = 'aluno') {
@@ -979,9 +1046,9 @@ export const conteudoGeradoView = {
         const htmlProcessado = this.processarHTMLParaModo(material.conteudo_html || '', isProf ? 'professor' : 'aluno');
         const conteudoFinalHTML = htmlProcessado;
 
-        const tituloDocumento = isProf 
+        const tituloDocumento = isProf
             ? `GUIA DO PROFESSOR: ${material.titulo || material.tema || 'Material Pedagógico'}`
-            : isAcessivel 
+            : isAcessivel
                 ? `DOCUMENTO ADAPTADO (AEE): ${material.titulo || material.tema || 'Material Pedagógico'}`
                 : `${material.titulo || material.tema || 'Material Pedagógico'}`;
 
@@ -1157,20 +1224,26 @@ export const conteudoGeradoView = {
                 </div>
 
                 <script>
-                    window.onload = function() { 
+                    function iniciarImpressao() {
                         if (typeof renderMathInElement === 'function') {
-                            renderMathInElement(document.body, {
-                                delimiters: [
-                                    { left: '$$', right: '$$', display: true },
-                                    { left: '\\\\[', right: '\\\\]', display: true },
-                                    { left: '\\\\(', right: '\\\\)', display: false },
-                                    { left: '$', right: '$', display: false }
-                                ],
-                                throwOnError: false
-                            });
+                            try {
+                                renderMathInElement(document.body, {
+                                    delimiters: [
+                                        { left: '\\\\[', right: '\\\\]', display: true },
+                                        { left: '\\\\(', right: '\\\\)', display: false }
+                                    ],
+                                    throwOnError: false
+                                });
+                            } catch (err) { console.warn(err); }
                         }
-                        setTimeout(() => window.print(), 350); 
-                    };
+                        setTimeout(() => window.print(), 300);
+                    }
+                    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                        iniciarImpressao();
+                    } else {
+                        window.addEventListener('DOMContentLoaded', iniciarImpressao);
+                        setTimeout(iniciarImpressao, 700);
+                    }
                 <\/script>
             </body>
             </html>
@@ -1178,9 +1251,8 @@ export const conteudoGeradoView = {
 
         const win = window.open('', '_blank');
         if (win) {
-            const safeHtml = window.sanitizeComLatex ? window.sanitizeComLatex(conteudoFinal) : conteudoFinal;
             win.document.open();
-            win.document.write(safeHtml);
+            win.document.write(conteudoFinal);
             win.document.close();
         } else {
             Toast.show("Permita pop-ups no seu navegador para abrir a tela de impressão.", "warning");
@@ -1338,7 +1410,7 @@ export const conteudoGeradoView = {
         const somaTotal = Object.values(this._rubricaNotas || {}).reduce((a, b) => a + b, 0);
 
         const relatorio = `=== AVALIAÇÃO POR RUBRICA ===\nEstudante/Grupo: ${nomeAluno}\nNota Final: ${somaTotal.toFixed(1)} / 10.0\n${feedback ? `Feedback: ${feedback}\n` : ''}Data: ${new Date().toLocaleDateString('pt-BR')}`;
-        
+
         navigator.clipboard.writeText(relatorio).then(() => {
             Toast.show("Parecer da rubrica copiado para a área de transferência!", "success");
         });

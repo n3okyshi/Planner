@@ -536,6 +536,64 @@ export const model = {
         }
     },
 
+    obterCaminhoCompletoPasta(pastaId) {
+        if (!pastaId || !this.state.pastasMateriais) return '';
+        const caminho = [];
+        let currId = String(pastaId);
+        const visitados = new Set();
+
+        while (currId && !visitados.has(currId)) {
+            visitados.add(currId);
+            const pasta = this.state.pastasMateriais.find(p => String(p.id) === currId);
+            if (!pasta) break;
+            caminho.unshift(pasta.nome);
+            currId = pasta.parentId ? String(pasta.parentId) : null;
+        }
+
+        return caminho.join(' / ');
+    },
+
+    obterCadeiaHierarquicaPasta(pastaId) {
+        if (!pastaId || !this.state.pastasMateriais) return [];
+        const cadeia = [];
+        let currId = String(pastaId);
+        const visitados = new Set();
+
+        while (currId && !visitados.has(currId)) {
+            visitados.add(currId);
+            const pasta = this.state.pastasMateriais.find(p => String(p.id) === currId);
+            if (!pasta) break;
+            cadeia.unshift({ id: pasta.id, nome: pasta.nome });
+            currId = pasta.parentId ? String(pasta.parentId) : null;
+        }
+
+        return cadeia;
+    },
+
+    obterIdsTodasSubpastas(pastaId) {
+        if (!pastaId || !this.state.pastasMateriais) return new Set();
+        const ids = new Set([String(pastaId)]);
+        let alterou = true;
+
+        while (alterou) {
+            alterou = false;
+            for (const p of this.state.pastasMateriais) {
+                if (p.parentId && ids.has(String(p.parentId)) && !ids.has(String(p.id))) {
+                    ids.add(String(p.id));
+                    alterou = true;
+                }
+            }
+        }
+
+        return ids;
+    },
+
+    contarMateriaisPastaRecursivo(pastaId) {
+        if (!pastaId || !this.state.materiaisGerados) return 0;
+        const subpastaIds = this.obterIdsTodasSubpastas(pastaId);
+        return this.state.materiaisGerados.filter(m => !m.naLixeira && m.pastaId && subpastaIds.has(String(m.pastaId))).length;
+    },
+
     criarPastaEstudo(nome, parentId = null, tipo = 'flashcard') {
         if (!this.state.pastasEstudos) this.state.pastasEstudos = [];
         const novaPasta = {
@@ -718,6 +776,7 @@ export const model = {
         copia.id = 'mat_' + Date.now().toString(36) + '_' + Math.random().toString(36).substr(2, 4);
         copia.titulo = `${copia.titulo || copia.tema || 'Material'} (Cópia)`;
         copia.createdAt = new Date().toISOString();
+        copia.pastaId = null;
         delete copia.compartilhado;
 
         this.state.materiaisGerados.unshift(copia);
