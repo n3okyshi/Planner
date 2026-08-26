@@ -581,5 +581,53 @@ export const planejamentoView = {
             </html>
         `);
         printWindow.document.close();
+    },
+
+    abrirModal5Es() {
+        const modalHtml = `
+            <div style="display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0;">
+                <p style="font-size: 0.875rem; color: #475569; margin: 0;">
+                    Preencha o tema e a habilidade para gerar a estrutura de Plano de Aula no Modelo Investigativo 5E (Engajar, Explorar, Explicar, Elaborar, Avaliar):
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <div>
+                        <label style="display: block; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #334155; margin-bottom: 0.25rem;">Título / Tema da Aula</label>
+                        <input type="text" id="modal-5e-tema" placeholder="Ex: Fotossíntese e Produção de Oxigênio" class="form-input" style="width: 100%; font-weight: 700;">
+                    </div>
+                    <div>
+                        <label style="display: block; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #334155; margin-bottom: 0.25rem;">Habilidade BNCC</label>
+                        <input type="text" id="modal-5e-habilidade" placeholder="Ex: EF06CI05 - Explicar a organização celular..." class="form-input" style="width: 100%;">
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.5rem;">
+                    <button type="button" data-action="fechar-modal" class="btn-secondary">Cancelar</button>
+                    <button type="button" onclick="planejamentoView.gerarPlano5EPronto()" class="btn-primary" style="background: #4f46e5;">
+                        <i class="fas fa-magic mr-1"></i> Gerar Estrutura 5E
+                    </button>
+                </div>
+            </div>
+        `;
+
+        controller.openModal('Gerador de Plano de Aula 5Es (Modelo Investigativo)', modalHtml, 'medium');
+    },
+
+    gerarPlano5EPronto() {
+        const tema = document.getElementById('modal-5e-tema')?.value.trim() || 'Aula Investigativa';
+        const hab = document.getElementById('modal-5e-habilidade')?.value.trim() || 'BNCC Adaptada';
+
+        const plano5E = {
+            titulo: tema,
+            habilidade: hab,
+            engajar: "Pergunta disparadora e vídeo/experimento curto para despertar a curiosidade dos estudantes sobre o tema.",
+            explorar: "Atividade prática em grupo onde os estudantes manipulam dados, hipóteses e materiais sem explicação prévia do professor.",
+            explicar: "Momento de mediação docente: apresentação formal dos conceitos científicos e sistematização das descobertas.",
+            elaborar: "Aplicação do conhecimento em um novo problema ou situação do cotidiano para consolidação da aprendizagem.",
+            avaliar: "Avaliação formativa via rubrica simples, autoavaliação e verificação de dúvidas remanescentes."
+        };
+
+        controller.closeModal();
+        this.imprimirPlano5Es(plano5E);
+        Toast.show("Plano 5E gerado com sucesso!", "success");
     }
 };

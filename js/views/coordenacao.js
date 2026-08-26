@@ -76,12 +76,17 @@ export const coordenacaoView = {
                             Supervisão de planos de aula, monitoramento curricular BNCC e acompanhamento de inclusão.
                         </p>
                     </div>
-                    <div style="display: flex; align-items: center; gap: 0.75rem; background: var(--color-slate-100); padding: 0.375rem 0.75rem; border-radius: 0.75rem;">
-                        <span style="font-size: 0.8125rem; font-weight: 600; color: var(--color-slate-600);">Perfil Atual:</span>
-                        <select id="select-role-perfil" style="padding: 0.35rem 0.75rem; border-radius: 0.5rem; border: 1px solid var(--color-slate-300); font-weight: 700; background: #fff; cursor: pointer;">
-                            <option value="coordenador" ${currentRole === 'coordenador' ? 'selected' : ''}>Coordenador Pedagógico</option>
-                            <option value="docente" ${currentRole === 'docente' ? 'selected' : ''}>Professor (Docente)</option>
-                        </select>
+                    <div style="display: flex; align-items: center; gap: 0.75rem;">
+                        <button type="button" data-action="abrir-comunicados" class="btn-primary" style="background: #3b82f6; border: none;" title="Gerar Comunicados para Pais e Cartas de Recomendação">
+                            <i class="fas fa-envelope-open-text"></i> Comunicados & Cartas
+                        </button>
+                        <div style="display: flex; align-items: center; gap: 0.75rem; background: var(--color-slate-100); padding: 0.375rem 0.75rem; border-radius: 0.75rem;">
+                            <span style="font-size: 0.8125rem; font-weight: 600; color: var(--color-slate-600);">Perfil Atual:</span>
+                            <select id="select-role-perfil" style="padding: 0.35rem 0.75rem; border-radius: 0.5rem; border: 1px solid var(--color-slate-300); font-weight: 700; background: #fff; cursor: pointer;">
+                                <option value="coordenador" ${currentRole === 'coordenador' ? 'selected' : ''}>Coordenador Pedagógico</option>
+                                <option value="docente" ${currentRole === 'docente' ? 'selected' : ''}>Professor (Docente)</option>
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -267,7 +272,50 @@ export const coordenacaoView = {
                 model.avaliarPlanoValidacao(dataIso, turmaId, 'com_ressalvas', parecer);
                 Toast.show("Plano retornado ao professor com ressalvas.", "info");
                 this.render(container);
+            },
+            'abrir-comunicados': () => {
+                this.abrirModalComunicados();
             }
         });
+    },
+
+    abrirModalComunicados() {
+        const modelos = [
+            {
+                titulo: "✉️ Boletim Informativo para as Famílias",
+                texto: "Prezados Pais e Responsáveis,\n\nGostaríamos de compartilhar os principais avanços pedagógicos do nosso período letivo. Reiteramos a importância do acompanhamento diário das tarefas de casa e da presença assídua do estudante.\n\nAtenciosamente,\nEquipe Pedagógica"
+            },
+            {
+                titulo: "🎓 Carta de Recomendação Acadêmica",
+                texto: "A quem possa interessar,\n\nDeclaro para os devidos fins que o(a) estudante demonstrou excelente empenho acadêmico, postura ética e capacidade analítica diferenciada durante o ciclo letivo, apresentando plena aptidão para novos desafios educacionais.\n\nAtenciosamente,\nCoordenação Pedagógica"
+            },
+            {
+                titulo: "⚠️ Alerta de Acompanhamento de Frequência",
+                texto: "Prezado Responsável,\n\nIdentificamos uma sequência de ausências não justificadas do estudante. Solicitamos o comparecimento à coordenação pedagógica para alinhamento da rotina escolar.\n\nAtenciosamente,\nGestão Escolar"
+            }
+        ];
+
+        const modalHtml = `
+            <div style="display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0;">
+                <p style="font-size: 0.875rem; color: #475569; margin: 0;">
+                    Selecione um modelo de comunicado oficial ou carta de recomendação para copiar para a área de transferência:
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 0.875rem;">
+                    ${modelos.map(m => `
+                        <div style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 1rem; border-radius: var(--radius-lg); display: flex; flex-direction: column; gap: 0.5rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <strong style="font-size: 0.875rem; color: #1e293b;">${window.escapeHTML(m.titulo)}</strong>
+                                <button type="button" onclick="navigator.clipboard.writeText('${m.texto.replace(/\n/g, '\\n').replace(/'/g, "\\'")}'); Toast.show('Comunicado copiado com sucesso!', 'success');" class="btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; font-weight: 700; background: #ffffff;">
+                                    <i class="fas fa-copy"></i> Copiar Texto
+                                </button>
+                            </div>
+                            <pre style="font-size: 0.8125rem; color: #334155; margin: 0; line-height: 1.5; font-family: inherit; white-space: pre-wrap; background: #ffffff; padding: 0.75rem; border-radius: 0.375rem; border: 1px solid #e2e8f0;">${window.escapeHTML(m.texto)}</pre>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
+        controller.openModal('Central de Comunicados & Recomendação', modalHtml, 'large');
     }
 };

@@ -42,6 +42,21 @@ export const pdiView = {
                     <h3 id="titulo-form-pdi" style="font-size: 1.125rem; font-weight: 700; color: #5b21b6; margin-bottom: 1rem;">
                         Cadastrar Novo PDI / PEI
                     </h3>
+
+                    <!-- BARRA DE MODELOS RÁPIDOS POR DIAGNÓSTICO (AEE) -->
+                    <div style="background: #ffffff; padding: 0.875rem 1rem; border-radius: 0.5rem; border: 1px solid #e9d5ff; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem; color: #6b21a8; font-weight: 700; font-size: 0.8125rem;">
+                            <i class="fas fa-magic" style="color: #a855f7;"></i>
+                            <span>Preencher com Modelo por Diagnóstico (AEE):</span>
+                        </div>
+                        <div style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                            <button type="button" data-action="modelo-pdi" data-tipo="tea" class="btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; font-weight: 700; background: #f3e8ff; color: #6b21a8; border-color: #d8b4fe;" title="Carregar modelo para Autismo/TEA">⚡ Autismo (TEA)</button>
+                            <button type="button" data-action="modelo-pdi" data-tipo="tdah" class="btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; font-weight: 700; background: #e0f2fe; color: #0369a1; border-color: #bae6fd;" title="Carregar modelo para TDAH">⚡ TDAH</button>
+                            <button type="button" data-action="modelo-pdi" data-tipo="di" class="btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; font-weight: 700; background: #fef3c7; color: #b45309; border-color: #fde68a;" title="Carregar modelo para Deficiência Intelectual">⚡ Def. Intelectual</button>
+                            <button type="button" data-action="modelo-pdi" data-tipo="ah" class="btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; font-weight: 700; background: #ecfdf5; color: #047857; border-color: #a7f3d0;" title="Carregar modelo para Altas Habilidades">⚡ Altas Habilidades</button>
+                        </div>
+                    </div>
+
                     <form id="form-pdi-item" style="display: flex; flex-direction: column; gap: 1rem;">
                         <input type="hidden" id="pdi-id" value="">
                         
@@ -225,6 +240,10 @@ export const pdiView = {
                     formCard.scrollIntoView({ behavior: 'smooth' });
                 }
             },
+            'modelo-pdi': (target) => {
+                const tipo = target.getAttribute('data-tipo');
+                this.preencherModeloPdi(tipo);
+            },
             'excluir-pdi': (el) => {
                 const id = el.dataset.id;
                 if (confirm("Tem certeza que deseja excluir este Plano PDI / PEI?")) {
@@ -234,5 +253,48 @@ export const pdiView = {
                 }
             }
         });
+    },
+
+    preencherModeloPdi(tipo) {
+        const diagEl = document.getElementById('pdi-diagnostico');
+        const habEl = document.getElementById('pdi-habilidades');
+        const adaptEl = document.getElementById('pdi-adaptacoes');
+        const parcEl = document.getElementById('pdi-parecer');
+
+        const modelos = {
+            tea: {
+                diagnostico: "Transtorno do Espectro Autista (TEA) - Nível de Suporte 1/2",
+                habilidades: "• Desenvolvimento da comunicação funcional e expressão de necessidades.\n• Compreensão de instruções diretas com apoio visual.\n• Participação em atividades colaborativas com mediação.",
+                adaptacoes: "• Cartões de rotina visual (PEC/Comunicação Alternativa).\n• Antecipação de transições de atividades para evitar ansiedade.\n• Redução de estímulos sensoriais e tempo estendido para avaliações.",
+                parecer: "O aluno responde positivamente à rotina previsível e suportes visuais. Demonstra avanços na interação com pares durante atividades estruturadas."
+            },
+            tdah: {
+                diagnostico: "Transtorno de Déficit de Atenção com Hiperatividade (TDAH)",
+                habilidades: "• Manutenção do foco em tarefas de curta duração.\n• Organização do material escolar e gestão do tempo.\n• Autorregulação atitudinal em momentos de transição.",
+                adaptacoes: "• Fracionamento de comandos e tarefas extensas em etapas menores.\n• Assento próximo ao professor e longe de janelas/distratores.\n• Intervalos estruturados para movimentação e pausas ativas.",
+                parecer: "Apresenta melhor engajamento quando a tarefa é dividida em blocos curtos. Demonstra bom rendimento com verificações periódicas de atenção."
+            },
+            di: {
+                diagnostico: "Deficiência Intelectual / Atraso no Desenvolvimento Cognitivo",
+                habilidades: "• Compreensão de conceitos concretos do cotidiano.\n• Desenvolvimento da autonomia no manuseio de materiais.\n• Expressão de raciocínio por meio de linguagens alternativas (desenho, oralidade).",
+                adaptacoes: "• Adequação curricular com foco em habilidades essenciais e conceitos concretos.\n• Utilização de materiais concretos, blocos lógicos e suporte pictórico.\n• Avaliação adaptada com enunciados simplificados e menos alternativas.",
+                parecer: "Demonstra progresso significativo na assimilação de conceitos quando trabalhados com recursos visuais e táteis."
+            },
+            ah: {
+                diagnostico: "Altas Habilidades / Superdotação (AH/SD)",
+                habilidades: "• Aprofundamento conceitual e resolução de problemas complexos.\n• Desenvolvimento de projetos de pesquisa autônomos.\n• Ampliação de repertório crítico e metodologias investigativas.",
+                adaptacoes: "• Enriquecimento curricular com desafios suplementares.\n• Proposição de atividades de tutoria e liderança de projetos.\n• Flexibilização do ritmo de estudo para evitar desmotivação.",
+                parecer: "Conclui atividades padrão com rapidez excepcional. Demonstra alto nível de curiosidade e excelente capacidade de abstração."
+            }
+        };
+
+        const m = modelos[tipo];
+        if (m) {
+            if (diagEl) diagEl.value = m.diagnostico;
+            if (habEl) habEl.value = m.habilidades;
+            if (adaptEl) adaptEl.value = m.adaptacoes;
+            if (parcEl) parcEl.value = m.parecer;
+            Toast.show(`Modelo de PDI para ${m.diagnostico.split('-')[0]} inserido!`, 'info');
+        }
     }
 };

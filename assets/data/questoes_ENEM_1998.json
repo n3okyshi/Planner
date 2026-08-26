@@ -1,0 +1,103 @@
+[
+    {
+        "id": "enem_1998_q001",
+        "materia": "Matemática",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "",
+            "descricao": "",
+            "unidade_tematica": ""
+        },
+        "enunciado": "Uma pessoa arrumou as bolinhas em camadas superpostas iguais, tendo assim empregado:",
+        "suporte": {
+            "tem_imagem": true,
+            "url_imagem": "./img/ENEM_1998/enem_1998_q001.jpg",
+            "legenda": ""
+        },
+        "alternativas": [
+            "100",
+            "300",
+            "1000",
+            "2000",
+            "10000"
+        ],
+        "correta": 2,
+        "gabarito_comentado": "Para saber a quantidade de um elementos de um cubo 10x10x10, calculamos o volume do cubo, que é dado pela fórmula: $V = lado^3$. Nesse caso, o lado é 10, então o volume é $10^3 = 1000$.",
+        "tags": [
+            "Cubo",
+            "Geometria",
+            "Volume"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q002",
+        "materia": "Matemática",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "",
+            "descricao": "",
+            "unidade_tematica": ""
+        },
+        "enunciado": "Uma segunda pessoa procurou encontrar outra maneira de arrumar as bolas na caixa achando que seria uma boa idéia organizá-las em camadas alternadas, onde cada bolinha de uma camada se apoiaria em 4 bolinhas da camada inferior, como mostra a figura. Deste modo, ela conseguiu fazer 12 camadas. Portanto, ela conseguiu colocar na caixa:",
+        "suporte": {
+            "tem_imagem": true,
+            "url_imagem": "./img/ENEM_1998/enem_1998_q002.jpg",
+            "legenda": ""
+        },
+        "alternativas": [
+            "729",
+            "984",
+            "1000",
+            "1086",
+            "12000"
+        ],
+        "correta": 3,
+        "gabarito_comentado": "Para saber a quantidade de um elementos de um cubo 10x10x10, calculamos o volume do cubo, que é dado pela fórmula: $V = lado^3$. Nesse caso, o lado é 10, então o volume é $10^3 = 1000$.",
+        "tags": [
+            "Cubo",
+            "Geometria",
+            "Volume"
+        ],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q002",
+        "materia": "Ciências",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "",
+            "descricao": "",
+            "unidade_tematica": ""
+        },
+        "enunciado": "O sol participa do ciclo da água, pois além de aquecer a superfície da Terra dando origem aos ventos, provoca a evaporação da água dos rios, lagos e mares. O vapor da água, ao se resfriar, condensa em minúsculas gotinhas, que se agrupam formando as nuvens, neblinas ou névoas úmidas. As nuvens podem ser levadas pelos ventos de uma região para outra. Com a condensação e, em seguida, a chuva, a água volta à superfície da Terra, caindo sobre o solo, rios, lagos e mares. Parte dessa água evapora retornando à atmosfera, outra parte escoa superficialmente ou infiltra-se no solo, indo alimentar rios e lagos. Esse processo é chamado de ciclo da água.\n Considere, então, as seguintes afirmativas:\n I. a evaporação é maior nos continentes, uma vez que o aquecimento ali é maior do que nos oceanos.\n II. a vegetação participa do ciclo hidrológico por meio da transpiração.\n III. o ciclo hidrológico condiciona processos que ocorrem na litosfera, na atmosfera e na biosfera.\n IV. a energia gravitacional movimenta a água dentro do seu ciclo.\n V. o ciclo hidrológico é passível de sofrer interferência humana, podendo apresentar desequilíbrios.",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "somente a afirmativa III está correta.",
+            "somente as afirmativas III e IV estão corretas",
+            "somente as afirmativas I, II e V estão corretas.",
+            "somente as afirmativas II, III, IV e V estão corretas.",
+            "todas as afirmativas estão corretas."
+        ],
+        "correta": 3,
+        "gabarito_comentado": "Vamos analisar cada afirmativa:\n I. A evaporação é maior nos oceanos do que nos continentes, pois a superfície dos oceanos é maior e a água retém calor por mais tempo.\n II. A vegetação participa do ciclo hidrológico por meio da transpiração, liberando vapor de água na atmosfera.\n III. O ciclo hidrológico condiciona processos na litosfera (erosão, transporte de sedimentos), atmosfera (formação de nuvens, precipitação) e biosfera (condições de vida para os seres vivos).\n IV. A energia gravitacional movimenta a água no ciclo, pois a água escoa de áreas mais altas para áreas mais baixas.\n V. O ciclo hidrológico pode ser afetado por ações humanas, como desmatamento, urbanização e irrigação, podendo causar desequilíbrios.\n Portanto, as afirmativas corretas são II, III, IV e V.",
+        "tags": [
+            "Ciclo da água",
+            "Hidrologia"
+        ],
+        "preDefinida": true
+    }
+]

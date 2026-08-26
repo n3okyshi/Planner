@@ -94,6 +94,11 @@ export const ataConselhoView = {
                             <i class="fas fa-users" style="color: var(--color-primary);"></i> <span>Ata Reunião de Pais</span>
                         </button>
 
+                        <!-- Botão Gerador de Pareceres Descritivos -->
+                        <button type="button" onclick="ataConselhoView.abrirGeradorParecerModal()" class="btn-secondary" title="Gerar e copiar pareceres descritivos para boletins e atas">
+                            <i class="fas fa-comment-medical text-purple-600"></i> <span>Gerar Pareceres</span>
+                        </button>
+
                         <!-- Botão Exportar JSON -->
                         <button type="button" onclick="ataConselhoView.exportarJSON()" class="btn-secondary" title="Exportar JSON para o Censo Escolar">
                             <i class="fas fa-file-code text-indigo-600"></i> <span>JSON</span>
@@ -656,6 +661,58 @@ export const ataConselhoView = {
             </html>
         `);
         printWindow.document.close();
+    },
+
+    abrirGeradorParecerModal() {
+        const pareceres = [
+            {
+                categoria: "Desempenho Excelente & Autonomia",
+                cor: "#ecfdf5",
+                borda: "#a7f3d0",
+                texto: "O estudante demonstra excelente domínio dos conteúdos abordados, autonomia na resolução de problemas complexos e participação ativa e cooperativa durante as aulas."
+            },
+            {
+                categoria: "Progresso Consistente com Apoio",
+                cor: "#eff6ff",
+                borda: "#bfdbfe",
+                texto: "Apresenta evolução satisfatória na assimilação dos conceitos. Responde positivamente às orientações pedagógicas e demonstra empenho no cumprimento das atividades propostas."
+            },
+            {
+                categoria: "Necessita de Intervenção Pedagógica",
+                cor: "#fef2f2",
+                borda: "#fecaca",
+                texto: "Apresenta dificuldades na retenção dos conteúdos fundamentais e necessita de reforço contínuo. Recomenda-se acompanhamento no programa de recuperação paralela."
+            },
+            {
+                categoria: "Engajamento Atitudinal & Colaboração",
+                cor: "#faf5ff",
+                borda: "#e9d5ff",
+                texto: "Destaca-se pelo respeito aos colegas, pontualidade e colaboração nas dinâmicas de grupo. Apresenta conduta atitudinal exemplar e interesse constante no aprendizado."
+            }
+        ];
+
+        const modalHtml = `
+            <div style="display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0;">
+                <p style="font-size: 0.875rem; color: #475569; margin: 0;">
+                    Selecione um parecer descritivo para copiar para a área de transferência e utilizar nos boletins ou observações do conselho:
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 0.875rem;">
+                    ${pareceres.map((p) => `
+                        <div style="background: ${p.cor}; border: 1px solid ${p.borda}; padding: 1rem; border-radius: var(--radius-lg); display: flex; flex-direction: column; gap: 0.5rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <strong style="font-size: 0.875rem; color: #1e293b;">${window.escapeHTML(p.categoria)}</strong>
+                                <button type="button" onclick="navigator.clipboard.writeText('${p.texto.replace(/'/g, "\\'")}'); Toast.show('Parecer copiado para a área de transferência!', 'success');" class="btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; font-weight: 700; background: #ffffff;">
+                                    <i class="fas fa-copy"></i> Copiar
+                                </button>
+                            </div>
+                            <p style="font-size: 0.8125rem; color: #334155; margin: 0; line-height: 1.5;">"${window.escapeHTML(p.texto)}"</p>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+
+        controller.openModal('Gerador de Pareceres Descritivos (Boletim)', modalHtml, 'medium');
     }
 };
 

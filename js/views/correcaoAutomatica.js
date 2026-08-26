@@ -8,6 +8,7 @@ export const correcaoAutomaticaView = {
     abaAtiva: 'redacao',
     videoStream: null,
     gabaritoOficial: ['A', 'B', 'C', 'D', 'E', 'A', 'B', 'C', 'D', 'E'],
+    qtdAlternativas: 5, // Padrão 5 alternativas (A, B, C, D, E)
     resultadoScanner: null,
     filtroScanner: 'scan_otimizado', // 'scan_otimizado' | 'scan_pb' | 'scan_binario' | 'original'
     canvasOriginal: null, // Canvas de backup da imagem original capturada/carregada
@@ -207,11 +208,11 @@ export const correcaoAutomaticaView = {
                 <!-- GABARITO OFICIAL & CONFIGURAÇÕES -->
                 <div class="card" style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4);">
                     
-                    <!-- CONFIGURADOR DE QUANTIDADE DE QUESTÕES -->
+                    <!-- CONFIGURADOR DE QUANTIDADE DE QUESTÕES E ALTERNATIVAS -->
                     <div style="background: #f8fafc; padding: 1rem; border-radius: var(--radius-xl); border: 1px solid #e2e8f0; display: flex; flex-direction: column; gap: 0.75rem;">
                         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
                             <label style="font-size: 0.8125rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 0.35rem;">
-                                <i class="fas fa-list-ol text-indigo-600"></i> Quantidade de Questões da Prova:
+                                <i class="fas fa-list-ol text-indigo-600"></i> Quantidade de Questões:
                             </label>
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
                                 <input type="number" id="omr-qtd-questoes" min="1" max="100" value="${totalQ}" 
@@ -232,6 +233,22 @@ export const correcaoAutomaticaView = {
                                 </button>
                             `).join('')}
                         </div>
+
+                        <!-- SELETOR DE QUANTIDADE DE ALTERNATIVAS -->
+                        <div style="border-top: 1px solid #e2e8f0; padding-top: 0.75rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                            <label style="font-size: 0.8125rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 0.35rem;">
+                                <i class="fas fa-tasks text-indigo-600"></i> Opções por Questão:
+                            </label>
+                            <div id="omr-alt-container" style="display: flex; align-items: center; gap: 0.3rem;">
+                                ${[3, 4, 5, 6].map(alt => `
+                                    <button type="button" data-alt="${alt}" onclick="correcaoAutomaticaView.alterarQuantidadeAlternativas(${alt})" 
+                                            style="padding: 0.25rem 0.55rem; font-size: 0.6875rem; font-weight: 800; border-radius: 0.375rem; cursor: pointer; border: 1px solid ${this.qtdAlternativas === alt ? '#4f46e5' : '#cbd5e1'}; background: ${this.qtdAlternativas === alt ? '#4f46e5' : 'white'}; color: ${this.qtdAlternativas === alt ? 'white' : '#475569'}; transition: all 120ms ease;"
+                                            title="${alt} alternativas por questão">
+                                        ${alt} Ops (${['A-C','A-D','A-E','A-F'][alt-3]})
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
                     </div>
 
                     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -249,7 +266,7 @@ export const correcaoAutomaticaView = {
                     </div>
 
                     <!-- GRADE COM SCROLLBAR DINÂMICA (ATUALIZADA SEM FULL-PAGE RELOAD) -->
-                    <div id="omr-gabarito-oficial-grid" class="custom-scrollbar" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.5rem; background: #f8fafc; padding: 0.875rem; border-radius: var(--radius-xl); border: 1px solid #e2e8f0; max-height: 380px; overflow-y: auto;">
+                    <div id="omr-gabarito-oficial-grid" class="custom-scrollbar" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 0.65rem; background: #f8fafc; padding: 1.125rem; border-radius: var(--radius-xl); border: 1px solid #e2e8f0; max-height: 420px; overflow-y: auto;">
                         ${this.obterHTMLGradeGabaritoOficial()}
                     </div>
 
@@ -266,9 +283,9 @@ export const correcaoAutomaticaView = {
                 </div>
 
                 <!-- SCANNER VIEWPORT / PREVIEW -->
-                <div class="card" style="padding: var(--spacing-6); display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 420px; background-color: var(--color-slate-900); border-radius: var(--radius-2xl); position: relative; overflow: hidden; box-shadow: var(--shadow-lg);">
+                <div class="card" style="padding: 1.5rem 1.75rem 1.75rem 1.75rem; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 440px; background-color: var(--color-slate-900); border-radius: var(--radius-2xl); position: relative; overflow: hidden; box-shadow: var(--shadow-lg);">
                     
-                    <div style="position: relative; width: 100%; display: flex; justify-content: center; align-items: center; min-height: 300px; background: #000; border-radius: var(--radius-xl); overflow: hidden;">
+                    <div style="position: relative; width: 100%; display: flex; justify-content: center; align-items: center; min-height: 340px; background: #000; border-radius: var(--radius-xl); overflow: hidden; padding: 0.5rem;">
                         <video id="omr-video-feed" playsinline autoplay style="width: 100%; height: auto; max-height: 70vh; object-fit: contain; border-radius: var(--radius-xl); display: none; background: #000;"></video>
                         
                         <!-- MOLDURA DE MIRA E ENQUADRAMENTO DA CÂMERA DE ALTA PRECISÃO -->
@@ -285,7 +302,7 @@ export const correcaoAutomaticaView = {
                         <canvas id="omr-canvas-scanner" style="width: 100%; height: auto; max-height: 70vh; object-fit: contain; border-radius: var(--radius-xl); display: none; background: #000;"></canvas>
                     </div>
 
-                    <div id="omr-placeholder-view" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: #94a3b8; padding: 2rem;">
+                    <div id="omr-placeholder-view" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: #94a3b8; padding: 2.25rem 1.5rem;">
                         <div style="width: 4.5rem; height: 4.5rem; border-radius: 50%; background: rgba(56, 189, 248, 0.15); display: flex; align-items: center; justify-content: center; font-size: 2rem; color: #38bdf8; margin-bottom: 1rem; border: 1px solid rgba(56, 189, 248, 0.3);">
                             <i class="fas fa-qrcode"></i>
                         </div>
@@ -295,14 +312,14 @@ export const correcaoAutomaticaView = {
                         </p>
                     </div>
 
-                    <div id="omr-camera-controls" style="display: none; margin-top: 1rem; width: 100%; justify-content: center; gap: 0.75rem;">
+                    <div id="omr-camera-controls" style="display: none; margin-top: 1.25rem; width: 100%; justify-content: center; gap: 0.875rem;">
                         <button type="button" onclick="correcaoAutomaticaView.capturarEAnalisar()" class="btn-primary" style="background: #10b981; border-color: #10b981; font-weight: 800; padding: 0.75rem 1.5rem;">
                             <i class="fas fa-camera"></i> Capturar & Corrigir Agora
                         </button>
                     </div>
 
                     <!-- BARRA DE SELEÇÃO DE FILTROS DE SCANNER (ATIVADA APÓS CAPTURA/FOTO) -->
-                    <div id="omr-filter-toolbar" class="omr-filter-toolbar" style="display: none;">
+                    <div id="omr-filter-toolbar" class="omr-filter-toolbar" style="display: none; margin-top: 1.25rem; padding: 0.6rem 1rem; gap: 0.4rem;">
                         <span style="font-size: 0.75rem; font-weight: 800; color: #94a3b8; margin-right: 0.25rem;">
                             <i class="fas fa-sliders-h text-indigo-400"></i> Filtro:
                         </span>
@@ -334,17 +351,60 @@ export const correcaoAutomaticaView = {
     },
 
     /**
+     * Retorna a lista de letras válidas de acordo com a quantidade de alternativas selecionada (ex: A-C, A-D, A-E, A-F)
+     */
+    obterLetrasAlternativas() {
+        const alfabeto = ['A', 'B', 'C', 'D', 'E', 'F'];
+        const qtd = Math.min(Math.max(this.qtdAlternativas || 5, 3), 6);
+        return alfabeto.slice(0, qtd);
+    },
+
+    /**
+     * Altera a quantidade de alternativas por questão (3, 4, 5 ou 6 opções)
+     */
+    alterarQuantidadeAlternativas(novaQtd) {
+        this.qtdAlternativas = parseInt(novaQtd, 10) || 5;
+        const letrasValidas = this.obterLetrasAlternativas();
+        
+        // Ajusta respostas do gabarito oficial que estejam além da nova quantidade
+        this.gabaritoOficial = this.gabaritoOficial.map(resp => letrasValidas.includes(resp) ? resp : 'A');
+
+        const container = document.getElementById('omr-alt-container');
+        if (container) {
+            container.querySelectorAll('button').forEach(btn => {
+                const btnAlt = parseInt(btn.dataset.alt, 10);
+                const isActive = (btnAlt === this.qtdAlternativas);
+                btn.style.borderColor = isActive ? '#4f46e5' : '#cbd5e1';
+                btn.style.background = isActive ? '#4f46e5' : 'white';
+                btn.style.color = isActive ? 'white' : '#475569';
+            });
+        }
+
+        this.renderGradeGabaritoOficial();
+
+        if (this.resultadoScanner && Array.isArray(this.resultadoScanner.detalhes)) {
+            this.resultadoScanner.detalhes.forEach((d, i) => {
+                d.gabarito = this.gabaritoOficial[i];
+            });
+            this.recalcularMetricasScanner();
+            this.exibirResultadoOMR();
+        }
+
+        Toast.show(`Alternativas configuradas para ${this.qtdAlternativas} opções (${letrasValidas[0]} a ${letrasValidas[letrasValidas.length - 1]})`, "info", 1500);
+    },
+
+    /**
      * Retorna a string HTML para a grade do gabarito oficial
      */
     obterHTMLGradeGabaritoOficial() {
-        const letras = ['A', 'B', 'C', 'D', 'E'];
+        const letras = this.obterLetrasAlternativas();
         return this.gabaritoOficial.map((gab, idx) => `
-            <div id="omr-gab-item-${idx}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.35rem 0.5rem; background: white; border-radius: 0.5rem; border: 1px solid #cbd5e1;">
+            <div id="omr-gab-item-${idx}" style="display: flex; align-items: center; justify-content: space-between; padding: 0.45rem 0.65rem; background: white; border-radius: 0.5rem; border: 1px solid #cbd5e1;">
                 <span style="font-size: 0.75rem; font-weight: 800; color: #475569;">Q${(idx + 1).toString().padStart(2, '0')}</span>
-                <div style="display: flex; gap: 0.15rem;">
+                <div style="display: flex; gap: 0.18rem;">
                     ${letras.map(l => `
                         <button type="button" onclick="correcaoAutomaticaView.definirGabaritoItem(${idx}, '${l}')" 
-                                style="width: 1.35rem; height: 1.35rem; border-radius: 0.25rem; font-size: 0.625rem; font-weight: 800; cursor: pointer; border: 1px solid ${gab === l ? '#4f46e5' : '#cbd5e1'}; background: ${gab === l ? '#4f46e5' : '#f8fafc'}; color: ${gab === l ? '#ffffff' : '#64748b'}; transition: all 100ms ease;">
+                                style="width: 1.4rem; height: 1.4rem; border-radius: 0.25rem; font-size: 0.6875rem; font-weight: 800; cursor: pointer; border: 1px solid ${gab === l ? '#4f46e5' : '#cbd5e1'}; background: ${gab === l ? '#4f46e5' : '#f8fafc'}; color: ${gab === l ? '#ffffff' : '#64748b'}; transition: all 100ms ease;">
                             ${l}
                         </button>
                     `).join('')}
@@ -364,7 +424,7 @@ export const correcaoAutomaticaView = {
 
     alterarQuantidadeQuestoes(novaQtd) {
         const qtd = Math.max(1, Math.min(100, parseInt(novaQtd, 10) || 10));
-        const letras = ['A', 'B', 'C', 'D', 'E'];
+        const letras = this.obterLetrasAlternativas();
         const novoGabarito = [];
         for (let i = 0; i < qtd; i++) {
             novoGabarito.push(this.gabaritoOficial[i] || letras[i % letras.length]);
@@ -434,7 +494,7 @@ export const correcaoAutomaticaView = {
         // Atualiza pontualmente os botões da linha no DOM sem recarregar a página
         const row = document.getElementById(`omr-gab-item-${index}`);
         if (row) {
-            const letras = ['A', 'B', 'C', 'D', 'E'];
+            const letras = this.obterLetrasAlternativas();
             const btns = row.querySelectorAll('button');
             btns.forEach((btn, i) => {
                 const l = letras[i];
@@ -458,7 +518,7 @@ export const correcaoAutomaticaView = {
     },
 
     preencherGabaritoRapido() {
-        const letras = ['A', 'B', 'C', 'D', 'E'];
+        const letras = this.obterLetrasAlternativas();
         this.gabaritoOficial = this.gabaritoOficial.map(() => letras[Math.floor(Math.random() * letras.length)]);
         this.renderGradeGabaritoOficial();
 
@@ -923,7 +983,8 @@ export const correcaoAutomaticaView = {
                     imagemBase64: base64Data,
                     mimeType: 'image/jpeg',
                     totalQuestoes: totalQ,
-                    gabaritoOficial: this.gabaritoOficial
+                    gabaritoOficial: this.gabaritoOficial,
+                    letrasAlternativas: this.obterLetrasAlternativas()
                 });
 
                 if (resultadoIA && Array.isArray(resultadoIA.respostas)) {
@@ -1128,7 +1189,7 @@ export const correcaoAutomaticaView = {
                     editIcon.style.display = d.editadoManualmente ? 'inline-block' : 'none';
                 }
 
-                const opcoesLetras = ['A', 'B', 'C', 'D', 'E'];
+                const opcoesLetras = this.obterLetrasAlternativas();
                 opcoesLetras.forEach(l => {
                     const btnL = card.querySelector(`.omr-btn-opt-${l}`);
                     if (btnL) {
@@ -1184,7 +1245,7 @@ export const correcaoAutomaticaView = {
 
         const res = this.resultadoScanner;
         const turmas = model.state.turmas || [];
-        const opcoesLetras = ['A', 'B', 'C', 'D', 'E'];
+        const opcoesLetras = this.obterLetrasAlternativas();
 
         container.style.display = 'block';
         container.innerHTML = `
@@ -1236,7 +1297,7 @@ export const correcaoAutomaticaView = {
                 </div>
 
                 <!-- GRADE INTERATIVA DE QUESTÕES CORRIGIDAS -->
-                <div class="custom-scrollbar" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 0.625rem; margin-bottom: 1.5rem; max-height: 380px; overflow-y: auto; padding: 0.25rem;">
+                <div class="custom-scrollbar" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(185px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; max-height: 420px; overflow-y: auto; padding: 0.5rem;">
                     ${res.detalhes.map(d => {
                         let corBorda = d.correta ? '#a7f3d0' : d.isEmBranco ? '#fde68a' : d.isAnulada ? '#e9d5ff' : '#fecaca';
                         let corFundo = d.correta ? '#f0fdf4' : d.isEmBranco ? '#fffbeb' : d.isAnulada ? '#faf5ff' : '#fff5f5';
@@ -1394,7 +1455,7 @@ export const correcaoAutomaticaView = {
      * Gera o HTML de um cartão-resposta individual com proporção e densidade óptica calibradas
      */
     obterHTMLCartaoIndividual({ numVia = 1, totalQuestoes = 10, colunasInternas = 2, porColuna = 5, compacto = false, totalVias = 1 }) {
-        const letras = ['A', 'B', 'C', 'D', 'E'];
+        const letras = this.obterLetrasAlternativas();
         const isGrandeVolume = totalQuestoes >= 45;
         const fontTitle = compacto ? '0.75rem' : isGrandeVolume ? '0.875rem' : '0.9375rem';
         const paddingCard = compacto ? '0.65rem 0.65rem 0.5rem 0.65rem' : '0.875rem 0.875rem 0.65rem 0.875rem';
@@ -1491,16 +1552,11 @@ export const correcaoAutomaticaView = {
             colunasInternas = 4;
             layoutClasse = 'via-unica';
             compacto = true;
-        } else if (totalQuestoes > 30) {
-            numVias = 1;
-            colunasInternas = 3;
-            layoutClasse = 'via-unica';
-            compacto = false;
         } else if (totalQuestoes > 15) {
             numVias = 2;
-            colunasInternas = 2;
+            colunasInternas = totalQuestoes > 30 ? 3 : 2;
             layoutClasse = 'grid-2-vias';
-            compacto = false;
+            compacto = totalQuestoes > 30;
         } else {
             numVias = 4;
             colunasInternas = totalQuestoes > 8 ? 2 : 1;
@@ -1638,20 +1694,16 @@ export const correcaoAutomaticaView = {
         let explicacao = 'A folha foi otimizada para renderizar <strong>4 cartões econômicos por página A4 (Grade 2x2)</strong> com marcadores vetoriais ⬛.';
         if (totalQuestoes > 50) {
             numVias = 1;
-            explicacao = 'Para provas extensas (51 a 100 questões), o layout de alta densidade óptica foi calibrado para caber <strong>100% em EXATAMENTE 1 folha A4</strong>, sem cortes ou páginas extras.';
-        } else if (totalQuestoes > 30) {
-            numVias = 1;
-            explicacao = 'Para provas de 31 a 50 questões, a folha foi formatada como <strong>1 prova completa em página A4 inteira (3 colunas)</strong>.';
+            explicacao = 'Para provas extensas (51 a 100 questões), o layout de alta densidade óptica foi calibrado para caber <strong>100% em EXATAMENTE 1 folha A4 (4 colunas)</strong>, sem cortes ou páginas extras.';
         } else if (totalQuestoes > 15) {
             numVias = 2;
-            explicacao = 'Para provas médias (16 a 30 questões), a folha foi formatada para renderizar <strong>2 cartões por página A4</strong>.';
+            explicacao = 'Para provas de 16 a 50 questões, a folha foi otimizada para renderizar <strong>2 cartões econômicos por página A4 (50% de economia de papel)</strong>.';
         }
 
         let colunasInternas = 1;
         let compacto = false;
         if (totalQuestoes > 50) { colunasInternas = 4; compacto = true; }
-        else if (totalQuestoes > 30) { colunasInternas = 3; compacto = false; }
-        else if (totalQuestoes > 15) { colunasInternas = 2; compacto = false; }
+        else if (totalQuestoes > 15) { colunasInternas = totalQuestoes > 30 ? 3 : 2; compacto = totalQuestoes > 30; }
         else { colunasInternas = totalQuestoes > 8 ? 2 : 1; compacto = true; }
 
         const porColuna = Math.ceil(totalQuestoes / colunasInternas);

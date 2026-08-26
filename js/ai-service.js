@@ -170,18 +170,21 @@ export const aiService = {
     },
     /**
      * Analisa visualmente uma foto ou digitalização de cartão-resposta/gabarito e extrai as alternativas marcadas com alta precisão.
-     * @param {Object} params - { imagemBase64, mimeType, totalQuestoes, gabaritoOficial }
+     * @param {Object} params - { imagemBase64, mimeType, totalQuestoes, gabaritoOficial, letrasAlternativas }
      * @returns {Promise<Object>}
      */
-    async analisarCartaoRespostaOMR({ imagemBase64, mimeType = 'image/jpeg', totalQuestoes = 10, gabaritoOficial = [] }) {
+    async analisarCartaoRespostaOMR({ imagemBase64, mimeType = 'image/jpeg', totalQuestoes = 10, gabaritoOficial = [], letrasAlternativas = ['A', 'B', 'C', 'D', 'E'] }) {
         const total = parseInt(totalQuestoes, 10) || (gabaritoOficial ? gabaritoOficial.length : 10);
+        const listaLetras = Array.isArray(letrasAlternativas) && letrasAlternativas.length > 0 ? letrasAlternativas : ['A', 'B', 'C', 'D', 'E'];
+        const letrasStr = listaLetras.join(', ');
+        const numBolhas = listaLetras.length;
 
         const prompt = `
             Você é um leitor óptico de altíssima precisão especializado em OMR (Optical Mark Recognition) e visão computacional de avaliações escolares.
             Analise a imagem da folha de respostas/cartão-resposta ou prova em anexo.
 
             MISSÃO:
-            Identificar as marcações preenchidas pelo estudante para EXATAMENTE ${total} questões (da Questão 1 até a Questão ${total}).
+            Identificar as marcações preenchidas pelo estudante para EXATAMENTE ${total} questões (da Questão 1 até a Questão ${total}). Cada questão possui ${numBolhas} alternativas (${letrasStr}).
 
             DIRETRIZES DE INSPEÇÃO ÓPTICA PASSO A PASSO:
             1. LOCALIZAÇÃO E ANCORAGEM:
@@ -189,9 +192,9 @@ export const aiService = {
                - Varra sequencialmente as linhas da Questão 1 até a Questão ${total}.
 
             2. CRITÉRIOS DE DIFERENCIAÇÃO DE PREENCHIMENTO:
-               - BOLHA VAZIA / NÃO MARCADA: O contorno circular está visível e o interior do círculo está claro/branco, mostrando a letra impressa (A, B, C, D ou E) sem preenchimento de caneta.
+               - BOLHA VAZIA / NÃO MARCADA: O contorno circular está visível e o interior do círculo está claro/branco, mostrando a letra impressa (${letrasStr}) sem preenchimento de caneta.
                - BOLHA PREENCHIDA / MARCADA: O interior do círculo está escurecido/pintado com caneta (azul ou preta) ou grafite de lápis, cobrindo a letra interna ou apresentando traço firme/X evidente.
-               - QUESTÃO EM BRANCO: Se nenhuma das 5 bolhas da linha (A, B, C, D, E) estiver preenchida, retorne OBRIGATORIAMENTE "EM_BRANCO" no campo "resposta" e status "em_branco".
+               - QUESTÃO EM BRANCO: Se nenhuma das ${numBolhas} bolhas da linha (${letrasStr}) estiver preenchida, retorne OBRIGATORIAMENTE "EM_BRANCO" no campo "resposta" e status "em_branco".
                - QUESTÃO ANULADA / DUPLA: Se houver 2 ou mais bolhas preenchidas na mesma questão sem clara distinção de correção, retorne OBRIGATORIAMENTE "ANULADA" no campo "resposta" e status "anulada".
                - RASURA COM CORREÇÃO EVIDENTE: Se uma bolha foi claramente riscada/rabiscada para anular e outra bolha foi preenchida com firmeza, considere a bolha preenchida como a resposta intencional.
 
@@ -208,7 +211,7 @@ export const aiService = {
                 "respostas": [
                     {
                         "questao": 1,
-                        "resposta": "A", // "A", "B", "C", "D", "E", "EM_BRANCO" ou "ANULADA"
+                        "resposta": "A", // ${listaLetras.map(l => `"${l}"`).join(', ')}, "EM_BRANCO" ou "ANULADA"
                         "status": "marcada", // "marcada", "em_branco" ou "anulada"
                         "confianca": "alta", // "alta", "media" ou "baixa"
                         "motivo": "" // Opcional, detalha caso a confiança seja média/baixa

@@ -574,6 +574,13 @@ export const conteudoGeradoView = {
                             <button type="button" onclick="window.criarMaterialView.inserirSnippet('imagem', 'editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.25rem 0.65rem; font-size: 0.75rem; font-weight: 800; background: #e0f2fe; color: #0369a1; border-color: #bae6fd;" title="Upload de Imagem"><i class="fas fa-image"></i> + Imagem</button>
                             <button type="button" onclick="window.conteudoGeradoView.inserirBlocoGabarito('editor-mat-wysiwyg')" class="btn-primary" style="background-color: #059669; font-size: 0.75rem; padding: 0.25rem 0.65rem; font-weight: 800;" title="Inserir Gabarito"><i class="fas fa-check-circle"></i> + Gabarito</button>
                             <button type="button" onclick="window.conteudoGeradoView.inserirComentarioProfessor('editor-mat-wysiwyg')" class="btn-secondary" style="background-color: #fefce8; border-color: #fef08a; color: #a16207; font-size: 0.75rem; padding: 0.25rem 0.65rem; font-weight: 800;" title="Inserir Orientação Pedagógica"><i class="fas fa-comment-dots"></i> + Comentário</button>
+                            <button type="button" onclick="window.conteudoGeradoView.inserirRubricaAvaliacao('editor-mat-wysiwyg')" class="btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; font-weight: 700; background: #fdf4ff; color: #a21caf; border-color: #f5d0fe;" title="Inserir Rubrica de Avaliação"><i class="fas fa-tasks"></i> + Rubrica</button>
+                            <button type="button" onclick="window.conteudoGeradoView.inserirRoteiroPBL('editor-mat-wysiwyg')" class="btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; font-weight: 700; background: #f0fdf4; color: #15803d; border-color: #bbf7d0;" title="Inserir Roteiro de Projeto (PBL)"><i class="fas fa-project-diagram"></i> + Projeto PBL</button>
+                            <button type="button" onclick="window.conteudoGeradoView.inserirJogoJeopardy('editor-mat-wysiwyg')" class="btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; font-weight: 700; background: #fff7ed; color: #c2410c; border-color: #fed7aa;" title="Inserir Jogo de Revisão Jeopardy"><i class="fas fa-gamepad"></i> + Jogo Jeopardy</button>
+                            <button type="button" onclick="window.conteudoGeradoView.inserirChoiceBoardDUA('editor-mat-wysiwyg')" class="btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; font-weight: 700; background: #e0e7ff; color: #3730a3; border-color: #c7d2fe;" title="Inserir Quadro de Opções DUA"><i class="fas fa-th-large"></i> + Quadro DUA</button>
+                            <button type="button" onclick="window.conteudoGeradoView.inserirRoteiroLaboratorio('editor-mat-wysiwyg')" class="btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; font-weight: 700; background: #ecfeff; color: #0891b2; border-color: #a5f3fc;" title="Inserir Roteiro de Laboratório de Ciências"><i class="fas fa-flask"></i> + Roteiro Lab</button>
+                            <button type="button" onclick="window.conteudoGeradoView.inserirLinhasResposta('editor-mat-wysiwyg')" class="btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; font-weight: 700;" title="Inserir Linhas"><i class="fas fa-align-justify"></i> + Linhas</button>
+                            <button type="button" onclick="window.conteudoGeradoView.inserirTabelaPedagogica('editor-mat-wysiwyg')" class="btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; font-weight: 700;" title="Inserir Tabela"><i class="fas fa-table"></i> + Tabela</button>
                             <button type="button" onclick="window.conteudoGeradoView.inserirLinhasResposta('editor-mat-wysiwyg')" class="btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; font-weight: 700;" title="Inserir Linhas"><i class="fas fa-align-justify"></i> + Linhas</button>
                             <button type="button" onclick="window.conteudoGeradoView.inserirTabelaPedagogica('editor-mat-wysiwyg')" class="btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; font-weight: 700;" title="Inserir Tabela"><i class="fas fa-table"></i> + Tabela</button>
                         </div>
@@ -809,6 +816,197 @@ export const conteudoGeradoView = {
 
         target.setRangeText(bloco, start, end, 'end');
         target.dispatchEvent(new Event('input', { bubbles: true }));
+    },
+
+    inserirRubricaAvaliacao(targetId = 'editor-mat-wysiwyg') {
+        const target = (typeof targetId === 'string' ? document.getElementById(targetId) : targetId) || document.getElementById('editor-mat-wysiwyg') || document.getElementById('manual-conteudo-wysiwyg') || document.getElementById('editor-mat-conteudo');
+        const blocoHTML = `
+<div class="bloco-rubrica-avaliacao" style="margin: 1.5rem 0; padding: 1.25rem; background: #faf5ff; border: 2px solid #e9d5ff; border-radius: var(--radius-xl);">
+    <h3 style="color: #6b21a8; font-size: 1.1rem; font-weight: 800; margin-bottom: 0.75rem;">📊 Rubrica Analítica de Avaliação</h3>
+    <table style="width: 100%; border-collapse: collapse; background: #ffffff; border-radius: 0.5rem; overflow: hidden; font-size: 0.85rem;">
+        <thead>
+            <tr style="background: #7e22ce; color: #ffffff; text-align: left;">
+                <th style="padding: 0.6rem; border: 1px solid #d8b4fe;">Critério</th>
+                <th style="padding: 0.6rem; border: 1px solid #d8b4fe;">Excelente (4 pts)</th>
+                <th style="padding: 0.6rem; border: 1px solid #d8b4fe;">Satisfatório (3 pts)</th>
+                <th style="padding: 0.6rem; border: 1px solid #d8b4fe;">Em Desenvolv. (2 pts)</th>
+                <th style="padding: 0.6rem; border: 1px solid #d8b4fe;">Inicial (1 pt)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td style="padding: 0.6rem; border: 1px solid #e9d5ff; font-weight: 700;">Domínio do Conteúdo</td>
+                <td style="padding: 0.6rem; border: 1px solid #e9d5ff;">Demonstra domínio completo dos conceitos.</td>
+                <td style="padding: 0.6rem; border: 1px solid #e9d5ff;">Demonstra bom domínio com pequenas imprecisões.</td>
+                <td style="padding: 0.6rem; border: 1px solid #e9d5ff;">Apresenta compreensão parcial.</td>
+                <td style="padding: 0.6rem; border: 1px solid #e9d5ff;">Compreensão insipiente do tema.</td>
+            </tr>
+            <tr>
+                <td style="padding: 0.6rem; border: 1px solid #e9d5ff; font-weight: 700;">Organização & Clareza</td>
+                <td style="padding: 0.6rem; border: 1px solid #e9d5ff;">Estrutura impecável, articulação clara.</td>
+                <td style="padding: 0.6rem; border: 1px solid #e9d5ff;">Organizada com boa sequência lógica.</td>
+                <td style="padding: 0.6rem; border: 1px solid #e9d5ff;">Estrutura confusa em momentos.</td>
+                <td style="padding: 0.6rem; border: 1px solid #e9d5ff;">Falta de sequência e organização.</td>
+            </tr>
+        </tbody>
+    </table>
+</div><p>&nbsp;</p>`;
+
+        if (!target) return;
+        target.focus();
+        if (target.isContentEditable || target.contentEditable === 'true') {
+            document.execCommand('insertHTML', false, blocoHTML);
+        } else {
+            target.value += blocoHTML;
+        }
+        Toast.show("Rubrica de Avaliação inserida!", "success");
+    },
+
+    inserirRoteiroPBL(targetId = 'editor-mat-wysiwyg') {
+        const target = (typeof targetId === 'string' ? document.getElementById(targetId) : targetId) || document.getElementById('editor-mat-wysiwyg') || document.getElementById('manual-conteudo-wysiwyg') || document.getElementById('editor-mat-conteudo');
+        const blocoHTML = `
+<div class="bloco-roteiro-pbl" style="margin: 1.5rem 0; padding: 1.25rem; background: #f0fdf4; border: 2px solid #bbf7d0; border-radius: var(--radius-xl);">
+    <h3 style="color: #15803d; font-size: 1.1rem; font-weight: 800; margin-bottom: 0.75rem;">🚀 Roteiro de Aprendizagem Baseada em Projetos (PBL)</h3>
+    <div style="background: #ffffff; padding: 1rem; border-radius: 0.5rem; border: 1px solid #86efac; display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.875rem;">
+        <div><strong>❓ Pergunta Disparadora / Problema Central:</strong> Como podemos propor uma solução sustentável para...</div>
+        <div><strong>🎯 Objetivos do Projeto:</strong> Investigar, colaborar e construir um produto final relevante para a comunidade.</div>
+        <div><strong>📅 Fases de Execução:</strong>
+            <ol style="margin-top: 0.25rem; padding-left: 1.25rem;">
+                <li>Etapa 1: Diagnóstico e pesquisa inicial.</li>
+                <li>Etapa 2: Prototipação e desenvolvimento da solução.</li>
+                <li>Etapa 3: Apresentação pública (Feira de Projetos / Pitch).</li>
+            </ol>
+        </div>
+        <div><strong>📦 Entregáveis Esperados:</strong> Relatório em grupo, protótipo físico/digital e apresentação oral.</div>
+    </div>
+</div><p>&nbsp;</p>`;
+
+        if (!target) return;
+        target.focus();
+        if (target.isContentEditable || target.contentEditable === 'true') {
+            document.execCommand('insertHTML', false, blocoHTML);
+        } else {
+            target.value += blocoHTML;
+        }
+        Toast.show("Roteiro de Projeto (PBL) inserido!", "success");
+    },
+
+    inserirJogoJeopardy(targetId = 'editor-mat-wysiwyg') {
+        const target = (typeof targetId === 'string' ? document.getElementById(targetId) : targetId) || document.getElementById('editor-mat-wysiwyg') || document.getElementById('manual-conteudo-wysiwyg') || document.getElementById('editor-mat-conteudo');
+        const blocoHTML = `
+<div class="bloco-jogo-jeopardy" style="margin: 1.5rem 0; padding: 1.25rem; background: #fff7ed; border: 2px solid #fed7aa; border-radius: var(--radius-xl);">
+    <h3 style="color: #c2410c; font-size: 1.1rem; font-weight: 800; margin-bottom: 0.75rem;">🎮 Jogo de Revisão Estilo Jeopardy! (Quiz Show)</h3>
+    <table style="width: 100%; border-collapse: collapse; background: #ffffff; text-align: center; font-size: 0.85rem;">
+        <thead>
+            <tr style="background: #ea580c; color: #ffffff;">
+                <th style="padding: 0.6rem; border: 1px solid #fdba74;">Categoria A (Conceitos)</th>
+                <th style="padding: 0.6rem; border: 1px solid #fdba74;">Categoria B (Resolução)</th>
+                <th style="padding: 0.6rem; border: 1px solid #fdba74;">Categoria C (Desafio)</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td style="padding: 0.6rem; border: 1px solid #fed7aa; font-weight: 800; color: #c2410c;">100 Pts</td>
+                <td style="padding: 0.6rem; border: 1px solid #fed7aa; font-weight: 800; color: #c2410c;">100 Pts</td>
+                <td style="padding: 0.6rem; border: 1px solid #fed7aa; font-weight: 800; color: #c2410c;">100 Pts</td>
+            </tr>
+            <tr>
+                <td style="padding: 0.6rem; border: 1px solid #fed7aa; font-weight: 800; color: #c2410c;">200 Pts</td>
+                <td style="padding: 0.6rem; border: 1px solid #fed7aa; font-weight: 800; color: #c2410c;">200 Pts</td>
+                <td style="padding: 0.6rem; border: 1px solid #fed7aa; font-weight: 800; color: #c2410c;">200 Pts</td>
+            </tr>
+            <tr>
+                <td style="padding: 0.6rem; border: 1px solid #fed7aa; font-weight: 800; color: #c2410c;">300 Pts</td>
+                <td style="padding: 0.6rem; border: 1px solid #fed7aa; font-weight: 800; color: #c2410c;">300 Pts</td>
+                <td style="padding: 0.6rem; border: 1px solid #fed7aa; font-weight: 800; color: #c2410c;">300 Pts</td>
+            </tr>
+        </tbody>
+    </table>
+</div><p>&nbsp;</p>`;
+
+        if (!target) return;
+        target.focus();
+        if (target.isContentEditable || target.contentEditable === 'true') {
+            document.execCommand('insertHTML', false, blocoHTML);
+        } else {
+            target.value += blocoHTML;
+        }
+        Toast.show("Jogo Jeopardy inserido!", "success");
+    },
+
+    inserirChoiceBoardDUA(targetId = 'editor-mat-wysiwyg') {
+        const target = (typeof targetId === 'string' ? document.getElementById(targetId) : targetId) || document.getElementById('editor-mat-wysiwyg') || document.getElementById('manual-conteudo-wysiwyg') || document.getElementById('editor-mat-conteudo');
+        const blocoHTML = `
+<div class="bloco-choice-board" style="margin: 1.5rem 0; padding: 1.25rem; background: #f5f3ff; border: 2px solid #c7d2fe; border-radius: var(--radius-xl);">
+    <h3 style="color: #4338ca; font-size: 1.1rem; font-weight: 800; margin-bottom: 0.75rem;">🎯 Quadro de Opções (Choice Board - DUA 3x3)</h3>
+    <p style="font-size: 0.8125rem; color: #475569; margin-bottom: 0.75rem;">Escolha 1 atividade de cada coluna ou 3 em linha reta para concluir a tarefa:</p>
+    <table style="width: 100%; border-collapse: collapse; background: #ffffff; border-radius: 0.5rem; overflow: hidden; font-size: 0.85rem; text-align: center;">
+        <thead>
+            <tr style="background: #4f46e5; color: #ffffff;">
+                <th style="padding: 0.6rem; border: 1px solid #a5b4fc; width: 33%;">Visual / Gráfico</th>
+                <th style="padding: 0.6rem; border: 1px solid #a5b4fc; width: 33%;">Escrito / Analítico</th>
+                <th style="padding: 0.6rem; border: 1px solid #a5b4fc; width: 33%;">Prático / Oral</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td style="padding: 0.75rem; border: 1px solid #c7d2fe; background: #f8fafc;">Crie um Mapa Mental ou Infográfico ilustrando o conceito.</td>
+                <td style="padding: 0.75rem; border: 1px solid #c7d2fe; background: #ffffff;">Escreva um resumo explicativo de 2 parágrafos com exemplos.</td>
+                <td style="padding: 0.75rem; border: 1px solid #c7d2fe; background: #f8fafc;">Grave um áudio ou vídeo de 1 min apresentando a ideia.</td>
+            </tr>
+            <tr>
+                <td style="padding: 0.75rem; border: 1px solid #c7d2fe; background: #ffffff;">Desenhe uma tirinha ou diagrama explicativo.</td>
+                <td style="padding: 0.75rem; border: 1px solid #c7d2fe; background: #f8fafc;">Elabore um questionário com 3 perguntas e respostas.</td>
+                <td style="padding: 0.75rem; border: 1px solid #c7d2fe; background: #ffffff;">Crie uma maquete ou protótipo físico simplificado.</td>
+            </tr>
+        </tbody>
+    </table>
+</div><p>&nbsp;</p>`;
+
+        if (!target) return;
+        target.focus();
+        if (target.isContentEditable || target.contentEditable === 'true') {
+            document.execCommand('insertHTML', false, blocoHTML);
+        } else {
+            target.value += blocoHTML;
+        }
+        Toast.show("Quadro DUA inserido com sucesso!", "success");
+    },
+
+    inserirRoteiroLaboratorio(targetId = 'editor-mat-wysiwyg') {
+        const target = (typeof targetId === 'string' ? document.getElementById(targetId) : targetId) || document.getElementById('editor-mat-wysiwyg') || document.getElementById('manual-conteudo-wysiwyg') || document.getElementById('editor-mat-conteudo');
+        const blocoHTML = `
+<div class="bloco-roteiro-lab" style="margin: 1.5rem 0; padding: 1.25rem; background: #ecfeff; border: 2px solid #a5f3fc; border-radius: var(--radius-xl);">
+    <h3 style="color: #0891b2; font-size: 1.1rem; font-weight: 800; margin-bottom: 0.75rem;">🥼 Roteiro de Prática de Laboratório / Experimento</h3>
+    <div style="background: #ffffff; padding: 1rem; border-radius: 0.5rem; border: 1px solid #67e8f9; display: flex; flex-direction: column; gap: 0.75rem; font-size: 0.875rem;">
+        <div><strong>🧪 Tema do Experimento:</strong> Investigação sobre...</div>
+        <div><strong>❓ Pergunta / Hipótese:</strong> O que acontece quando misturamos/submetemos X a Y?</div>
+        <div><strong>🧰 Materiais Necessários:</strong>
+            <ul style="margin-top: 0.25rem; padding-left: 1.25rem;">
+                <li>Béquer / Recipiente graduado (250 ml).</li>
+                <li>Reagente / Amostra A e B.</li>
+                <li>Cronômetro e fita indicadora de pH.</li>
+            </ul>
+        </div>
+        <div><strong>📋 Procedimento Passo a Passo:</strong>
+            <ol style="margin-top: 0.25rem; padding-left: 1.25rem;">
+                <li>Meça 100 ml da substância A no recipiente.</li>
+                <li>Adicione gradualmente 5g da substância B sob agitação.</li>
+                <li>Anote o tempo de reação e a variação de temperatura.</li>
+            </ol>
+        </div>
+        <div><strong>📊 Coleta de Dados & Conclusão:</strong> Registre as observações na tabela abaixo e responda às questões no caderno.</div>
+    </div>
+</div><p>&nbsp;</p>`;
+
+        if (!target) return;
+        target.focus();
+        if (target.isContentEditable || target.contentEditable === 'true') {
+            document.execCommand('insertHTML', false, blocoHTML);
+        } else {
+            target.value += blocoHTML;
+        }
+        Toast.show("Roteiro de Laboratório inserido!", "success");
     },
 
     async salvarEdicaoMaterial() {
