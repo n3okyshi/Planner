@@ -133,10 +133,15 @@ export const aiService = {
                     throw new Error("Resposta vazia da IA.");
                 }
                 const textResponse = data.candidates[0].content.parts[0].text;
-                const cleanJson = textResponse
+                let cleanJson = textResponse
                     .replace(/```json/gi, "")
                     .replace(/```/g, "")
                     .trim();
+                const firstBrace = cleanJson.indexOf('{');
+                const lastBrace = cleanJson.lastIndexOf('}');
+                if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+                    cleanJson = cleanJson.substring(firstBrace, lastBrace + 1);
+                }
                 const finalResult = JSON.parse(cleanJson);
                 console.log(`✅ Sucesso na requisição IA com: ${modelInfo.id}`);
                 return finalResult;
@@ -220,6 +225,8 @@ export const aiService = {
                 "observacoes": "Breve comentário sobre nitidez, alinhamento e legibilidade do cartão"
             }
         `;
+
+        return await this._executarPromptMultimodalGemini(prompt, imagemBase64, mimeType, 3000);
     },
 
     /**
