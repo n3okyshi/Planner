@@ -178,6 +178,9 @@ export const turmasView = {
                          <button type="button" data-action="nav-notas-anuais" class="btn-outline" style="height: 2.5rem; color: #4f46e5; background-color: #eef2ff; border-color: #e0e7ff;" onmouseover="this.style.backgroundColor='#e0e7ff'" onmouseout="this.style.backgroundColor='#eef2ff'">
                             <i class="fas fa-award" style="margin-right: 0.5rem;"></i> Notas Anuais
                         </button>
+                        <button type="button" data-action="exportar-turma-tsv" data-id="${turmaId}" class="btn-outline" style="height: 2.5rem;" title="Exportar dados e notas da turma em TSV para importar em outros sistemas">
+                            <i class="fas fa-file-export" style="margin-right: 0.5rem;"></i> Exportar Notas (TSV)
+                        </button>
                         <button type="button" data-action="replicar-avaliacao" data-id="${turmaId}" class="btn-outline" style="height: 2.5rem;" title="Copiar estrutura de avaliação para outras turmas">
                             <i class="fas fa-copy" style="margin-right: 0.5rem;"></i> Replicar Avaliação
                         </button>
@@ -300,7 +303,7 @@ export const turmasView = {
                                         </th>
                                     `).join('')}
                                     <th style="padding: var(--spacing-4); font-size: 0.75rem; font-weight: 700; color: var(--color-slate-500); text-transform: uppercase; text-align: center; width: 6rem; background-color: var(--color-slate-50); border-left: 1px solid var(--color-slate-100);">Soma Per.</th>
-                                    <th style="padding: var(--spacing-4); width: 4rem; text-align: center;">Ações</th>
+                                    <th style="padding: var(--spacing-4); width: 6rem; text-align: center;">Ações</th>
                                 </tr>
                             </thead>
                             <tbody style="border-top: 1px solid var(--color-slate-100);">
@@ -343,7 +346,7 @@ export const turmasView = {
                                                 <td style="padding: var(--spacing-4); font-size: 0.75rem; font-weight: 700; color: var(--color-slate-400); text-align: center;">${window.escapeHTML(String(chamada))}</td>
                                                 <td style="padding: var(--spacing-4);">
                                                     <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 0.25rem;">
-                                                        <div style="font-weight: 700; font-size: 0.875rem; ${status === 'cursando' ? 'color: var(--color-slate-700);' : 'color: var(--color-slate-500); text-decoration: line-through;'}">${window.escapeHTML(aluno.nome)}</div>
+                                                        <div style="font-weight: 700; font-size: 0.875rem; ${status === 'cursando' ? 'color: var(--color-slate-700);' : 'color: var(--color-slate-500); text-decoration: line-through;'}">${window.escapeHTML((aluno.nome || '').toUpperCase())}</div>
                                                         ${statusBadge}
                                                     </div>
                                                     ${matricula ? `<div style="font-size: 0.625rem; color: var(--color-slate-400); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 0.25rem;">MAT: ${window.escapeHTML(matricula)}</div>` : ''}
@@ -367,24 +370,27 @@ export const turmasView = {
                                                     `;
                     }).join('')}
                                                 
-                                                <td style="padding: var(--spacing-2); text-align: center; border-left: 1px solid var(--color-slate-100); background-color: rgba(248, 250, 252, 0.3);">
-                                                    <div id="soma-${aluno.id}" style="width: 3rem; margin: 0 auto; padding: 0.25rem 0; border-radius: var(--radius-lg); font-weight: 900; font-size: 0.875rem; transition: all 0.3s; ${status === 'cursando' ? 'color: var(--color-primary);' : 'color: var(--color-slate-400);'}">
-                    <div style="display: flex; align-items: center; justify-content: center; gap: var(--spacing-2);">
-                                                        <button type="button" data-action="registrar-ocorrencia" data-turma="${turmaId}" data-aluno="${aluno.id}" style="color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='#f59e0b'" onmouseout="this.style.color='var(--color-slate-300)'" title="Registrar Ocorrência / Notificação aos Pais">
-                                                            <i class="fas fa-exclamation-triangle"></i>
+                                                <!-- SOMA DO PERÍODO FIXADA E DISPONÍVEL O TEMPO TODO -->
+                                                <td style="padding: var(--spacing-2); text-align: center; border-left: 1px solid var(--color-slate-100); background-color: rgba(248, 250, 252, 0.5);">
+                                                    <div id="soma-${aluno.id}" style="width: 3.5rem; margin: 0 auto; padding: 0.25rem 0; border-radius: var(--radius-lg); font-weight: 900; font-size: 0.875rem; transition: all 0.3s; ${status === 'cursando' ? 'color: var(--color-primary);' : 'color: var(--color-slate-400);'}">
+                                                        ${somaPeriodo.toFixed(1)}
+                                                    </div>
+                                                </td>
+
+                                                <!-- MENU DROPDOWN DE AÇÕES DO ALUNO -->
+                                                <td style="padding: var(--spacing-2); text-align: center;">
+                                                    <div class="planner-table-dropdown">
+                                                        <button type="button" class="btn-secondary" style="padding: 0.25rem 0.55rem; font-size: 0.75rem; font-weight: 700; border-radius: 0.5rem; display: inline-flex; align-items: center; gap: 0.25rem;" onclick="this.nextElementSibling.classList.toggle('active'); event.stopPropagation();">
+                                                            <i class="fas fa-ellipsis-h"></i> Ações
                                                         </button>
-                                                        <button type="button" data-action="dossie-comportamental" data-turma="${turmaId}" data-aluno="${aluno.id}" style="color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='#8b5cf6'" onmouseout="this.style.color='var(--color-slate-300)'" title="Linha do Tempo / Dossiê Comportamental">
-                                                            <i class="fas fa-stream"></i>
-                                                        </button>
-                                                        <button type="button" data-action="ficha-individual" data-turma="${turmaId}" data-aluno="${aluno.id}" style="color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='#10b981'" onmouseout="this.style.color='var(--color-slate-300)'" title="Gerar Ficha Individual (PDF)">
-                                                            <i class="fas fa-file-invoice"></i>
-                                                        </button>
-                                                        <button type="button" data-action="editar-aluno" data-turma="${turmaId}" data-aluno="${aluno.id}" style="color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='#3b82f6'" onmouseout="this.style.color='var(--color-slate-300)'" title="Editar Estudante">
-                                                            <i class="fas fa-edit"></i>
-                                                        </button>
-                                                        <button type="button" data-action="delete-aluno" data-turma="${turmaId}" data-aluno="${aluno.id}" style="color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--color-slate-300)'" title="Excluir Estudante">
-                                                            <i class="fas fa-trash-alt"></i>
-                                                        </button>
+                                                        <div class="planner-table-dropdown-menu">
+                                                            <button type="button" data-action="registrar-ocorrencia" data-turma="${turmaId}" data-aluno="${aluno.id}" class="planner-table-dropdown-item"><i class="fas fa-exclamation-triangle" style="color: #f59e0b; width: 1rem;"></i> Ocorrência</button>
+                                                            <button type="button" data-action="dossie-comportamental" data-turma="${turmaId}" data-aluno="${aluno.id}" class="planner-table-dropdown-item"><i class="fas fa-stream" style="color: #8b5cf6; width: 1rem;"></i> Dossiê</button>
+                                                            <button type="button" data-action="ficha-individual" data-turma="${turmaId}" data-aluno="${aluno.id}" class="planner-table-dropdown-item"><i class="fas fa-file-invoice" style="color: #10b981; width: 1rem;"></i> Ficha Individual</button>
+                                                            <div style="height: 1px; background: #e2e8f0; margin: 0.25rem 0;"></div>
+                                                            <button type="button" data-action="editar-aluno" data-turma="${turmaId}" data-aluno="${aluno.id}" class="planner-table-dropdown-item"><i class="fas fa-edit" style="color: #3b82f6; width: 1rem;"></i> Editar Aluno</button>
+                                                            <button type="button" data-action="delete-aluno" data-turma="${turmaId}" data-aluno="${aluno.id}" class="planner-table-dropdown-item text-danger"><i class="fas fa-trash-alt" style="color: #ef4444; width: 1rem;"></i> Excluir Aluno</button>
+                                                        </div>
                                                     </div>
                                                 </td>
                                             </tr>
@@ -405,10 +411,19 @@ export const turmasView = {
 
         container.innerHTML = html;
 
+        // Fecha menus de ações ao clicar em qualquer lugar da tela
+        document.addEventListener('click', () => {
+            document.querySelectorAll('.planner-table-dropdown-menu.active').forEach(m => m.classList.remove('active'));
+        }, { once: false });
+
         const unbindClick = EventDelegator.bind(container, {
             'nav-turmas': () => controller.navigate('turmas'),
             'nav-notas-anuais': () => controller.navigate('notas-anuais'),
             'open-add-turma': () => controller.openAddTurma(),
+            'exportar-turma-tsv': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) this.exportarNotasTurmaTSV(id);
+            },
             'confirmar-exclusao-turma': (e, target) => {
                 const id = target.getAttribute('data-id');
                 if (id) controller.deleteTurma(id);
@@ -860,6 +875,70 @@ export const turmasView = {
             </html>
         `);
         printWindow.document.close();
+    },
+
+    /**
+     * Exporta a planilha de notas e alunos da turma no formato tabular (TSV/CSV com tabulação).
+     * Estrutura: 'Número\t Nome\t Ava 1\t Ava 2\t ... \t Soma\t Média'
+     * Compatível com Excel, Google Planilhas e importação de sistemas de gestão escolar.
+     * @param {string} turmaId 
+     * @param {number} [periodo] 
+     */
+    exportarNotasTurmaTSV(turmaId, periodo) {
+        const turma = model.state.turmas.find(t => t.id === turmaId);
+        if (!turma) {
+            Toast.show("Turma não encontrada para exportação.", "error");
+            return;
+        }
+
+        const per = Number(periodo || this.periodoAtivo || 1);
+        const avaliacoesFiltradas = (turma.avaliacoes || []).filter(av => Number(av.periodo || 1) === per);
+        const alunos = window.ordenarEstudantes ? window.ordenarEstudantes(turma.alunos, this.criterioOrdenacao) : turma.alunos;
+
+        // Cabeçalho da Planilha: Número \t Nome \t [Avaliações...] \t Soma \t Média
+        const cabecalho = ['Número', 'Nome', ...avaliacoesFiltradas.map(av => `${av.nome} (Max ${av.max})`), 'Soma', 'Média'];
+        const linhas = [cabecalho.join('\t')];
+
+        alunos.forEach((aluno, idx) => {
+            const chamada = aluno.chamada || (idx + 1);
+            const nome = (aluno.nome || '').toUpperCase();
+            const notas = avaliacoesFiltradas.map(av => {
+                const n = aluno.notas?.[av.id];
+                return n !== undefined && n !== '' ? String(n).replace('.', ',') : '';
+            });
+            const somaPeriodo = avaliacoesFiltradas.reduce((acc, av) => acc + (Number(aluno.notas?.[av.id]) || 0), 0);
+            const totalDistribuido = avaliacoesFiltradas.reduce((acc, av) => acc + Number(av.max), 0);
+            const media = totalDistribuido > 0 ? ((somaPeriodo / totalDistribuido) * 10).toFixed(1).replace('.', ',') : '10,0';
+
+            linhas.push([
+                chamada,
+                nome,
+                ...notas,
+                somaPeriodo.toFixed(1).replace('.', ','),
+                media
+            ].join('\t'));
+        });
+
+        const tsvTexto = linhas.join('\r\n');
+        const blob = new Blob(['\ufeff' + tsvTexto], { type: 'text/tab-separated-values;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        const nomeTurmaSanitizado = (turma.nome || 'turma')
+            .replace(/[\/\\:\*\?"<>\|]/g, '_')
+            .replace(/\s+/g, '_');
+        a.download = `Notas_${nomeTurmaSanitizado}_${per}Periodo.tsv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        // Copia também para o Clipboard para colagem direta rápida no Excel/Google Sheets
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(tsvTexto).catch(() => {});
+        }
+
+        Toast.show("Planilha exportada e copiada para a área de transferência!", "success");
     }
 };
 if (typeof window !== 'undefined') {

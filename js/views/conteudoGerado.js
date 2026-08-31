@@ -3,6 +3,9 @@ import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
 import { renderKatex, formatarTextoComLatex, sanitizeComLatex, alternarModoEdicaoPreview } from '../utils.js';
 import { EventDelegator } from '../utils/eventDelegator.js';
+import { tableHelper } from '../utils/tableHelper.js';
+import { imageHelper } from '../utils/imageHelper.js';
+import { EditorToolbar } from '../components/editorToolbar.js';
 
 export const conteudoGeradoView = {
     materialIdAtual: null,
@@ -490,115 +493,23 @@ export const conteudoGeradoView = {
                     </div>
                 </div>
 
-                <!-- MESA DE TRABALHO STUDIO (BACKGROUND NEUTRO + BARRA RIBBON + FOLHA A4) -->
-                <div style="background-color: #f1f5f9; border-radius: var(--radius-2xl); border: 1px solid var(--color-slate-200); padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem;">
+                <!-- MESA DE TRABALHO STUDIO (BARRA RIBBON MODULAR + EDITOR WYSIWYG) -->
+                <div style="background-color: #f1f5f9; border-radius: var(--radius-2xl); border: 1px solid var(--color-slate-200); padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
                     
-                    <!-- BARRA DE FERRAMENTAS PEDAGÓGICAS UNIFICADA (WORD-LIKE) -->
-                    <div id="editor-mat-toolbar-visual" style="display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; background-color: #ffffff; border: 1px solid var(--color-slate-200); border-radius: var(--radius-xl); box-shadow: 0 2px 5px rgba(0,0,0,0.03);">
-                        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem;">
-                            <!-- FONTE E TAMANHO -->
-                            <select onchange="window.criarMaterialView.inserirSnippet('fontsize', 'editor-mat-wysiwyg', this.value); this.selectedIndex=0;" class="form-select" style="padding: 0.15rem 0.4rem; font-size: 0.75rem; height: 1.75rem; width: auto; font-weight: 700;">
-                                <option value="" disabled selected>Tamanho</option>
-                                <option value="12px">Pequeno (12px)</option>
-                                <option value="14px">Normal (14px)</option>
-                                <option value="16px">Médio (16px)</option>
-                                <option value="18px">Grande (18px)</option>
-                                <option value="22px">Título (22px)</option>
-                            </select>
-
-                            <select onchange="window.criarMaterialView.inserirSnippet('fontfamily', 'editor-mat-wysiwyg', this.value); this.selectedIndex=0;" class="form-select" style="padding: 0.15rem 0.4rem; font-size: 0.75rem; height: 1.75rem; width: auto; font-weight: 700;">
-                                <option value="" disabled selected>Fonte</option>
-                                <option value="Inter, sans-serif">Inter</option>
-                                <option value="Roboto, sans-serif">Roboto</option>
-                                <option value="Outfit, sans-serif">Outfit</option>
-                                <option value="Courier Prime, monospace">Monospace</option>
-                                <option value="Georgia, serif">Serif</option>
-                            </select>
-
-                            <div style="width: 1px; height: 1.25rem; background: #cbd5e1; margin: 0 0.15rem;"></div>
-
-                            <!-- SELETORES DE COR DA FONTE E DO FUNDO -->
-                            <label title="Cor da Fonte" style="display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.75rem; font-weight: 700; cursor: pointer; background: #ffffff; border: 1px solid #cbd5e1; padding: 0.15rem 0.4rem; border-radius: 0.375rem; height: 1.75rem;">
-                                <i class="fas fa-palette" style="color: #4f46e5;"></i>
-                                <input type="color" onchange="window.criarMaterialView.inserirSnippet('forecolor', 'editor-mat-wysiwyg', this.value)" style="width: 1.2rem; height: 1.2rem; border: none; cursor: pointer; background: none; padding: 0;">
-                            </label>
-
-                            <label title="Cor de Fundo do Texto" style="display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.75rem; font-weight: 700; cursor: pointer; background: #ffffff; border: 1px solid #cbd5e1; padding: 0.15rem 0.4rem; border-radius: 0.375rem; height: 1.75rem;">
-                                <i class="fas fa-highlighter" style="color: #eab308;"></i>
-                                <input type="color" value="#fef08a" onchange="window.criarMaterialView.inserirSnippet('hilitecolor', 'editor-mat-wysiwyg', this.value)" style="width: 1.2rem; height: 1.2rem; border: none; cursor: pointer; background: none; padding: 0;">
-                            </label>
-
-                            <div style="width: 1px; height: 1.25rem; background: #cbd5e1; margin: 0 0.15rem;"></div>
-
-                            <!-- ESTILOS DE TEXTO -->
-                            <button type="button" onclick="window.criarMaterialView.inserirSnippet('h2', 'editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Título H2"><strong>H2</strong></button>
-                            <button type="button" onclick="window.criarMaterialView.inserirSnippet('h3', 'editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Subtítulo H3"><strong>H3</strong></button>
-                            <button type="button" onclick="window.criarMaterialView.inserirSnippet('bold', 'editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Negrito"><i class="fas fa-bold"></i></button>
-                            <button type="button" onclick="window.criarMaterialView.inserirSnippet('italic', 'editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Itálico"><i class="fas fa-italic"></i></button>
-                            <button type="button" onclick="window.criarMaterialView.inserirSnippet('underline', 'editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Sublinhado"><i class="fas fa-underline"></i></button>
-                            <button type="button" onclick="window.criarMaterialView.inserirSnippet('lista', 'editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Lista"><i class="fas fa-list-ul"></i></button>
-                            <button type="button" onclick="window.criarMaterialView.inserirSnippet('removeformat', 'editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Limpar Formatação do Texto Selecionado"><i class="fas fa-eraser"></i></button>
-                        </div>
-
-                        <!-- ESTRUTURAS PEDAGÓGICAS, COLAR LIMPO E UPLOAD -->
-                        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.35rem;">
-                            <button type="button" onclick="window.criarMaterialView.colarTextoLimpo('editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; font-weight: 800; background: #fdf4ff; color: #a21caf; border-color: #f5d0fe;" title="Colar Texto Sem Formatação Parasita"><i class="fas fa-paste"></i> Colar Limpo</button>
-                            
-                            <div style="width: 1px; height: 1.25rem; background: #cbd5e1; margin: 0 0.15rem;"></div>
-
-                            <!-- FÓRMULAS E MATEMÁTICA -->
-                            <button type="button" onclick="window.criarMaterialView.inserirSnippet('frac', 'editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem; font-weight: 800;" title="Fração">÷ Fração</button>
-                            <button type="button" onclick="window.criarMaterialView.inserirSnippet('superscript', 'editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem; font-weight: 800;" title="Sobrescrito">X²</button>
-                            <button type="button" onclick="window.criarMaterialView.inserirSnippet('subscript', 'editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem; font-weight: 800;" title="Subscrito">Xᵢ</button>
-                            <button type="button" onclick="window.criarMaterialView.inserirSnippet('sqrt', 'editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.2rem 0.45rem; font-size: 0.75rem; font-weight: 800;" title="Raiz Quadrada">√x</button>
-
-                            <!-- SÍMBOLOS DROPDOWN -->
-                            <select onchange="window.criarMaterialView.inserirSnippet(this.value, 'editor-mat-wysiwyg'); this.selectedIndex=0;" class="form-select" style="padding: 0.15rem 0.4rem; font-size: 0.75rem; height: 1.75rem; width: auto; font-weight: 700;">
-                                <option value="" disabled selected>Símbolos</option>
-                                <option value="symbol_neq">Diferente (≠)</option>
-                                <option value="symbol_times">Multiplicação (×)</option>
-                                <option value="symbol_div">Divisão (÷)</option>
-                                <option value="symbol_alpha">Alfa (α)</option>
-                                <option value="symbol_beta">Beta (β)</option>
-                                <option value="symbol_pi">Pi (π)</option>
-                                <option value="symbol_delta">Delta (Δ)</option>
-                                <option value="symbol_theta">Theta (θ)</option>
-                                <option value="symbol_infty">Infinito (∞)</option>
-                                <option value="symbol_pm">Mais ou Menos (±)</option>
-                                <option value="symbol_approx">Aproximado (≈)</option>
-                            </select>
-
-                            <div style="width: 1px; height: 1.25rem; background: #cbd5e1; margin: 0 0.15rem;"></div>
-
-                            <!-- ESTRUTURAS PEDAGÓGICAS E UPLOAD -->
-                            <button type="button" onclick="window.criarMaterialView.inserirSnippet('imagem', 'editor-mat-wysiwyg')" class="btn-secondary" style="padding: 0.25rem 0.65rem; font-size: 0.75rem; font-weight: 800; background: #e0f2fe; color: #0369a1; border-color: #bae6fd;" title="Upload de Imagem"><i class="fas fa-image"></i> + Imagem</button>
-                            <button type="button" onclick="window.conteudoGeradoView.inserirBlocoGabarito('editor-mat-wysiwyg')" class="btn-primary" style="background-color: #059669; font-size: 0.75rem; padding: 0.25rem 0.65rem; font-weight: 800;" title="Inserir Gabarito"><i class="fas fa-check-circle"></i> + Gabarito</button>
-                            <button type="button" onclick="window.conteudoGeradoView.inserirComentarioProfessor('editor-mat-wysiwyg')" class="btn-secondary" style="background-color: #fefce8; border-color: #fef08a; color: #a16207; font-size: 0.75rem; padding: 0.25rem 0.65rem; font-weight: 800;" title="Inserir Orientação Pedagógica"><i class="fas fa-comment-dots"></i> + Comentário</button>
-                            <button type="button" onclick="window.conteudoGeradoView.inserirRubricaAvaliacao('editor-mat-wysiwyg')" class="btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; font-weight: 700; background: #fdf4ff; color: #a21caf; border-color: #f5d0fe;" title="Inserir Rubrica de Avaliação"><i class="fas fa-tasks"></i> + Rubrica</button>
-                            <button type="button" onclick="window.conteudoGeradoView.inserirRoteiroPBL('editor-mat-wysiwyg')" class="btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; font-weight: 700; background: #f0fdf4; color: #15803d; border-color: #bbf7d0;" title="Inserir Roteiro de Projeto (PBL)"><i class="fas fa-project-diagram"></i> + Projeto PBL</button>
-                            <button type="button" onclick="window.conteudoGeradoView.inserirJogoJeopardy('editor-mat-wysiwyg')" class="btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; font-weight: 700; background: #fff7ed; color: #c2410c; border-color: #fed7aa;" title="Inserir Jogo de Revisão Jeopardy"><i class="fas fa-gamepad"></i> + Jogo Jeopardy</button>
-                            <button type="button" onclick="window.conteudoGeradoView.inserirChoiceBoardDUA('editor-mat-wysiwyg')" class="btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; font-weight: 700; background: #e0e7ff; color: #3730a3; border-color: #c7d2fe;" title="Inserir Quadro de Opções DUA"><i class="fas fa-th-large"></i> + Quadro DUA</button>
-                            <button type="button" onclick="window.conteudoGeradoView.inserirRoteiroLaboratorio('editor-mat-wysiwyg')" class="btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; font-weight: 700; background: #ecfeff; color: #0891b2; border-color: #a5f3fc;" title="Inserir Roteiro de Laboratório de Ciências"><i class="fas fa-flask"></i> + Roteiro Lab</button>
-                            <button type="button" onclick="window.conteudoGeradoView.inserirLinhasResposta('editor-mat-wysiwyg')" class="btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; font-weight: 700;" title="Inserir Linhas"><i class="fas fa-align-justify"></i> + Linhas</button>
-                            <button type="button" onclick="window.conteudoGeradoView.inserirTabelaPedagogica('editor-mat-wysiwyg')" class="btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; font-weight: 700;" title="Inserir Tabela"><i class="fas fa-table"></i> + Tabela</button>
-                            <button type="button" onclick="window.conteudoGeradoView.inserirLinhasResposta('editor-mat-wysiwyg')" class="btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; font-weight: 700;" title="Inserir Linhas"><i class="fas fa-align-justify"></i> + Linhas</button>
-                            <button type="button" onclick="window.conteudoGeradoView.inserirTabelaPedagogica('editor-mat-wysiwyg')" class="btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; font-weight: 700;" title="Inserir Tabela"><i class="fas fa-table"></i> + Tabela</button>
-                        </div>
-                    </div>
+                    <!-- BARRA DE FERRAMENTAS MODULAR (RIBBON COMPLETO) -->
+                    ${EditorToolbar.render('editor-mat-wysiwyg')}
 
                     <!-- ÁREA PRINCIPAL DE EDIÇÃO: EDITOR VISUAL (WYSIWYG TIPO WORD) -->
-                    <div style="width: 100%; display: flex; flex-direction: column; gap: 1rem; position: relative;">
+                    <div style="width: 100%; display: flex; flex-direction: column; position: relative;">
                         <!-- CONTAINER VISUAL PRINCIPAL (CONTENTEDITABLE) -->
                         <div id="editor-mat-wysiwyg" contenteditable="true" class="custom-scrollbar" 
-                             style="display: ${modoInicial === 'visual' ? 'block' : 'none'}; width: 100%; min-height: 280px; max-height: 44vh; overflow-y: auto; background: #ffffff; padding: 1.5rem; border-radius: var(--radius-xl); border: 2px solid var(--color-slate-200); box-shadow: var(--shadow-sm); line-height: 1.75; font-size: 1rem; color: #1e293b; outline: none;">
+                             style="display: ${modoInicial === 'visual' ? 'block' : 'none'}; width: 100%; min-height: 220px; max-height: 48vh; overflow-y: auto; background: #ffffff; padding: 1.25rem 1.5rem; border-radius: 0 0 var(--radius-xl) var(--radius-xl); border: 1px solid #cbd5e1; border-top: none; box-shadow: var(--shadow-sm); line-height: 1.75; font-size: 1rem; color: #1e293b; outline: none;">
                             ${conteudoAtual}
                         </div>
 
                         <!-- TEXTAREA DE CÓDIGO (OCULTA POR PADRÃO - SUPORTE AVANÇADO) -->
                         <textarea id="editor-mat-conteudo" class="custom-scrollbar" 
-                                  style="display: ${modoInicial === 'code' ? 'block' : 'none'}; width: 100%; min-height: 280px; max-height: 44vh; font-family: monospace; font-size: 0.9rem; background-color: #ffffff; color: #0f172a; padding: 1rem; border-radius: var(--radius-xl); border: 2px solid var(--color-slate-200);">${window.escapeHTML(conteudoAtual)}</textarea>
-
-                        <div id="editor-mat-preview" style="display: none; width: 100%;"></div>
+                                  style="display: ${modoInicial === 'code' ? 'block' : 'none'}; width: 100%; min-height: 220px; max-height: 48vh; font-family: monospace; font-size: 0.9rem; background-color: #ffffff; color: #0f172a; padding: 1rem; border-radius: 0 0 var(--radius-xl) var(--radius-xl); border: 1px solid #cbd5e1; border-top: none;">${window.escapeHTML(conteudoAtual)}</textarea>
                     </div>
                 </div>
 
@@ -641,8 +552,20 @@ export const conteudoGeradoView = {
             const wysiwyg = document.getElementById('editor-mat-wysiwyg');
             if (wysiwyg) {
                 if (typeof renderKatex === 'function') renderKatex(wysiwyg);
-                if (window.criarMaterialView && typeof window.criarMaterialView.vincularSanitizadorPaste === 'function') {
-                    window.criarMaterialView.vincularSanitizadorPaste(wysiwyg);
+                if (window.criarMaterialView) {
+                    if (typeof window.criarMaterialView.vincularRastreamentoSelecao === 'function') {
+                        window.criarMaterialView.vincularRastreamentoSelecao(wysiwyg);
+                    }
+                    if (typeof window.criarMaterialView.vincularSanitizadorPaste === 'function') {
+                        window.criarMaterialView.vincularSanitizadorPaste(wysiwyg);
+                    }
+                }
+                if (typeof tableHelper !== 'undefined') {
+                    tableHelper.inicializarInspetorImagens?.(wysiwyg);
+                    tableHelper.inicializarInspetorTabelas(wysiwyg);
+                }
+                if (typeof imageHelper !== 'undefined') {
+                    imageHelper.inicializarInspetorImagens(wysiwyg);
                 }
             }
         }, 50);
@@ -658,37 +581,48 @@ export const conteudoGeradoView = {
         const btnVisual = document.getElementById('btn-mode-mat-visual');
         const btnCode = document.getElementById('btn-mode-mat-code');
 
-        if (!wysiwyg || !textarea) return;
-
         if (modo === 'visual') {
-            wysiwyg.innerHTML = textarea.value;
-            wysiwyg.style.display = 'block';
-            textarea.style.display = 'none';
+            if (textarea && wysiwyg) {
+                wysiwyg.innerHTML = textarea.value;
+                if (typeof renderKatex === 'function') renderKatex(wysiwyg);
+                if (window.criarMaterialView && typeof window.criarMaterialView.vincularRastreamentoSelecao === 'function') {
+                    window.criarMaterialView.vincularRastreamentoSelecao(wysiwyg);
+                }
+                if (typeof tableHelper !== 'undefined') tableHelper.inicializarInspetorTabelas(wysiwyg);
+                if (typeof imageHelper !== 'undefined') imageHelper.inicializarInspetorImagens(wysiwyg);
+            }
+            if (wysiwyg) wysiwyg.style.display = 'block';
+            if (textarea) textarea.style.display = 'none';
             if (preview) preview.style.display = 'none';
 
             if (btnVisual) {
-                btnVisual.className = 'btn-primary';
-                btnVisual.style.background = 'var(--color-primary)';
+                btnVisual.style.backgroundColor = '#ffffff';
+                btnVisual.style.color = '#4f46e5';
+                btnVisual.style.boxShadow = 'var(--shadow-sm)';
             }
             if (btnCode) {
-                btnCode.className = 'btn-secondary';
-                btnCode.style.background = 'transparent';
+                btnCode.style.backgroundColor = 'transparent';
+                btnCode.style.color = '#64748b';
+                btnCode.style.boxShadow = 'none';
             }
         } else {
-            textarea.value = wysiwyg.innerHTML;
-            wysiwyg.style.display = 'none';
-            textarea.style.display = 'block';
-
-            if (btnCode) {
-                btnCode.className = 'btn-primary';
-                btnCode.style.background = 'var(--color-primary)';
+            if (wysiwyg && textarea) {
+                textarea.value = wysiwyg.innerHTML;
             }
+            if (wysiwyg) wysiwyg.style.display = 'none';
+            if (textarea) textarea.style.display = 'block';
+            if (preview) preview.style.display = 'none';
+
             if (btnVisual) {
-                btnVisual.className = 'btn-secondary';
-                btnVisual.style.background = 'transparent';
+                btnVisual.style.backgroundColor = 'transparent';
+                btnVisual.style.color = '#64748b';
+                btnVisual.style.boxShadow = 'none';
             }
-
-            anexarPreviewLatex('editor-mat-conteudo', 'editor-mat-preview');
+            if (btnCode) {
+                btnCode.style.backgroundColor = '#ffffff';
+                btnCode.style.color = '#4f46e5';
+                btnCode.style.boxShadow = 'var(--shadow-sm)';
+            }
         }
     },
 
@@ -713,15 +647,18 @@ export const conteudoGeradoView = {
 
     formatarTextoVisual(comando, valor = null) {
         const wysiwyg = document.getElementById('editor-mat-wysiwyg');
-        if (wysiwyg) wysiwyg.focus();
-        document.execCommand(comando, false, valor);
+        if (wysiwyg && (wysiwyg.style.display !== 'none')) {
+            wysiwyg.focus();
+            document.execCommand(comando, false, valor);
+        }
     },
 
-    inserirTagEditor(tag) {
+    inserirTag(tag) {
         const wysiwyg = document.getElementById('editor-mat-wysiwyg');
         const textarea = document.getElementById('editor-mat-conteudo');
 
         if (wysiwyg && wysiwyg.style.display !== 'none') {
+            wysiwyg.focus();
             if (tag === 'sub') {
                 this.formatarTextoVisual('subscript');
             } else if (tag === 'sup') {
@@ -760,6 +697,10 @@ export const conteudoGeradoView = {
     },
 
     inserirTabelaPedagogica(targetId = 'editor-mat-wysiwyg') {
+        if (typeof tableHelper !== 'undefined') {
+            tableHelper.abrirModalInserirTabela(targetId);
+            return;
+        }
         const target = (typeof targetId === 'string' ? document.getElementById(targetId) : targetId) || document.getElementById('editor-mat-wysiwyg') || document.getElementById('manual-conteudo-wysiwyg') || document.getElementById('editor-mat-conteudo');
         const blocoHTML = `<table style="width: 100%; border-collapse: collapse; margin: 1.25rem 0; border: 1px solid #cbd5e1;"><thead><tr style="background: #f8fafc;"><th style="border: 1px solid #cbd5e1; padding: 0.625rem; text-align: left; font-weight: 800;">Item / Critério</th><th style="border: 1px solid #cbd5e1; padding: 0.625rem; text-align: left; font-weight: 800;">Descrição / Resposta Esperada</th></tr></thead><tbody><tr><td style="border: 1px solid #cbd5e1; padding: 0.625rem;">01</td><td style="border: 1px solid #cbd5e1; padding: 0.625rem;">...</td></tr><tr><td style="border: 1px solid #cbd5e1; padding: 0.625rem;">02</td><td style="border: 1px solid #cbd5e1; padding: 0.625rem;">...</td></tr></tbody></table><p>&nbsp;</p>`;
 
@@ -1164,75 +1105,318 @@ export const conteudoGeradoView = {
         }
     },
 
+    modalImprimir() {
+        this.abrirOpcoesImpressao();
+    },
+
     abrirOpcoesImpressao() {
         const material = (model.state.materiaisGerados || []).find(m => m.id === this.materialIdAtual);
         if (!material) return Toast.show("Nenhum material carregado para impressão.", "error");
 
         const html = `
-            <div style="padding: 1.5rem; text-align: center; display: flex; flex-direction: column; gap: 1rem;">
-                <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); margin: 0;">Imprimir / Exportar Documento Pedagógico</h3>
-                <p style="font-size: 0.8125rem; color: var(--color-slate-500); margin: 0;">Escolha o formato de diagramação adequado para a aplicação em sala de aula ou arquivo do professor:</p>
-                
-                <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem;">
-                    
-                    <button type="button" data-action="gerar-impressao" data-tipo="aluno" 
-                            class="card interactive-element" 
-                            style="padding: var(--spacing-4); display: flex; align-items: center; gap: var(--spacing-4); border: 2px solid var(--color-slate-200); text-align: left; width: 100%; cursor: pointer;">
-                        <div style="width: 2.5rem; height: 2.5rem; border-radius: var(--radius-lg); background: #dbeafe; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;">
-                            <i class="fas fa-user-graduate"></i>
-                        </div>
-                        <div>
-                            <h4 style="font-weight: 800; color: var(--color-slate-800); font-size: 0.9375rem; margin: 0;">Versão Aluno (Sem Gabarito)</h4>
-                            <p style="font-size: 0.75rem; color: var(--color-slate-500); margin: 0.125rem 0 0 0;">Oculta respostas e resoluções. Ideal para aplicar em sala de aula.</p>
-                        </div>
-                    </button>
+            <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                <div style="text-align: center;">
+                    <h3 style="font-size: 1.125rem; font-weight: 800; color: var(--color-slate-800); margin: 0 0 0.25rem 0;">Configurações de Impressão & PDF</h3>
+                    <p style="font-size: 0.8125rem; color: var(--color-slate-500); margin: 0;">Personalize o layout de colunas, fontes e gabarito para sala de aula ou arquivo:</p>
+                </div>
 
-                    <button type="button" data-action="gerar-impressao" data-tipo="acessivel" 
-                            class="card interactive-element" 
-                            style="padding: var(--spacing-4); display: flex; align-items: center; gap: var(--spacing-4); border: 2px solid #fed7aa; background-color: #fff7ed; text-align: left; width: 100%; cursor: pointer;">
-                        <div style="width: 2.5rem; height: 2.5rem; border-radius: var(--radius-lg); background: #ffedd5; color: #c2410c; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;">
-                            <i class="fas fa-universal-access"></i>
-                        </div>
-                        <div>
-                            <h4 style="font-weight: 800; color: #9a3412; font-size: 0.9375rem; margin: 0;">Versão Adaptada / Acessível (PCD)</h4>
-                            <p style="font-size: 0.75rem; color: #c2410c; margin: 0.125rem 0 0 0;">Fonte maior (16pt OpenDyslexic/Arial), espaçamento duplo e contraste alto.</p>
-                        </div>
-                    </button>
+                <!-- 1. PERFIL DA VERSÃO -->
+                <div>
+                    <label class="form-label" style="font-weight: 800; color: #334155; margin-bottom: 0.5rem;">1. Versão do Documento</label>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
+                        <label id="lbl-tipo-aluno" class="card interactive-element" style="padding: 0.75rem; border: 2px solid #3b82f6; background-color: #eff6ff; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;">
+                            <input type="radio" name="print-tipo" value="aluno" checked onchange="conteudoGeradoView.atualizarSelecaoPrintTipo(this.value)">
+                            <div>
+                                <strong style="font-size: 0.875rem; color: #1d4ed8; display: block;"><i class="fas fa-user-graduate"></i> Versão Aluno</strong>
+                                <span style="font-size: 0.6875rem; color: #64748b;">Sem respostas/gabarito.</span>
+                            </div>
+                        </label>
 
-                    <button type="button" data-action="gerar-impressao" data-tipo="professor" 
-                            class="card interactive-element" 
-                            style="padding: var(--spacing-4); display: flex; align-items: center; gap: var(--spacing-4); border: 2px solid var(--color-slate-200); text-align: left; width: 100%; cursor: pointer;">
-                        <div style="width: 2.5rem; height: 2.5rem; border-radius: var(--radius-lg); background: #dcfce7; color: #15803d; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;">
-                            <i class="fas fa-chalkboard-teacher"></i>
+                        <label id="lbl-tipo-professor" class="card interactive-element" style="padding: 0.75rem; border: 2px solid #e2e8f0; background-color: #ffffff; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;">
+                            <input type="radio" name="print-tipo" value="professor" onchange="conteudoGeradoView.atualizarSelecaoPrintTipo(this.value)">
+                            <div>
+                                <strong style="font-size: 0.875rem; color: #15803d; display: block;"><i class="fas fa-chalkboard-teacher"></i> Guia Professor</strong>
+                                <span style="font-size: 0.6875rem; color: #64748b;">Com gabarito comentado.</span>
+                            </div>
+                        </label>
+
+                        <label id="lbl-tipo-acessivel" class="card interactive-element" style="padding: 0.75rem; border: 2px solid #e2e8f0; background-color: #ffffff; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;">
+                            <input type="radio" name="print-tipo" value="acessivel" onchange="conteudoGeradoView.atualizarSelecaoPrintTipo(this.value)">
+                            <div>
+                                <strong style="font-size: 0.875rem; color: #c2410c; display: block;"><i class="fas fa-universal-access"></i> Acessível (AEE)</strong>
+                                <span style="font-size: 0.6875rem; color: #64748b;">Alto contraste e fonte ampliada.</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 2. DIAGRAMAÇÃO DE COLUNAS & FONTE -->
+                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-xl); padding: 1rem; display: flex; flex-direction: column; gap: 0.875rem;">
+                    <h4 style="font-size: 0.8125rem; font-weight: 800; color: #475569; margin: 0; text-transform: uppercase;">2. Diagramação & Economia de Folhas</h4>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem;">
+                        <div>
+                            <label class="form-label" style="font-size: 0.75rem; font-weight: 700;">Distribuição de Colunas</label>
+                            <select id="print-colunas" class="form-select" style="font-size: 0.8125rem;">
+                                <option value="1">1 Coluna (Padrão)</option>
+                                <option value="2" selected>2 Colunas (Estilo ENEM / Econômico)</option>
+                            </select>
                         </div>
-                        <div style="font-weight: 800; font-size: 0.875rem; color: var(--color-slate-700);">Guia do Professor</div>
-                        <div style="font-size: 0.6875rem; color: var(--color-slate-400);">Completo com gabaritos comentados e critérios</div>
-                    </button>
+
+                        <div>
+                            <label class="form-label" style="font-size: 0.75rem; font-weight: 700;">Tamanho da Tipografia</label>
+                            <select id="print-tamanho-fonte" class="form-select" style="font-size: 0.8125rem;">
+                                <option value="compacto">Compacto (10pt - Máxima economia)</option>
+                                <option value="normal" selected>Normal (11.5pt - Padrão)</option>
+                                <option value="amplo">Ampliado (13.5pt - Mais legibilidade)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="form-label" style="font-size: 0.75rem; font-weight: 700;">Espaçamento & Entrelinhas</label>
+                            <select id="print-espacamento" class="form-select" style="font-size: 0.8125rem;">
+                                <option value="padrao_4_2" selected>Simples (4pt antes / 2pt depois - Padrão)</option>
+                                <option value="maxima_1_1">Máxima Compactação (Linha 1.0, 1pt antes / 1pt depois)</option>
+                                <option value="compacto_2_1">Compacto Equilibrado (Linha 1.15, 2pt antes / 1pt depois)</option>
+                                <option value="confortavel_6_4">Confortável (Linha 1.5, 6pt antes / 4pt depois)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="form-label" style="font-size: 0.75rem; font-weight: 700;">Cabeçalho Escolar</label>
+                            <select id="print-cabecalho" class="form-select" style="font-size: 0.8125rem;">
+                                <option value="completo" selected>Completo (Escola, Aluno, Nota)</option>
+                                <option value="compacto">Compacto (Linha única)</option>
+                                <option value="sem">Sem Cabeçalho (Papel timbrado)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- OPÇÕES ESPECÍFICAS DE GABARITO E RASCUNHO -->
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.25rem;">
+                        <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8125rem; color: #334155; cursor: pointer;">
+                            <input type="checkbox" id="print-gabarito-pagina-separada" value="1">
+                            <span><strong>Gabarito em folha separada:</strong> Inicia o gabarito comentado em nova página para destacar antes de entregar aos alunos.</span>
+                        </label>
+
+                        <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8125rem; color: #334155; cursor: pointer;">
+                            <input type="checkbox" id="print-espaco-rascunho" value="1">
+                            <span><strong>Espaço para resolução / rascunho:</strong> Adiciona espaçamento pontilhado para cálculos entre questões.</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-top: 0.25rem; flex-wrap: wrap;">
+                    <div style="display: flex; gap: 0.5rem;">
+                                         <button type="button" onclick="conteudoGeradoView.exportarParaWord('docx')" class="btn-secondary interactive-element" style="display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; border-color: #2563eb; color: #1e40af; background-color: #eff6ff;" title="Baixar documento nativo do Word (.docx) com equações OMML">
+                            <i class="fas fa-file-word text-blue-600"></i> Word (.docx)
+                        </button>
+                        <button type="button" onclick="conteudoGeradoView.exportarParaWord('doc')" class="btn-secondary interactive-element" style="display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; border-color: #cbd5e1; color: #475569;" title="Baixar documento compatível do Word (.doc)">
+                            <i class="fas fa-file-word text-slate-500"></i> (.doc)
+                        </button>
+                    </div>
+                    <div style="display: flex; gap: 0.75rem;">
+                        <button type="button" onclick="controller.closeModal()" class="btn-secondary">Cancelar</button>
+                        <button type="button" onclick="conteudoGeradoView.dispararImpressaoCustomizada()" class="btn-primary interactive-element" style="background-color: #4f46e5; padding: 0.6rem 1.5rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-print"></i> Abrir Impressão / PDF
+                        </button>
+                    </div>
                 </div>
             </div>`;
         controller.openModal('Impressão & Exportação em PDF', html);
-
-        setTimeout(() => {
-            const modalEl = document.getElementById('global-modal');
-            if (modalEl) {
-                EventDelegator.bind(modalEl, {
-                    'gerar-impressao': (e, target) => {
-                        const tipo = target.getAttribute('data-tipo');
-                        controller.closeModal();
-                        this.gerarDocumentoImpressao(tipo);
-                    },
-                    'fechar-modal': () => controller.closeModal()
-                }, 'click');
-            }
-        }, 50);
     },
 
-    gerarDocumentoImpressao(tipo = 'aluno') {
+    exportarParaWord(formato = 'docx') {
         const material = (model.state.materiaisGerados || []).find(m => m.id === this.materialIdAtual);
-        if (!material) return Toast.show("Material não encontrado para impressão.", "error");
+        if (!material) {
+            Toast.show("Material não encontrado para exportação.", "error");
+            return;
+        }
 
-        const isProf = tipo === 'professor';
-        const isAcessivel = tipo === 'acessivel';
+        const config = this.obterConfiguracoesImpressaoModal();
+        const htmlDoc = this.montarHTMLDocumentoImpressao(config, false);
+        if (!htmlDoc) return;
+
+        const nomeArquivo = (material.titulo || material.tema || 'material_pedagogico')
+            .replace(/[\/\\:\*\?"<>\|]/g, '_')
+            .replace(/\s+/g, '_')
+            .trim();
+
+        if (window.exportarMaterialWord) {
+            window.exportarMaterialWord(htmlDoc, nomeArquivo, formato);
+        } else {
+            const htmlComEquacoes = window.converterHtmlLatexParaWordEquations
+                ? window.converterHtmlLatexParaWordEquations(htmlDoc)
+                : htmlDoc;
+            const blob = new Blob(['\ufeff' + htmlComEquacoes], { type: 'application/msword;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${nomeArquivo}.doc`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        controller.closeModal();
+        Toast.show(`Material exportado para o Word (.${formato}) com equações nativas (OMML/MathML)!`, "success");
+    },
+
+    atualizarSelecaoPrintTipo(tipo) {
+        const lblAluno = document.getElementById('lbl-tipo-aluno');
+        const lblProf = document.getElementById('lbl-tipo-professor');
+        const lblAcess = document.getElementById('lbl-tipo-acessivel');
+        const map = { aluno: lblAluno, professor: lblProf, acessivel: lblAcess };
+        ['aluno', 'professor', 'acessivel'].forEach(t => {
+            if (map[t]) {
+                if (t === tipo) {
+                    map[t].style.borderColor = t === 'aluno' ? '#3b82f6' : (t === 'professor' ? '#16a34a' : '#ea580c');
+                    map[t].style.backgroundColor = t === 'aluno' ? '#eff6ff' : (t === 'professor' ? '#f0fdf4' : '#fff7ed');
+                } else {
+                    map[t].style.borderColor = '#e2e8f0';
+                    map[t].style.backgroundColor = '#ffffff';
+                }
+            }
+        });
+    },
+
+    obterConfiguracoesImpressaoModal() {
+        const tipo = document.querySelector('input[name="print-tipo"]:checked')?.value || 'aluno';
+        const colunas = parseInt(document.getElementById('print-colunas')?.value || '2', 10);
+        const tamanhoFonte = document.getElementById('print-tamanho-fonte')?.value || 'normal';
+        const espacamento = document.getElementById('print-espacamento')?.value || 'padrao_4_2';
+        const cabecalho = document.getElementById('print-cabecalho')?.value || 'completo';
+        const gabaritoSeparado = Boolean(document.getElementById('print-gabarito-pagina-separada')?.checked);
+        const espacoRascunho = Boolean(document.getElementById('print-espaco-rascunho')?.checked);
+
+        return {
+            tipo,
+            colunas,
+            tamanhoFonte,
+            espacamento,
+            cabecalho,
+            gabaritoSeparado,
+            espacoRascunho
+        };
+    },
+
+    dispararImpressaoCustomizada() {
+        const config = this.obterConfiguracoesImpressaoModal();
+        controller.closeModal();
+        this.gerarDocumentoImpressao(config);
+    },
+
+    abrirPreviaImpressao() {
+        const config = this.obterConfiguracoesImpressaoModal();
+        const htmlDoc = this.montarHTMLDocumentoImpressao(config, false);
+        if (!htmlDoc) return;
+
+        const modalHtml = `
+            <div style="display: flex; flex-direction: column; gap: 1rem; height: 82vh;">
+                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem;">
+                    <div>
+                        <h3 style="font-size: 1.125rem; font-weight: 800; color: #1e293b; margin: 0;">Prévia de Impressão (A4)</h3>
+                        <p style="font-size: 0.75rem; color: #64748b; margin: 0;">Visualização em tempo real da diagramação antes de enviar para impressão/PDF.</p>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="button" onclick="conteudoGeradoView.gerarDocumentoImpressao(conteudoGeradoView.tempPreviaConfig)" class="btn-primary interactive-element" style="background-color: #4f46e5; font-size: 0.8125rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1.25rem;">
+                            <i class="fas fa-print"></i> Imprimir / Gerar PDF
+                        </button>
+                        <button type="button" onclick="conteudoGeradoView.abrirOpcoesImpressao()" class="btn-secondary" style="font-size: 0.8125rem; font-weight: 700;">
+                            <i class="fas fa-sliders-h"></i> Ajustar Opções
+                        </button>
+                    </div>
+                </div>
+
+                <div style="flex: 1; background: #e2e8f0; border-radius: 0.75rem; overflow: auto; display: flex; justify-content: center; padding: 1.25rem;">
+                    <div style="width: 100%; max-width: 820px; min-height: 100%; background: #ffffff; box-shadow: 0 10px 25px rgba(0,0,0,0.15); border-radius: 4px; overflow: hidden; display: flex; flex-direction: column;">
+                        <iframe id="iframe-previa-impressao" style="width: 100%; height: 100%; min-height: 68vh; border: none; flex: 1;"></iframe>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        this.tempPreviaConfig = config;
+        controller.openModal('Prévia de Impressão', modalHtml);
+
+        setTimeout(() => {
+            const iframe = document.getElementById('iframe-previa-impressao');
+            if (iframe) {
+                const doc = iframe.contentWindow.document;
+                doc.open();
+                doc.write(htmlDoc);
+                doc.close();
+            }
+        }, 60);
+    },
+
+    montarHTMLDocumentoImpressao(configOuTipo = 'aluno', forPrint = true) {
+        const material = (model.state.materiaisGerados || []).find(m => m.id === this.materialIdAtual);
+        if (!material) {
+            Toast.show("Material não encontrado para impressão.", "error");
+            return null;
+        }
+
+        const opts = typeof configOuTipo === 'string'
+            ? { tipo: configOuTipo, colunas: 1, tamanhoFonte: 'normal', espacamento: 'padrao_4_2', cabecalho: 'completo', gabaritoSeparado: false, espacoRascunho: false }
+            : configOuTipo;
+
+        const isProf = opts.tipo === 'professor';
+        const isAcessivel = opts.tipo === 'acessivel';
+        const colunas = opts.colunas || 1;
+        const cabecalho = opts.cabecalho || 'completo';
+        const gabaritoSeparado = opts.gabaritoSeparado || false;
+        const espacoRascunho = opts.espacoRascunho || false;
+        const espacamento = opts.espacamento || 'padrao_4_2';
+
+        let fontSizeStr = '11.5pt';
+        if (opts.tamanhoFonte === 'compacto') fontSizeStr = '10pt';
+        if (opts.tamanhoFonte === 'amplo' || isAcessivel) fontSizeStr = '13.5pt';
+
+        let tblFontSize = '9.5pt';
+        if (opts.tamanhoFonte === 'compacto') tblFontSize = '8.5pt';
+        else if (opts.tamanhoFonte === 'amplo') tblFontSize = '11pt';
+        else if (isAcessivel) tblFontSize = '12pt';
+
+        let h1Size = '17.5px';
+        let h2Size = '15.5px';
+        let h3Size = '14px';
+        let h4Size = '12.5px';
+        if (opts.tamanhoFonte === 'compacto') {
+            h1Size = '16px';
+            h2Size = '14px';
+            h3Size = '12.5px';
+            h4Size = '11.5px';
+        } else if (opts.tamanhoFonte === 'amplo' || isAcessivel) {
+            h1Size = isAcessivel ? '20px' : '19px';
+            h2Size = isAcessivel ? '17.5px' : '16.5px';
+            h3Size = isAcessivel ? '16px' : '15px';
+            h4Size = isAcessivel ? '14px' : '13.5px';
+        }
+
+        // Definição de entrelinhas e espaçamentos antes/depois
+        let lineHeight = '1.25';
+        let marginAntes = '4pt';
+        let marginDepois = '2pt';
+        let itemMarginDepois = '2pt';
+
+        if (espacamento === 'maxima_1_1') {
+            lineHeight = '1.05';
+            marginAntes = '1pt';
+            marginDepois = '1pt';
+            itemMarginDepois = '1pt';
+        } else if (espacamento === 'compacto_2_1') {
+            lineHeight = '1.15';
+            marginAntes = '2pt';
+            marginDepois = '1pt';
+            itemMarginDepois = '1.5pt';
+        } else if (espacamento === 'confortavel_6_4' || isAcessivel) {
+            lineHeight = isAcessivel ? '1.8' : '1.5';
+            marginAntes = isAcessivel ? '8pt' : '6pt';
+            marginDepois = isAcessivel ? '6pt' : '4pt';
+            itemMarginDepois = isAcessivel ? '6pt' : '4pt';
+        }
 
         let nomeProf = model.state.userConfig?.profName || '__________________________';
         if ((!model.state.userConfig?.profName || model.state.userConfig.profName.trim() === '') && model.currentUser) {
@@ -1241,8 +1425,12 @@ export const conteudoGeradoView = {
         const logoUrl = model.state.userConfig?.logo || '';
         const nomeEscola = model.state.userConfig?.schoolName || '________________________________________________';
 
-        const htmlProcessado = this.processarHTMLParaModo(material.conteudo_html || '', isProf ? 'professor' : 'aluno');
-        const conteudoFinalHTML = htmlProcessado;
+        let htmlProcessado = this.processarHTMLParaModo(material.conteudo_html || '', isProf ? 'professor' : 'aluno');
+        
+        // Se a opção de rascunho estiver ativa, insere caixa de cálculo nos itens de questão
+        if (espacoRascunho && !isProf) {
+            htmlProcessado = htmlProcessado.replace(/<\/li>/g, '<div class="espaco-rascunho-box"></div></li>');
+        }
 
         const tituloDocumento = isProf
             ? `GUIA DO PROFESSOR: ${material.titulo || material.tema || 'Material Pedagógico'}`
@@ -1254,120 +1442,182 @@ export const conteudoGeradoView = {
             <style>
                 @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Roboto:wght@400;500;700&display=swap');
                 
-                * { box-sizing: border-box; }
+                * { 
+                    box-sizing: border-box; 
+                    -webkit-print-color-adjust: exact !important; 
+                    print-color-adjust: exact !important; 
+                    color-adjust: exact !important; 
+                }
                 body { 
                     font-family: ${isAcessivel ? "'Atkinson Hyperlegible', Arial, sans-serif" : "'Roboto', Arial, sans-serif"}; 
-                    padding: 40px; 
+                    padding: ${forPrint ? '30px 40px' : '20px 25px'}; 
                     color: #1e293b; 
-                    line-height: ${isAcessivel ? '1.85' : '1.6'};
+                    font-size: ${fontSizeStr};
+                    line-height: ${lineHeight};
                     letter-spacing: ${isAcessivel ? '0.03em' : 'normal'};
                     background-color: #ffffff;
                 }
                 
-                /* CABEÇALHO ESCOLAR */
+                mark, span[style*="background"], font[style*="background"] {
+                    -webkit-print-color-adjust: exact !important;
+                    print-color-adjust: exact !important;
+                }
+                
                 .header { 
                     display: flex; 
                     align-items: center; 
                     justify-content: space-between; 
                     border: ${isAcessivel ? '2px solid #000' : '1px solid #334155'}; 
-                    padding: 14px 18px; 
-                    margin-bottom: 24px; 
-                    border-radius: 8px; 
+                    padding: 10px 14px; 
+                    margin-bottom: ${marginDepois}; 
+                    border-radius: 6px; 
                 }
-                .header-info { flex: 1; }
-                .header-info p { margin: 5px 0; font-size: ${isAcessivel ? '14.5px' : '13px'}; font-weight: 500; }
-                .header-logo { max-width: 80px; max-height: 80px; object-fit: contain; margin-left: 20px; }
+                .header-info { flex: 1; min-width: 0; }
+                .header-info p { margin: 2pt 0; font-size: ${isAcessivel ? '14px' : '12px'}; font-weight: 500; line-height: 1.2; }
+                .header-logo { max-width: 75px; max-height: 75px; object-fit: contain; margin-left: 16px; flex-shrink: 0; }
                 
                 .titulo-documento { 
                     text-align: center; 
                     text-transform: uppercase; 
                     font-weight: 800; 
-                    font-size: ${isAcessivel ? '19px' : '17px'}; 
-                    margin-bottom: 24px; 
+                    font-size: ${isAcessivel ? '18px' : '15px'}; 
+                    margin-bottom: 12px; 
                     border-bottom: 2px solid #1e293b; 
-                    padding-bottom: 10px; 
+                    padding-bottom: 4px; 
                     color: #0f172a;
                 }
                 
-                /* FORMATAÇÃO DE CONTEÚDO PEDAGÓGICO */
-                h1, h2, h3, h4 { color: #0f172a; page-break-after: avoid; }
-                h3 { font-size: ${isAcessivel ? '16px' : '15px'}; margin-top: 18px; margin-bottom: 8px; }
-                p, li { font-size: ${isAcessivel ? '15px' : '13.5px'}; color: #334155; margin-bottom: 10px; }
-                ul, ol { padding-left: 24px; margin-bottom: 14px; }
-                
-                /* CAIXAS DE DESTAQUE E LABORATÓRIO */
-                .laboratorio-seguranca { 
-                    background-color: #fef2f2; 
-                    border: 1.5px solid #fecaca; 
-                    border-left: 5px solid #ef4444; 
-                    border-radius: 8px; 
-                    padding: 12px 16px; 
-                    margin: 16px 0; 
-                    color: #991b1b;
-                    page-break-inside: avoid;
-                }
-                .laboratorio-seguranca h3, .laboratorio-seguranca h4 { color: #b91c1c; margin-top: 0; }
-                
-                .etapa-experimento { 
-                    background-color: #f8fafc; 
-                    border: 1px solid #e2e8f0; 
-                    border-left: 4px solid #4f46e5; 
-                    border-radius: 6px; 
-                    padding: 10px 14px; 
-                    margin: 12px 0; 
-                    page-break-inside: avoid;
-                }
-                
-                .tabela-experimento { 
-                    width: 100%; 
-                    border-collapse: collapse; 
-                    margin: 18px 0; 
-                    border: 2px solid #334155; 
-                    page-break-inside: avoid;
-                }
-                .tabela-experimento th { 
-                    background-color: #f1f5f9; 
-                    color: #0f172a; 
-                    font-weight: bold; 
-                    padding: 9px; 
-                    border: 1px solid #334155; 
-                    text-align: left; 
-                    font-size: 12px;
-                    text-transform: uppercase;
-                }
-                .tabela-experimento td { 
-                    border: 1px solid #334155; 
-                    padding: 12px; 
-                    min-height: 44px; 
-                    font-size: 13px;
+                .conteudo-principal {
+                    font-size: ${fontSizeStr};
+                    line-height: ${lineHeight};
+                    ${colunas === 2 ? `
+                        column-count: 2;
+                        column-gap: 24px;
+                        column-rule: 1px solid #cbd5e1;
+                        text-align: justify;
+                    ` : ''}
                 }
 
+                .conteudo-principal p, 
+                .conteudo-principal ol > li, 
+                .conteudo-principal ul > li,
+                .conteudo-principal .questao-item,
+                .conteudo-principal .etapa-experimento,
+                .conteudo-principal table,
+                .conteudo-principal .planner-table-wrapper,
+                .conteudo-principal .bloco-rubrica-avaliacao,
+                .conteudo-principal .bloco-jogo-jeopardy,
+                .conteudo-principal figure,
+                .conteudo-principal img {
+                    break-inside: avoid !important;
+                    page-break-inside: avoid !important;
+                    margin-top: ${marginAntes};
+                    margin-bottom: ${itemMarginDepois};
+                    line-height: ${lineHeight};
+                }
+
+                .conteudo-principal img {
+                    max-width: 100% !important;
+                    height: auto !important;
+                    object-fit: contain;
+                    border-radius: 6px;
+                    ${colunas === 2 ? 'max-height: 380px !important;' : 'max-height: 580px !important;'}
+                }
+
+                table {
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    border-collapse: collapse;
+                    margin: 8px 0;
+                    box-sizing: border-box !important;
+                    table-layout: auto;
+                    font-size: ${tblFontSize};
+                    line-height: 1.35;
+                }
+
+                th, td {
+                    border: 1px solid #cbd5e1;
+                    padding: 4px 8px;
+                    text-align: left;
+                    vertical-align: middle;
+                    box-sizing: border-box;
+                    word-break: normal;
+                    overflow-wrap: anywhere;
+                }
+
+                th {
+                    background-color: #f1f5f9;
+                    font-weight: bold;
+                    color: #0f172a;
+                }
+
+                h1 { font-size: ${h1Size}; color: #0f172a; page-break-after: avoid; }
+                h2 { font-size: ${h2Size}; color: #0f172a; page-break-after: avoid; }
+                h3 { font-size: ${h3Size}; color: #0f172a; page-break-after: avoid; margin-top: ${marginAntes}; margin-bottom: ${marginDepois}; }
+                h4 { font-size: ${h4Size}; color: #0f172a; page-break-after: avoid; }
+                p, li, .conteudo-principal div, .conteudo-principal span { font-size: inherit; line-height: inherit; }
+                p, li { color: #334155; }
+                ul, ol { padding-left: 18px; margin-top: ${marginAntes}; margin-bottom: ${marginDepois}; }
+                
                 .gabarito-bloco, .gabarito { 
-                    background-color: #ecfdf5; 
-                    border: 1px solid #a7f3d0; 
-                    border-left: 5px solid #059669; 
+                    column-span: all !important;
+                    background-color: #ecfdf5 !important; 
+                    border: 1px solid #a7f3d0 !important; 
+                    border-left: 5px solid #059669 !important; 
                     border-radius: 8px; 
-                    padding: 14px 18px; 
-                    margin: 20px 0; 
+                    padding: 10px 14px; 
+                    margin: 14px 0 10px 0; 
+                    break-inside: avoid;
                     page-break-inside: avoid;
+                    ${gabaritoSeparado ? 'page-break-before: always !important; break-before: page !important;' : ''}
                 }
                 .gabarito-bloco h3, .gabarito-bloco h4 { color: #065f46; margin-top: 0; }
 
                 .comentario-professor { 
-                    background-color: #fefce8; 
-                    border: 1px solid #fef08a; 
-                    border-left: 4px solid #ca8a04; 
+                    column-span: all !important;
+                    background-color: #fefce8 !important; 
+                    border: 1px solid #fef08a !important; 
+                    border-left: 4px solid #ca8a04 !important; 
                     padding: 10px 14px; 
                     margin: 12px 0; 
                     border-radius: 6px; 
                 }
 
+                .espaco-rascunho-box {
+                    min-height: 50px;
+                    border: 1px dashed #cbd5e1;
+                    background-color: #f8fafc;
+                    border-radius: 6px;
+                    margin: 8px 0 12px 0;
+                }
+
+                .laboratorio-seguranca { 
+                    background-color: #fef2f2 !important; 
+                    border: 1.5px solid #fecaca !important; 
+                    border-left: 5px solid #ef4444 !important; 
+                    border-radius: 8px; 
+                    padding: 12px 16px; 
+                    margin: 16px 0; 
+                    color: #991b1b;
+                    break-inside: avoid;
+                }
+                
+                .etapa-experimento { 
+                    background-color: #f8fafc !important; 
+                    border: 1px solid #e2e8f0 !important; 
+                    border-left: 4px solid #4f46e5 !important; 
+                    border-radius: 6px; 
+                    padding: 10px 14px; 
+                    margin: 12px 0; 
+                    break-inside: avoid;
+                }
+                
                 .btn-voltar {
-                    position: fixed; top: 20px; right: 20px;
-                    background-color: #ef4444; color: white; padding: 12px 22px;
-                    border: none; border-radius: 50px; font-weight: bold; cursor: pointer;
-                    box-shadow: 0 4px 12px rgba(0,0,0,0.25); z-index: 9999;
-                    display: flex; align-items: center; gap: 8px;
+                    position: fixed; top: 16px; right: 16px; z-index: 9999;
+                    background-color: #ef4444; color: #ffffff;
+                    border: none; border-radius: 8px; padding: 10px 16px;
+                    font-weight: bold; cursor: pointer;
+                    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
                     font-family: sans-serif; text-transform: uppercase; font-size: 12px;
                     transition: background-color 0.2s ease;
                 }
@@ -1377,10 +1627,10 @@ export const conteudoGeradoView = {
                     .no-print, .btn-voltar { display: none !important; }
                     body { padding: 0; background: transparent; }
                     .header { border-color: #000; }
-                    .laboratorio-seguranca { background: transparent !important; border: 1px solid #000 !important; border-left: 4px solid #000 !important; color: #000 !important; }
-                    .etapa-experimento { background: transparent !important; border: 1px solid #000 !important; border-left: 4px solid #000 !important; }
-                    .tabela-experimento, .tabela-experimento th, .tabela-experimento td { border-color: #000 !important; }
-                    .gabarito-bloco { background: transparent !important; border: 1px solid #000 !important; border-left: 4px solid #000 !important; }
+                    * {
+                        -webkit-print-color-adjust: exact !important;
+                        print-color-adjust: exact !important;
+                    }
                 }
             </style>
             <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
@@ -1388,6 +1638,50 @@ export const conteudoGeradoView = {
             <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"><\/script>
             <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"><\/script>
         `;
+
+        const renderCabecalhoHtml = () => {
+            if (cabecalho === 'sem') return '';
+            if (cabecalho === 'compacto') {
+                return `
+                    <div class="header" style="padding: 8px 12px; margin-bottom: 12px;">
+                        <div class="header-info">
+                            <p style="margin: 0 0 4px 0;"><strong>ESCOLA:</strong> ${window.escapeHTML(nomeEscola)} &nbsp;|&nbsp; <strong>PROF:</strong> ${window.escapeHTML(nomeProf)} &nbsp;|&nbsp; <strong>DISC:</strong> ${window.escapeHTML(material.disciplina || 'Geral')}</p>
+                            ${!isProf ? `
+                                <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: ${isAcessivel ? '13px' : '11.5px'};">
+                                    <span style="flex: 1; display: flex; align-items: baseline;"><strong>ALUNO:</strong> <span style="flex: 1; border-bottom: 1px solid #000; margin-left: 6px;"></span></span>
+                                    <span style="white-space: nowrap;"><strong>DATA:</strong> ___/___/2026</span>
+                                    <span style="white-space: nowrap;"><strong>TURMA:</strong> <span style="display: inline-block; width: 45px; border-bottom: 1px solid #000; margin-left: 4px;"></span></span>
+                                    <span style="white-space: nowrap;"><strong>NOTA:</strong> &nbsp;&nbsp;&nbsp;&nbsp;</span>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+            }
+            return `
+                <div class="header">
+                    <div class="header-info">
+                        <p style="margin: 0 0 6px 0;"><strong>ESCOLA:</strong> ${window.escapeHTML(nomeEscola)}</p>
+                        <div style="display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 6px; font-size: ${isAcessivel ? '13.5px' : '12px'};">
+                            <span><strong>PROFESSOR(A):</strong> ${window.escapeHTML(nomeProf)}</span>
+                            <span><strong>DISCIPLINA:</strong> ${window.escapeHTML(material.disciplina || 'Geral')}</span>
+                            <span><strong>SÉRIE/ANO:</strong> ${window.escapeHTML(material.serie || '-')}</span>
+                            <span style="white-space: nowrap;"><strong>TURMA:</strong> <span style="display: inline-block; width: 50px; border-bottom: 1px solid #000; margin-left: 4px;"></span></span>
+                        </div>
+                        ${!isProf ? `
+                            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: ${isAcessivel ? '13.5px' : '12px'};">
+                                <span style="flex: 1; display: flex; align-items: baseline;"><strong>ALUNO(A):</strong> <span style="flex: 1; border-bottom: 1px solid #000; margin-left: 6px;"></span></span>
+                                <span style="white-space: nowrap;"><strong>DATA:</strong> ____/____/2026</span>
+                                <span style="white-space: nowrap; margin-left: 6px;"><strong>NOTA:</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                            </div>
+                        ` : `
+                            <p style="margin: 0;"><strong>DATA:</strong> ____/____/2026</p>
+                        `}
+                    </div>
+                    ${logoUrl ? `<img src="${logoUrl}" class="header-logo" alt="Logo da Instituição" />` : ''}
+                </div>
+            `;
+        };
 
         const conteudoFinal = `
             <!DOCTYPE html>
@@ -1398,54 +1692,59 @@ export const conteudoGeradoView = {
                 ${estiloImpressao}
             </head>
             <body>
-                <button onclick="window.close()" class="btn-voltar">
-                    <i class="fas fa-arrow-left"></i> Voltar para o App
-                </button>
+                ${forPrint ? `
+                    <button onclick="window.close()" class="btn-voltar">
+                        <i class="fas fa-arrow-left"></i> Voltar para o App
+                    </button>
+                ` : ''}
                 
-                <div class="header">
-                    <div class="header-info">
-                        <p><strong>ESCOLA:</strong> ${window.escapeHTML(nomeEscola)}</p>
-                        <p><strong>PROFESSOR(A):</strong> ${window.escapeHTML(nomeProf)} &nbsp;&nbsp;&nbsp;&nbsp; <strong>DISCIPLINA:</strong> ${window.escapeHTML(material.disciplina || 'Geral')} &nbsp;&nbsp;&nbsp;&nbsp; <strong>SÉRIE/ANO:</strong> ${window.escapeHTML(material.serie || '-')} &nbsp;&nbsp;&nbsp;&nbsp; <strong>TURMA:</strong> ________</p>
-                        ${!isProf ? `
-                            <p><strong>ALUNO(A):</strong> _______________________________________________________ &nbsp;&nbsp;&nbsp;&nbsp; <strong>DATA:</strong> ____/____/2026</p>
-                        ` : `
-                            <p><strong>DATA:</strong> ____/____/2026</p>
-                        `}
-                    </div>
-                    ${logoUrl ? `<img src="${logoUrl}" class="header-logo" alt="Logo da Instituição" />` : ''}
-                </div>
+                ${renderCabecalhoHtml()}
 
                 <div class="titulo-documento">${window.escapeHTML(material.titulo || material.tema || 'Atividade Pedagógica')}</div>
                 
-                <div id="conteudo-documento">
-                    ${conteudoFinalHTML}
+                <div id="conteudo-documento" class="conteudo-principal">
+                    ${htmlProcessado}
                 </div>
 
                 <script>
+                    let impresso = false;
                     function iniciarImpressao() {
                         if (typeof renderMathInElement === 'function') {
                             try {
                                 renderMathInElement(document.body, {
                                     delimiters: [
                                         { left: '\\\\[', right: '\\\\]', display: true },
-                                        { left: '\\\\(', right: '\\\\)', display: false }
+                                        { left: '\\\\(', right: '\\\\)', display: false },
+                                        { left: '$$', right: '$$', display: true },
+                                        { left: '$', right: '$', display: false }
                                     ],
                                     throwOnError: false
                                 });
                             } catch (err) { console.warn(err); }
                         }
-                        setTimeout(() => window.print(), 300);
+                        ${forPrint ? `
+                            if (!impresso) {
+                                impresso = true;
+                                setTimeout(() => window.print(), 250);
+                            }
+                        ` : ''}
                     }
-                    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+                    if (document.readyState === 'complete') {
                         iniciarImpressao();
                     } else {
-                        window.addEventListener('DOMContentLoaded', iniciarImpressao);
-                        setTimeout(iniciarImpressao, 700);
+                        window.addEventListener('load', iniciarImpressao);
                     }
                 <\/script>
             </body>
             </html>
         `;
+
+        return conteudoFinal;
+    },
+
+    gerarDocumentoImpressao(configOuTipo = 'aluno') {
+        const conteudoFinal = this.montarHTMLDocumentoImpressao(configOuTipo, true);
+        if (!conteudoFinal) return;
 
         const win = window.open('', '_blank');
         if (win) {

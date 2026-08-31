@@ -16,7 +16,8 @@ export const estatisticasProvaView = {
 
         const minhas = (model.state && model.state.questoes) ? model.state.questoes : [];
         const sistema = (model.state && model.state.questoesSistema) ? model.state.questoesSistema : [];
-        const todas = [...minhas, ...sistema];
+        const enem = (model.state && model.state.questoesEnem) ? model.state.questoesEnem : [];
+        const todas = [...minhas, ...sistema, ...enem];
 
         const porMateria = this.agruparPor(todas, 'materia', 'Geral');
         const porTipo = this.agruparPor(todas, 'tipo', 'Não definido');

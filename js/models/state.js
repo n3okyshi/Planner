@@ -92,6 +92,7 @@ export const initialState = {
         ]
     },
     questoesSistema: [],
+    questoesEnem: [],
     isCloudSynced: false,
     lastUpdate: new Date(0).toISOString()
 };

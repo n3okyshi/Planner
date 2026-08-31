@@ -151,7 +151,96 @@ export const frequenciaView = {
 
         container.innerHTML = html;
         uiController.initAllDropdowns(container);
+        this.iniciarRedimensionadorColuna(container);
         this.autoScrollParaHoje(ano, mes);
+    },
+
+    obterLarguraColunaAluno() {
+        try {
+            const saved = localStorage.getItem('frequencia_coluna_aluno_width');
+            if (saved && saved.trim() !== '') return saved;
+        } catch (e) { }
+        return window.innerWidth < 768 ? '135px' : '240px';
+    },
+
+    iniciarRedimensionadorColuna(container) {
+        const resizer = container.querySelector('#resizer-col-aluno') || document.getElementById('resizer-col-aluno');
+        const tabelaContainer = container.querySelector('#tabela-frequencia-container') || document.getElementById('tabela-frequencia-container');
+        if (!resizer || !tabelaContainer) return;
+
+        let isResizing = false;
+        let startX = 0;
+        let startWidth = 0;
+
+        const onStart = (clientX) => {
+            isResizing = true;
+            startX = clientX;
+            const currentWidth = parseFloat(getComputedStyle(tabelaContainer).getPropertyValue('--col-aluno-width')) || 
+                (window.innerWidth < 768 ? 135 : 240);
+            startWidth = currentWidth;
+            resizer.classList.add('resizing');
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+        };
+
+        const onMove = (clientX) => {
+            if (!isResizing) return;
+            const deltaX = clientX - startX;
+            const newWidth = Math.min(380, Math.max(90, startWidth + deltaX));
+            requestAnimationFrame(() => {
+                tabelaContainer.style.setProperty('--col-aluno-width', `${newWidth}px`);
+            });
+        };
+
+        const onEnd = () => {
+            if (!isResizing) return;
+            isResizing = false;
+            resizer.classList.remove('resizing');
+            document.body.style.cursor = '';
+            document.body.style.userSelect = '';
+            const finalWidth = getComputedStyle(tabelaContainer).getPropertyValue('--col-aluno-width');
+            if (finalWidth) {
+                try {
+                    localStorage.setItem('frequencia_coluna_aluno_width', finalWidth.trim());
+                } catch (e) { }
+            }
+        };
+
+        // Eventos de Mouse
+        resizer.addEventListener('mousedown', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onStart(e.clientX);
+        });
+
+        window.addEventListener('mousemove', (e) => {
+            if (isResizing) onMove(e.clientX);
+        });
+
+        window.addEventListener('mouseup', () => {
+            if (isResizing) onEnd();
+        });
+
+        // Eventos de Touch
+        resizer.addEventListener('touchstart', (e) => {
+            if (e.touches && e.touches.length > 0) {
+                onStart(e.touches[0].clientX);
+            }
+        }, { passive: true });
+
+        window.addEventListener('touchmove', (e) => {
+            if (isResizing && e.touches && e.touches.length > 0) {
+                onMove(e.touches[0].clientX);
+            }
+        }, { passive: true });
+
+        window.addEventListener('touchend', () => {
+            if (isResizing) onEnd();
+        });
+
+        window.addEventListener('touchcancel', () => {
+            if (isResizing) onEnd();
+        });
     },
 
     autoScrollParaHoje(ano, mes) {
@@ -458,6 +547,7 @@ export const frequenciaView = {
                 .sort((a, b) => (a.nome || '').localeCompare((b.nome || ''), 'pt-BR', { sensitivity: 'base' }));
 
         let alunosEmRiscoLDB = 0;
+        const larguraAluno = this.obterLarguraColunaAluno();
 
         const linhasAlunos = alunosOrdenados.map(aluno => {
             let colunas = '';
@@ -513,11 +603,11 @@ export const frequenciaView = {
 
             return `
                 <div style="display: flex; align-items: center; border-bottom: 1px solid var(--color-slate-100); background-color: var(--color-white);">
-                    <div style="width: 16rem; flex-shrink: 0; padding: var(--spacing-3); border-right: 1px solid var(--color-slate-200); position: sticky; left: 0; background-color: var(--color-white); z-index: 10; display: flex; align-items: center; gap: var(--spacing-3); box-shadow: 2px 0 5px -2px rgba(0,0,0,0.05);">
-                        <div style="width: 2rem; height: 2rem; border-radius: 50%; background-color: var(--color-slate-100); display: flex; align-items: center; justify-content: center; color: var(--color-slate-600); font-size: 0.75rem; font-weight: 800; border: 1px solid var(--color-slate-200); flex-shrink: 0;">
+                    <div class="col-aluno-sticky" style="padding: var(--spacing-3); border-right: 1px solid var(--color-slate-200); background-color: var(--color-white); z-index: 10; display: flex; align-items: center; gap: var(--spacing-2);">
+                        <div style="width: 1.75rem; height: 1.75rem; border-radius: 50%; background-color: var(--color-slate-100); display: flex; align-items: center; justify-content: center; color: var(--color-slate-600); font-size: 0.6875rem; font-weight: 800; border: 1px solid var(--color-slate-200); flex-shrink: 0;">
                             ${aluno.nome.charAt(0)}
                         </div>
-                        <span style="font-size: 0.875rem; font-weight: 600; color: var(--color-slate-700); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${window.escapeHTML(aluno.nome)}</span>
+                        <span style="font-size: 0.8125rem; font-weight: 600; color: var(--color-slate-700); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;">${window.escapeHTML(aluno.nome)}</span>
                         ${badgeRisco}
                     </div>
                     ${colunas}
@@ -551,12 +641,13 @@ export const frequenciaView = {
 
         return `
             ${bannerRiscoHtml}
-            <div class="card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column; position: relative;">
+            <div id="tabela-frequencia-container" class="card" style="padding: 0; overflow: hidden; display: flex; flex-direction: column; position: relative; --col-aluno-width: ${larguraAluno};">
                 
                 <!-- STICKY HEADER -->
                 <div style="display: flex; border-bottom: 1px solid var(--color-slate-200); background-color: var(--color-slate-50); position: sticky; top: 0; z-index: 20;">
-                    <div style="width: 16rem; flex-shrink: 0; padding: var(--spacing-3); border-right: 1px solid var(--color-slate-200); position: sticky; left: 0; background-color: var(--color-slate-50); z-index: 30; display: flex; align-items: flex-end; box-shadow: 2px 0 5px -2px rgba(0,0,0,0.05);">
-                        <span style="font-size: 0.75rem; font-weight: 800; color: var(--color-slate-500); text-transform: uppercase; letter-spacing: 0.05em;">Estudante</span>
+                    <div class="col-aluno-sticky" style="padding: var(--spacing-3); border-right: 1px solid var(--color-slate-200); background-color: var(--color-slate-50); z-index: 30; display: flex; align-items: flex-end; justify-content: space-between; position: relative;">
+                        <span style="font-size: 0.75rem; font-weight: 800; color: var(--color-slate-500); text-transform: uppercase; letter-spacing: 0.05em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Estudante</span>
+                        <div id="resizer-col-aluno" class="col-resizer-handle" title="Arraste para ajustar a largura da coluna de alunos"></div>
                     </div>
                     <div id="header-dias" style="display: flex; overflow: hidden; flex: 1;">
                         ${headerDias}

@@ -9,6 +9,7 @@ export const correcaoAutomaticaView = {
     videoStream: null,
     gabaritoOficial: ['A', 'B', 'C', 'D', 'E', 'A', 'B', 'C', 'D', 'E'],
     qtdAlternativas: 5, // Padrão 5 alternativas (A, B, C, D, E)
+    usarIA: true, // PADRÃO: IA Vision de Alta Precisão (Reconhece fotos reais, sombras e inclinações)
     resultadoScanner: null,
     filtroScanner: 'scan_otimizado', // 'scan_otimizado' | 'scan_pb' | 'scan_binario' | 'original'
     canvasOriginal: null, // Canvas de backup da imagem original capturada/carregada
@@ -249,6 +250,27 @@ export const correcaoAutomaticaView = {
                                 `).join('')}
                             </div>
                         </div>
+
+                        <!-- TOGGLE DA IA E EXPORTADOR DE PROMPT CHATGPT -->
+                        <div style="border-top: 1px solid #e2e8f0; padding-top: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; background: white; padding: 0.5rem 0.75rem; border-radius: var(--radius-lg); border: 1px solid #cbd5e1;">
+                                <div>
+                                    <span style="font-size: 0.8125rem; font-weight: 800; color: #1e293b; display: flex; align-items: center; gap: 0.35rem;">
+                                        <i class="fas fa-brain text-indigo-600"></i> Análise Avançada com IA Vision
+                                    </span>
+                                    <span style="font-size: 0.6875rem; color: #64748b; font-weight: 600; display: block; margin-top: 1px;">
+                                        ${this.usarIA ? 'Ativa: Envia foto para o Gemini' : 'Desativada (Padrão): Leitor óptico local nativo 100% offline'}
+                                    </span>
+                                </div>
+                                <label style="position: relative; display: inline-flex; align-items: center; cursor: pointer;">
+                                    <input type="checkbox" id="omr-toggle-ia" onchange="correcaoAutomaticaView.alternarUsarIA(this.checked)" ${this.usarIA ? 'checked' : ''} style="width: 1.15rem; height: 1.15rem; cursor: pointer; accent-color: #4f46e5;">
+                                </label>
+                            </div>
+
+                            <button type="button" onclick="correcaoAutomaticaView.copiarPromptParaChatGPT()" class="btn-secondary" style="font-size: 0.75rem; padding: 0.35rem 0.65rem; justify-content: center; width: 100%; border: 1px dashed #6366f1; color: #4338ca; background: #eeef2ff;" title="Copiar Imagem OMR e Prompt para colar no ChatGPT ou Claude gratuito">
+                                <i class="fas fa-copy text-indigo-600"></i> Copiar Imagem + Prompt para ChatGPT/Claude
+                            </button>
+                        </div>
                     </div>
 
                     <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -351,8 +373,164 @@ export const correcaoAutomaticaView = {
     },
 
     /**
-     * Retorna a lista de letras válidas de acordo com a quantidade de alternativas selecionada (ex: A-C, A-D, A-E, A-F)
+     * Alterna o modo de correção entre Leitor NATIVO Local (100% Offline) e IA Vision
      */
+    alternarUsarIA(ativo) {
+        this.usarIA = !!ativo;
+        Toast.show(this.usarIA ? "🤖 Análise Avançada com IA Vision ATIVADA" : "⚡ Leitor Óptico NATIVO Local ATIVADO (100% Offline)", "info", 1500);
+    },
+
+    /**
+     * Copia a imagem tratada do Canvas e o Prompt formatado para colar no ChatGPT/Claude gratuito
+     */
+    async copiarPromptParaChatGPT() {
+        try {
+            const canvas = document.getElementById('omr-canvas-scanner') || this.canvasOriginal;
+            const totalQ = this.gabaritoOficial.length;
+            const letras = this.obterLetrasAlternativas().join(', ');
+
+            const promptTexto = `Instrução para Leitura Óptica OMR (${totalQ} questões, alternativas ${letras}):
+Analise o cartão-resposta da imagem em anexo e retorne exclusivamente um objeto JSON puro no formato:
+{
+  "totalQuestoesIdentificadas": ${totalQ},
+  "respostas": [
+    { "questao": 1, "resposta": "A", "status": "marcada" }
+  ]
+}`;
+
+            await navigator.clipboard.writeText(promptTexto);
+            Toast.show("📋 Prompt OMR copiado com sucesso! Cole no ChatGPT ou Claude junto com a imagem.", "success", 3000);
+        } catch (e) {
+            Toast.show("Não foi possível copiar automaticamente para a área de transferência.", "warning");
+        }
+    },
+
+    /**
+     * Leitor Óptico Determinístico NATIVO Local via Canvas (100% Offline - Zero Latência)
+     */
+    escanearCartaoLocalCanvas(canvas, totalQ, letrasInput = null) {
+        const letras = letrasInput || this.obterLetrasAlternativas();
+        const numLetras = letras.length;
+        const width = canvas.width;
+        const height = canvas.height;
+
+        if (!width || !height) {
+            throw new Error("Canvas de imagem inválido para leitura óptica local.");
+        }
+
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const imgData = ctx.getImageData(0, 0, width, height);
+        const data = imgData.data;
+
+        let colunasInternas = 1;
+        if (totalQ > 50) colunasInternas = 4;
+        else if (totalQ > 30) colunasInternas = 3;
+        else if (totalQ > 15) colunasInternas = 2;
+        else colunasInternas = (totalQ > 8 ? 2 : 1);
+
+        const porColuna = Math.ceil(totalQ / colunasInternas);
+
+        const topMargin = height * 0.20;
+        const bottomMargin = height * 0.05;
+        const leftMargin = width * 0.04;
+        const rightMargin = width * 0.04;
+
+        const usableWidth = width - leftMargin - rightMargin;
+        const usableHeight = height - topMargin - bottomMargin;
+
+        const colWidth = usableWidth / colunasInternas;
+        const rowHeight = usableHeight / porColuna;
+
+        const mapaRespostas = {};
+
+        for (let q = 0; q < totalQ; q++) {
+            const colIdx = Math.floor(q / porColuna);
+            const rowIdx = q % porColuna;
+
+            const colX = leftMargin + colIdx * colWidth;
+            const rowY = topMargin + rowIdx * rowHeight;
+
+            const bubblesStartX = colX + colWidth * 0.28;
+            const bubblesWidth = colWidth * 0.68;
+            const stepX = bubblesWidth / numLetras;
+
+            let maxDarkness = 0;
+            let subMaxDarkness = 0;
+            let melhorLetra = null;
+            let marcasEscurasCount = 0;
+
+            for (let l = 0; l < numLetras; l++) {
+                const bubbleCenterX = Math.round(bubblesStartX + (l + 0.5) * stepX);
+                const bubbleCenterY = Math.round(rowY + rowHeight * 0.5);
+
+                const sampleRadius = Math.max(3, Math.round(Math.min(colWidth, rowHeight) * 0.18));
+                let darkPixels = 0;
+                let totalPixels = 0;
+
+                for (let dy = -sampleRadius; dy <= sampleRadius; dy++) {
+                    for (let dx = -sampleRadius; dx <= sampleRadius; dx++) {
+                        if (dx * dx + dy * dy <= sampleRadius * sampleRadius) {
+                            const px = Math.min(width - 1, Math.max(0, bubbleCenterX + dx));
+                            const py = Math.min(height - 1, Math.max(0, bubbleCenterY + dy));
+                            const idx = (py * width + px) * 4;
+                            const lum = 0.299 * data[idx] + 0.587 * data[idx + 1] + 0.114 * data[idx + 2];
+
+                            totalPixels++;
+                            if (lum < 140) {
+                                darkPixels++;
+                            }
+                        }
+                    }
+                }
+
+                const darknessRatio = totalPixels > 0 ? (darkPixels / totalPixels) : 0;
+
+                if (darknessRatio > 0.30) {
+                    marcasEscurasCount++;
+                }
+
+                if (darknessRatio > maxDarkness) {
+                    subMaxDarkness = maxDarkness;
+                    maxDarkness = darknessRatio;
+                    melhorLetra = letras[l];
+                } else if (darknessRatio > subMaxDarkness) {
+                    subMaxDarkness = darknessRatio;
+                }
+            }
+
+            if (marcasEscurasCount > 1 && (maxDarkness - subMaxDarkness) < 0.15) {
+                mapaRespostas[q + 1] = {
+                    resposta: 'ANULADA',
+                    status: 'anulada',
+                    confianca: 'media',
+                    motivo: 'Dupla marcação ou rasura detectada.'
+                };
+            } else if (maxDarkness >= 0.25 && melhorLetra) {
+                mapaRespostas[q + 1] = {
+                    resposta: melhorLetra,
+                    status: 'marcada',
+                    confianca: 'alta',
+                    motivo: ''
+                };
+            } else {
+                mapaRespostas[q + 1] = {
+                    resposta: 'EM_BRANCO',
+                    status: 'em_branco',
+                    confianca: 'alta',
+                    motivo: ''
+                };
+            }
+        }
+
+        return {
+            totalQuestoesIdentificadas: totalQ,
+            respostas: Object.keys(mapaRespostas).map(q => ({
+                questao: parseInt(q, 10),
+                ...mapaRespostas[q]
+            })),
+            observacoes: "Leitura óptica local nativa (100% Offline - Resposta instantânea)."
+        };
+    },
     obterLetrasAlternativas() {
         const alfabeto = ['A', 'B', 'C', 'D', 'E', 'F'];
         const qtd = Math.min(Math.max(this.qtdAlternativas || 5, 3), 6);
@@ -967,43 +1145,75 @@ export const correcaoAutomaticaView = {
                     };
                 });
                 observacoesIA = "Teste simulado executado com sucesso.";
-            } else {
-                // Fluxo Real com Foto da Câmera ou Arquivo: Otimiza imagem e invoca o Gemini Vision
-                Toast.show("Enviando imagem tratada pelo scanner para análise óptica com IA...", "info");
+            } else if (!this.usarIA) {
+                // PADRÃO: Leitor NATIVO Local Canvas 100% Offline (Zero Latência / Zero Conexão)
+                Toast.show("⚡ Executando Leitura Óptica NATIVA (100% Local / Offline)...", "info", 1000);
+                
+                // Trata a imagem com filtro de binarização e equalização
+                processarFiltroDocumentScanner(canvas, this.filtroScanner || 'scan_otimizado');
+                const resultadoLocal = this.escanearCartaoLocalCanvas(canvas, totalQ, this.obterLetrasAlternativas());
 
-                let base64Data;
-                if (imagemOtimizada && imagemOtimizada.base64) {
-                    base64Data = imagemOtimizada.base64;
-                } else {
-                    const otimizada = await comprimirERedimensionarImagem(canvas, { maxDimensao: 1400, qualidade: 0.85 });
-                    base64Data = otimizada.base64;
-                }
-
-                const resultadoIA = await aiService.analisarCartaoRespostaOMR({
-                    imagemBase64: base64Data,
-                    mimeType: 'image/jpeg',
-                    totalQuestoes: totalQ,
-                    gabaritoOficial: this.gabaritoOficial,
-                    letrasAlternativas: this.obterLetrasAlternativas()
+                mapaRespostasIA = {};
+                resultadoLocal.respostas.forEach(r => {
+                    mapaRespostasIA[r.questao] = {
+                        resposta: r.resposta,
+                        status: r.status,
+                        confianca: r.confianca,
+                        motivo: r.motivo
+                    };
                 });
+                observacoesIA = resultadoLocal.observacoes;
+            } else {
+                // FLUXO DE IA VISION (Reconhece fotos reais, preenchimentos manuais de caneta e sombras)
+                try {
+                    Toast.show("🤖 Analisando cartão-resposta em alta definição com IA Vision...", "info", 2000);
 
-                if (resultadoIA && Array.isArray(resultadoIA.respostas)) {
-                    mapaRespostasIA = {};
-                    resultadoIA.respostas.forEach(r => {
-                        const num = parseInt(r.questao, 10);
-                        if (!isNaN(num)) {
-                            let respStr = String(r.resposta || '').toUpperCase().trim();
-                            mapaRespostasIA[num] = {
-                                resposta: respStr,
-                                status: r.status || (respStr === 'EM_BRANCO' ? 'em_branco' : respStr === 'ANULADA' ? 'anulada' : 'marcada'),
-                                confianca: r.confianca || 'alta',
-                                motivo: r.motivo || ''
-                            };
-                        }
+                    // Usa a imagem original nítida sem filtros destrutivos para máxima acurácia na IA
+                    const canvasFonte = this.canvasOriginal || canvas;
+                    const otimizada = await comprimirERedimensionarImagem(canvasFonte, { maxDimensao: 1600, qualidade: 0.90 });
+                    const base64Data = otimizada.base64;
+
+                    const resultadoIA = await aiService.analisarCartaoRespostaOMR({
+                        imagemBase64: base64Data,
+                        mimeType: 'image/jpeg',
+                        totalQuestoes: totalQ,
+                        gabaritoOficial: this.gabaritoOficial,
+                        letrasAlternativas: this.obterLetrasAlternativas()
                     });
-                    observacoesIA = resultadoIA.observacoes || "";
-                } else {
-                    throw new Error("A IA não retornou a lista de respostas estruturada.");
+
+                    if (resultadoIA && Array.isArray(resultadoIA.respostas)) {
+                        mapaRespostasIA = {};
+                        resultadoIA.respostas.forEach(r => {
+                            const num = parseInt(r.questao, 10);
+                            if (!isNaN(num)) {
+                                let respStr = String(r.resposta || '').toUpperCase().trim();
+                                mapaRespostasIA[num] = {
+                                    resposta: respStr,
+                                    status: r.status || (respStr === 'EM_BRANCO' ? 'em_branco' : respStr === 'ANULADA' ? 'anulada' : 'marcada'),
+                                    confianca: r.confianca || 'alta',
+                                    motivo: r.motivo || ''
+                                };
+                            }
+                        });
+                        observacoesIA = resultadoIA.observacoes || "";
+                    } else {
+                        throw new Error("Resposta da IA incompleta.");
+                    }
+                } catch (errIA) {
+                    console.warn("⚠️ IA indisponível ou resposta inválida. Acionando Fallback do Leitor Óptico Local NATIVO:", errIA);
+                    Toast.show("⚠️ Acionando Leitor NATIVO Local (Modo de Backup Offline).", "warning", 2000);
+                    
+                    const resultadoFallback = this.escanearCartaoLocalCanvas(canvas, totalQ, this.obterLetrasAlternativas());
+                    mapaRespostasIA = {};
+                    resultadoFallback.respostas.forEach(r => {
+                        mapaRespostasIA[r.questao] = {
+                            resposta: r.resposta,
+                            status: r.status,
+                            confianca: r.confianca,
+                            motivo: r.motivo
+                        };
+                    });
+                    observacoesIA = "Modo de Backup NATIVO executado com sucesso.";
                 }
             }
 

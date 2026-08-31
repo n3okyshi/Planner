@@ -17,6 +17,7 @@ export const model = {
     tiposEventos,
     state: initialState,
     _isHydrating: false,
+    _isRemoteSyncing: false,
 
     init() {
         this._isHydrating = true;
@@ -32,7 +33,7 @@ export const model = {
         }
 
         this.state = createReactiveState(loadedData, (caminho, novoValor, valorAntigo) => {
-            if (this._isHydrating) return;
+            if (this._isHydrating || this._isRemoteSyncing) return;
             try {
                 storageService.saveAsync(this.state);
             } catch (e) {
@@ -191,11 +192,18 @@ export const model = {
         firebaseService.subscribeToUserChanges(this.currentUser.uid, (newData) => {
             if (newData) {
                 console.log("🔄 Atualização remota recebida com fusão granular.");
-                const merged = this.mergeStates(this.state, newData);
-                Object.keys(merged).forEach(k => {
-                    this.state[k] = merged[k];
-                });
-                storageService.saveAsync(this.state).catch(() => { });
+                this._isRemoteSyncing = true;
+                try {
+                    const merged = this.mergeStates(this.state, newData);
+                    Object.keys(merged).forEach(k => {
+                        this.state[k] = merged[k];
+                    });
+                    storageService.saveAsync(this.state).catch(() => { });
+                } finally {
+                    setTimeout(() => {
+                        this._isRemoteSyncing = false;
+                    }, 50);
+                }
             }
         });
     },
@@ -208,7 +216,7 @@ export const model = {
         this._debouncedCloudSave();
     },
     _debouncedCloudSave: debounce(async function () {
-        if (!this.state.isCloudSynced || !this.currentUser) return;
+        if (!this.state.isCloudSynced || !this.currentUser || this._isHydrating || this._isRemoteSyncing) return;
         this.updateStatusCloud('<i class="fas fa-pen"></i> Sincronizando...', 'text-yellow-600');
         try {
             await firebaseService.saveRoot(this.currentUser.uid, this.state);
@@ -217,7 +225,7 @@ export const model = {
             console.warn("Erro no AutoSave Cloud:", err);
             this.updateStatusCloud('Offline (Salvo Local)', 'text-slate-500');
         }
-    }, 1000),
+    }, 2000),
     async saveHorarioCompleto(novoHorario) {
         this.state.horario = novoHorario;
         this.saveLocal();
@@ -235,8 +243,14 @@ export const model = {
     updateStatusCloud(html, colorClass) {
         const el = document.getElementById('cloud-status');
         if (el) {
-            el.innerHTML = html;
-            el.className = `flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-slate-100 text-xs font-bold transition-all shadow-sm ${colorClass}`;
+            let formattedHtml = html;
+            if (!html.includes('desktop-only') && html.includes('</i>')) {
+                formattedHtml = html.replace(/(<\/i>)\s*([^<]+)/, '$1 <span class="desktop-only">$2</span>');
+            } else if (!html.includes('<i') && !html.includes('desktop-only')) {
+                formattedHtml = `<i class="fas fa-cloud"></i> <span class="desktop-only">${html}</span>`;
+            }
+            el.innerHTML = formattedHtml;
+            el.className = `status-badge ${colorClass || ''}`;
         }
     },
     exportData() {

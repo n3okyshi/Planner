@@ -47,13 +47,10 @@ export const uiController = {
             'executar-forcar-sync': () => uiController.executarForcarSincronizacao()
         }, 'click');
 
-        setTimeout(() => {
+        requestAnimationFrame(() => {
             uiController.initAllDropdowns();
             renderMath(modal);
-        }, 50);
-        setTimeout(() => {
-            renderMath(modal);
-        }, 200);
+        });
     },
     closeModal() {
         if (typeof this._modalCleanup === 'function') {
@@ -93,20 +90,28 @@ export const uiController = {
             }
         }, 50);
     },
-    toggleSidebar() {
+    toggleSidebar(forceState = null) {
         const sidebar = document.getElementById('app-sidebar');
         const main = document.getElementById('main-content');
+        const backdrop = document.getElementById('sidebar-backdrop');
         const icon = document.getElementById('sidebar-toggle-icon');
         const headerIcon = document.getElementById('header-sidebar-toggle-icon');
         if (!sidebar || !main) return;
 
         const isMobile = window.innerWidth < 768;
         if (isMobile) {
-            sidebar.classList.toggle('mobile-open');
-            const isExp = sidebar.classList.contains('mobile-open');
-            if (icon) icon.className = isExp ? 'fas fa-chevron-left' : 'fas fa-bars';
-            if (headerIcon) headerIcon.className = isExp ? 'fas fa-chevron-left' : 'fas fa-bars';
+            const willOpen = forceState !== null ? forceState : !sidebar.classList.contains('mobile-open');
+            if (willOpen) {
+                sidebar.classList.add('mobile-open');
+                if (backdrop) backdrop.classList.add('active');
+            } else {
+                sidebar.classList.remove('mobile-open');
+                if (backdrop) backdrop.classList.remove('active');
+            }
+            if (icon) icon.className = willOpen ? 'fas fa-chevron-left' : 'fas fa-bars';
+            if (headerIcon) headerIcon.className = willOpen ? 'fas fa-chevron-left' : 'fas fa-bars';
         } else {
+            if (backdrop) backdrop.classList.remove('active');
             sidebar.classList.toggle('collapsed');
             main.classList.toggle('expanded-content');
             const isCollapsed = sidebar.classList.contains('collapsed');

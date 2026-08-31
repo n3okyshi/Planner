@@ -237,24 +237,26 @@
         </div>
     </aside>
 
+    <!-- BACKDROP DA SIDEBAR MOBILE (DRAWER OFF-CANVAS) -->
+    <div id="sidebar-backdrop" class="sidebar-backdrop" data-action="toggle-sidebar"></div>
+
     <main id="main-content" class="l-main">
         <header class="l-header">
             <div class="header__group">
                 <button type="button" data-action="toggle-sidebar" class="header__toggle-btn"
-                    title="Alternar Barra Lateral (Sanfona)">
+                    title="Alternar Menu Lateral">
                     <i id="header-sidebar-toggle-icon" class="fas fa-bars"></i>
                 </button>
                 <div id="breadcrumb" class="header__breadcrumb">
                     <i class="fas fa-home" style="color: var(--color-slate-300);"></i> <span
                         style="color: var(--color-slate-300);">/</span> Início
                 </div>
-                <!-- Command Palette Trigger Button -->
+                <!-- Command Palette Trigger Button (Compacto no mobile, barra no desktop) -->
                 <button type="button" data-action="command-palette" class="btn-secondary"
-                    style="padding: 0.35rem 0.75rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.5rem; border-radius: var(--radius-full); background: var(--bg-surface-secondary); border: 1px solid var(--border-color);"
+                    style="padding: 0.4rem 0.75rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.5rem; border-radius: var(--radius-full); background: var(--bg-surface-secondary); border: 1px solid var(--border-color);"
                     title="Buscar ou Executar Comando (Ctrl + K)">
-                    <i class="fas fa-search" style="color: var(--color-primary); font-size: 0.75rem;"></i>
-                    <span class="desktop-only" style="color: var(--text-muted); font-weight: 600;">Buscar
-                        comando...</span>
+                    <i class="fas fa-search" style="color: var(--color-primary); font-size: 0.8125rem;"></i>
+                    <span class="desktop-only" style="color: var(--text-muted); font-weight: 600;">Buscar comando...</span>
                     <span class="cmd-kbd desktop-only" style="font-size: 0.625rem;">Ctrl K</span>
                 </button>
             </div>
@@ -269,29 +271,31 @@
                     <div id="notification-popover" class="notification-popover" style="display: none;"></div>
                 </div>
 
-                <!-- Zen / Presentation Mode -->
+                <!-- Zen / Presentation Mode (Desktop Only) -->
                 <button type="button" data-action="toggle-zen" class="btn-icon desktop-only"
                     title="Modo Apresentação / Foco (Projetor)">
                     <i class="fas fa-tv"></i>
                 </button>
 
-                <!-- Dark / Light Theme Toggle -->
-                <button type="button" data-action="toggle-theme" class="btn-icon"
+                <!-- Dark / Light Theme Toggle (Desktop Only) -->
+                <button type="button" data-action="toggle-theme" class="btn-icon desktop-only"
                     title="Alternar Modo Noturno / Claro">
                     <i id="theme-toggle-icon" class="fas fa-moon"></i>
                 </button>
 
+                <!-- Status de Sincronização em Nuvem (Ícone compacto no mobile) -->
                 <div id="cloud-status" class="status-badge" data-action="open-sync"
                     style="cursor: pointer;"
                     title="Centro de Transparência de Sincronização (Clique para ver detalhes)">
                     <i class="fas fa-cloud" style="color: var(--color-slate-300);"></i>
                 </div>
 
-                <button data-action="print" class="btn-primary">
-                    <i class="fas fa-print"></i> <span class="desktop-only">Gerar PDF</span>
+                <!-- Ações Secundárias (Desktop Only) -->
+                <button data-action="print" class="btn-primary desktop-only">
+                    <i class="fas fa-print"></i> <span>Gerar PDF</span>
                 </button>
 
-                <button data-action="export-data" class="btn-icon" title="Backup Local (JSON)">
+                <button data-action="export-data" class="btn-icon desktop-only" title="Backup Local (JSON)">
                     <i class="fas fa-download"></i>
                 </button>
 

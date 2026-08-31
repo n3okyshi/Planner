@@ -6,6 +6,7 @@ import { PaginatorComponent } from '../components/paginator.js';
 import { aiService } from '../ai-service.js';
 import { renderKatex, formatarTextoComLatex, sanitizeComLatex, alternarModoEdicaoPreview, lerArquivoTexto } from '../utils.js';
 import { EventDelegator } from '../utils/eventDelegator.js';
+import { tableHelper } from '../utils/tableHelper.js';
 
 export const provasView = {
     selecionadas: new Set(),
@@ -42,7 +43,8 @@ export const provasView = {
     obterListaEscolas() {
         const todas = [
             ...(model.state.questoes || []),
-            ...(model.state.questoesSistema || [])
+            ...(model.state.questoesSistema || []),
+            ...(model.state.questoesEnem || [])
         ];
         const setEscolas = new Set();
         if (model.state.userConfig?.escola) setEscolas.add(model.state.userConfig.escola.trim());
@@ -61,7 +63,16 @@ export const provasView = {
         return window.escapeHTML(texto);
     },
     _renderEstrelasDificuldade(nivel = 0) {
-        const n = Number(nivel) || 0;
+        let n = 0;
+        if (typeof nivel === 'string') {
+            const nivelLower = nivel.toLowerCase();
+            if (nivelLower.includes('fácil') || nivelLower.includes('facil')) n = 1;
+            else if (nivelLower.includes('méd') || nivelLower.includes('med')) n = 2;
+            else if (nivelLower.includes('difícil') || nivelLower.includes('dificil')) n = 3;
+            else n = Number(nivel) || 0;
+        } else {
+            n = Number(nivel) || 0;
+        }
         let estrelas = '';
         for (let i = 1; i <= 3; i++) {
             let cor = 'var(--color-slate-200)';
@@ -72,7 +83,7 @@ export const provasView = {
         }
         const labels = ["Não definida", "Fácil", "Média", "Difícil"];
         return `
-        <div style="display: flex; align-items: center; gap: 0.25rem; background-color: var(--color-slate-50); padding: 0.25rem 0.5rem; border-radius: var(--radius-lg); border: 1px solid var(--color-slate-100);" title="Dificuldade: ${labels[n]}">
+        <div style="display: flex; align-items: center; gap: 0.25rem; background-color: var(--color-slate-50); padding: 0.25rem 0.5rem; border-radius: var(--radius-lg); border: 1px solid var(--color-slate-100);" title="Dificuldade: ${labels[n] || labels[0]}">
             ${estrelas}
         </div>
     `;
@@ -116,8 +127,13 @@ export const provasView = {
             return false;
         }
     },
-    _renderFiltros(lista) {
+    _renderFiltros(lista = []) {
         const descritores = model.state.descritoresSaeb || [];
+        let listaAnos = this.seriesDisponiveis;
+        if (this.abaAtiva === 'enem') {
+            const anosEnem = Array.from(new Set((model.state.questoesEnem || []).map(q => q.ano).filter(Boolean))).sort();
+            listaAnos = anosEnem.length > 0 ? anosEnem : ["ENEM 1998", "ENEM 1999"];
+        }
         return `
             <div class="dynamic-box" style="padding: 1.25rem; margin-bottom: 1rem;">
                 <div class="provas-filters-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem;">
@@ -129,10 +145,10 @@ export const provasView = {
                         </select>
                     </div>
                     <div>
-                        <label class="form-label">Série/Ano</label>
+                        <label class="form-label">${this.abaAtiva === 'enem' ? 'Edição ENEM' : 'Série/Ano'}</label>
                         <select onchange="provasView.atualizarFiltro('ano', this.value)" class="form-select">
-                            <option value="">Todos os Anos</option>
-                            ${this.seriesDisponiveis.map(s => `<option value="${s}" ${this.filtros.ano === s ? 'selected' : ''}>${s}</option>`).join('')}
+                            <option value="">${this.abaAtiva === 'enem' ? 'Todas as Edições' : 'Todos os Anos'}</option>
+                            ${listaAnos.map(s => `<option value="${s}" ${this.filtros.ano === s ? 'selected' : ''}>${s}</option>`).join('')}
                         </select>
                     </div>
                     <div>
@@ -201,7 +217,7 @@ export const provasView = {
             const fim = inicio + this.itensPorPagina;
             questoesPaginadas = questoesFiltradas.slice(inicio, fim);
         }
-        const todosIdsExistentes = new Set([...minhasQuestoes, ...questoesSistema].map(q => String(q.id)));
+        const todosIdsExistentes = new Set([...minhasQuestoes, ...questoesSistema, ...questoesEnem].map(q => String(q.id)));
         for (const id of this.selecionadas) {
             if (!todosIdsExistentes.has(String(id))) this.selecionadas.delete(id);
         }
@@ -421,13 +437,19 @@ export const provasView = {
         const isCompartilhada = q.compartilhada === true;
         const isSistema = this.abaAtiva === 'sistema';
         let tagsHtml = `<span style="padding: 0.25rem 0.5rem; background-color: var(--color-slate-100); font-size: 0.625rem; font-weight: 700; color: var(--color-slate-600); border-radius: 0.25rem; text-transform: uppercase; letter-spacing: 0.05em;">${window.escapeHTML(q.materia || 'Geral')}</span>`;
-        if (q.ano) tagsHtml += `<span style="padding: 0.25rem 0.5rem; background-color: #eef2ff; font-size: 0.625rem; font-weight: 700; color: #4f46e5; border-radius: 0.25rem; text-transform: uppercase; border: 1px solid #e0e7ff;">${window.escapeHTML(q.ano)}</span>`;
+        if (q.serie) tagsHtml += `<span style="padding: 0.25rem 0.5rem; background-color: #eef2ff; font-size: 0.625rem; font-weight: 700; color: #4f46e5; border-radius: 0.25rem; text-transform: uppercase; border: 1px solid #e0e7ff;">${window.escapeHTML(q.serie)}</span>`;
         if (q.bimestre) tagsHtml += `<span class="badge badge--bimestre" style="font-size: 0.625rem;" title="Bimestre"><i class="fas fa-bookmark"></i> ${window.escapeHTML(q.bimestre)}</span>`;
         if (q.escola) tagsHtml += `<span class="badge badge--school" style="font-size: 0.625rem;" title="Escola"><i class="fas fa-school"></i> ${window.escapeHTML(q.escola)}</span>`;
         if (q.bncc && q.bncc.codigo) tagsHtml += `<span style="padding: 0.25rem 0.5rem; background-color: #fefce8; font-size: 0.625rem; font-weight: 700; color: #a16207; border-radius: 0.25rem; text-transform: uppercase; border: 1px solid #fef08a;" title="${window.escapeHTML(q.bncc.descricao)}">${window.escapeHTML(q.bncc.codigo)}</span>`;
         const tipoLabel = (q.tipo === 'multipla') ? 'Múltipla Escolha' : 'Dissertativa';
         const tipoCor = (q.tipo === 'multipla') ? 'color: #9333ea; background-color: #faf5ff; border-color: #f3e8ff;' : 'color: #059669; background-color: #ecfdf5; border-color: #d1fae5;';
         tagsHtml += `<span style="padding: 0.25rem 0.5rem; font-size: 0.625rem; font-weight: 700; border-radius: 0.25rem; text-transform: uppercase; border: 1px solid; ${tipoCor}">${tipoLabel}</span>`;
+
+        // Tag do ano / edição de aplicação da questão antes da dificuldade
+        if (q.ano) {
+            tagsHtml += `<span style="padding: 0.25rem 0.5rem; background-color: #eff6ff; font-size: 0.625rem; font-weight: 700; color: #1d4ed8; border-radius: 0.25rem; text-transform: uppercase; border: 1px solid #bfdbfe;" title="Ano/Edição de Aplicação"><i class="far fa-calendar-alt" style="margin-right: 0.25rem;"></i>${window.escapeHTML(q.ano)}</span>`;
+        }
+
         tagsHtml += this._renderEstrelasDificuldade(q.dificuldade);
 
         const gabaritoOculto = this.gabaritosOcultos.has(String(q.id));
@@ -591,7 +613,10 @@ export const provasView = {
     atualizarBusca(valor) {
         this.termoBusca = valor;
         this.paginaAtual = 1;
-        const lista = this.abaAtiva === 'minhas' ? (model.state.questoes || []) : (model.state.questoesSistema || []);
+        let lista;
+        if (this.abaAtiva === 'minhas') lista = model.state.questoes || [];
+        else if (this.abaAtiva === 'enem') lista = model.state.questoesEnem || [];
+        else lista = model.state.questoesSistema || [];
         const filtradas = this.filtrarQuestoes(lista);
         const container = document.getElementById('lista-questoes');
         if (container) {
@@ -711,11 +736,16 @@ export const provasView = {
                     ${habilidadeHtml}
                 </div>
                 <div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
-                        <label style="font-size: 0.75rem; font-weight: 700; color: var(--color-slate-400); text-transform: uppercase;">Enunciado (Suporta TeX/LaTeX)</label>
-                        <button type="button" onclick="alternarModoEdicaoPreview('q-enunciado', 'preview-q-enunciado', 'btn-prev-q-enunciado')" id="btn-prev-q-enunciado" class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.6875rem;">
-                            <i class="fas fa-eye"></i> Visualizar (TeX)
-                        </button>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; flex-wrap: wrap; gap: 0.5rem;">
+                        <label style="font-size: 0.75rem; font-weight: 700; color: var(--color-slate-400); text-transform: uppercase;">Enunciado (Suporta TeX/LaTeX & Tabelas)</label>
+                        <div style="display: flex; gap: 0.35rem;">
+                            <button type="button" onclick="tableHelper.abrirModalInserirTabela('q-enunciado')" class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.6875rem; font-weight: 700; color: #4f46e5; border-color: #c7d2fe; background: #eff6ff;" title="Inserir Tabela Estruturada">
+                                <i class="fas fa-table"></i> + Tabela
+                            </button>
+                            <button type="button" onclick="alternarModoEdicaoPreview('q-enunciado', 'preview-q-enunciado', 'btn-prev-q-enunciado')" id="btn-prev-q-enunciado" class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.6875rem;">
+                                <i class="fas fa-eye"></i> Visualizar (TeX)
+                            </button>
+                        </div>
                     </div>
                     <textarea id="q-enunciado" rows="4" class="input-default" style="width: 100%; border: 2px solid var(--color-slate-100); padding: 0.75rem; border-radius: var(--radius-xl); outline: none; font-size: 0.875rem; font-weight: 500;">${dados.enunciado || ''}</textarea>
                     <div id="preview-q-enunciado" style="display: none;"></div>
@@ -999,47 +1029,187 @@ export const provasView = {
     },
     abrirOpcoesImpressao() {
         const html = `
-            <div style="padding: 1.5rem; text-align: center; display: flex; flex-direction: column; gap: 1rem;">
-                <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); margin: 0;">Gerar Documento de Avaliação</h3>
-                <p style="font-size: 0.8125rem; color: var(--color-slate-500); margin: 0;">Escolha o formato de diagramação adequado para a aplicação:</p>
-                <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.75rem; margin-top: 1rem;">
-                    <button onclick="controller.closeModal(); provasView.imprimirProva('aluno')" 
-                            style="padding: 1.25rem 0.75rem; border: 2px solid var(--color-slate-100); border-radius: var(--radius-2xl); cursor: pointer; transition: all var(--transition-fast); background-color: var(--color-white); display: flex; flex-direction: column; align-items: center; gap: 0.5rem;"
-                            onmouseover="this.style.borderColor='var(--color-primary)'; this.style.backgroundColor='#eff6ff';" onmouseout="this.style.borderColor='var(--color-slate-100)'; this.style.backgroundColor='var(--color-white)';">
-                        <div style="width: 2.75rem; height: 2.75rem; border-radius: 50%; background: #eff6ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
-                            <i class="fas fa-user-graduate"></i>
-                        </div>
-                        <div style="font-weight: 800; font-size: 0.875rem; color: var(--color-slate-700);">Padrão Aluno</div>
-                        <div style="font-size: 0.6875rem; color: var(--color-slate-400);">Layout ABNT tradicional</div>
-                    </button>
+            <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                <div style="text-align: center;">
+                    <h3 style="font-size: 1.125rem; font-weight: 800; color: var(--color-slate-800); margin: 0 0 0.25rem 0;">Configurações de Impressão da Prova</h3>
+                    <p style="font-size: 0.8125rem; color: var(--color-slate-500); margin: 0;">Selecione o formato para sala de aula, simulado ou arquivo do professor:</p>
+                </div>
 
-                    <button onclick="controller.closeModal(); provasView.imprimirProva('acessivel')" 
-                            style="padding: 1.25rem 0.75rem; border: 2px solid var(--color-slate-100); border-radius: var(--radius-2xl); cursor: pointer; transition: all var(--transition-fast); background-color: var(--color-white); display: flex; flex-direction: column; align-items: center; gap: 0.5rem;"
-                            onmouseover="this.style.borderColor='#3b82f6'; this.style.backgroundColor='#eff6ff';" onmouseout="this.style.borderColor='var(--color-slate-100)'; this.style.backgroundColor='var(--color-white)';">
-                        <div style="width: 2.75rem; height: 2.75rem; border-radius: 50%; background: #eff6ff; color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
-                            <i class="fas fa-universal-access"></i>
-                        </div>
-                        <div style="font-weight: 800; font-size: 0.875rem; color: var(--color-slate-700);">Acessível (AEE)</div>
-                        <div style="font-size: 0.6875rem; color: var(--color-slate-400);">Dislexia & Baixa Visão</div>
-                    </button>
+                <!-- 1. PERFIL DA VERSÃO -->
+                <div>
+                    <label class="form-label" style="font-weight: 800; color: #334155; margin-bottom: 0.5rem;">1. Versão do Documento</label>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
+                        <label id="lbl-prova-aluno" class="card interactive-element" style="padding: 0.75rem; border: 2px solid #3b82f6; background-color: #eff6ff; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;">
+                            <input type="radio" name="prova-print-tipo" value="aluno" checked onchange="provasView.atualizarSelecaoPrintTipo(this.value)">
+                            <div>
+                                <strong style="font-size: 0.875rem; color: #1d4ed8; display: block;"><i class="fas fa-user-graduate"></i> Padrão Aluno</strong>
+                                <span style="font-size: 0.6875rem; color: #64748b;">Sem gabarito.</span>
+                            </div>
+                        </label>
 
-                    <button onclick="controller.closeModal(); provasView.imprimirProva('professor')" 
-                            style="padding: 1.25rem 0.75rem; border: 2px solid var(--color-slate-100); border-radius: var(--radius-2xl); cursor: pointer; transition: all var(--transition-fast); background-color: var(--color-white); display: flex; flex-direction: column; align-items: center; gap: 0.5rem;"
-                            onmouseover="this.style.borderColor='#10b981'; this.style.backgroundColor='#ecfdf5';" onmouseout="this.style.borderColor='var(--color-slate-100)'; this.style.backgroundColor='var(--color-white)';">
-                        <div style="width: 2.75rem; height: 2.75rem; border-radius: 50%; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 1.25rem;">
-                            <i class="fas fa-chalkboard-teacher"></i>
+                        <label id="lbl-prova-professor" class="card interactive-element" style="padding: 0.75rem; border: 2px solid #e2e8f0; background-color: #ffffff; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;">
+                            <input type="radio" name="prova-print-tipo" value="professor" onchange="provasView.atualizarSelecaoPrintTipo(this.value)">
+                            <div>
+                                <strong style="font-size: 0.875rem; color: #15803d; display: block;"><i class="fas fa-chalkboard-teacher"></i> Guia Professor</strong>
+                                <span style="font-size: 0.6875rem; color: #64748b;">Gabarito comentado.</span>
+                            </div>
+                        </label>
+
+                        <label id="lbl-prova-acessivel" class="card interactive-element" style="padding: 0.75rem; border: 2px solid #e2e8f0; background-color: #ffffff; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;">
+                            <input type="radio" name="prova-print-tipo" value="acessivel" onchange="provasView.atualizarSelecaoPrintTipo(this.value)">
+                            <div>
+                                <strong style="font-size: 0.875rem; color: #c2410c; display: block;"><i class="fas fa-universal-access"></i> Acessível (AEE)</strong>
+                                <span style="font-size: 0.6875rem; color: #64748b;">Fonte ampliada e alto contraste.</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 2. DIAGRAMAÇÃO & COLUNAS -->
+                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-xl); padding: 1rem; display: flex; flex-direction: column; gap: 0.875rem;">
+                    <h4 style="font-size: 0.8125rem; font-weight: 800; color: #475569; margin: 0; text-transform: uppercase;">2. Diagramação & Economia de Folhas</h4>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 0.75rem;">
+                        <div>
+                            <label class="form-label" style="font-size: 0.75rem; font-weight: 700;">Distribuição de Colunas</label>
+                            <select id="prova-print-colunas" class="form-select" style="font-size: 0.8125rem;">
+                                <option value="1">1 Coluna (Padrão)</option>
+                                <option value="2" selected>2 Colunas (Estilo ENEM / Vestibular)</option>
+                            </select>
                         </div>
-                        <div style="font-weight: 800; font-size: 0.875rem; color: var(--color-slate-700);">Gabarito</div>
-                        <div style="font-size: 0.6875rem; color: var(--color-slate-400);">Resoluções do Docente</div>
+
+                        <div>
+                            <label class="form-label" style="font-size: 0.75rem; font-weight: 700;">Tamanho da Tipografia</label>
+                            <select id="prova-print-fonte" class="form-select" style="font-size: 0.8125rem;">
+                                <option value="compacto">Compacto (10pt - Mais economia)</option>
+                                <option value="normal" selected>Normal (11.5pt - Padrão)</option>
+                                <option value="amplo">Ampliado (13.5pt - Legibilidade)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="form-label" style="font-size: 0.75rem; font-weight: 700;">Espaçamento & Entrelinhas</label>
+                            <select id="prova-print-espacamento" class="form-select" style="font-size: 0.8125rem;">
+                                <option value="padrao_4_2" selected>Simples (4pt antes / 2pt depois - Padrão)</option>
+                                <option value="maxima_1_1">Máxima Compactação (Linha 1.0, 1pt antes / 1pt depois)</option>
+                                <option value="compacto_2_1">Compacto Equilibrado (Linha 1.15, 2pt antes / 1pt depois)</option>
+                                <option value="confortavel_6_4">Confortável (Linha 1.5, 6pt antes / 4pt depois)</option>
+                            </select>
+                        </div>
+
+                        <div>
+                            <label class="form-label" style="font-size: 0.75rem; font-weight: 700;">Gabarito Comentado</label>
+                            <select id="prova-print-gabarito-posicao" class="form-select" style="font-size: 0.8125rem;">
+                                <option value="junto" selected>Ao final da prova</option>
+                                <option value="separado">Em folha separada (Destacar)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-top: 0.25rem;">
+                    <button type="button" onclick="provasView.abrirPreviaImpressao()" class="btn-secondary interactive-element" style="display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; border-color: #cbd5e1; color: #334155;">
+                        <i class="fas fa-eye"></i> Ver Prévia A4
                     </button>
+                    <div style="display: flex; gap: 0.75rem;">
+                        <button type="button" onclick="controller.closeModal()" class="btn-secondary">Cancelar</button>
+                        <button type="button" onclick="provasView.dispararImpressaoCustomizada()" class="btn-primary interactive-element" style="background-color: #4f46e5; padding: 0.6rem 1.5rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-print"></i> Abrir Impressão / PDF
+                        </button>
+                    </div>
                 </div>
             </div>`;
-        controller.openModal('Impressão', html);
+        controller.openModal('Impressão da Prova', html);
     },
-    imprimirProva(tipo = 'aluno') {
+
+    atualizarSelecaoPrintTipo(tipo) {
+        const lblAluno = document.getElementById('lbl-prova-aluno');
+        const lblProf = document.getElementById('lbl-prova-professor');
+        const lblAcess = document.getElementById('lbl-prova-acessivel');
+        const map = { aluno: lblAluno, professor: lblProf, acessivel: lblAcess };
+        ['aluno', 'professor', 'acessivel'].forEach(t => {
+            if (map[t]) {
+                if (t === tipo) {
+                    map[t].style.borderColor = t === 'aluno' ? '#3b82f6' : (t === 'professor' ? '#16a34a' : '#ea580c');
+                    map[t].style.backgroundColor = t === 'aluno' ? '#eff6ff' : (t === 'professor' ? '#f0fdf4' : '#fff7ed');
+                } else {
+                    map[t].style.borderColor = '#e2e8f0';
+                    map[t].style.backgroundColor = '#ffffff';
+                }
+            }
+        });
+    },
+
+    obterConfiguracoesImpressaoModal() {
+        const tipo = document.querySelector('input[name="prova-print-tipo"]:checked')?.value || 'aluno';
+        const colunas = parseInt(document.getElementById('prova-print-colunas')?.value || '2', 10);
+        const tamanhoFonte = document.getElementById('prova-print-fonte')?.value || 'normal';
+        const espacamento = document.getElementById('prova-print-espacamento')?.value || 'padrao_4_2';
+        const gabaritoSeparado = document.getElementById('prova-print-gabarito-posicao')?.value === 'separado';
+
+        return {
+            tipo,
+            colunas,
+            tamanhoFonte,
+            espacamento,
+            gabaritoSeparado
+        };
+    },
+
+    dispararImpressaoCustomizada() {
+        const config = this.obterConfiguracoesImpressaoModal();
+        controller.closeModal();
+        this.imprimirProva(config);
+    },
+
+    abrirPreviaImpressao() {
+        const config = this.obterConfiguracoesImpressaoModal();
+        const htmlDoc = this.montarHTMLDocumentoImpressao(config, false);
+        if (!htmlDoc) return;
+
+        const modalHtml = `
+            <div style="display: flex; flex-direction: column; gap: 1rem; height: 82vh;">
+                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem;">
+                    <div>
+                        <h3 style="font-size: 1.125rem; font-weight: 800; color: #1e293b; margin: 0;">Prévia da Avaliação (A4)</h3>
+                        <p style="font-size: 0.75rem; color: #64748b; margin: 0;">Visualização em tempo real das questões e diagramação.</p>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="button" onclick="provasView.imprimirProva(provasView.tempPreviaConfig)" class="btn-primary interactive-element" style="background-color: #4f46e5; font-size: 0.8125rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1.25rem;">
+                            <i class="fas fa-print"></i> Imprimir / Gerar PDF
+                        </button>
+                        <button type="button" onclick="provasView.abrirOpcoesImpressao()" class="btn-secondary" style="font-size: 0.8125rem; font-weight: 700;">
+                            <i class="fas fa-sliders-h"></i> Ajustar Opções
+                        </button>
+                    </div>
+                </div>
+
+                <div style="flex: 1; background: #e2e8f0; border-radius: 0.75rem; overflow: auto; display: flex; justify-content: center; padding: 1.25rem;">
+                    <div style="width: 100%; max-width: 820px; min-height: 100%; background: #ffffff; box-shadow: 0 10px 25px rgba(0,0,0,0.15); border-radius: 4px; overflow: hidden; display: flex; flex-direction: column;">
+                        <iframe id="iframe-previa-prova" style="width: 100%; height: 100%; min-height: 68vh; border: none; flex: 1;"></iframe>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        this.tempPreviaConfig = config;
+        controller.openModal('Prévia da Prova', modalHtml);
+
+        setTimeout(() => {
+            const iframe = document.getElementById('iframe-previa-prova');
+            if (iframe) {
+                const doc = iframe.contentWindow.document;
+                doc.open();
+                doc.write(htmlDoc);
+                doc.close();
+            }
+        }, 60);
+    },
+
+    montarHTMLDocumentoImpressao(configOuTipo = 'aluno', forPrint = true) {
         if (this.selecionadas.size === 0) {
             Toast.show("Nenhuma questão selecionada!", "warning");
-            return;
+            return null;
         }
         const bancoTotal = [
             ...(model.state.questoesSistema || []),
@@ -1047,21 +1217,67 @@ export const provasView = {
             ...(model.state.questoesEnem || [])
         ];
         const selecionadas = bancoTotal.filter(q => this.selecionadas.has(String(q.id)));
-        if (selecionadas.length === 0) { Toast.show("Erro ao recuperar questões selecionadas.", "error"); return; }
+        if (selecionadas.length === 0) { 
+            Toast.show("Erro ao recuperar questões selecionadas.", "error"); 
+            return null; 
+        }
+
+        const opts = typeof configOuTipo === 'string'
+            ? { tipo: configOuTipo, colunas: 1, tamanhoFonte: 'normal', espacamento: 'padrao_4_2', gabaritoSeparado: false }
+            : configOuTipo;
+
+        const isProf = opts.tipo === 'professor';
+        const isAcessivel = opts.tipo === 'acessivel';
+        const colunas = opts.colunas || 1;
+        const gabaritoSeparado = opts.gabaritoSeparado || false;
+        const espacamento = opts.espacamento || 'padrao_4_2';
+
+        let fontSizeStr = '11.5pt';
+        if (opts.tamanhoFonte === 'compacto') fontSizeStr = '10pt';
+        if (opts.tamanhoFonte === 'amplo' || isAcessivel) fontSizeStr = '13.5pt';
+
+        let tblFontSize = '9.5pt';
+        if (opts.tamanhoFonte === 'compacto') tblFontSize = '8.5pt';
+        else if (opts.tamanhoFonte === 'amplo') tblFontSize = '11pt';
+        else if (isAcessivel) tblFontSize = '12pt';
+
+        let numSize = isAcessivel ? '16px' : (opts.tamanhoFonte === 'compacto' ? '12px' : opts.tamanhoFonte === 'amplo' ? '15px' : '13.5px');
+
+        // Definição precisa de entrelinhas e espaçamento antes e depois
+        let lineHeight = '1.2';
+        let marginAntes = '4pt';
+        let marginDepois = '2pt';
+        let altMarginDepois = '2pt';
+
+        if (espacamento === 'maxima_1_1') {
+            lineHeight = '1.05';
+            marginAntes = '1pt';
+            marginDepois = '1pt';
+            altMarginDepois = '1pt';
+        } else if (espacamento === 'compacto_2_1') {
+            lineHeight = '1.15';
+            marginAntes = '2pt';
+            marginDepois = '1pt';
+            altMarginDepois = '1.5pt';
+        } else if (espacamento === 'confortavel_6_4' || isAcessivel) {
+            lineHeight = isAcessivel ? '1.75' : '1.5';
+            marginAntes = isAcessivel ? '8pt' : '6pt';
+            marginDepois = isAcessivel ? '6pt' : '4pt';
+            altMarginDepois = isAcessivel ? '6pt' : '4pt';
+        }
+
         let nomeProf = model.state.userConfig.profName || '__________________________';
         if ((!model.state.userConfig.profName || model.state.userConfig.profName.trim() === "") && model.currentUser) {
             nomeProf = model.currentUser.displayName;
         }
         const logoUrl = model.state.userConfig.logo || '';
-        const isProf = tipo === 'professor';
-        const isAcessivel = tipo === 'acessivel';
 
         const questoesHtml = selecionadas.map((q, i) => {
             const letras = ['a', 'b', 'c', 'd', 'e'];
             let conteudoResposta = '';
             if (q.tipo === 'multipla' && q.alternativas) {
                 conteudoResposta = `
-                    <div style="margin-top: ${isAcessivel ? '16px' : '10px'};">
+                    <div style="margin-top: ${marginAntes};">
                         ${q.alternativas.map((alt, idx) => {
                     const styleCorrect = (isProf && q.correta == idx)
                         ? 'font-weight: bold; color: #059669; background-color: #ecfdf5; border-radius: 4px;'
@@ -1078,13 +1294,12 @@ export const provasView = {
                 `;
             } else {
                 conteudoResposta = `
-                    <div style="margin-top: 20px;">
-                        <div class="resposta-area"></div>
+                    <div style="margin-top: ${marginAntes};">
                         <div class="resposta-area"></div>
                         <div class="resposta-area"></div>
                         <div class="resposta-area"></div>
                         ${isProf && q.gabarito ? `
-                            <div style="margin-top: 15px; padding: 10px; background-color: #f0fdf4; border: 1px dashed #16a34a; border-radius: 6px; font-size: 12px; color: #15803d; white-space: pre-line;">
+                            <div style="margin-top: ${marginAntes}; padding: 8px 10px; background-color: #f0fdf4; border: 1px dashed #16a34a; border-radius: 6px; font-size: ${opts.tamanhoFonte === 'compacto' ? '9.5px' : '11px'}; color: #15803d; white-space: pre-line;">
                                 <strong>Gabarito Esperado:</strong><br>
                                 ${this.formatarHTMLQuestao(q.gabarito)}
                             </div>
@@ -1095,9 +1310,9 @@ export const provasView = {
             return `
                 <div class="questao ${isAcessivel ? 'questao-acessivel' : ''}">
                     ${q.bncc ? `<div class="questao-info no-print">Habilidade: ${window.escapeHTML(q.bncc.codigo)}</div>` : ''}
-                    <div style="display: flex; align-items: baseline; gap: 0.5rem;">
-                        <span class="questao-numero">${i + 1})</span>
-                        <span class="questao-texto" style="white-space: pre-line;">${this.formatarHTMLQuestao(q.enunciado)}</span>
+                    <div style="display: flex; align-items: flex-start; gap: 0.5rem;">
+                        <span class="questao-numero" style="flex-shrink: 0; line-height: ${lineHeight}; font-size: ${numSize};">${i + 1})</span>
+                        <div class="questao-texto" style="flex: 1; min-width: 0;">${this.formatarHTMLQuestao(q.enunciado)}</div>
                     </div>
                     ${conteudoResposta}
                 </div>
@@ -1109,45 +1324,130 @@ export const provasView = {
         const estiloImpressao = `
             <style>
                 @import url('https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Roboto:wght@400;700&display=swap');
+                * { box-sizing: border-box; }
                 body { 
                     font-family: ${isAcessivel ? "'Atkinson Hyperlegible', 'Arial', sans-serif" : "'Roboto', sans-serif"}; 
-                    padding: 40px; 
+                    padding: ${forPrint ? '30px 40px' : '20px 25px'}; 
                     color: #000; 
-                    line-height: ${isAcessivel ? '1.8' : '1.5'};
+                    font-size: ${fontSizeStr};
+                    line-height: ${lineHeight};
                     letter-spacing: ${isAcessivel ? '0.03em' : 'normal'};
+                    background-color: #ffffff;
                 }
                 
-                .header { display: flex; align-items: center; justify-content: space-between; border: ${isAcessivel ? '2px solid #000' : '1px solid #000'}; padding: 15px; margin-bottom: 30px; border-radius: 6px; }
-                .header-info { flex: 1; }
-                .header-info p { margin: 6px 0; font-size: ${isAcessivel ? '15px' : '14px'}; font-weight: 500; }
-                .header-logo { max-width: 80px; max-height: 80px; object-fit: contain; margin-left: 20px; }
+                .header { 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: space-between; 
+                    border: ${isAcessivel ? '2px solid #000' : '1px solid #000'}; 
+                    padding: 10px 14px; 
+                    margin-bottom: ${marginDepois}; 
+                    border-radius: 6px; 
+                }
+                .header-info { flex: 1; min-width: 0; }
+                .header-info p { margin: 2pt 0; font-size: ${isAcessivel ? '14px' : '12px'}; font-weight: 500; line-height: 1.2; }
+                .header-logo { max-width: 75px; max-height: 75px; object-fit: contain; margin-left: 16px; flex-shrink: 0; }
                 
-                .titulo-prova { text-align: center; text-transform: uppercase; font-weight: 800; font-size: ${isAcessivel ? '20px' : '18px'}; margin-bottom: 30px; border-bottom: 2px solid #000; padding-bottom: 10px; }
+                .titulo-prova { text-align: center; text-transform: uppercase; font-weight: 800; font-size: ${isAcessivel ? '18px' : '15px'}; margin-bottom: 12px; border-bottom: 2px solid #000; padding-bottom: 4px; }
                 
-                .questao { margin-bottom: 25px; page-break-inside: avoid; }
+                .container-questoes-prova {
+                    font-size: ${fontSizeStr};
+                    line-height: ${lineHeight};
+                    ${colunas === 2 ? `
+                        column-count: 2;
+                        column-gap: 24px;
+                        column-rule: 1px solid #cbd5e1;
+                        text-align: justify;
+                    ` : ''}
+                }
+
+                .questao { 
+                    margin-top: ${marginAntes};
+                    margin-bottom: ${marginDepois}; 
+                    break-inside: avoid !important; 
+                    page-break-inside: avoid !important; 
+                }
                 .questao-acessivel { 
                     background: #fbfcfe; 
                     border: 1.5px solid #cbd5e1; 
                     border-left: 6px solid #2563eb; 
-                    padding: 16px 20px; 
+                    padding: 12px 16px; 
                     border-radius: 8px; 
-                    margin-bottom: 30px; 
+                    margin-top: ${marginAntes};
+                    margin-bottom: ${marginDepois}; 
                 }
                 
-                .questao-info { font-size: 10px; color: #666; margin-bottom: 5px; text-transform: uppercase; font-weight: bold; }
-                .questao-numero { font-weight: 800; font-size: ${isAcessivel ? '18px' : '16px'}; margin-right: 5px; color: ${isAcessivel ? '#1d4ed8' : '#000'}; }
-                .questao-texto { font-size: ${isAcessivel ? '16px' : '14px'}; text-align: left; margin-bottom: 12px; }
+                .questao-info { font-size: 9.5px; color: #666; margin-bottom: 2pt; text-transform: uppercase; font-weight: bold; }
+                .questao-numero { font-weight: 800; font-size: ${numSize}; margin-right: 4px; color: ${isAcessivel ? '#1d4ed8' : '#000'}; }
+                .questao-texto { 
+                    font-size: ${fontSizeStr}; 
+                    line-height: ${lineHeight}; 
+                    text-align: left; 
+                    margin-top: 0; 
+                    margin-bottom: ${marginDepois}; 
+                }
+                .questao-texto p, .questao-texto div, .questao-texto span {
+                    font-size: inherit;
+                    line-height: inherit;
+                }
                 
-                .resposta-area { border-bottom: 1px solid #94a3b8; height: 28px; width: 100%; display: block; margin-top: 8px; }
+                /* FORMATAÇÃO E ISOLAMENTO ESTREITO DE TABELAS */
+                table, .planner-table-wrapper, .bloco-rubrica-avaliacao, .bloco-jogo-jeopardy {
+                    break-inside: avoid !important;
+                    page-break-inside: avoid !important;
+                }
+
+                table {
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    border-collapse: collapse;
+                    margin: 6px 0;
+                    box-sizing: border-box !important;
+                    table-layout: auto;
+                    font-size: ${tblFontSize};
+                    line-height: 1.25;
+                }
+
+                th, td {
+                    border: 1px solid #000000;
+                    padding: 3px 6px;
+                    text-align: left;
+                    vertical-align: middle;
+                    box-sizing: border-box;
+                    word-break: normal;
+                    overflow-wrap: anywhere;
+                }
+
+                th {
+                    background-color: #f1f5f9;
+                    font-weight: bold;
+                    color: #000000;
+                }
+
+                /* Estilos Visuais Específicos para Provas */
+                .planner-table-zebra tbody tr:nth-child(even) { background-color: #f8fafc; }
+                .planner-table-horizontal th, .planner-table-horizontal td { border: none; border-top: 1px solid #000; border-bottom: 1px solid #000; }
+                .planner-table-horizontal thead tr th { border-top: 2px solid #000; border-bottom: 2px solid #000; background: transparent; }
+                .planner-table-horizontal tbody tr:last-child td { border-bottom: 2px solid #000; }
+                .planner-table-clean th, .planner-table-clean td { border: none; border-bottom: 1px solid #cbd5e1; }
+                .planner-table-clean thead th { border-bottom: 2px solid #000; background: transparent; }
+                
+                .resposta-area { border-bottom: 1px solid #94a3b8; height: 20px; width: 100%; display: block; margin-top: 4px; }
                 .alternativa { 
-                    margin-bottom: ${isAcessivel ? '10px' : '6px'}; 
-                    font-size: ${isAcessivel ? '15px' : '14px'}; 
+                    margin-top: 1pt;
+                    margin-bottom: ${altMarginDepois}; 
+                    font-size: ${fontSizeStr}; 
+                    line-height: ${lineHeight};
                     display: flex; 
                     align-items: baseline; 
-                    gap: 8px; 
-                    padding: ${isAcessivel ? '4px 6px' : '2px 0'};
+                    gap: 6px; 
+                    padding: ${isAcessivel ? '3px 5px' : '1px 0'};
                 }
-                .alt-letra { font-family: monospace; font-size: ${isAcessivel ? '16px' : '14px'}; font-weight: bold; }
+                .alternativa span {
+                    font-size: inherit;
+                    line-height: inherit;
+                }
+                .alt-letra { font-family: monospace; font-size: ${fontSizeStr}; font-weight: bold; }
 
                 .btn-voltar {
                     position: fixed; top: 20px; right: 20px;
@@ -1178,38 +1478,69 @@ export const provasView = {
                 ${estiloImpressao}
             </head>
             <body>
-                <button onclick="window.close()" class="btn-voltar">
-                    <i class="fas fa-arrow-left"></i> Voltar para o App
-                </button>
+                ${forPrint ? `
+                    <button onclick="window.close()" class="btn-voltar">
+                        <i class="fas fa-arrow-left"></i> Voltar para o App
+                    </button>
+                ` : ''}
                 <div class="header">
                     <div class="header-info">
-                        <p><strong>ESCOLA:</strong> ${window.escapeHTML(model.state.userConfig.schoolName || '________________________________________________')}</p>
-                        <p><strong>PROFESSOR(A):</strong> ${window.escapeHTML(nomeProf)} &nbsp;&nbsp; <strong>DATA:</strong> ____/____/____</p>
-                        <p><strong>ALUNO(A):</strong> _______________________________________________________ <strong>TURMA:</strong> ________</p>
+                        <p style="margin: 0 0 6px 0;"><strong>ESCOLA:</strong> ${window.escapeHTML(model.state.userConfig.schoolName || '________________________________________________')}</p>
+                        <div style="display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 6px; font-size: ${isAcessivel ? '13.5px' : '12px'};">
+                            <span><strong>PROFESSOR(A):</strong> ${window.escapeHTML(nomeProf)}</span>
+                            <span style="white-space: nowrap;"><strong>DATA:</strong> ____/____/2026</span>
+                            <span style="white-space: nowrap;"><strong>TURMA:</strong> <span style="display: inline-block; width: 50px; border-bottom: 1px solid #000; margin-left: 4px;"></span></span>
+                            <span style="white-space: nowrap;"><strong>NOTA:</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                        </div>
+                        ${!isProf ? `
+                            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: ${isAcessivel ? '13.5px' : '12px'};">
+                                <span style="flex: 1; display: flex; align-items: baseline;"><strong>ALUNO(A):</strong> <span style="flex: 1; border-bottom: 1px solid #000; margin-left: 6px;"></span></span>
+                            </div>
+                        ` : ''}
                     </div>
                     ${logoUrl ? `<img src="${logoUrl}" class="header-logo" alt="Logo da Instituição" />` : ''}
                 </div>
                 <div class="titulo-prova">${tituloDoc}</div>
-                <div id="conteudo-prova">${questoesHtml}</div>
+                <div id="conteudo-prova" class="container-questoes-prova">${questoesHtml}</div>
                 <script>
-                    window.onload = function() {
+                    let impresso = false;
+                    function iniciarImpressao() {
                         if (typeof renderMathInElement === 'function') {
-                            renderMathInElement(document.body, {
-                                delimiters: [
-                                    { left: '$$', right: '$$', display: true },
-                                    { left: '\\\\[', right: '\\\\]', display: true },
-                                    { left: '\\\\(', right: '\\\\)', display: false },
-                                    { left: '$', right: '$', display: false }
-                                ],
-                                throwOnError: false
-                            });
+                            try {
+                                renderMathInElement(document.body, {
+                                    delimiters: [
+                                        { left: '$$', right: '$$', display: true },
+                                        { left: '\\\\[', right: '\\\\]', display: true },
+                                        { left: '\\\\(', right: '\\\\)', display: false },
+                                        { left: '$', right: '$', display: false }
+                                    ],
+                                    throwOnError: false
+                                });
+                            } catch (e) { console.warn(e); }
                         }
-                        setTimeout(() => window.print(), 350);
-                    };
+                        ${forPrint ? `
+                            if (!impresso) {
+                                impresso = true;
+                                setTimeout(() => window.print(), 250);
+                            }
+                        ` : ''}
+                    }
+                    if (document.readyState === 'complete') {
+                        iniciarImpressao();
+                    } else {
+                        window.addEventListener('load', iniciarImpressao);
+                    }
                 <\/script>
             </body>
             </html>
         `;
+        return conteudoFinal;
+    },
+
+    imprimirProva(configOuTipo = 'aluno') {
+        const conteudoFinal = this.montarHTMLDocumentoImpressao(configOuTipo, true);
+        if (!conteudoFinal) return;
+
         const win = window.open('', '_blank');
         if (win) {
             const safeHtml = window.sanitizeComLatex ? window.sanitizeComLatex(conteudoFinal) : conteudoFinal;
@@ -1217,7 +1548,6 @@ export const provasView = {
             win.document.write(safeHtml);
             win.document.close();
         }
-        win.document.close();
     }
 };
 

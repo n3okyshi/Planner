@@ -19,7 +19,7 @@ export const authController = {
                 this.updateAuthButton(true, user);
 
                 if (cloudStatus) {
-                    cloudStatus.innerHTML = '<i class="fas fa-check status-badge--online"></i> Sync ON';
+                    cloudStatus.innerHTML = '<i class="fas fa-check status-badge--online"></i> <span class="desktop-only">Sync ON</span>';
                     cloudStatus.className = 'status-badge status-badge--online';
                 }
 

@@ -193,8 +193,9 @@ export const aiService = {
 
             DIRETRIZES DE INSPEÇÃO ÓPTICA PASSO A PASSO:
             1. LOCALIZAÇÃO E ANCORAGEM:
-               - Localize a tabela ou colunas de respostas (observe os marcadores de ancoragem ⬛ nos cantos, cabeçalho e números de questão).
-               - Varra sequencialmente as linhas da Questão 1 até a Questão ${total}.
+               - O cartão-resposta pode estar dividido em 1, 2, 3 ou 4 colunas verticais (por exemplo: Coluna 1 = Q01 a Q17; Coluna 2 = Q18 a Q34; Coluna 3 = Q35 a Q50).
+               - Localize cada número de questão (Q01, Q02, ... Q${total.toString().padStart(2, '0')}) antes de ler a linha correspondente.
+               - Mesmo que a foto esteja inclinada, com sombras de iluminação ambiente ou dobras no papel, analise visualmente cada linha com foco nos círculos preenchidos.
 
             2. CRITÉRIOS DE DIFERENCIAÇÃO DE PREENCHIMENTO:
                - BOLHA VAZIA / NÃO MARCADA: O contorno circular está visível e o interior do círculo está claro/branco, mostrando a letra impressa (${letrasStr}) sem preenchimento de caneta.
@@ -205,7 +206,7 @@ export const aiService = {
 
             3. RIGOR:
                - NÃO deduza respostas com base em suposição de acertos.
-               - Responda EXATAMENTE ${total} itens no array "respostas", sem pular nenhum número de questão (de 1 a ${total}).
+               - Responda EXATAMENTE ${total} itens no array "respostas", de 1 até ${total}, sem omitir nenhuma questão.
 
             4. FORMATO DA RESPOSTA:
                - Responda EXCLUSIVAMENTE um objeto JSON puro, sem blocos de código markdown (\`\`\`json).
@@ -219,14 +220,14 @@ export const aiService = {
                         "resposta": "A", // ${listaLetras.map(l => `"${l}"`).join(', ')}, "EM_BRANCO" ou "ANULADA"
                         "status": "marcada", // "marcada", "em_branco" ou "anulada"
                         "confianca": "alta", // "alta", "media" ou "baixa"
-                        "motivo": "" // Opcional, detalha caso a confiança seja média/baixa
+                        "motivo": "" // Opcional
                     }
                 ],
-                "observacoes": "Breve comentário sobre nitidez, alinhamento e legibilidade do cartão"
+                "observacoes": "Breve comentário sobre nitidez e legibilidade do cartão"
             }
         `;
 
-        return await this._executarPromptMultimodalGemini(prompt, imagemBase64, mimeType, 3000);
+        return await this._executarPromptMultimodalGemini(prompt, imagemBase64, mimeType, 4096);
     },
 
     /**

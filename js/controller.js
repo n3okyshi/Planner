@@ -84,11 +84,10 @@ const controllerCore = {
         const view = this.views[target];
         this.currentView = target;
         uiController.updateNavHighlight(target);
-        uiController.renderSkeleton(container, target);
-        uiController.updateNavHighlight(target);
-        await uiController.animateViewExit(container);
-        uiController.renderSkeleton(container, target);
-        setTimeout(async () => {
+
+        if (!container) return;
+
+        requestAnimationFrame(async () => {
             try {
                 container.innerHTML = '';
                 const wrapper = document.createElement('div');
@@ -99,7 +98,6 @@ const controllerCore = {
                 }
                 container.appendChild(wrapper);
                 
-                // DISPARO DO KATEX ALINHADO À PINTURA (ELIMINA LAYOUT THRASHING E MULTIPLOS SETTIMEOUTS)
                 requestAnimationFrame(() => {
                     renderMath(wrapper);
                 });
@@ -108,8 +106,11 @@ const controllerCore = {
                 uiController.updateBreadcrumb(target);
                 uiController.initAllDropdowns(container);
                 authController.updateSidebarUserArea();
-                if (window.innerWidth < 768 && document.getElementById('app-sidebar').classList.contains('mobile-open')) {
-                    uiController.toggleSidebar();
+                if (window.innerWidth < 768) {
+                    const sidebar = document.getElementById('app-sidebar');
+                    if (sidebar && sidebar.classList.contains('mobile-open')) {
+                        uiController.toggleSidebar();
+                    }
                 }
             } catch (e) {
                 console.error(`Erro ao inicializar view '${target}':`, e);
@@ -128,7 +129,7 @@ const controllerCore = {
                     </div>
                 `;
             }
-        }, 50);
+        });
     },
 
     openSeletorBnccQuestao() {

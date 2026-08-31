@@ -151,22 +151,44 @@ export const firebaseService = {
             
             // Busca materiais da subcoleção dedicada
             const materiaisSub = await this.fetchMateriaisDocs(uid);
+            const raizMateriais = (docSnap && docSnap.exists && docSnap.data().materiaisGerados) || [];
+
             if (materiaisSub && materiaisSub.length > 0) {
                 const mapa = new Map();
                 // Subcoleção é a verdade principal
                 materiaisSub.forEach(m => mapa.set(String(m.id), m));
 
                 // Se houver material antigo no doc raiz e não estiver na subcoleção, migra
-                const raizMateriais = (docSnap && docSnap.exists && docSnap.data().materiaisGerados) || [];
-                raizMateriais.forEach(m => {
-                    const key = String(m.id);
-                    if (!mapa.has(key)) {
-                        mapa.set(key, m);
-                        this.saveMaterialDoc(uid, m).catch(() => {});
+                if (raizMateriais && raizMateriais.length > 0) {
+                    for (const m of raizMateriais) {
+                        const key = String(m.id);
+                        if (!mapa.has(key)) {
+                            mapa.set(key, m);
+                            await this.saveMaterialDoc(uid, m).catch(() => {});
+                        }
                     }
-                });
+                    // Purga o campo legado do documento raiz para liberar espaço
+                    if (typeof firebase !== 'undefined' && firebase.firestore && firebase.firestore.FieldValue) {
+                        docRef.update({
+                            materiaisGerados: firebase.firestore.FieldValue.delete()
+                        }).catch(e => console.warn("Aviso ao purgar materiais legados da raiz:", e));
+                    }
+                }
 
                 fullState.materiaisGerados = Array.from(mapa.values());
+            } else if (raizMateriais && raizMateriais.length > 0) {
+                // Se a subcoleção estiver vazia mas a raiz contiver materiais antigos, migra todos
+                for (const m of raizMateriais) {
+                    await this.saveMaterialDoc(uid, m).catch(() => {});
+                }
+                fullState.materiaisGerados = [...raizMateriais];
+                if (typeof firebase !== 'undefined' && firebase.firestore && firebase.firestore.FieldValue) {
+                    docRef.update({
+                        materiaisGerados: firebase.firestore.FieldValue.delete()
+                    }).catch(e => console.warn("Aviso ao purgar materiais legados da raiz:", e));
+                }
+            } else {
+                fullState.materiaisGerados = [];
             }
 
             const turmasSnap = await docRef.collection('turmas').get();
@@ -199,9 +221,24 @@ export const firebaseService = {
     },
     async saveRoot(uid, data) {
         if (!uid || !this.db) return;
-        // Omitir materiaisGerados do documento raiz para evitar estourar o limite de 1MB do Firestore
-        const { turmas, materiaisGerados, ...rootData } = data;
+        // Omitir coleções pesadas e datasets estáticos de sistema do documento raiz
+        const {
+            turmas,
+            materiaisGerados,
+            questoesSistema,
+            questoesEnem,
+            descritoresSaeb,
+            isCloudSynced,
+            ...rootData
+        } = data;
+        
         let cleanData = JSON.parse(JSON.stringify(rootData));
+        
+        // Purgar explicitamente a propriedade legada 'materiaisGerados' no Firestore para eliminar o estouro de 1MB
+        if (typeof firebase !== 'undefined' && firebase.firestore && firebase.firestore.FieldValue) {
+            cleanData.materiaisGerados = firebase.firestore.FieldValue.delete();
+        }
+        
         await this.db.collection('professores').doc(uid).set(cleanData, { merge: true });
     },
     async saveMaterialDoc(uid, material) {
@@ -214,10 +251,8 @@ export const firebaseService = {
         await this.db.collection('professores').doc(uid).collection('materiais').doc(String(materialId)).delete();
         try {
             const docRef = this.db.collection('professores').doc(uid);
-            const docSnap = await docRef.get();
-            if (docSnap.exists && docSnap.data().materiaisGerados) {
-                const filtrados = (docSnap.data().materiaisGerados || []).filter(m => String(m.id) !== String(materialId));
-                await docRef.update({ materiaisGerados: filtrados });
+            if (typeof firebase !== 'undefined' && firebase.firestore && firebase.firestore.FieldValue) {
+                await docRef.update({ materiaisGerados: firebase.firestore.FieldValue.delete() }).catch(() => {});
             }
         } catch (e) {
             console.warn("Aviso ao limpar material legado da raiz:", e);

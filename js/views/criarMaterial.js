@@ -7,6 +7,9 @@ import { PaginatorComponent } from '../components/paginator.js';
 import { FilterBarComponent } from '../components/filterBar.js';
 import { EventDelegator } from '../utils/eventDelegator.js';
 import { lerArquivoTexto, renderKatex, formatarTextoComLatex, sanitizeComLatex } from '../utils.js';
+import { tableHelper } from '../utils/tableHelper.js';
+import { imageHelper } from '../utils/imageHelper.js';
+import { EditorToolbar } from '../components/editorToolbar.js';
 
 export const criarMaterialView = {
     abaAtiva: 'meus', // 'meus', 'templates', 'comunidade', 'lixeira'
@@ -31,6 +34,11 @@ export const criarMaterialView = {
         "Berçário I", "Berçário II", "Maternal I", "Maternal II", "Jardim I", "Jardim II",
         "1º Ano", "2º Ano", "3º Ano", "4º Ano", "5º Ano", "6º Ano", "7º Ano", "8º Ano", "9º Ano",
         "1ª Série (EM)", "2ª Série (EM)", "3ª Série (EM)"
+    ],
+    bimestresDisponiveis: [
+        "1º Bimestre", "2º Bimestre", "3º Bimestre", "4º Bimestre",
+        "1º Trimestre", "2º Trimestre", "3º Trimestre",
+        "1º Semestre", "2º Semestre"
     ],
     categoriasMenu: [
         {
@@ -483,19 +491,39 @@ export const criarMaterialView = {
                 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
                 <style>
                     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
-                    body { font-family: 'Inter', sans-serif; color: #1e293b; background: #fff; padding: 0; margin: 0; }
+                    body { font-family: 'Inter', sans-serif; color: #1e293b; background: #fff; padding: 20px; margin: 0; }
                     @page { size: A4; margin: 15mm; }
-                    .content h3 { font-size: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
-                    .content p { font-size: 13px; text-align: justify; margin-bottom: 8px; }
-                    .content ul, .content ol { font-size: 13px; padding-left: 20px; }
+                    .content h3 { font-size: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; }
+                    .content p { font-size: 12px; text-align: justify; margin-bottom: 8px; }
+                    .content ul, .content ol { font-size: 12px; padding-left: 20px; }
                     .gabarito-bloco, .gabarito { background-color: #ecfdf5; border: 1px solid #a7f3d0; border-left: 4px solid #059669; padding: 10px 14px; margin: 12px 0; border-radius: 6px; }
+                    @media print {
+                        body { padding: 0; }
+                    }
                 </style>
+                <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"><\/script>
+                <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"><\/script>
             </head>
             <body>
                 ${corpoImpressao}
                 <script>
-                    window.onload = () => { window.print(); };
-                </script>
+                    window.onload = () => {
+                        if (typeof renderMathInElement === 'function') {
+                            try {
+                                renderMathInElement(document.body, {
+                                    delimiters: [
+                                        { left: '\\\\[', right: '\\\\]', display: true },
+                                        { left: '\\\\(', right: '\\\\)', display: false },
+                                        { left: '$$', right: '$$', display: true },
+                                        { left: '$', right: '$', display: false }
+                                    ],
+                                    throwOnError: false
+                                });
+                            } catch (e) { console.warn(e); }
+                        }
+                        setTimeout(() => window.print(), 350);
+                    };
+                <\/script>
             </body>
             </html>
         `;
@@ -903,8 +931,8 @@ export const criarMaterialView = {
                             <i class="fas fa-folder"></i> Meus Materiais (Raiz)
                         </button>
                         ${cadeiaHierarquica.map((p, idx) => {
-                            const isUltimo = idx === cadeiaHierarquica.length - 1;
-                            return `
+            const isUltimo = idx === cadeiaHierarquica.length - 1;
+            return `
                                 <i class="fas fa-chevron-right" style="font-size: 0.75rem; color: #94a3b8;"></i>
                                 ${isUltimo ? `
                                     <span style="color: #4f46e5; font-weight: 800; background: #eef2ff; padding: 0.35rem 0.75rem; border-radius: var(--radius-lg); border: 1px solid #c7d2fe; display: inline-flex; align-items: center; gap: 0.35rem;">
@@ -916,21 +944,26 @@ export const criarMaterialView = {
                                     </button>
                                 `}
                             `;
-                        }).join('')}
+        }).join('')}
                     </div>
 
-                    <!-- BOTÃO NOVA PASTA -->
-                    <button type="button" onclick="criarMaterialView.modalCriarPasta()" class="btn-primary interactive-element" style="padding: 0.45rem 1rem; font-size: 0.8125rem; background: linear-gradient(135deg, #059669, #047857); box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);">
-                        <i class="fas fa-folder-plus"></i> + Nova Pasta
-                    </button>
+                    <!-- AÇÕES DO TOPO: IMPORTAR ARQUIVO E NOVA PASTA -->
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                        <button type="button" onclick="criarMaterialView.modalImportarMaterial()" class="btn-secondary interactive-element" style="padding: 0.45rem 1rem; font-size: 0.8125rem; background: #ffffff; border: 1.5px solid #c7d2fe; color: #4f46e5; font-weight: 800; display: inline-flex; align-items: center; gap: 0.4rem; box-shadow: var(--shadow-sm);" title="Importar arquivos Word (.docx, .doc), PDF ou TXT">
+                            <i class="fas fa-file-import"></i> Importar Arquivo
+                        </button>
+                        <button type="button" onclick="criarMaterialView.modalCriarPasta()" class="btn-primary interactive-element" style="padding: 0.45rem 1rem; font-size: 0.8125rem; background: linear-gradient(135deg, #059669, #047857); box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);">
+                            <i class="fas fa-folder-plus"></i> + Nova Pasta
+                        </button>
+                    </div>
                 </div>
 
                 <!-- GRID DE PASTAS LOCAIS -->
                 ${pastasNoNivel.length > 0 ? `
                     <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
                         ${pastasNoNivel.map(p => {
-                            const qtdItens = model.contarMateriaisPastaRecursivo ? model.contarMateriaisPastaRecursivo(p.id) : (model.state.materiaisGerados || []).filter(m => String(m.pastaId) === String(p.id) && !m.naLixeira).length;
-                            return `
+            const qtdItens = model.contarMateriaisPastaRecursivo ? model.contarMateriaisPastaRecursivo(p.id) : (model.state.materiaisGerados || []).filter(m => String(m.pastaId) === String(p.id) && !m.naLixeira).length;
+            return `
                                 <div class="interactive-element" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius-xl); padding: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; transition: all 0.2s;"
                                      onclick="criarMaterialView.setPastaAtual('${p.id}')">
                                     <div style="display: flex; align-items: center; gap: 0.75rem; overflow: hidden;">
@@ -947,7 +980,7 @@ export const criarMaterialView = {
                                     </button>
                                 </div>
                             `;
-                        }).join('')}
+        }).join('')}
                     </div>
                 ` : ''}
 
@@ -1100,7 +1133,10 @@ export const criarMaterialView = {
                 <span style="font-size: 0.8125rem; font-weight: 800; color: #475569;">
                     <i class="fas fa-magic" style="color: #4f46e5;"></i> Como você deseja criar este material?
                 </span>
-                <div style="display: flex; gap: 0.5rem;">
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button type="button" onclick="controller.closeModal(); criarMaterialView.modalImportarMaterial()" class="btn-secondary interactive-element" style="padding: 0.3rem 0.75rem; font-size: 0.75rem; font-weight: 800; background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe;">
+                        <i class="fas fa-file-import"></i> Importar Arquivo (.docx / .doc / .pdf)
+                    </button>
                     <button type="button" onclick="criarMaterialView.setModoGeracao('ia')" class="btn-secondary interactive-element" style="padding: 0.3rem 0.75rem; font-size: 0.75rem; font-weight: 800; ${this.modoGeracaoForm === 'ia' ? 'background: #4f46e5; color: #fff;' : ''}">
                         <i class="fas fa-robot"></i> Gerar com IA
                     </button>
@@ -1697,7 +1733,7 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
         if (!areaConteudo) return;
         const tipo = this.ferramentaAtiva || 'geral';
         const modelo = this.modelosEstruturadosManuais[tipo] || this.modelosEstruturadosManuais['geral'];
-        
+
         if (areaConteudo.value.trim() !== '') {
             if (!confirm('Deseja substituir o conteúdo atual pelo modelo estruturado recomendado?')) {
                 return;
@@ -1858,7 +1894,7 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                     const dataUrl = event.target.result;
                     const imgHtml = `<p style="text-align: center; margin: 1rem 0;"><img src="${dataUrl}" style="max-width: 90%; max-height: 400px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" class="material-img"></p><p>&nbsp;</p>`;
                     const editor = (typeof targetId === 'string' ? document.getElementById(targetId) : targetId) || document.getElementById('manual-conteudo-wysiwyg') || document.getElementById('editor-mat-wysiwyg') || document.getElementById('manual-conteudo-html');
-                    
+
                     if (editor) {
                         if (editor.isContentEditable || editor.contentEditable === 'true') {
                             editor.focus();
@@ -1877,16 +1913,82 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
         input.click();
     },
 
-    aplicarTamanhoFonteSelecao(editor, tamPx) {
-        const selection = window.getSelection();
-        if (!selection.rangeCount) return;
-        const range = selection.getRangeAt(0);
-        if (range.collapsed) return;
+    vincularRastreamentoSelecao(editorId = 'manual-conteudo-wysiwyg') {
+        const editor = typeof editorId === 'string' ? document.getElementById(editorId) : editorId;
+        if (!editor || editor.dataset.selectionTracked === 'true') return;
 
-        const span = document.createElement('span');
-        span.style.fontSize = tamPx;
-        span.appendChild(range.extractContents());
-        range.insertNode(span);
+        editor.dataset.selectionTracked = 'true';
+        const salvarSelecao = () => {
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount > 0) {
+                const range = sel.getRangeAt(0);
+                if (editor.contains(range.commonAncestorContainer)) {
+                    editor._savedRange = range.cloneRange();
+                }
+            }
+        };
+
+        editor.addEventListener('mouseup', salvarSelecao);
+        editor.addEventListener('keyup', salvarSelecao);
+        editor.addEventListener('blur', salvarSelecao);
+    },
+
+    aplicarTamanhoFonteSelecao(editor, tamPx) {
+        if (!editor || !tamPx) return;
+        const targetEditor = (typeof editor === 'string' ? document.getElementById(editor) : editor) || document.getElementById('manual-conteudo-wysiwyg') || document.getElementById('editor-mat-wysiwyg');
+        if (!targetEditor) return;
+
+        targetEditor.focus();
+        let sel = window.getSelection();
+
+        // Se a seleção foi perdida no blur do select mas existe o _savedRange salvo, restaura
+        if (targetEditor._savedRange) {
+            if (!sel.rangeCount || !targetEditor.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+                sel.removeAllRanges();
+                sel.addRange(targetEditor._savedRange);
+                sel = window.getSelection();
+            }
+        }
+
+        if (!sel || !sel.rangeCount) {
+            targetEditor.style.fontSize = tamPx;
+            return;
+        }
+
+        const range = sel.getRangeAt(0);
+
+        if (!range.collapsed) {
+            // HÁ TEXTO SELECIONADO: encapsula no span com fontSize
+            const fragment = range.extractContents();
+            const span = document.createElement('span');
+            span.style.fontSize = tamPx;
+            span.style.lineHeight = '1.35';
+            span.appendChild(fragment);
+            range.insertNode(span);
+
+            // Re-seleciona para permitir novas formatações
+            const newRange = document.createRange();
+            newRange.selectNodeContents(span);
+            sel.removeAllRanges();
+            sel.addRange(newRange);
+            targetEditor._savedRange = newRange.cloneRange();
+        } else {
+            // CURSOR PARADO: aplica ao bloco pai (p, li, h1-h6, td, th, div) ou ao container
+            let parentBlock = range.startContainer.nodeType === Node.ELEMENT_NODE 
+                ? range.startContainer 
+                : range.startContainer.parentElement;
+
+            while (parentBlock && parentBlock !== targetEditor && !['P', 'LI', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'TD', 'TH', 'DIV'].includes(parentBlock.tagName)) {
+                parentBlock = parentBlock.parentElement;
+            }
+
+            if (parentBlock && parentBlock !== targetEditor) {
+                parentBlock.style.fontSize = tamPx;
+                parentBlock.style.lineHeight = '1.35';
+            } else {
+                targetEditor.style.fontSize = tamPx;
+            }
+        }
     },
 
     async colarTextoLimpo(targetId = 'manual-conteudo-wysiwyg') {
@@ -1955,7 +2057,7 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
         if (isEditable) {
             document.execCommand('styleWithCSS', false, true);
 
-            switch(tipo) {
+            switch (tipo) {
                 case 'h2': document.execCommand('formatBlock', false, '<h2>'); break;
                 case 'h3': document.execCommand('formatBlock', false, '<h3>'); break;
                 case 'bold': document.execCommand('bold', false, null); break;
@@ -1999,7 +2101,7 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                 case 'gabarito': window.conteudoGeradoView.inserirBlocoGabarito(editor); break;
                 case 'destaque': window.conteudoGeradoView.inserirComentarioProfessor(editor); break;
                 case 'linhas': window.conteudoGeradoView.inserirLinhasResposta(editor); break;
-                case 'tabela': window.conteudoGeradoView.inserirTabelaPedagogica(editor); break;
+                case 'tabela': tableHelper.abrirModalInserirTabela(editor); break;
                 case 'imagem': this.uploadImagemNoEditor(editor); break;
                 default:
                     if (val) document.execCommand('insertHTML', false, val);
@@ -2013,7 +2115,7 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
         const selectedText = editor.value.substring(start, end);
 
         let snippet = '';
-        switch(tipo) {
+        switch (tipo) {
             case 'h2': snippet = selectedText ? `\n## ${selectedText}\n` : '\n## Título da Seção\n'; break;
             case 'h3': snippet = selectedText ? `\n### ${selectedText}\n` : '\n### Subtítulo da Seção\n'; break;
             case 'bold': snippet = selectedText ? `**${selectedText}**` : '**Texto em Negrito**'; break;
@@ -2315,6 +2417,13 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
             formArea.innerHTML = this.renderizarFormularioDaFerramenta();
             if (modo === 'manual') {
                 setTimeout(() => {
+                    const wysiwyg = document.getElementById('manual-conteudo-wysiwyg');
+                    if (wysiwyg) {
+                        this.vincularRastreamentoSelecao(wysiwyg);
+                        this.vincularSanitizadorPaste(wysiwyg);
+                        if (typeof tableHelper !== 'undefined') tableHelper.inicializarInspetorTabelas(wysiwyg);
+                        if (typeof imageHelper !== 'undefined') imageHelper.inicializarInspetorImagens(wysiwyg);
+                    }
                     anexarPreviewLatex('manual-conteudo-html', 'manual-preview-live');
                 }, 50);
             }
@@ -2391,93 +2500,11 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                             </div>
                         </div>
 
-                        <!-- BARRA DE FERRAMENTAS PEDAGÓGICAS UNIFICADA (WORD-LIKE 2 LINHAS) -->
-                        <div style="display: flex; flex-direction: column; gap: 0.5rem; background-color: #f8fafc; padding: 0.75rem; border-radius: 0.75rem 0.75rem 0 0; border: 1px solid #cbd5e1; border-bottom: none;">
-                            <!-- LINHA 1: FONTE, TAMANHO, CORES E ESTILOS DE TEXTO -->
-                            <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center;">
-                                <select onchange="criarMaterialView.inserirSnippet('fontsize', 'manual-conteudo-wysiwyg', this.value); this.selectedIndex=0;" class="form-select" style="padding: 0.15rem 0.4rem; font-size: 0.75rem; height: 1.75rem; width: auto; font-weight: 700;">
-                                    <option value="" disabled selected>Tamanho</option>
-                                    <option value="12px">Pequeno (12px)</option>
-                                    <option value="14px">Normal (14px)</option>
-                                    <option value="16px">Médio (16px)</option>
-                                    <option value="18px">Grande (18px)</option>
-                                    <option value="22px">Título (22px)</option>
-                                </select>
-
-                                <select onchange="criarMaterialView.inserirSnippet('fontfamily', 'manual-conteudo-wysiwyg', this.value); this.selectedIndex=0;" class="form-select" style="padding: 0.15rem 0.4rem; font-size: 0.75rem; height: 1.75rem; width: auto; font-weight: 700;">
-                                    <option value="" disabled selected>Fonte</option>
-                                    <option value="Inter, sans-serif">Inter</option>
-                                    <option value="Roboto, sans-serif">Roboto</option>
-                                    <option value="Outfit, sans-serif">Outfit</option>
-                                    <option value="Courier Prime, monospace">Monospace</option>
-                                    <option value="Georgia, serif">Serif</option>
-                                </select>
-
-                                <div style="width: 1px; height: 1.25rem; background: #cbd5e1; margin: 0 0.15rem;"></div>
-
-                                <!-- SELETORES DE COR DA FONTE E DO FUNDO -->
-                                <label title="Cor da Fonte" style="display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.75rem; font-weight: 700; cursor: pointer; background: #ffffff; border: 1px solid #cbd5e1; padding: 0.15rem 0.4rem; border-radius: 0.375rem; height: 1.75rem;">
-                                    <i class="fas fa-palette" style="color: #4f46e5;"></i>
-                                    <input type="color" onchange="criarMaterialView.inserirSnippet('forecolor', 'manual-conteudo-wysiwyg', this.value)" style="width: 1.2rem; height: 1.2rem; border: none; cursor: pointer; background: none; padding: 0;">
-                                </label>
-
-                                <label title="Cor de Fundo do Texto" style="display: inline-flex; align-items: center; gap: 0.2rem; font-size: 0.75rem; font-weight: 700; cursor: pointer; background: #ffffff; border: 1px solid #cbd5e1; padding: 0.15rem 0.4rem; border-radius: 0.375rem; height: 1.75rem;">
-                                    <i class="fas fa-highlighter" style="color: #eab308;"></i>
-                                    <input type="color" value="#fef08a" onchange="criarMaterialView.inserirSnippet('hilitecolor', 'manual-conteudo-wysiwyg', this.value)" style="width: 1.2rem; height: 1.2rem; border: none; cursor: pointer; background: none; padding: 0;">
-                                </label>
-
-                                <div style="width: 1px; height: 1.25rem; background: #cbd5e1; margin: 0 0.15rem;"></div>
-
-                                <button type="button" onclick="criarMaterialView.inserirSnippet('h2', 'manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Título H2"><strong>H2</strong></button>
-                                <button type="button" onclick="criarMaterialView.inserirSnippet('h3', 'manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Subtítulo H3"><strong>H3</strong></button>
-                                <button type="button" onclick="criarMaterialView.inserirSnippet('bold', 'manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Negrito"><i class="fas fa-bold"></i></button>
-                                <button type="button" onclick="criarMaterialView.inserirSnippet('italic', 'manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Itálico"><i class="fas fa-italic"></i></button>
-                                <button type="button" onclick="criarMaterialView.inserirSnippet('underline', 'manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Sublinhado"><i class="fas fa-underline"></i></button>
-                                <button type="button" onclick="criarMaterialView.inserirSnippet('lista', 'manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Lista"><i class="fas fa-list-ul"></i></button>
-                                <button type="button" onclick="criarMaterialView.inserirSnippet('removeformat', 'manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.45rem; font-size: 0.75rem;" title="Limpar Formatação do Texto Selecionado"><i class="fas fa-eraser"></i></button>
-                            </div>
-
-                            <!-- LINHA 2: FÓRMULAS MATEMÁTICAS, SÍMBOLOS, COLAR LIMPO, BLOCOS PEDAGÓGICOS E IMAGEM -->
-                            <div style="display: flex; gap: 0.35rem; flex-wrap: wrap; align-items: center;">
-                                <button type="button" onclick="criarMaterialView.colarTextoLimpo('manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; font-weight: 800; background: #fdf4ff; color: #a21caf; border-color: #f5d0fe;" title="Colar Texto Sem Formatação Parasita (Ctrl+Shift+V)"><i class="fas fa-paste"></i> Colar Limpo</button>
-                                
-                                <div style="width: 1px; height: 1.25rem; background: #cbd5e1; margin: 0 0.15rem;"></div>
-
-                                <button type="button" onclick="criarMaterialView.inserirSnippet('frac', 'manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.45rem; font-size: 0.75rem; font-weight: 800;" title="Fração">÷ Fração</button>
-                                <button type="button" onclick="criarMaterialView.inserirSnippet('superscript', 'manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.45rem; font-size: 0.75rem; font-weight: 800;" title="Sobrescrito (X²)">X²</button>
-                                <button type="button" onclick="criarMaterialView.inserirSnippet('subscript', 'manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.45rem; font-size: 0.75rem; font-weight: 800;" title="Subscrito (Xᵢ)">Xᵢ</button>
-                                <button type="button" onclick="criarMaterialView.inserirSnippet('sqrt', 'manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.45rem; font-size: 0.75rem; font-weight: 800;" title="Raiz Quadrada">√x</button>
-
-                                <select onchange="criarMaterialView.inserirSnippet(this.value, 'manual-conteudo-wysiwyg'); this.selectedIndex=0;" class="form-select" style="padding: 0.15rem 0.4rem; font-size: 0.75rem; height: 1.75rem; width: auto; font-weight: 700;">
-                                    <option value="" disabled selected>Símbolos</option>
-                                    <option value="symbol_neq">Diferente (≠)</option>
-                                    <option value="symbol_times">Multiplicação (×)</option>
-                                    <option value="symbol_div">Divisão (÷)</option>
-                                    <option value="symbol_alpha">Alfa (α)</option>
-                                    <option value="symbol_beta">Beta (β)</option>
-                                    <option value="symbol_pi">Pi (π)</option>
-                                    <option value="symbol_delta">Delta (Δ)</option>
-                                    <option value="symbol_theta">Theta (θ)</option>
-                                    <option value="symbol_infty">Infinito (∞)</option>
-                                    <option value="symbol_pm">Mais ou Menos (±)</option>
-                                    <option value="symbol_approx">Aproximado (≈)</option>
-                                </select>
-
-                                <div style="width: 1px; height: 1.25rem; background: #cbd5e1; margin: 0 0.15rem;"></div>
-
-                                <button type="button" onclick="criarMaterialView.inserirSnippet('imagem', 'manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; font-weight: 700; background: #e0f2fe; color: #0369a1; border-color: #bae6fd;" title="Fazer Upload de Imagem para o Material"><i class="fas fa-image"></i> + Imagem</button>
-                                <button type="button" onclick="window.conteudoGeradoView.inserirBlocoGabarito('manual-conteudo-wysiwyg')" class="btn-primary interactive-element" style="background-color: #059669; font-size: 0.75rem; padding: 0.25rem 0.65rem; font-weight: 800;" title="Inserir Gabarito (Oculto na Versão do Aluno)"><i class="fas fa-check-circle"></i> + Gabarito</button>
-                                <button type="button" onclick="window.conteudoGeradoView.inserirComentarioProfessor('manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="background-color: #fefce8; border-color: #fef08a; color: #a16207; font-size: 0.75rem; padding: 0.25rem 0.65rem; font-weight: 800;" title="Inserir Orientação Pedagógica"><i class="fas fa-comment-dots"></i> + Comentário</button>
-                                <button type="button" onclick="window.conteudoGeradoView.inserirLinhasResposta('manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; font-weight: 700;" title="Linhas de Resposta"><i class="fas fa-align-justify"></i> + Linhas</button>
-                                <button type="button" onclick="window.conteudoGeradoView.inserirTabelaPedagogica('manual-conteudo-wysiwyg')" class="btn-secondary interactive-element" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; font-weight: 700;" title="Tabela Pedagógica"><i class="fas fa-table"></i> + Tabela</button>
-                            </div>
-                        </div>
+                        <!-- BARRA DE FERRAMENTAS MODULAR (RIBBON COMPLETO) -->
+                        ${EditorToolbar.render('manual-conteudo-wysiwyg')}
 
                         <!-- CAIXA VISUAL TIPO WORD (CONTENTEDITABLE) -->
-                        <div id="manual-conteudo-wysiwyg" contenteditable="true" class="custom-scrollbar" style="display: block; width: 100%; min-height: 320px; max-height: 55vh; overflow-y: auto; background-color: #ffffff; color: #0f172a; padding: 1.25rem; border-radius: 0 0 0.75rem 0.75rem; border: 1px solid #cbd5e1; border-top: none; line-height: 1.7; font-size: 0.95rem; outline: none;"></div>
-
-                        <!-- BOX DE PRÉ-VISUALIZAÇÃO PEDAGÓGICA AO VIVO DA CRIAÇÃO MANUAL -->
-                        <div id="manual-preview-live" style="display: block; width: 100%; margin-top: 1rem;"></div>
+                        <div id="manual-conteudo-wysiwyg" contenteditable="true" class="custom-scrollbar" style="display: block; width: 100%; min-height: 280px; max-height: 55vh; overflow-y: auto; background-color: #ffffff; color: #0f172a; padding: 1.25rem; border-radius: 0 0 0.75rem 0.75rem; border: 1px solid #cbd5e1; border-top: none; line-height: 1.7; font-size: 0.95rem; outline: none;"></div>
                     </div>
 
                     <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between flex-wrap gap-3">
@@ -2573,11 +2600,34 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
             this.imprimirMaterialA4(material);
         });
     },
-    imprimirMaterialA4(material) {
+    imprimirMaterialA4(material, opts = {}) {
         const config = model.state.userConfig || {};
-        const nomeProf = config.profName ? config.profName : 'Professor(a)';
-        const nomeEscola = config.escolaName ? config.escolaName : 'Nome da Escola';
+        const nomeProf = config.profName ? config.profName : (model.currentUser?.displayName || 'Professor(a)');
+        const nomeEscola = config.escolaName || config.schoolName || 'Nome da Escola';
         const dataHoje = new Date().toLocaleDateString('pt-BR');
+
+        const tamanhoFonte = opts.tamanhoFonte || 'normal';
+        let fontSizeStr = '11.5pt';
+        if (tamanhoFonte === 'compacto') fontSizeStr = '10pt';
+        else if (tamanhoFonte === 'amplo' || opts.tipo === 'acessivel') fontSizeStr = '13.5pt';
+        else if (opts.tipo === 'acessivel') fontSizeStr = '14pt';
+
+        let lineHeight = '1.35';
+        let marginAntes = '4pt';
+        let marginDepois = '2pt';
+        if (opts.espacamento === 'maxima_1_1') {
+            lineHeight = '1.05';
+            marginAntes = '1pt';
+            marginDepois = '1pt';
+        } else if (opts.espacamento === 'compacto_2_1') {
+            lineHeight = '1.15';
+            marginAntes = '2pt';
+            marginDepois = '1.5pt';
+        } else if (opts.espacamento === 'confortavel_6_4' || opts.tipo === 'acessivel') {
+            lineHeight = '1.6';
+            marginAntes = '6pt';
+            marginDepois = '4pt';
+        }
 
         const conteudoLimpo = window.prepararHTMLParaExportacao
             ? window.prepararHTMLParaExportacao(material.conteudo_html || '', 'professor')
@@ -2592,51 +2642,89 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
                 <style>
                     /* Reset básico e tipografia de impressão */
-                    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+                    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
                     
+                    * { box-sizing: border-box; }
                     body { 
-                        font-family: 'Inter', sans-serif; 
+                        font-family: 'Inter', Arial, sans-serif; 
                         color: #1e293b; 
                         background: #fff; 
-                        line-height: 1.6;
+                        line-height: ${lineHeight};
+                        font-size: ${fontSizeStr};
                         margin: 0;
                         padding: 0;
                     }
                     /* Configuração estrita para folha A4 */
                     @page {
                         size: A4;
-                        margin: 20mm;
+                        margin: 15mm 20mm;
                     }
                     /* Cabeçalho da Escola */
                     .header { 
-                        border-bottom: 3px solid #000; 
-                        padding-bottom: 15px; 
-                        margin-bottom: 25px; 
+                        border-bottom: 2px solid #000; 
+                        padding-bottom: 10px; 
+                        margin-bottom: 20px; 
                     }
                     .header h1 { 
-                        font-size: 20px; 
+                        font-size: 18px; 
                         font-weight: 900; 
                         text-transform: uppercase; 
-                        margin: 0 0 5px 0; 
+                        margin: 0 0 4px 0; 
                     }
                     .header .meta-info {
                         display: flex;
                         justify-content: space-between;
-                        font-size: 12px;
+                        font-size: 11px;
                         font-weight: 700;
                     }
-                    /* Estilização do Conteúdo da IA */
-                    .content h3 { font-size: 18px; margin-top: 20px; border-bottom: 1px solid #eee; padding-bottom: 4px; color: #0f172a; }
-                    .content p { font-size: 14px; text-align: justify; margin-bottom: 10px; color: #334155; }
-                    .content ul, .content ol { font-size: 14px; margin-bottom: 10px; padding-left: 24px; }
-                    .content li { margin-bottom: 6px; color: #334155; }
+                    /* Estilização do Conteúdo com herança tipográfica fluida */
+                    .content {
+                        font-size: ${fontSizeStr};
+                        line-height: ${lineHeight};
+                    }
+                    .content h2 { font-size: 16px; margin-top: 16px; margin-bottom: 8px; color: #0f172a; }
+                    .content h3 { font-size: 14.5px; margin-top: 14px; margin-bottom: 6px; border-bottom: 1px solid #eee; padding-bottom: 3px; color: #0f172a; }
+                    .content h4 { font-size: 13px; margin-top: 10px; margin-bottom: 4px; color: #0f172a; }
+                    .content p { font-size: inherit; text-align: justify; margin-top: ${marginAntes}; margin-bottom: ${marginDepois}; color: #334155; line-height: inherit; }
+                    .content ul, .content ol { font-size: inherit; margin-top: ${marginAntes}; margin-bottom: ${marginDepois}; padding-left: 20px; }
+                    .content li { margin-bottom: ${marginDepois}; color: #334155; font-size: inherit; line-height: inherit; }
                     .content strong { color: #000; }
                     .gabarito-bloco, .gabarito { background-color: #ecfdf5; border: 1px solid #a7f3d0; border-left: 5px solid #059669; padding: 14px 18px; margin: 15px 0; border-radius: 8px; page-break-inside: avoid; }
                     .gabarito-bloco h3, .gabarito-bloco h4 { color: #065f46; margin-top: 0; }
                     /* Garante que tabelas ou blocos não quebrem na metade entre duas páginas */
-                    .content h3, .content ul, .content table {
-                        page-break-inside: avoid;
+                    .content h3, .content ul, .content table, table, tr, tbody, thead, .planner-table-wrapper {
+                        break-inside: avoid !important;
+                        page-break-inside: avoid !important;
                     }
+                    table {
+                        width: 100% !important;
+                        max-width: 100% !important;
+                        border-collapse: collapse;
+                        margin: 12px 0;
+                        box-sizing: border-box !important;
+                        table-layout: auto;
+                        font-size: 13px;
+                    }
+                    th, td {
+                        border: 1px solid #cbd5e1;
+                        padding: 6px 10px;
+                        text-align: left;
+                        vertical-align: middle;
+                        box-sizing: border-box;
+                        word-break: normal;
+                        overflow-wrap: anywhere;
+                    }
+                    th {
+                        background-color: #f1f5f9;
+                        font-weight: bold;
+                        color: #0f172a;
+                    }
+                    .planner-table-zebra tbody tr:nth-child(even) { background-color: #f8fafc; }
+                    .planner-table-horizontal th, .planner-table-horizontal td { border: none; border-top: 1px solid #94a3b8; border-bottom: 1px solid #94a3b8; }
+                    .planner-table-horizontal thead tr th { border-top: 2px solid #0f172a; border-bottom: 2px solid #0f172a; background: transparent; }
+                    .planner-table-horizontal tbody tr:last-child td { border-bottom: 2px solid #0f172a; }
+                    .planner-table-clean th, .planner-table-clean td { border: none; border-bottom: 1px solid #e2e8f0; }
+                    .planner-table-clean thead th { border-bottom: 2px solid #cbd5e1; background: transparent; }
                 </style>
             </head>
             <body>
@@ -3018,6 +3106,253 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                 });
             }
         }, 50);
+    },
+    modalImportarMaterial() {
+        const todasPastas = model.state.pastasMateriais || [];
+        const optionsPastas = `
+            <option value="">Raiz (Sem pasta)</option>
+            ${todasPastas.map(p => `<option value="${p.id}" ${String(p.id) === String(this.pastaAtualId) ? 'selected' : ''}>📁 ${window.escapeHTML(p.nome)}</option>`).join('')}
+        `;
+
+        const modalHtml = `
+            <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-xl); padding: 1.25rem; text-align: center;">
+                    <div id="dropzone-import" style="border: 2px dashed #cbd5e1; border-radius: var(--radius-lg); padding: 2rem 1rem; background-color: #ffffff; cursor: pointer; transition: all 0.2s;"
+                         onclick="document.getElementById('input-arquivo-import').click()"
+                         ondragover="event.preventDefault(); this.style.borderColor='#4f46e5'; this.style.backgroundColor='#eef2ff';"
+                         ondragleave="this.style.borderColor='#cbd5e1'; this.style.backgroundColor='#ffffff';"
+                         ondrop="event.preventDefault(); this.style.borderColor='#cbd5e1'; this.style.backgroundColor='#ffffff'; if (event.dataTransfer.files.length) criarMaterialView.processarArquivoUpload(event.dataTransfer.files[0]);">
+                        <input type="file" id="input-arquivo-import" accept=".doc,.docx,.pdf,.txt,.md" style="display: none;" onchange="if (this.files.length) criarMaterialView.processarArquivoUpload(this.files[0])">
+                        <i class="fas fa-cloud-arrow-up" style="font-size: 2.5rem; color: #4f46e5; margin-bottom: 0.75rem;"></i>
+                        <h4 style="font-size: 1rem; font-weight: 800; color: #1e293b; margin: 0 0 0.25rem 0;">Clique ou arraste seu arquivo aqui</h4>
+                        <p style="font-size: 0.8125rem; color: #64748b; margin: 0;">Formatos suportados: <strong>Word (.docx, .doc)</strong>, <strong>PDF (.pdf)</strong>, <strong>Texto (.txt, .md)</strong></p>
+                    </div>
+                </div>
+
+                <div id="import-processamento" class="hidden" style="text-align: center; padding: 1rem; background-color: #eef2ff; border-radius: var(--radius-lg);">
+                    <i class="fas fa-circle-notch fa-spin" style="color: #4f46e5; margin-right: 0.5rem;"></i>
+                    <span style="font-size: 0.8125rem; font-weight: 700; color: #4f46e5;">Extraindo conteúdo do documento...</span>
+                </div>
+
+                <div id="import-aviso-scanned" class="hidden" style="background-color: #fefce8; border: 1px solid #fef08a; padding: 0.875rem; border-radius: var(--radius-lg); font-size: 0.8125rem; color: #854d0e; display: flex; align-items: flex-start; gap: 0.5rem;">
+                    <i class="fas fa-info-circle" style="color: #ca8a04; margin-top: 0.125rem; flex-shrink: 0;"></i>
+                    <span id="import-aviso-texto"></span>
+                </div>
+
+                <div id="form-detalhes-import" class="hidden" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <!-- ESCOLHA DO MODO DE IMPORTAÇÃO -->
+                    <div>
+                        <label class="form-label" style="font-weight: 800; color: #334155; margin-bottom: 0.5rem;">Como você deseja salvar este material?</label>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem;">
+                            <label id="label-modo-editavel" style="border: 2px solid #4f46e5; background-color: #eef2ff; border-radius: var(--radius-lg); padding: 0.75rem; cursor: pointer; display: flex; flex-direction: column; gap: 0.25rem;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="radio" name="modo-importacao" value="editavel" checked onchange="criarMaterialView.alternarModoImport(this.value)">
+                                    <strong style="font-size: 0.8125rem; color: #4f46e5;"><i class="fas fa-file-pen"></i> Material Editável</strong>
+                                </div>
+                                <span style="font-size: 0.6875rem; color: #64748b; margin-left: 1.5rem;">Converte o texto para edição, formatação LaTeX, IA e impressão.</span>
+                            </label>
+
+                            <label id="label-modo-documento" style="border: 2px solid #e2e8f0; background-color: #ffffff; border-radius: var(--radius-lg); padding: 0.75rem; cursor: pointer; display: flex; flex-direction: column; gap: 0.25rem;">
+                                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                    <input type="radio" name="modo-importacao" value="documento" onchange="criarMaterialView.alternarModoImport(this.value)">
+                                    <strong style="font-size: 0.8125rem; color: #334155;"><i class="fas fa-folder-tree"></i> Documento / Acervo</strong>
+                                </div>
+                                <span style="font-size: 0.6875rem; color: #64748b; margin-left: 1.5rem;">Arquiva o arquivo para organização e consulta do professor.</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="form-label">Título do Material</label>
+                        <input type="text" id="import-titulo" class="form-input" placeholder="Ex: Avaliação Bimestral de Matemática">
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem;">
+                        <div>
+                            <label class="form-label">Disciplina</label>
+                            <select id="import-disciplina" class="form-select">
+                                ${(this.disciplinas || []).map(d => `<option value="${d}">${d}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Série / Ano</label>
+                            <select id="import-serie" class="form-select">
+                                ${(this.seriesDisponiveis || []).map(s => `<option value="${s}">${s}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Bimestre</label>
+                            <select id="import-bimestre" class="form-select">
+                                <option value="">Sem Bimestre</option>
+                                ${(this.bimestresDisponiveis || []).map(b => `<option value="${b}">${b}</option>`).join('')}
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label">Organizar na Pasta</label>
+                            <select id="import-pasta" class="form-select">
+                                ${optionsPastas}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- PRÉVIA DO TEXTO EXTRAÍDO -->
+                    <div>
+                        <label class="form-label" style="display: flex; justify-content: space-between;">
+                            <span>Conteúdo Extraído (Prévia)</span>
+                            <span id="import-tamanho-caracteres" style="font-size: 0.6875rem; color: #94a3b8;"></span>
+                        </label>
+                        <textarea id="import-preview-texto" class="form-input custom-scrollbar" rows="5" style="font-size: 0.8125rem; line-height: 1.5; font-family: monospace;"></textarea>
+                    </div>
+
+                    <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
+                        <button type="button" onclick="controller.closeModal()" class="btn-secondary">Cancelar</button>
+                        <button type="button" id="btn-confirmar-import" onclick="criarMaterialView.salvarMaterialImportado()" class="btn-primary" style="background-color: #4f46e5;">
+                            <i class="fas fa-check"></i> Concluir Importação
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        controller.openModal('Importar Material (.docx, .doc, .pdf, .txt)', modalHtml);
+    },
+
+    async processarArquivoUpload(file) {
+        if (!file) return;
+        const procEl = document.getElementById('import-processamento');
+        const formEl = document.getElementById('form-detalhes-import');
+        const avisoScannedEl = document.getElementById('import-aviso-scanned');
+        const avisoTextoEl = document.getElementById('import-aviso-texto');
+        const dropzone = document.getElementById('dropzone-import');
+
+        if (procEl) procEl.classList.remove('hidden');
+        if (formEl) formEl.classList.add('hidden');
+        if (avisoScannedEl) avisoScannedEl.classList.add('hidden');
+
+        try {
+            const doc = await extrairDocumentoCompleto(file);
+            this.docImportadoTemp = { file, doc };
+
+            if (procEl) procEl.classList.add('hidden');
+            if (formEl) formEl.classList.remove('hidden');
+
+            const tituloEl = document.getElementById('import-titulo');
+            const previewEl = document.getElementById('import-preview-texto');
+            const caracEl = document.getElementById('import-tamanho-caracteres');
+
+            if (tituloEl) tituloEl.value = doc.titulo || file.name;
+            if (previewEl) previewEl.value = doc.texto || doc.html || "";
+            if (caracEl) caracEl.textContent = `${(doc.texto || '').length} caracteres extraídos`;
+
+            if (dropzone) {
+                dropzone.innerHTML = `
+                    <i class="fas fa-file-circle-check" style="font-size: 2rem; color: #059669; margin-bottom: 0.5rem;"></i>
+                    <h4 style="font-size: 0.9375rem; font-weight: 800; color: #065f46; margin: 0;">${window.escapeHTML(file.name)}</h4>
+                    <p style="font-size: 0.75rem; color: #047857; margin: 0.25rem 0 0 0;">${(file.size / 1024).toFixed(1)} KB • Clique para trocar de arquivo</p>
+                `;
+            }
+
+            if (doc.aviso) {
+                if (avisoScannedEl && avisoTextoEl) {
+                    avisoTextoEl.textContent = doc.aviso;
+                    avisoScannedEl.classList.remove('hidden');
+                }
+                if (!doc.sucesso) {
+                    this.alternarModoImport('documento');
+                    const radioDoc = document.querySelector('input[name="modo-importacao"][value="documento"]');
+                    if (radioDoc) radioDoc.checked = true;
+                }
+            }
+        } catch (err) {
+            console.error("Erro no processamento do upload:", err);
+            if (procEl) procEl.classList.add('hidden');
+            Toast.show("Erro ao ler o arquivo fornecido.", "error");
+        }
+    },
+
+    alternarModoImport(modo) {
+        const labelEditavel = document.getElementById('label-modo-editavel');
+        const labelDoc = document.getElementById('label-modo-documento');
+        if (modo === 'editavel') {
+            if (labelEditavel) { labelEditavel.style.borderColor = '#4f46e5'; labelEditavel.style.backgroundColor = '#eef2ff'; }
+            if (labelDoc) { labelDoc.style.borderColor = '#e2e8f0'; labelDoc.style.backgroundColor = '#ffffff'; }
+        } else {
+            if (labelEditavel) { labelEditavel.style.borderColor = '#e2e8f0'; labelEditavel.style.backgroundColor = '#ffffff'; }
+            if (labelDoc) { labelDoc.style.borderColor = '#4f46e5'; labelDoc.style.backgroundColor = '#eef2ff'; }
+        }
+    },
+
+    async salvarMaterialImportado() {
+        if (!this.docImportadoTemp || !this.docImportadoTemp.file) {
+            return Toast.show("Nenhum arquivo carregado para importação.", "warning");
+        }
+        const { file, doc } = this.docImportadoTemp;
+        const titulo = document.getElementById('import-titulo')?.value.trim() || doc.titulo || file.name;
+        const disciplina = document.getElementById('import-disciplina')?.value || 'Geral';
+        const serie = document.getElementById('import-serie')?.value || 'Geral';
+        const bimestre = document.getElementById('import-bimestre')?.value || '';
+        const pastaId = document.getElementById('import-pasta')?.value || null;
+        const modo = document.querySelector('input[name="modo-importacao"]:checked')?.value || 'editavel';
+        const previewEditado = document.getElementById('import-preview-texto')?.value || doc.texto || '';
+
+        const htmlConteudo = modo === 'editavel'
+            ? (doc.html && previewEditado === doc.texto ? doc.html : previewEditado.split('\n\n').map(p => `<p>${window.escapeHTML(p)}</p>`).join('\n'))
+            : `
+                <div class="documento-importado-card" style="background: #f8fafc; border: 1.5px solid #e2e8f0; border-radius: 1rem; padding: 1.5rem; margin-bottom: 1.5rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                        <div style="display: flex; align-items: center; gap: 1rem;">
+                            <div style="width: 3rem; height: 3rem; border-radius: 0.75rem; background-color: #eef2ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">
+                                <i class="fas fa-file-lines"></i>
+                            </div>
+                            <div>
+                                <h3 style="margin: 0; font-size: 1.125rem; font-weight: 800; color: #1e293b;">${window.escapeHTML(file.name)}</h3>
+                                <p style="margin: 0.25rem 0 0 0; font-size: 0.8125rem; color: #64748b;">
+                                    Tamanho: ${(file.size / 1024).toFixed(1)} KB • Formato: .${doc.extensao.toUpperCase()} • Importado em: ${new Date().toLocaleDateString('pt-BR')}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="documento-importado-texto" style="line-height: 1.6; color: #334155;">
+                    ${previewEditado ? previewEditado.split('\n\n').map(p => `<p>${window.escapeHTML(p)}</p>`).join('\n') : '<p style="color: #94a3b8; font-style: italic;">Documento arquivado no acervo.</p>'}
+                </div>
+            `;
+
+        const novoMaterial = {
+            id: generateId('mat_imp'),
+            titulo: titulo,
+            tema: titulo,
+            disciplina: disciplina,
+            serie: serie,
+            bimestre: bimestre,
+            tipo: modo === 'editavel' ? 'atividade-imprimivel' : 'documento-importado',
+            pastaId: pastaId || null,
+            modoImportacao: modo,
+            arquivoOriginalNome: file.name,
+            arquivoTamanho: file.size,
+            arquivoExtensao: doc.extensao,
+            conteudo_html: htmlConteudo,
+            criadoEm: new Date().toISOString(),
+            data: new Date().toLocaleDateString('pt-BR'),
+            origem: 'importado'
+        };
+
+        await model.salvarMaterialGerado(novoMaterial);
+        Toast.show("Material importado e salvo com sucesso!", "success");
+        controller.closeModal();
+        this.docImportadoTemp = null;
+
+        if (this.abaAtiva === 'meus') {
+            this.render('view-container');
+        } else {
+            this.mudarAba('meus');
+        }
+
+        if (modo === 'editavel' && window.conteudoGeradoView) {
+            window.conteudoGeradoView.setMaterial(novoMaterial.id);
+            controller.navigate('conteudo-gerado');
+        }
     }
 };
 if (typeof window !== 'undefined') window.criarMaterialView = criarMaterialView;
+

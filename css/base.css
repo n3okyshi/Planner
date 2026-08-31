@@ -46,3 +46,27 @@ h1, p {
 .custom-scrollbar:hover::-webkit-scrollbar-thumb {
   background-color: rgba(255, 255, 255, 0.2);
 }
+
+/* Responsive Visibility Utilities */
+@media (max-width: 767px) {
+  .desktop-only,
+  .hide-on-mobile {
+    display: none !important;
+  }
+  .mobile-only {
+    display: flex !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .mobile-only,
+  .hide-on-desktop {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1023px) {
+  .large-desktop-only {
+    display: none !important;
+  }
+}

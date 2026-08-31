@@ -38,6 +38,9 @@ export class ModalComponent {
             this.destroy();
         }
 
+        const instanceCount = (ModalComponent._instances ? ModalComponent._instances.size : 0) + 1;
+        const dynamicZIndex = 100000 + (instanceCount * 20);
+
         const backdrop = document.createElement('div');
         backdrop.id = this.options.id;
         backdrop.className = 'modal-backdrop animate-fade-in';
@@ -49,7 +52,7 @@ export class ModalComponent {
             height: 100vh;
             background-color: rgba(15, 23, 42, 0.65);
             backdrop-filter: blur(4px);
-            z-index: 9999;
+            z-index: ${dynamicZIndex};
             display: flex;
             align-items: center;
             justify-content: center;
@@ -223,7 +226,18 @@ export class ModalComponent {
             this._cleanupDelegators = null;
         }
         window.removeEventListener('keydown', this._keydownHandler);
-        document.body.style.overflow = '';
+        
+        ModalComponent._instances.delete(this.options.id);
+        if (ModalComponent._activeModal === this) {
+            ModalComponent._activeModal = null;
+        }
+
+        const globalModal = document.getElementById('global-modal');
+        const hasOpenGlobal = globalModal && !globalModal.classList.contains('hidden');
+        if (ModalComponent._instances.size === 0 && !hasOpenGlobal) {
+            document.body.style.overflow = '';
+        }
+
         if (this.element && this.element.parentNode) {
             this.element.parentNode.removeChild(this.element);
         }
@@ -235,4 +249,71 @@ export class ModalComponent {
             this.close();
         }
     }
+
+    /**
+     * Instância estática ativa mais recente
+     */
+    static _activeModal = null;
+    static _instances = new Map();
+
+    /**
+     * Abre um modal a partir de opções estáticas
+     * @param {Object} options 
+     * @returns {ModalComponent}
+     */
+    static open(options = {}) {
+        // Normaliza parâmetros comuns (ex: titulo -> title, conteudo -> content, tamanho -> maxWidth)
+        const opts = {
+            id: options.id,
+            title: options.title || options.titulo || 'Informação',
+            content: options.content || options.conteudo || '',
+            icon: options.icon || options.icone || 'fa-info-circle',
+            maxWidth: options.maxWidth || (options.size === 'xl' || options.tamanho === 'xl' ? '900px' : options.size === 'lg' || options.tamanho === 'lg' || options.tamanho === 'large' ? '800px' : options.size === 'sm' || options.tamanho === 'small' ? '420px' : '620px'),
+            actions: options.actions || options.acoes || [],
+            onClose: options.onClose
+        };
+
+        const modal = new ModalComponent(opts);
+        ModalComponent._activeModal = modal;
+        ModalComponent._instances.set(modal.options.id, modal);
+        modal.open();
+        return modal;
+    }
+
+    /**
+     * Alias para ModalComponent.open
+     */
+    static show(options = {}) {
+        return ModalComponent.open(options);
+    }
+
+    /**
+     * Fecha o modal ativo ou o modal com ID específico
+     * @param {string} [id] 
+     */
+    static close(id = null) {
+        if (id && ModalComponent._instances.has(id)) {
+            const modal = ModalComponent._instances.get(id);
+            ModalComponent._instances.delete(id);
+            if (modal) modal.close();
+            return;
+        }
+
+        if (ModalComponent._activeModal) {
+            const modal = ModalComponent._activeModal;
+            ModalComponent._activeModal = null;
+            modal.close();
+            return;
+        }
+
+        // Fallback: fecha controller.closeModal se existir modal aberto pelo controller
+        if (typeof window.controller !== 'undefined' && typeof window.controller.closeModal === 'function') {
+            window.controller.closeModal();
+        }
+    }
+}
+
+// Vincula ao escopo global para acesso seguro em todo o projeto
+if (typeof window !== 'undefined') {
+    window.ModalComponent = ModalComponent;
 }

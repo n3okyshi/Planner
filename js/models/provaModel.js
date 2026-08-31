@@ -12,16 +12,34 @@ export const provaMethods = {
             if (!manifestRes.ok) throw new Error("Manifest não encontrado");
             const listaArquivos = await manifestRes.json();
             const buscas = listaArquivos.map(arquivo =>
-                fetch(`./assets/data/${arquivo}`).then(res => res.json())
+                fetch(`./assets/data/${arquivo}`)
+                    .then(res => res.json())
+                    .then(itens => ({ arquivo, itens }))
             );
             const resultados = await Promise.all(buscas);
-            this.state.questoesSistema = resultados.flat().map(q => ({
-                ...q,
-                id: q.id || generateId('sys'),
-                dificuldade: Number(q.dificuldade) || 0,
-                preDefinida: true
-            }));
-            console.log(`✅ Banco Global: ${this.state.questoesSistema.length} questões carregadas.`);
+
+            const sysList = [];
+            const enemList = [];
+
+            resultados.forEach(({ arquivo, itens }) => {
+                const isEnem = arquivo.toLowerCase().includes('enem');
+                const formatados = (Array.isArray(itens) ? itens : []).map(q => ({
+                    ...q,
+                    id: q.id || generateId(isEnem ? 'enem' : 'sys'),
+                    dificuldade: q.dificuldade || 'Média',
+                    preDefinida: true
+                }));
+
+                if (isEnem) {
+                    enemList.push(...formatados);
+                } else {
+                    sysList.push(...formatados);
+                }
+            });
+
+            this.state.questoesSistema = sysList;
+            this.state.questoesEnem = enemList;
+            console.log(`✅ Banco do Sistema: ${this.state.questoesSistema.length} questões | Banco ENEM: ${this.state.questoesEnem.length} questões.`);
         } catch (e) {
             console.error("❌ Erro ao carregar banco de questões do sistema:", e);
         }
@@ -171,7 +189,8 @@ export const provaMethods = {
     gerarSelecaoAutomatica(filtros, quantidade, distribuicao) {
         const todasQuestoes = [
             ...(this.state.questoes || []),
-            ...(this.state.questoesSistema || [])
+            ...(this.state.questoesSistema || []),
+            ...(this.state.questoesEnem || [])
         ];
         const poolCandidatas = todasQuestoes.filter(q => {
             const matchMateria = !filtros.materia || q.materia === filtros.materia;

@@ -100,7 +100,8 @@ export function secureShuffle(array) {
 
 /**
  * Normaliza e sanitiza expressões TeX/LaTeX no texto, convertendo delimitadores de cifrão ($...$ e $$...$$) 
- * para a sintaxe moderna \(...\) e \[...\], e tratando rigorosamente cifrões soltos e valores monetários (ex: R$ 100,00 ou $ \text{R$} $).
+ * para a sintaxe moderna \(...\) e \[...\], tratando rigorosamente homóglifos Unicode (barras e parênteses de PDFs),
+ * caracteres invisíveis e protegendo valores monetários (ex: R$ 100,00 ou US$ 50).
  * @param {string} texto 
  * @returns {string} Texto com delimitadores TeX modernizados e moedas protegidas.
  */
@@ -108,19 +109,55 @@ export function normalizarDelimitadoresLatex(texto) {
     if (!texto) return '';
     let str = String(texto);
 
-    // 1. Normalização de múltiplos backslashes antes de delimitadores TeX (ex: "\\(" -> "\(" e "\\)" -> "\)")
+    // 1. Limpeza de caracteres invisíveis e soft hyphens que PDFs e Notebooks inserem
+    str = str
+        .replace(/[\u200B\u200C\u200D\uFEFF\u00AD]/g, '') // Zero-width spaces & soft hyphens
+        .replace(/\u00A0/g, ' '); // Non-breaking space
+
+    // 2. Normalização de homóglifos Unicode para barras e delimitadores matemáticos
+    // Converte barras invertidas especiais: \u2216 (∖), \uFE68 (﹨), \uFF3C (＼) para ASCII '\'
+    str = str.replace(/[\u2216\uFE68\uFF3C]/g, '\\');
+    // Converte parênteses largos: \uFF08 (（), \uFF09 (）) para '(' e ')'
+    str = str.replace(/\uFF08/g, '(').replace(/\uFF09/g, ')');
+    // Converte colchetes largos: \uFF3B (［), \uFF3D (］) para '[' e ']'
+    str = str.replace(/\uFF3B/g, '[').replace(/\uFF3D/g, ']');
+
+    // Normalização de símbolos Delta Unicode (∆ / Δ) para comando TeX \Delta
+    str = str.replace(/[\u2206\u0394]/g, '\\Delta ');
+
+    // 3. Normalização de múltiplos backslashes antes de delimitadores TeX (ex: "\\(" -> "\(" e "\\)" -> "\)")
     str = str
         .replace(/\\+\(/g, '\\(')
         .replace(/\\+\)/g, '\\)')
         .replace(/\\+\[/g, '\\[')
         .replace(/\\+\]/g, '\\]');
 
-    // 2. Normalização de espaçamentos em delimitadores TeX (ex: "\ (" -> "\(" e "\ )" -> "\)")
+    // 4. Normalização de espaçamentos anômalos em delimitadores (ex: "\ (" -> "\(" e "\ )" -> "\)")
     str = str
         .replace(/\\\s+\(/g, '\\(')
         .replace(/\\\s+\)/g, '\\)')
         .replace(/\\\s+\[/g, '\\[')
         .replace(/\\\s+\]/g, '\\]');
+
+    // 5. Proteção de valores monetários para evitar colisão com delimitadores de cifrão
+    const moedasProtegidas = [];
+    str = str.replace(/\b(?:R\$|US\$|\$)\s*\d+(?:[.,]\d+)?\b/gi, (match) => {
+        const idx = moedasProtegidas.length;
+        moedasProtegidas.push(match);
+        return `___MOEDA_PROTEGIDA_${idx}___`;
+    });
+
+    // 6. Conversão de blocos $$ ... $$ para \[ ... \]
+    str = str.replace(/\$\$\s*([\s\S]+?)\s*\$\$/g, '\\[$1\\]');
+
+    // 7. Conversão de inline $ ... $ para \( ... \)
+    str = str.replace(/(^|[^\\])\$([^\$\n\r]+?)\$/g, '$1\\($2\\)');
+
+    // 8. Restauração das moedas protegidas
+    str = str.replace(/___MOEDA_PROTEGIDA_(\d+)___/g, (match, idxStr) => {
+        const idx = parseInt(idxStr, 10);
+        return moedasProtegidas[idx] !== undefined ? moedasProtegidas[idx] : match;
+    });
 
     return str;
 }
@@ -171,7 +208,7 @@ export function sanitizeComLatex(rawHtml) {
 
 /**
  * Aplica o KaTeX em um elemento DOM específico de forma segura, modular e resiliente.
- * Suporta delimitação de bloco (\[ ... \]), em linha (\( ... \)) e ambientes matriciais e algébricos.
+ * Suporta estritamente delimitação de bloco (\[ ... \]), em linha (\( ... \)) e ambientes matemáticos.
  * Desescapa entidades HTML (&lt;, &gt;, &amp;) dentro das fórmulas para evitar erros de parser.
  * @param {HTMLElement|string} element - O elemento DOM ou ID do elemento que contém o texto LaTeX.
  * @param {Object} [customOptions] - Opções adicionais para o renderMathInElement.
@@ -180,6 +217,12 @@ export function renderMath(element, customOptions = {}) {
     if (!element) return;
     const target = typeof element === 'string' ? document.getElementById(element) : element;
     if (!target) return;
+
+    // Otimização de Performance: Se o container não contiver nenhum delimitador LaTeX, retorna imediatamente
+    const htmlContent = target.innerHTML || target.textContent || '';
+    if (!htmlContent.includes('\\(') && !htmlContent.includes('\\[') && !htmlContent.includes('\\begin') && !htmlContent.includes('\\Delta')) {
+        return;
+    }
 
     desescaparEntidadesMatematicas(target);
 
@@ -203,7 +246,7 @@ export function renderMath(element, customOptions = {}) {
         ignoredClasses: ['no-katex'],
         throwOnError: false,
         errorColor: '#dc2626',
-        strict: false,
+        strict: 'ignore', // Silencia avisos não-fatais de métricas de caracteres como Delta/Unicode
         ...customOptions
     };
 
@@ -221,7 +264,6 @@ export function renderMath(element, customOptions = {}) {
                 console.warn('[KaTeX] Falha ao processar matemática no nó:', err);
             }
         } else if (window.katex && typeof window.katex.renderToString === 'function') {
-            // Fallback direto via renderToString caso auto-render não esteja pronto
             renderizarFallbackManual(target);
         }
     };
@@ -244,6 +286,351 @@ export function renderMath(element, customOptions = {}) {
 }
 
 /**
+ * Converte uma expressão LaTeX pura para MathML estruturado compatível com Microsoft Word / OMML.
+ * @param {string} latex 
+ * @param {boolean} displayMode 
+ * @returns {string} Código MathML
+ */
+export function converterLatexParaMathML(latex, displayMode = false) {
+    if (!latex) return '';
+    let limpo = String(latex).trim()
+        .replace(/^\\\(|\\\)$/g, '')
+        .replace(/^\\\[|\\\]$/g, '')
+        .replace(/[\u2206\u0394]/g, '\\Delta ');
+
+    if (window.katex && typeof window.katex.renderToString === 'function') {
+        try {
+            const raw = window.katex.renderToString(limpo, {
+                displayMode: displayMode,
+                output: 'mathml',
+                throwOnError: false,
+                strict: 'ignore'
+            });
+            const mathMatch = raw.match(/<math[\s\S]*?<\/math>/i);
+            if (mathMatch) {
+                return mathMatch[0];
+            }
+            return raw;
+        } catch (e) {
+            console.warn("Erro ao converter LaTeX para MathML via KaTeX:", e);
+        }
+    }
+
+    return `<math xmlns="http://www.w3.org/1998/Math/MathML" ${displayMode ? 'display="block"' : ''}><mtext>${escapeHTML(limpo)}</mtext></math>`;
+}
+
+/**
+ * Converte todo o conteúdo HTML contendo fórmulas LaTeX \( \) e \[ \] em equações nativas do Word (MathML).
+ * Higieniza elementos KaTeX pré-renderizados para evitar duplicação de texto e MathML no Office/Word.
+ * @param {string} html 
+ * @returns {string} HTML com equações MathML nativas limpas (OMML)
+ */
+export function converterHtmlLatexParaWordEquations(html) {
+    if (!html) return '';
+    let str = String(html);
+
+    // 1. Remove qualquer bloco katex-html duplicado antes de tudo
+    str = str.replace(/<span[^>]*class="[^"]*katex-html[^"]*"[^>]*>[\s\S]*?<\/span>/gi, '');
+
+    // 2. Extrai LaTeX de annotations do KaTeX já renderizado (<span class="katex">)
+    str = str.replace(/<span[^>]*class="[^"]*katex(?:-display)?[^"]*"[^>]*>([\s\S]*?)<\/span>/gi, (match) => {
+        const annotationMatch = match.match(/<annotation[^>]*encoding="application\/x-tex"[^>]*>([\s\S]*?)<\/annotation>/i);
+        if (annotationMatch && annotationMatch[1]) {
+            const display = match.includes('katex-display');
+            return converterLatexParaMathML(annotationMatch[1], display);
+        }
+        const mathMatch = match.match(/<math[\s\S]*?<\/math>/i);
+        return mathMatch ? mathMatch[0] : '';
+    });
+
+    // 3. Normaliza delimitadores estritos e converte LaTeX restante
+    str = normalizarDelimitadoresLatex(str);
+
+    // Converte blocos \[ ... \] para MathML de exibição em bloco
+    str = str.replace(/\\\[([\s\S]*?)\\\]/g, (match, formula) => {
+        return converterLatexParaMathML(formula, true);
+    });
+
+    // Converte ambientes \begin{...} ... \end{...}
+    str = str.replace(/\\begin\{([a-zA-Z*]+)\}([\s\S]*?)\\end\{\1\}/g, (match) => {
+        return converterLatexParaMathML(match, true);
+    });
+
+    // Converte inline \( ... \) para MathML em linha
+    str = str.replace(/\\\(([\s\S]*?)\\\)/g, (match, formula) => {
+        return converterLatexParaMathML(formula, false);
+    });
+
+    return str;
+}
+
+/**
+ * Utilitário leve de cálculo de CRC32 em Vanilla JS puro (Tabela IEEE 802.3)
+ */
+function calcularCRC32(bytes) {
+    let crc = 0 ^ (-1);
+    for (let i = 0; i < bytes.length; i++) {
+        crc = (crc >>> 8) ^ _tabelaCRC[(crc ^ bytes[i]) & 0xFF];
+    }
+    return (crc ^ (-1)) >>> 0;
+}
+
+const _tabelaCRC = (() => {
+    let c;
+    const table = [];
+    for (let n = 0; n < 256; n++) {
+        c = n;
+        for (let k = 0; k < 8; k++) {
+            c = ((c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1));
+        }
+        table[n] = c;
+    }
+    return table;
+})();
+
+/**
+ * Empacotador ZIP Binário Ultraleve (100% Vanilla JS ES6+ - Sem dependências externas)
+ * Cria arquivos .zip / .docx válidos no navegador usando Uint8Array.
+ * @param {Object.<string, string|Uint8Array>} arquivosMap - Mapeamento de caminho relativo para conteúdo
+ * @returns {Blob}
+ */
+export function criarZipBinario(arquivosMap) {
+    const encoder = new TextEncoder();
+    const entradas = [];
+    let offsetLocal = 0;
+
+    for (const [nome, conteudo] of Object.entries(arquivosMap)) {
+        const nomeBytes = encoder.encode(nome);
+        const dadosBytes = typeof conteudo === 'string' ? encoder.encode(conteudo) : conteudo;
+        const tamanho = dadosBytes.length;
+        const crc = calcularCRC32(dadosBytes);
+
+        // Local File Header (30 bytes + nome + dados)
+        const cabecalhoLocal = new Uint8Array(30 + nomeBytes.length + tamanho);
+        const viewLocal = new DataView(cabecalhoLocal.buffer);
+
+        viewLocal.setUint32(0, 0x04034b50, true); // Local header signature
+        viewLocal.setUint16(4, 20, true);         // Version needed to extract (2.0)
+        viewLocal.setUint16(6, 0x0800, true);     // General purpose bit flag (UTF-8)
+        viewLocal.setUint16(8, 0, true);          // Compression method (0 = Store)
+        viewLocal.setUint16(10, 0, true);         // Last mod file time
+        viewLocal.setUint16(12, 0, true);         // Last mod file date
+        viewLocal.setUint32(14, crc, true);       // CRC-32
+        viewLocal.setUint32(18, tamanho, true);   // Compressed size
+        viewLocal.setUint32(22, tamanho, true);   // Uncompressed size
+        viewLocal.setUint16(26, nomeBytes.length, true); // File name length
+        viewLocal.setUint16(28, 0, true);         // Extra field length
+
+        cabecalhoLocal.set(nomeBytes, 30);
+        cabecalhoLocal.set(dadosBytes, 30 + nomeBytes.length);
+
+        entradas.push({
+            nomeBytes,
+            tamanho,
+            crc,
+            offset: offsetLocal,
+            dados: cabecalhoLocal
+        });
+
+        offsetLocal += cabecalhoLocal.length;
+    }
+
+    // Central Directory Headers
+    const centralHeaders = [];
+    let tamanhoCentral = 0;
+
+    for (const e of entradas) {
+        const cabCentral = new Uint8Array(46 + e.nomeBytes.length);
+        const viewCentral = new DataView(cabCentral.buffer);
+
+        viewCentral.setUint32(0, 0x02014b50, true); // Central directory header signature
+        viewCentral.setUint16(4, 20, true);          // Version made by
+        viewCentral.setUint16(6, 20, true);          // Version needed
+        viewCentral.setUint16(8, 0x0800, true);      // General purpose bit flag (UTF-8)
+        viewCentral.setUint16(10, 0, true);          // Compression method (0 = Store)
+        viewCentral.setUint16(12, 0, true);          // Mod time
+        viewCentral.setUint16(14, 0, true);          // Mod date
+        viewCentral.setUint32(16, e.crc, true);      // CRC-32
+        viewCentral.setUint32(20, e.tamanho, true);  // Compressed size
+        viewCentral.setUint32(24, e.tamanho, true);  // Uncompressed size
+        viewCentral.setUint16(28, e.nomeBytes.length, true); // File name length
+        viewCentral.setUint16(30, 0, true);          // Extra field length
+        viewCentral.setUint16(32, 0, true);          // Comment length
+        viewCentral.setUint16(34, 0, true);          // Disk number start
+        viewCentral.setUint16(36, 0, true);          // Internal file attributes
+        viewCentral.setUint32(38, 0, true);          // External file attributes
+        viewCentral.setUint32(42, e.offset, true);   // Relative offset of local header
+
+        cabCentral.set(e.nomeBytes, 46);
+        centralHeaders.push(cabCentral);
+        tamanhoCentral += cabCentral.length;
+    }
+
+    // End of Central Directory Record (22 bytes)
+    const eocd = new Uint8Array(22);
+    const vEocd = new DataView(eocd.buffer);
+    vEocd.setUint32(0, 0x06054b50, true); // EOCD signature
+    vEocd.setUint16(4, 0, true);          // disk number
+    vEocd.setUint16(6, 0, true);          // start disk
+    vEocd.setUint16(8, entradas.length, true);  // entries on disk
+    vEocd.setUint16(10, entradas.length, true); // total entries
+    vEocd.setUint32(12, tamanhoCentral, true);  // size of central directory
+    vEocd.setUint32(16, offsetLocal, true);     // offset of central directory
+    vEocd.setUint16(20, 0, true);               // comment length
+
+    const partes = [];
+    for (const e of entradas) partes.push(e.dados);
+    for (const c of centralHeaders) partes.push(c);
+    partes.push(eocd);
+
+    return new Blob(partes, { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
+}
+
+/**
+ * Exporta conteúdo em arquivo .docx genuíno (OpenXML + OMML) ou .doc padrão
+ * @param {string} htmlDoc 
+ * @param {string} nomeBase 
+ * @param {string} [formato='docx'] - 'docx' ou 'doc'
+ */
+export function exportarMaterialWord(htmlDoc, nomeBase = 'material_pedagogico', formato = 'docx') {
+    if (!htmlDoc) return;
+    const nomeLimpo = (nomeBase || 'material_pedagogico')
+        .replace(/[\/\\:\*\?"<>\|]/g, '_')
+        .replace(/\s+/g, '_')
+        .trim();
+
+    const htmlComEquacoes = converterHtmlLatexParaWordEquations(htmlDoc);
+
+    const htmlCompletoWord = `<!DOCTYPE html>
+<html xmlns:o="urn:schemas-microsoft-com:office:office"
+      xmlns:w="urn:schemas-microsoft-com:office:word"
+      xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"
+      xmlns="http://www.w3.org/TR/REC-html40">
+<head>
+<meta charset="utf-8">
+<!--[if gte mso 9]>
+<xml>
+<w:WordDocument>
+<w:View>Print</w:View>
+<w:Zoom>100</w:Zoom>
+<w:DoNotOptimizeForBrowser/>
+</w:WordDocument>
+</xml>
+<![endif]-->
+<style>
+body { font-family: 'Calibri', 'Segoe UI', Arial, sans-serif; font-size: 11pt; line-height: 1.4; color: #1e293b; }
+h1 { font-size: 18pt; font-weight: bold; margin-bottom: 12pt; color: #0f172a; }
+h2 { font-size: 14pt; font-weight: bold; margin-top: 12pt; margin-bottom: 6pt; color: #334155; }
+h3 { font-size: 12pt; font-weight: bold; margin-top: 8pt; margin-bottom: 4pt; }
+table { border-collapse: collapse; width: 100%; margin: 10pt 0; }
+th, td { border: 1px solid #cbd5e1; padding: 5pt 8pt; vertical-align: top; }
+th { background-color: #f1f5f9; font-weight: bold; }
+mark { background-color: #fef08a; padding: 1pt 3pt; }
+.gabarito-bloco { background-color: #f0fdf4; border: 1.5pt solid #22c55e; padding: 8pt; margin: 10pt 0; }
+.comentario-professor { background-color: #eff6ff; border-left: 3pt solid #3b82f6; padding: 8pt; margin: 10pt 0; }
+math { font-family: 'Cambria Math', 'Cambria', serif; }
+</style>
+</head>
+<body>
+${htmlComEquacoes}
+</body>
+</html>`;
+
+    if (formato === 'doc') {
+        const blob = new Blob(['\ufeff' + htmlCompletoWord], {
+            type: 'application/msword;charset=utf-8'
+        });
+        _dispararDownload(blob, `${nomeLimpo}.doc`);
+        return;
+    }
+
+    // Geração de pacote DOCX padrão OpenXML com documento HTML embutido / OMML
+    const contentTypesXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
+  <Default Extension="xml" ContentType="application/xml"/>
+  <Default Extension="html" ContentType="text/html"/>
+  <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
+</Types>`;
+
+    const relsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+</Relationships>`;
+
+    const docRelsXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/aFChunk" Target="afchunk.html"/>
+</Relationships>`;
+
+    const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+            xmlns:m="http://schemas.openxmlformats.org/officeDocument/2006/math"
+            xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <w:body>
+    <w:altChunk r:id="rId1"/>
+    <w:sectPr>
+      <w:pgSz w:w="11906" w:h="16838"/>
+      <w:pgMar w:top="1134" w:right="1134" w:bottom="1134" w:left="1134"/>
+    </w:sectPr>
+  </w:body>
+</w:document>`;
+
+    const arquivosDocx = {
+        '[Content_Types].xml': contentTypesXml,
+        '_rels/.rels': relsXml,
+        'word/_rels/document.xml.rels': docRelsXml,
+        'word/document.xml': documentXml,
+        'word/afchunk.html': htmlCompletoWord
+    };
+
+    const blobDocx = criarZipBinario(arquivosDocx);
+    _dispararDownload(blobDocx, `${nomeLimpo}.docx`);
+}
+
+function _dispararDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+
+/**
+ * Copia o conteúdo com suporte completo a MathML para a área de transferência.
+ * Ao colar no Microsoft Word (Office 365, Word 2019/2016), as fórmulas se tornam equações nativas editáveis.
+ * @param {string|HTMLElement} conteudo 
+ * @returns {Promise<boolean>}
+ */
+export async function copiarParaWordComEquacoes(conteudo) {
+    try {
+        let htmlStr = typeof conteudo === 'string' ? conteudo : (conteudo.innerHTML || conteudo.innerText || '');
+        const htmlWord = converterHtmlLatexParaWordEquations(htmlStr);
+
+        if (navigator.clipboard && window.ClipboardItem) {
+            const blobHtml = new Blob([htmlWord], { type: 'text/html' });
+            const blobText = new Blob([htmlStr.replace(/<[^>]*>/g, '')], { type: 'text/plain' });
+            await navigator.clipboard.write([
+                new ClipboardItem({
+                    'text/html': blobHtml,
+                    'text/plain': blobText
+                })
+            ]);
+            return true;
+        } else {
+            await navigator.clipboard.writeText(htmlStr);
+            return true;
+        }
+    } catch (e) {
+        console.warn("Falha na cópia rica para o Word. Utilizando fallback:", e);
+        return false;
+    }
+}
+
+/**
  * Alias retrocompatível para renderMath
  */
 export const renderKatex = renderMath;
@@ -254,16 +641,8 @@ export const renderKatex = renderMath;
 function desescaparEntidadesMatematicas(node) {
     if (!node) return;
     if (node.nodeType === Node.TEXT_NODE) {
-        if (node.nodeValue && node.nodeValue.includes('\\')) {
-            node.nodeValue = node.nodeValue
-                .replace(/\\+\(/g, '\\(')
-                .replace(/\\+\)/g, '\\)')
-                .replace(/\\+\[/g, '\\[')
-                .replace(/\\+\]/g, '\\]')
-                .replace(/\\\s+\(/g, '\\(')
-                .replace(/\\\s+\)/g, '\\)')
-                .replace(/\\\s+\[/g, '\\[')
-                .replace(/\\\s+\]/g, '\\]')
+        if (node.nodeValue && (node.nodeValue.includes('\\') || node.nodeValue.includes('$'))) {
+            node.nodeValue = normalizarDelimitadoresLatex(node.nodeValue)
                 .replace(/\\\[([\s\S]*?)\\\]/g, (m, math) => `\\[${math.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'").replace(/&quot;/g, '"')}\\]`)
                 .replace(/\\begin\{([a-zA-Z*]+)\}([\s\S]*?)\\end\{\1\}/g, (m, env, math) => `\\begin{${env}}${math.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'").replace(/&quot;/g, '"')}\\end{${env}}`)
                 .replace(/\\\(([\s\S]*?)\\\)/g, (m, math) => `\\(${math.replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'").replace(/&quot;/g, '"')}\\)`);
@@ -620,45 +999,272 @@ export function alternarModoEdicaoPreview(textareaId, previewId, btnId) {
 }
 
 /**
- * Lê o conteúdo textual de um arquivo (TXT, MD, CSV, JSON, PDF simples) no navegador.
+ * Extrai texto e estrutura HTML de um arquivo .docx utilizando descompressão nativa DecompressionStream
+ * e DOMParser sem qualquer dependência externa ou biblioteca npm.
+ * @param {File|Blob|ArrayBuffer} fileOuBuffer 
+ * @returns {Promise<{ texto: string, html: string }>}
+ */
+export async function extrairTextoDocx(fileOuBuffer) {
+    try {
+        let buffer;
+        if (fileOuBuffer instanceof ArrayBuffer) {
+            buffer = fileOuBuffer;
+        } else if (fileOuBuffer && typeof fileOuBuffer.arrayBuffer === 'function') {
+            buffer = await fileOuBuffer.arrayBuffer();
+        } else {
+            return { texto: "", html: "" };
+        }
+
+        const uint8 = new Uint8Array(buffer);
+        const dataView = new DataView(buffer);
+        let offset = 0;
+        let documentXmlBytes = null;
+        let compressionMethod = 0;
+
+        // Itera pelos cabeçalhos locais do arquivo ZIP (PK\x03\x04 = 0x04034b50 em little endian)
+        while (offset < uint8.length - 30) {
+            if (dataView.getUint32(offset, true) === 0x04034b50) {
+                const compMethod = dataView.getUint16(offset + 8, true);
+                const compressedSize = dataView.getUint32(offset + 18, true);
+                const fileNameLen = dataView.getUint16(offset + 26, true);
+                const extraFieldLen = dataView.getUint16(offset + 28, true);
+
+                const fileNameBytes = uint8.slice(offset + 30, offset + 30 + fileNameLen);
+                const fileName = new TextDecoder('utf-8').decode(fileNameBytes);
+
+                const dataStart = offset + 30 + fileNameLen + extraFieldLen;
+
+                if (fileName === 'word/document.xml') {
+                    compressionMethod = compMethod;
+                    if (compressedSize > 0) {
+                        documentXmlBytes = uint8.slice(dataStart, dataStart + compressedSize);
+                    } else {
+                        let nextHeader = dataStart;
+                        while (nextHeader < uint8.length - 4) {
+                            const sig = dataView.getUint32(nextHeader, true);
+                            if (sig === 0x04034b50 || sig === 0x02014b50 || sig === 0x08074b50) break;
+                            nextHeader++;
+                        }
+                        documentXmlBytes = uint8.slice(dataStart, nextHeader);
+                    }
+                    break;
+                }
+
+                offset = dataStart + (compressedSize > 0 ? compressedSize : 0);
+                if (compressedSize === 0) offset += 1;
+            } else {
+                offset++;
+            }
+        }
+
+        if (!documentXmlBytes || documentXmlBytes.length === 0) {
+            return { texto: "", html: "" };
+        }
+
+        let xmlString = "";
+        if (compressionMethod === 8) {
+            if (typeof DecompressionStream !== 'undefined') {
+                const ds = new DecompressionStream('deflate-raw');
+                const stream = new Blob([documentXmlBytes]).stream().pipeThrough(ds);
+                xmlString = await new Response(stream).text();
+            } else {
+                xmlString = new TextDecoder('utf-8').decode(documentXmlBytes);
+            }
+        } else {
+            xmlString = new TextDecoder('utf-8').decode(documentXmlBytes);
+        }
+
+        const parser = new DOMParser();
+        const xmlDoc = parser.parseFromString(xmlString, "application/xml");
+        const paragraphs = xmlDoc.getElementsByTagName("w:p");
+
+        const paragrafosTexto = [];
+        const paragrafosHtml = [];
+
+        for (let i = 0; i < paragraphs.length; i++) {
+            const p = paragraphs[i];
+            const textNodes = p.getElementsByTagName("w:t");
+            let pText = "";
+            for (let j = 0; j < textNodes.length; j++) {
+                pText += textNodes[j].textContent || "";
+            }
+            pText = pText.trim();
+            if (!pText) continue;
+
+            paragrafosTexto.push(pText);
+
+            const pStyle = p.getElementsByTagName("w:pStyle")[0];
+            const styleVal = pStyle ? (pStyle.getAttribute("w:val") || "") : "";
+
+            if (styleVal.toLowerCase().includes("heading1") || styleVal.toLowerCase().includes("título1")) {
+                paragrafosHtml.push(`<h2>${escapeHTML(pText)}</h2>`);
+            } else if (styleVal.toLowerCase().includes("heading") || styleVal.toLowerCase().includes("título")) {
+                paragrafosHtml.push(`<h3>${escapeHTML(pText)}</h3>`);
+            } else if (p.getElementsByTagName("w:numPr").length > 0) {
+                paragrafosHtml.push(`<li>${escapeHTML(pText)}</li>`);
+            } else {
+                paragrafosHtml.push(`<p>${escapeHTML(pText)}</p>`);
+            }
+        }
+
+        return {
+            texto: paragrafosTexto.join("\n\n"),
+            html: paragrafosHtml.join("\n")
+        };
+    } catch (err) {
+        console.warn("⚠️ Extração nativa de .docx encontrou um aviso:", err);
+        return { texto: "", html: "" };
+    }
+}
+
+/**
+ * Extrai texto e HTML formatado de qualquer documento suportado (.docx, .doc, .pdf, .txt, .md).
+ * @param {File} file 
+ * @returns {Promise<{ titulo: string, texto: string, html: string, sucesso: boolean, aviso: string, extensao: string, tamanhoBytes: number }>}
+ */
+export async function extrairDocumentoCompleto(file) {
+    if (!file) return { titulo: "", texto: "", html: "", sucesso: false, aviso: "Nenhum arquivo fornecido.", extensao: "", tamanhoBytes: 0 };
+
+    const nomeOriginal = file.name || "Material_Importado";
+    const partesNome = nomeOriginal.split('.');
+    const extensao = partesNome.length > 1 ? partesNome.pop().toLowerCase() : "";
+    const tituloSugerido = partesNome.join('.').replace(/[-_]/g, ' ').trim();
+    const tamanhoBytes = file.size || 0;
+
+    try {
+        if (extensao === 'docx') {
+            const res = await extrairTextoDocx(file);
+            if (res.texto && res.texto.trim().length > 0) {
+                return {
+                    titulo: tituloSugerido,
+                    texto: res.texto,
+                    html: res.html || res.texto.split('\n\n').map(p => `<p>${escapeHTML(p)}</p>`).join('\n'),
+                    sucesso: true,
+                    aviso: "",
+                    extensao,
+                    tamanhoBytes
+                };
+            }
+        }
+
+        if (extensao === 'doc') {
+            // Verifica se é arquivo .doc baseado em HTML (formato gerado pelo Planner Pro / Word Web)
+            const conteudoRaw = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result || "");
+                reader.onerror = reject;
+                reader.readAsText(file, 'utf-8');
+            });
+
+            if (conteudoRaw.includes('<html') || conteudoRaw.includes('<body') || conteudoRaw.includes('<p>')) {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(conteudoRaw, 'text/html');
+                const bodyHtml = doc.body ? doc.body.innerHTML : conteudoRaw;
+                const textContent = (doc.body ? doc.body.textContent : conteudoRaw).replace(/\s+/g, ' ').trim();
+                return {
+                    titulo: tituloSugerido,
+                    texto: textContent,
+                    html: bodyHtml,
+                    sucesso: true,
+                    aviso: "",
+                    extensao,
+                    tamanhoBytes
+                };
+            } else {
+                // Fallback para arquivo binário antigo Word 97-2003
+                const textoExtraido = conteudoRaw.replace(/[^\x20-\x7E\u00A0-\u00FF\n\r]/g, ' ').replace(/\s+/g, ' ').trim();
+                return {
+                    titulo: tituloSugerido,
+                    texto: textoExtraido,
+                    html: textoExtraido ? textoExtraido.split('\n\n').map(p => `<p>${escapeHTML(p)}</p>`).join('\n') : `<p>${escapeHTML(nomeOriginal)}</p>`,
+                    sucesso: Boolean(textoExtraido),
+                    aviso: textoExtraido ? "" : "Arquivo .doc binário legado. Recomendamos salvar como .docx para melhor formatação.",
+                    extensao,
+                    tamanhoBytes
+                };
+            }
+        }
+
+        if (extensao === 'pdf') {
+            const rawContent = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => resolve(e.target.result || "");
+                reader.onerror = reject;
+                reader.readAsBinaryString(file);
+            });
+
+            const textMatches = rawContent.match(/\(([^)]+)\)\s*Tj|\[([^\]]+)\]\s*TJ/g);
+            let textoExtraido = "";
+            if (textMatches && textMatches.length > 0) {
+                textoExtraido = textMatches.map(m => m.replace(/[()[\]TjTJ]/g, '').trim()).join(' ');
+            } else {
+                textoExtraido = rawContent.replace(/[^\x20-\x7E\u00A0-\u00FF\n\r]/g, ' ').replace(/\s+/g, ' ').trim();
+            }
+
+            // Remove fragmentos técnicos de PDF se não houver texto legível
+            const palavrasLegiveis = (textoExtraido.match(/[A-Za-zÀ-ÿ]{3,}/g) || []).length;
+            const isScanned = palavrasLegiveis < 5;
+
+            return {
+                titulo: tituloSugerido,
+                texto: isScanned ? "" : textoExtraido.substring(0, 45000),
+                html: isScanned ? "" : textoExtraido.substring(0, 45000).split('\n\n').map(p => `<p>${escapeHTML(p)}</p>`).join('\n'),
+                sucesso: !isScanned,
+                aviso: isScanned ? "Este arquivo PDF parece ser uma imagem digitalizada sem camada de texto pesquisável (OCR). O arquivo foi anexado ao seu acervo e pode ser organizado em pastas." : "",
+                extensao,
+                tamanhoBytes
+            };
+        }
+
+        // TXT, MD, CSV, JSON
+        const textoPlano = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result || "");
+            reader.onerror = reject;
+            reader.readAsText(file, 'utf-8');
+        });
+
+        const paragrafos = textoPlano.split(/\r?\n\r?\n/).filter(p => p.trim());
+        const htmlGerado = paragrafos.map(p => {
+            if (p.startsWith('# ')) return `<h1>${escapeHTML(p.replace(/^#\s+/, ''))}</h1>`;
+            if (p.startsWith('## ')) return `<h2>${escapeHTML(p.replace(/^##\s+/, ''))}</h2>`;
+            if (p.startsWith('### ')) return `<h3>${escapeHTML(p.replace(/^###\s+/, ''))}</h3>`;
+            if (p.startsWith('- ') || p.startsWith('* ')) return `<li>${escapeHTML(p.replace(/^[-*]\s+/, ''))}</li>`;
+            return `<p>${escapeHTML(p)}</p>`;
+        }).join('\n');
+
+        return {
+            titulo: tituloSugerido,
+            texto: textoPlano,
+            html: htmlGerado,
+            sucesso: true,
+            aviso: "",
+            extensao,
+            tamanhoBytes
+        };
+    } catch (e) {
+        console.error("Erro na extração de documento:", e);
+        return {
+            titulo: tituloSugerido,
+            texto: "",
+            html: "",
+            sucesso: false,
+            aviso: `Não foi possível extrair o conteúdo do arquivo ${nomeOriginal}.`,
+            extensao,
+            tamanhoBytes
+        };
+    }
+}
+
+/**
+ * Lê o conteúdo textual de um arquivo (TXT, MD, CSV, JSON, DOCX, DOC, PDF) no navegador.
  * @param {File} file 
  * @returns {Promise<string>}
  */
 export async function lerArquivoTexto(file) {
     if (!file) return "";
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        const ext = file.name.split('.').pop().toLowerCase();
-
-        if (ext === 'pdf') {
-            reader.onload = function (e) {
-                try {
-                    const content = e.target.result;
-                    // Extração de texto de fluxos PDF sem dependências externas
-                    const textMatches = content.match(/\(([^)]+)\)\s*Tj|\[([^\]]+)\]\s*TJ/g);
-                    if (textMatches && textMatches.length > 0) {
-                        const cleanText = textMatches.map(m => m.replace(/[()[\]TjTJ]/g, '').trim()).join(' ');
-                        resolve(cleanText.substring(0, 35000));
-                    } else {
-                        // Fallback: extrai cadeias legíveis
-                        const rawText = content.replace(/[^\x20-\x7E\u00A0-\u00FF\n\r]/g, ' ').replace(/\s+/g, ' ');
-                        resolve(rawText.substring(0, 35000));
-                    }
-                } catch (err) {
-                    resolve(`[Arquivo PDF: ${file.name}]`);
-                }
-            };
-            reader.onerror = reject;
-            reader.readAsBinaryString(file);
-        } else {
-            reader.onload = function (e) {
-                const text = e.target.result || "";
-                resolve(text.substring(0, 35000));
-            };
-            reader.onerror = reject;
-            reader.readAsText(file, 'UTF-8');
-        }
-    });
+    const doc = await extrairDocumentoCompleto(file);
+    return doc.texto || "";
 }
 
 /**
@@ -1122,11 +1728,16 @@ if (typeof window !== 'undefined') {
     window.prepararHTMLParaExportacao = prepararHTMLParaExportacao;
     window.anexarPreviewLatex = anexarPreviewLatex;
     window.alternarModoEdicaoPreview = alternarModoEdicaoPreview;
+    window.extrairTextoDocx = extrairTextoDocx;
+    window.extrairDocumentoCompleto = extrairDocumentoCompleto;
     window.lerArquivoTexto = lerArquivoTexto;
     window.generateId = generateId;
     window.generateUUID = generateUUID;
     window.generateSecurePIN = generateSecurePIN;
     window.secureRandomInt = secureRandomInt;
+    window.converterLatexParaMathML = converterLatexParaMathML;
+    window.converterHtmlLatexParaWordEquations = converterHtmlLatexParaWordEquations;
+    window.copiarParaWordComEquacoes = copiarParaWordComEquacoes;
     window.secureShuffle = secureShuffle;
     window.ordenarEstudantes = ordenarEstudantes;
     window.comprimirERedimensionarImagem = comprimirERedimensionarImagem;
@@ -1135,6 +1746,8 @@ if (typeof window !== 'undefined') {
     window.matchMultiTermos = matchMultiTermos;
     window.matchBNCC = matchBNCC;
     window.sanitizarNomeArquivo = sanitizarNomeArquivo;
+    window.exportarMaterialWord = exportarMaterialWord;
+    window.criarZipBinario = criarZipBinario;
 }
 
 
