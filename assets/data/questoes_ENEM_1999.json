@@ -1,0 +1,1892 @@
+[
+    {
+        "id": "enem_1999_q001",
+        "materia": "Língua Portuguesa",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13LP02",
+            "descricao": "Analisar os efeitos de sentido decorrentes do uso de recursos semânticos e da polissemia de palavras em textos líricos.",
+            "unidade_tematica": "Semântica e Estilística"
+        },
+        "enunciado": "SONETO DE FIDELIDADE\n\nDe tudo ao meu amor serei atento\nAntes e com tal zelo, e sempre, e tanto\nQue mesmo em face do maior encanto\nDele se encante mais meu pensamento.\n\nQuero vivê-lo em cada vão momento\nE em seu louvor hei de espalhar meu canto\nE rir meu riso e derramar meu pranto\nAo seu pesar ou ao seu contentamento.\n\nE assim, quando mais tarde me procure\nQuem sabe a morte, angústia de quem vive\nQuem sabe a solidão, fim de quem ama.\n\nEu possa me dizer do amor (que tive):\nQue não seja imortal, posto que é chama\nMas que seja infinito enquanto dure.\n(MORAES, Vinícius de. Antologia poética. São Paulo: Cia das Letras, 1992)\n\nA palavra mesmo pode assumir diferentes significados, de acordo com a sua função na frase. Assinale a alternativa em que o sentido de mesmo equivale ao que se verifica no 3º verso da 1ª estrofe do poema de Vinícius de Moraes (“Que mesmo em face do maior encanto”).",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "“Pai, para onde fores, / irei também trilhando as mesmas ruas...” (Augusto dos Anjos)",
+            "“Agora, como outrora, há aqui o mesmo contraste da vida interior, que é modesta, com a exterior, que é ruidosa.” (Machado de Assis)",
+            "“Havia o mal, profundo e persistente, para o qual o remédio não surtiu efeito, mesmo em doses variáveis.” (Raimundo Faoro)",
+            "“Mas, olhe cá, Mana Glória, há mesmo necessidade de fazê-lo padre?” (Machado de Assis)",
+            "“Vamos de qualquer maneira, mas vamos mesmo.” (Aurélio)"
+        ],
+        "correta": 2,
+        "gabarito_comentado": "No verso de Vinícius de Moraes, a palavra 'mesmo' funciona como conjunção concessiva/inclusiva com sentido de 'inclusive', 'ainda que' ou 'até mesmo' ('Que até mesmo em face do maior encanto'). Na opção C, 'mesmo em doses variáveis' também tem o sentido de 'inclusive/ainda que em doses variáveis'.",
+        "tags": ["Semântica", "Polissemia", "Vinícius de Moraes"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q002",
+        "materia": "Matemática",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT314",
+            "descricao": "Resolver problemas de modelagem em grafos e matrizes de adjacência de comunicação.",
+            "unidade_tematica": "Raciocínio Lógico e Grafos"
+        },
+        "enunciado": "Vinte anos depois da formatura, cinco colegas de turma (Aldo, Beto, Carlos, Dino e Ênio) decidem organizar uma confraternização. Para marcar o dia e o local da confraternização, precisam comunicar-se por telefone. Cada um conhece o telefone de alguns colegas e desconhece o de outros. No quadro abaixo, o número 1 indica que o colega da linha correspondente conhece o telefone do colega da coluna correspondente; o número 0 indica que não conhece:\n\n| | Aldo | Beto | Carlos | Dino | Ênio |\n|---|:---:|:---:|:---:|:---:|:---:|\n| **Aldo** | 1 | 1 | 0 | 1 | 0 |\n| **Beto** | 0 | 1 | 0 | 1 | 0 |\n| **Carlos** | 1 | 0 | 1 | 1 | 0 |\n| **Dino** | 0 | 0 | 0 | 1 | 1 |\n| **Ênio** | 1 | 1 | 1 | 1 | 1 |\n\nO número mínimo de telefonemas que Aldo deve fazer para se comunicar com Carlos é:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Matriz de conhecimento de números telefônicos"
+        },
+        "alternativas": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+        ],
+        "correta": 2,
+        "gabarito_comentado": "Analisando a cadeia de ligações (grafo direcionado):\n1. Aldo conhece o telefone de Dino (1º telefonema: Aldo liga para Dino).\n2. Dino conhece o telefone de Ênio (2º telefonema: Dino liga para Ênio).\n3. Ênio conhece o telefone de Carlos (3º telefonema: Ênio liga para Carlos avisando do recado de Aldo).\nLogo, são necessários no mínimo 3 telefonemas na cadeia de comunicação.",
+        "tags": ["Raciocínio Lógico", "Matrizes", "Grafos"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q003",
+        "materia": "Geografia / Ciências",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT203",
+            "descricao": "Analisar escalas de tempo geológico e os impactos ambientais da ação antrópica.",
+            "unidade_tematica": "Tempo Geológico e Meio Ambiente"
+        },
+        "enunciado": "Se compararmos a idade do planeta Terra, avaliada em quatro e meio bilhões de anos (\\(4{,}5 \\times 10^9\\) anos), com a de uma pessoa de 45 anos, então, quando começaram a florescer os primeiros vegetais, a Terra já teria 42 anos. Ela só conviveu com o homem moderno nas últimas quatro horas e, há cerca de uma hora, viu-o começar a plantar e a colher. Há menos de um minuto percebeu o ruído de máquinas e de indústrias e, como denuncia uma ONG de defesa do meio ambiente, foi nesses últimos sessenta segundos que se produziu todo o lixo do planeta!\n\nO texto acima, ao estabelecer um paralelo entre a idade da Terra e a de uma pessoa, pretende mostrar que:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "a agricultura surgiu logo em seguida aos vegetais, perturbando desde então seu desenvolvimento.",
+            "o ser humano só se tornou moderno ao dominar a agricultura e a indústria, em suma, ao poluir.",
+            "desde o surgimento da Terra, são devidas ao ser humano todas as transformações e perturbações.",
+            "o surgimento do ser humano e da poluição é cerca de dez vezes mais recente que o do nosso planeta.",
+            "a industrialização tem sido um processo vertiginoso, sem precedentes em termos de dano ambiental."
+        ],
+        "correta": 4,
+        "gabarito_comentado": "A analogia mostra que, em comparação com os 4,5 bilhões de anos do planeta, a era industrial (correspondente ao último minuto da vida de 45 anos) gerou impactos e poluição em uma velocidade vertiginosa e sem paralelos na história da Terra.",
+        "tags": ["Tempo Geológico", "Industrialização", "Impactos Ambientais"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q004",
+        "materia": "Matemática / História",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT301",
+            "descricao": "Resolver problemas envolvendo proporção direta em escalas temporais e notação científica.",
+            "unidade_tematica": "Proporcionalidade e Notação Científica"
+        },
+        "enunciado": "Com base no texto da questão anterior (onde 45 anos correspondem a \\(4{,}5 \\times 10^9\\) anos da Terra, ou seja, cada 1 ano de vida equivale a \\(10^8 = 100\\) milhões de anos reais), sabendo que a agricultura começou 'há cerca de uma hora', o texto permite concluir que a agricultura começou a ser praticada há cerca de:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "365 anos.",
+            "460 anos.",
+            "900 anos.",
+            "10 000 anos.",
+            "460 000 anos."
+        ],
+        "correta": 3,
+        "gabarito_comentado": "Se 45 anos correspondem a \\(4{,}5 \\times 10^9\\) anos, 1 ano equivale a \\(10^8\\) anos. Em 1 ano há \\(365 \\times 24 \\approx 8760\\) horas. Logo, 1 hora equivale a \\(\\frac{10^8}{8760} \\approx 11.415\\) anos (da ordem de 10.000 anos, condizente com a Revolução Agrícola no Neolítico).",
+        "tags": ["Proporcionalidade", "História", "Revolução Agrícola"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q005",
+        "materia": "Matemática / Astronomia",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT301",
+            "descricao": "Aplicar regras de três simples para converter grandezas astronômicas e geológicas.",
+            "unidade_tematica": "Proporção e Astronomia"
+        },
+        "enunciado": "Na teoria do Big Bang, o Universo surgiu há cerca de 15 bilhões de anos, a partir da explosão e expansão de uma densíssima gota. De acordo com a escala proposta no texto (onde a Terra de 4,5 bilhões de anos corresponde a 45 anos), essa teoria situaria o início do Universo há cerca de:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "100 anos.",
+            "150 anos.",
+            "1 000 anos.",
+            "1 500 anos.",
+            "2 000 anos."
+        ],
+        "correta": 1,
+        "gabarito_comentado": "Se 4,5 bilhões de anos da Terra equivalem a 45 anos na escala (fator de \\(10^8\\) anos por ano de escala), então 15 bilhões de anos do Universo corresponderão a \\(\\frac{15 \\times 10^9}{10^8} = 150\\) anos.",
+        "tags": ["Matemática", "Astronomia", "Regra de Três"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q006",
+        "materia": "Matemática",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT102",
+            "descricao": "Analisar criticamente a manipulação de escalas em gráficos e representações visuais enganosas.",
+            "unidade_tematica": "Estatística e Gráficos"
+        },
+        "enunciado": "Para convencer a população local da ineficiência da Companhia Telefônica Vilatel na expansão da oferta de linhas, um político publicou no jornal local o gráfico I. A Companhia Vilatel respondeu publicando dias depois o gráfico II, onde pretende justificar um grande aumento na oferta de linhas. O fato é que, em ambos os gráficos, no mesmo período considerado (de Janeiro a Dezembro), o número total de linhas passou de 2.000 para 2.200 (foram instaladas, efetivamente, 200 novas linhas telefônicas).\n\nAnalisando os gráficos, pode-se concluir que:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Gráficos de linhas com eixos e escalas verticais distintas"
+        },
+        "alternativas": [
+            "o gráfico II representa um crescimento real maior do que o do gráfico I.",
+            "o gráfico I apresenta o crescimento real, sendo o II incorreto.",
+            "o gráfico II apresenta o crescimento real, sendo o gráfico I incorreto.",
+            "a aparente diferença de crescimento nos dois gráficos decorre da escolha das diferentes escalas.",
+            "os dois gráficos são incomparáveis, pois usam escalas diferentes."
+        ],
+        "correta": 3,
+        "gabarito_comentado": "Ambos os gráficos apresentam exatamente os mesmos dados reais (acréscimo de 200 linhas). O gráfico I parece plano porque a escala do eixo vertical é muito comprimida, enquanto o gráfico II aparenta um salto acentuado porque a escala vertical foi ampliada e truncada.",
+        "tags": ["Estatística", "Interpretação de Gráficos", "Escalas"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q007",
+        "materia": "Língua Portuguesa / Sociologia",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13LP03",
+            "descricao": "Analisar posicionamentos do enunciador e marcas de concordância parcial em entrevistas jornalísticas.",
+            "unidade_tematica": "Gênero Entrevista e Interpretação"
+        },
+        "enunciado": "Leia o trecho de entrevista de Rui Lopes Viana Filho (ouro na 39ª Olimpíada Internacional de Matemática):\n\nVeja – Vencer uma olimpíada serve de passaporte para uma carreira profissional meteórica?\nRui – Nada disso. Decidi me dedicar à Olimpíada porque sei que a concorrência por um emprego é cada vez mais selvagem e cruel. Agora tenho algo a mais para oferecer. O problema é que as coisas estão mudando muito rápido e não sei qual será minha profissão. Além de ser muito novo para decidir sobre o meu futuro profissional, sei que esse conceito de carreira mudou muito.\n(Veja, 05/08/1998)\n\nNa pergunta, o repórter estabelece uma relação direta entre a vitória na Olimpíada e uma carreira de sucesso meteórico. O estudante:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "concorda com a relação e afirma que o desempenho na Olimpíada é fundamental para sua entrada no mercado.",
+            "discorda da relação e complementa que é fácil se fazer previsões sobre o mercado de trabalho.",
+            "discorda da relação e afirma que seu futuro profissional independe de dedicação aos estudos.",
+            "discorda da relação e afirma que seu desempenho só é relevante se escolher uma profissão relacionada à matemática.",
+            "concorda em parte com a relação e complementa que é complexo fazer previsões sobre o mercado de trabalho."
+        ],
+        "correta": 4,
+        "gabarito_comentado": "O jovem concorda em parte que a medalha confere um diferencial competitivo importante ('Agora tenho algo a mais para oferecer'), mas rejeita a ideia de garantia automática ('Nada disso'), ponderando a complexidade e imprevisibilidade das mudanças no mercado de trabalho contemporâneo.",
+        "tags": ["Interpretação de Texto", "Entrevista", "Mercado de Trabalho"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q008",
+        "materia": "Língua Portuguesa",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13LP07",
+            "descricao": "Analisar as funções sintáticas e os valores semânticos do pronome 'se' (reflexividade e reciprocidade).",
+            "unidade_tematica": "Sintaxe e Semântica do Pronome Se"
+        },
+        "enunciado": "Em uma tira da Mafalda (Quino), os balões de fala apresentam:\nQuadro I: 'Eu gosto do Natal porque as pessoas se amam muito mais.' / 'Ah!... Você também sente isso?'\nQuadro II: 'Como fico feliz! Quer dizer que você também se ama muito mais no Natal? Eu, então, você nem imagina o quanto eu me amo no Natal!'\nQuadro III: 'Por que será que as pessoas se amam muito mais no Natal?'\n\nObservando as falas das personagens, analise o emprego do pronome SE e o sentido que adquire no contexto. No contexto da narrativa, é correto afirmar que o pronome SE:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "em I, indica reflexividade e equivale a “a si mesmas”.",
+            "em II, indica reciprocidade e equivale a “a si mesma”.",
+            "em III, indica reciprocidade e equivale a “umas às outras”.",
+            "em I e III, indica reciprocidade e equivale a “umas às outras”.",
+            "em II e III, indica reflexividade e equivale a “a si mesma” e “a si mesmas”, respectivamente."
+        ],
+        "correta": 4,
+        "gabarito_comentado": "O humor da tirinha reside justamente na distorção do sentido: no quadro I, Mafalda usou 'se amam' no sentido recíproco (umas às outras). No entanto, Susanita, em seu egocentrismo no quadro II, interpreta 'se ama' de forma puramente reflexiva ('amar a si mesma'). No quadro III, contaminada pela resposta, Mafalda passa a questionar o sentido reflexivo ('amar a si mesmas').",
+        "tags": ["Gramática", "Pronome Se", "Reflexividade e Reciprocidade"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q009",
+        "materia": "Química",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT104",
+            "descricao": "Balancear e interpretar reações de hidratação de óxidos básicos e neutralização de acidez.",
+            "unidade_tematica": "Reações Inorgânicas e Calagem"
+        },
+        "enunciado": "A calagem é o processo de correção da acidez do solo pela adição de cal virgem (\\(\\text{CaO}\\)). De maneira simplificada, a diminuição da acidez dá-se pela interação da cal com a água do solo, gerando hidróxido de cálcio (\\(\\text{Ca(OH)}_2\\)), que em seguida reage com os íons \\(\\text{H}^+\\) dos ácidos, formando água e liberando íons \\(\\text{Ca}^{2+}\\) no solo.\n\nConsidere as seguintes equações químicas:\nI. \\(\\text{CaO} + 2\\text{H}_2\\text{O} \\rightarrow \\text{Ca(OH)}_3\\)\nII. \\(\\text{CaO} + \\text{H}_2\\text{O} \\rightarrow \\text{Ca(OH)}_2\\)\nIII. \\(\\text{Ca(OH)}_2 + 2\\text{H}^+ \\rightarrow \\text{Ca}^{2+} + 2\\text{H}_2\\text{O}\\)\nIV. \\(\\text{Ca(OH)}_2 + \\text{H}^+ \\rightarrow \\text{CaO} + \\text{H}_2\\text{O}\\)\n\nO processo de calagem descrito acima é corretamente representado pelas equações:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "I e II",
+            "I e IV",
+            "II e III",
+            "II e IV",
+            "III e IV"
+        ],
+        "correta": 2,
+        "gabarito_comentado": "A reação II representa a hidratação do óxido de cálcio formando o hidróxido correspondente (\\(\\text{CaO} + \\text{H}_2\\text{O} \\rightarrow \\text{Ca(OH)}_2\\)). A reação III representa a neutralização ácido-base balanceada entre a base formada e os íons hidrogênio do solo (\\(\\text{Ca(OH)}_2 + 2\\text{H}^+ \\rightarrow \\text{Ca}^{2+} + 2\\text{H}_2\\text{O}\\)).",
+        "tags": ["Química", "Reações Inorgânicas", "Calagem do Solo"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q010",
+        "materia": "Filosofia / História",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS101",
+            "descricao": "Identificar debates filosóficos entre fé e razão ao longo da tradição ocidental.",
+            "unidade_tematica": "Epistemologia e Filosofia Medieval"
+        },
+        "enunciado": "Considere os textos abaixo:\nTexto 1: '(...) de modo particular, quero encorajar os crentes empenhados no campo da filosofia para que iluminem os diversos âmbitos da atividade humana, graças ao exercício de uma razão que se torna mais segura e perspicaz com o apoio que recebe da fé.' (Papa João Paulo II, Carta Encíclica Fides et Ratio, 1998)\nTexto 2: 'As verdades da razão natural não contradizem as verdades da fé cristã.' (São Tomás de Aquino, pensador medieval)\n\nRefletindo sobre os textos, pode-se concluir que:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "a encíclica papal está em contradição com o pensamento de São Tomás de Aquino, refletindo a diferença de épocas.",
+            "a encíclica papal procura complementar São Tomás de Aquino, pois este colocava a razão natural acima da fé.",
+            "a Igreja medieval valorizava a razão mais do que a encíclica de João Paulo II.",
+            "o pensamento teológico teve sua importância na Idade Média, mas, em nossos dias, não tem relação com o pensamento filosófico.",
+            "tanto a encíclica papal como a frase de São Tomás de Aquino procuram conciliar os pensamentos sobre fé e razão."
+        ],
+        "correta": 4,
+        "gabarito_comentado": "Ambos os textos pertencem à tradição da filosofia cristã tomista, a qual postula a harmonia e a mútua cooperação entre a razão filosófica humana e as verdades da revelação da fé, demonstrando que não há contradição entre ambas.",
+        "tags": ["Filosofia", "Fé e Razão", "Tomismo"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q011",
+        "materia": "Física",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT102",
+            "descricao": "Compreender e aplicar os conceitos de dilatação térmica dos líquidos e densidade.",
+            "unidade_tematica": "Termologia e Dilatação Térmica"
+        },
+        "enunciado": "A gasolina é vendida por litro, mas em sua utilização como combustível, a massa é o que importa. Um aumento da temperatura do ambiente leva a um aumento no volume da gasolina (dilatação térmica). Para diminuir os efeitos práticos dessa variação, os tanques dos postos de gasolina são subterrâneos. Se os tanques não fossem subterrâneos:\nI. Você levaria vantagem ao abastecer o carro na hora mais quente do dia pois estaria comprando mais massa por litro de combustível.\nII. Abastecendo com a temperatura mais baixa, você estaria comprando mais massa de combustível para cada litro.\nIII. Se a gasolina fosse vendida por kg em vez de por litro, o problema comercial decorrente da dilatação da gasolina estaria resolvido.\n\nDestas considerações, somente:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "I é correta.",
+            "II é correta.",
+            "III é correta.",
+            "I e II são corretas.",
+            "II e III são corretas."
+        ],
+        "correta": 4,
+        "gabarito_comentado": "Quando a temperatura diminui, o combustível se contrai, aumentando sua densidade (\\(d = m/V\\)), o que faz com que cada litro contenha maior massa de combustível (afirmativa II correta). A massa é uma grandeza invariável com a temperatura; portanto, a venda por quilograma eliminaria as distorções volumétricas causadas pela dilatação térmica (afirmativa III correta).",
+        "tags": ["Física", "Dilatação Térmica", "Densidade"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q012",
+        "materia": "Física / Matemática",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT314",
+            "descricao": "Calcular consumo de energia elétrica em kWh e equivalências de consumo doméstico.",
+            "unidade_tematica": "Eletricidade e Energia"
+        },
+        "enunciado": "A obtenção de alumínio por eletrólise consome cerca de 20 kWh de energia elétrica por quilograma de metal produzido. Suponha que uma residência tenha objetos de alumínio em uso cuja massa total seja de 10 kg (panelas, janelas, latas etc.). O consumo de energia elétrica mensal dessa residência é de 100 kWh. Sendo assim, na produção desses 10 kg de alumínio utilizou-se uma quantidade de energia elétrica que poderia abastecer essa residência por um período de:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "1 mês.",
+            "2 meses.",
+            "3 meses.",
+            "4 meses.",
+            "5 meses."
+        ],
+        "correta": 1,
+        "gabarito_comentado": "A energia consumida na produção de 10 kg de alumínio é: \\(10\\text{ kg} \\times 20\\text{ kWh/kg} = 200\\text{ kWh}\\). Como o consumo mensal da residência é de 100 kWh/mês, essa quantidade de energia abasteceria a residência por \\(\\frac{200\\text{ kWh}}{100\\text{ kWh/mês}} = 2\\text{ meses}\\).",
+        "tags": ["Energia Elétrica", "Consumo em kWh", "Eletroquímica"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q013",
+        "materia": "História / Geografia",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS202",
+            "descricao": "Compreender os desdobramentos geopolíticos do fim da Guerra Fria e a integração europeia.",
+            "unidade_tematica": "Guerra Fria e União Europeia"
+        },
+        "enunciado": "Em dezembro de 1998, a imprensa destacava o nascimento do Euro, a moeda única européia adotada inicialmente por onze países, contextualizando que a década assistiu à derrubada do Muro de Berlim, à reunificação das Alemanhas, à libertação dos países da Cortina de Ferro e ao fim da União Soviética. Enquanto todos esses eventos têm a ver com a desmontagem de estruturas do passado, o Euro representa uma aposta na integração futura.\n\nA matéria refere-se à “desmontagem das estruturas do passado” que pode ser entendida como:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "o fim da Guerra Fria, período de inquietação mundial que dividiu o mundo em dois blocos ideológicos opostos.",
+            "a inserção de alguns países do Leste Europeu em organismos supranacionais, com o intuito de exercer o controle ideológico no mundo.",
+            "a crise do capitalismo, do liberalismo e da democracia levando à polarização ideológica da antiga URSS.",
+            "a confrontação dos modelos socialista e capitalista para deter o processo de unificação das duas Alemanhas.",
+            "a prosperidade das economias capitalista e socialista, com o conseqüente fim da Guerra Fria entre EUA e a URSS."
+        ],
+        "correta": 0,
+        "gabarito_comentado": "A 'desmontagem das estruturas do passado' faz referência direta à dissolução da ordem bipolar da Guerra Fria, marcada pela queda do Muro de Berlim (1989), colapso do bloco soviético e fim da divisão do mundo entre os blocos capitalista e socialista.",
+        "tags": ["História Contemporânea", "Guerra Fria", "União Europeia"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q014",
+        "materia": "Química",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT104",
+            "descricao": "Utilizar indicadores ácido-base para identificar faixas de pH e detectar fraudes em soluções aquosas.",
+            "unidade_tematica": "Indicadores Ácido-Base e pH"
+        },
+        "enunciado": "O rótulo de uma água mineral natural indica pH = 10,00 a 25°C (alcalina). Um quadro de indicadores ácido-base fornece as seguintes faixas de viragem de cor:\n- Azul de bromotimol: amarelo em pH ≤ 6,0; azul em pH ≥ 7,6\n- Vermelho de metila: vermelho em pH ≤ 4,8; amarelo em pH ≥ 6,0\n- Fenolftaleína: incolor em pH ≤ 8,2; vermelho em pH ≥ 10,0\n- Alaranjado de metila: vermelho em pH ≤ 3,2; amarelo em pH ≥ 4,4\n\nSuponha que garrafas vazias dessa água mineral foram fraudulentamente preenchidas com água de torneira (pH entre 6,5 e 7,5). Tal fraude pode ser facilmente comprovada pingando-se na amostra fraudada gotas de:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "azul de bromotimol ou fenolftaleína.",
+            "alaranjado de metila ou fenolftaleína.",
+            "alaranjado de metila ou azul de bromotimol.",
+            "vermelho de metila ou azul de bromotimol.",
+            "vermelho de metila ou alaranjado de metila."
+        ],
+        "correta": 0,
+        "gabarito_comentado": "Na água mineral autêntica (pH = 10,0), a fenolftaleína fica vermelha e o azul de bromotimol fica azul. Na água fraudada da torneira (pH 6,5 a 7,5), a fenolftaleína fica incolor (comprovando a fraude por ausência de cor vermelha) e o azul de bromotimol apresenta cor intermediária/amarela abaixo de 7,6. Logo, azul de bromotimol e fenolftaleína são os indicadores que discriminam essa faixa.",
+        "tags": ["Química", "Indicadores Ácido-Base", "pH"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q015",
+        "materia": "Química / Geologia",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT203",
+            "descricao": "Explicar a lixiviação natural de íons minerais a partir de rochas em aquíferos subterrâneos.",
+            "unidade_tematica": "Geoquímica e Águas Minerais"
+        },
+        "enunciado": "As seguintes explicações foram dadas para a presença natural do elemento vanádio (0,07 mg/L) na água mineral classificada como vanádica:\nI. No seu percurso até chegar à fonte, a água passa por rochas contendo minerais de vanádio, dissolvendo-os.\nII. Na perfuração dos poços que levam aos depósitos subterrâneos da água, utilizaram-se brocas constituídas de ligas cromo-vanádio.\nIII. Foram adicionados compostos de vanádio à água mineral.\n\nConsiderando a legislação e a composição natural das águas minerais de fonte, pode-se concluir que apenas:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "a explicação I é plausível.",
+            "a explicação II é plausível.",
+            "a explicação III é plausível.",
+            "as explicações I e II são plausíveis.",
+            "as explicações II e III são plausíveis."
+        ],
+        "correta": 0,
+        "gabarito_comentado": "A água mineral natural adquire seus sais minerais e oligoelementos característicos exclusivamente pela lixiviação e dissolução geoquímica natural das rochas por onde circula no aquífero subterrâneo ao longo de décadas. O desgaste mecânico de brocas ou adição artificial descaracterizaria a água como mineral natural.",
+        "tags": ["Química", "Águas Minerais", "Geologia"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q016",
+        "materia": "Química",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT104",
+            "descricao": "Identificar compostos químicos de uso cotidiano derivados de sais e processos industriais.",
+            "unidade_tematica": "Compostos Inorgânicos no Cotidiano"
+        },
+        "enunciado": "A água do mar é fonte de cloreto de sódio (I). Por eletrólise, o cloreto de sódio produz soda cáustica (II) e gás cloro, que reagem formando hipoclorito de sódio (III). O carbonato de sódio produz bicarbonato de sódio (IV).\n\nA alternativa que associa corretamente água sanitária, fermento em pó e solução fisiológica com as substâncias I, II, III e IV é:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Fluxograma de derivados do cloreto de sódio"
+        },
+        "alternativas": [
+            "água sanitária: II | fermento em pó: III | solução fisiológica: IV",
+            "água sanitária: III | fermento em pó: I | solução fisiológica: IV",
+            "água sanitária: III | fermento em pó: IV | solução fisiológica: I",
+            "água sanitária: II | fermento em pó: III | solução fisiológica: I",
+            "água sanitária: I | fermento em pó: IV | solução fisiológica: III"
+        ],
+        "correta": 2,
+        "gabarito_comentado": "A água sanitária tem como princípio ativo o hipoclorito de sódio (III); o fermento químico em pó tem como principal ingrediente o bicarbonato de sódio (IV); e o soro fisiológico é uma solução aquosa a 0,9% de cloreto de sódio (I).",
+        "tags": ["Química Cotidiana", "Funções Inorgânicas", "Sais"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q017",
+        "materia": "História / Economia",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS203",
+            "descricao": "Analisar as crises do capitalismo mundial e os paralelos entre a Grande Depressão de 1929 e crises contemporâneas.",
+            "unidade_tematica": "Crise de 1929 e Economia"
+        },
+        "enunciado": "Em janeiro de 1999, às vésperas de uma forte desvalorização cambial e crise financeira no Brasil, o jornal Gazeta Mercantil publicou uma matéria detalhando a quebra da Bolsa de Nova Iorque em 29 de outubro de 1929, o desemprego de 12,5 milhões de americanos, a queda de 90% da construção civil e a falência em massa de bancos e indústrias.\n\nAo citar dados referentes à crise ocorrida em 1929 em um artigo jornalístico contemporâneo, pode-se atribuir ao jornalista a seguinte intenção:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "questionar a interpretação da crise.",
+            "comunicar sobre o desemprego.",
+            "instruir o leitor sobre aplicações em bolsa de valores.",
+            "relacionar os fatos passados e presentes.",
+            "analisar dados financeiros americanos."
+        ],
+        "correta": 3,
+        "gabarito_comentado": "A recuperação histórica da Crise de 1929 visa traçar um paralelo pedagógico e analítico com as turbulências econômicas do presente (1999), alertando os leitores sobre as causas e repercussões sistêmicas de crises financeiras globais.",
+        "tags": ["História", "Crise de 1929", "Jornalismo Econômico"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q018",
+        "materia": "Sociologia / Saúde",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS201",
+            "descricao": "Analisar a correlação entre indicadores socioeconômicos (renda, analfabetismo) e indicadores de saúde pública.",
+            "unidade_tematica": "Saúde e Desigualdade Social"
+        },
+        "enunciado": "Uma tabela apresenta dados regionais do Brasil: no Nordeste, onde 54,9% das famílias com crianças são de baixa renda e a taxa de analfabetismo é de 29,4%, a mortalidade infantil chega a 59,0 por mil. No Sul, onde 22,4% são de baixa renda e o analfabetismo é de 8,3%, a mortalidade infantil cai para 22,5 por mil.\n\nDois grupos de alunos debatem: o Grupo 1 defende que combater agentes biológicos e químicos é suficiente para garantir a saúde; o Grupo 2 defende que a saúde está diretamente relacionada às condições socioeconômicas da população.\n\nOs dados da tabela podem ser utilizados apropriadamente para:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "apoiar apenas a argumentação do primeiro grupo.",
+            "apoiar apenas a argumentação do segundo grupo.",
+            "refutar apenas a posição a ser defendida pelo segundo grupo.",
+            "apoiar a argumentação dos dois grupos.",
+            "refutar as posições a serem defendidas pelos dois grupos."
+        ],
+        "correta": 1,
+        "gabarito_comentado": "A forte correlação demonstrada na tabela entre altas taxas de mortalidade infantil e regiões com piores indicadores de renda e analfabetismo comprova a tese do segundo grupo: a saúde coletiva é um determinante socioeconômico direto.",
+        "tags": ["Sociologia", "Mortalidade Infantil", "Desigualdade Regional"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q019",
+        "materia": "Matemática",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT314",
+            "descricao": "Aplicar métodos de votação ponderada (Método de Borda) para apuração eleitoral.",
+            "unidade_tematica": "Sistemas de Votação e Estatística"
+        },
+        "enunciado": "Uma eleição envolve 3 candidatos (A, B, C) e 33 eleitores que votam ordenando os candidatos. A pontuação é: 1º lugar = 3 pontos, 2º lugar = 2 pontos, 3º lugar = 1 ponto. A distribuição das ordens foi:\n- A-B-C: 10 votantes\n- A-C-B: 4 votantes\n- B-A-C: 2 votantes\n- B-C-A: 7 votantes\n- C-A-B: 3 votantes\n- C-B-A: 7 votantes\n\nCalculando a pontuação total acumulada por cada candidato, conclui-se que:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "A é eleito com 66 pontos.",
+            "A é eleito com 68 pontos.",
+            "B é eleito com 68 pontos.",
+            "B é eleito com 70 pontos.",
+            "C é eleito com 68 pontos."
+        ],
+        "correta": 2,
+        "gabarito_comentado": "Pontuação de cada candidato:\n- Candidato A: \\(10(3) + 4(3) + 2(2) + 7(1) + 3(2) + 7(1) = 30 + 12 + 4 + 7 + 6 + 7 = 66\\text{ pontos}\\).\n- Candidato B: \\(10(2) + 4(1) + 2(3) + 7(3) + 3(1) + 7(2) = 20 + 4 + 6 + 21 + 3 + 14 = 68\\text{ pontos}\\).\n- Candidato C: \\(10(1) + 4(2) + 2(1) + 7(2) + 3(3) + 7(3) = 10 + 8 + 2 + 14 + 9 + 21 = 64\\text{ pontos}\\).\nO candidato B é eleito com 68 pontos.",
+        "tags": ["Matemática", "Método de Borda", "Teoria da Escolha Social"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q020",
+        "materia": "Matemática",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT309",
+            "descricao": "Determinar dimensões necessárias para o cálculo do volume de um cilindro.",
+            "unidade_tematica": "Geometria Espacial"
+        },
+        "enunciado": "Uma garrafa cilíndrica está fechada, contendo um líquido que ocupa quase completamente sua base e corpo cilíndrico reto (abaixo do gargalo). Dispondo apenas de uma régua milimetrada, para calcular o volume desse líquido contido na parte cilíndrica da garrafa, o número mínimo de medições a serem realizadas é:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Garrafa cilíndrica com líquido"
+        },
+        "alternativas": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+        ],
+        "correta": 1,
+        "gabarito_comentado": "O volume de um cilindro reto é \\(V = \\pi r^2 h\\). Para calculá-lo, necessita-se medir exatamente duas grandezas com a régua: o diâmetro da base circular (que fornece o raio \\(r = d/2\\)) e a altura \\(h\\) da coluna de líquido (2 medições no total).",
+        "tags": ["Geometria Espacial", "Volume do Cilindro", "Medições"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q021",
+        "materia": "Matemática / Física",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT309",
+            "descricao": "Resolver problemas práticos de volumetria utilizando inversão de sólidos e partes não uniformes.",
+            "unidade_tematica": "Geometria Espacial e Volume"
+        },
+        "enunciado": "Para calcular a capacidade total da garrafa (incluindo o gargalo irregular), sabendo que você pode virá-la de cabeça para baixo e que o líquido não preenche totalmente a garrafa, o número mínimo de medições com a régua a serem realizadas é:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "1",
+            "2",
+            "3",
+            "4",
+            "5"
+        ],
+        "correta": 2,
+        "gabarito_comentado": "1. Mede-se o diâmetro da base cilíndrica da garrafa.\n2. Mede-se a altura da coluna de líquido com a garrafa na posição normal em pé (obtendo o volume de líquido \\(V_1\\)).\n3. Vira-se a garrafa de cabeça para baixo: o ar passa para a parte cilíndrica regular da base. Mede-se a altura da coluna de ar cilíndrica (obtendo o volume vazio \\(V_2\\)).\nA capacidade total é \\(V_{\\text{total}} = V_1 + V_2\\), obtida com exatamente 3 medições com a régua.",
+        "tags": ["Geometria Espacial", "Volume", "Raciocínio Geométrico"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q022",
+        "materia": "Geografia / Sociologia",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS201",
+            "descricao": "Comparar as teorias demográficas malthusiana, neomalthusiana e reformista.",
+            "unidade_tematica": "Teorias Demográficas"
+        },
+        "enunciado": "A teoria neomalthusiana defende que o crescimento demográfico acelerado é o responsável pela pobreza e pelo subdesenvolvimento, pois reduz a renda per capita e sobrecarrega os investimentos estatais, propondo como solução o rígido controle de natalidade.\n\nQual dos slogans abaixo sintetiza o ponto de vista neomalthusiano?",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "“Controle populacional – nosso passaporte para o desenvolvimento.”",
+            "“Sem reformas sociais o país se reproduz e não produz.”",
+            "“População abundante, país forte!”",
+            "“O crescimento gera fraternidade e riqueza para todos.”",
+            "“Justiça social, sinônimo de desenvolvimento.”"
+        ],
+        "correta": 0,
+        "gabarito_comentado": "O slogan 'Controle populacional – nosso passaporte para o desenvolvimento' expressa a tese neomalthusiana de que o controle da fecundidade e a redução do tamanho das famílias é a condição prévia para o crescimento econômico.",
+        "tags": ["Demografia", "Neomalthusianismo", "População"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q023",
+        "materia": "Geografia / Sociologia",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS201",
+            "descricao": "Identificar as teses da teoria demográfica reformista/marxista.",
+            "unidade_tematica": "Teorias Demográficas"
+        },
+        "enunciado": "A teoria demográfica reformista argumenta que o problema central não é o número de pessoas, mas a má distribuição de renda e a falta de investimentos em saúde e educação pública. Com reformas socioeconômicas, a própria população planeja espontaneamente suas famílias.\n\nQual dos slogans abaixo sintetiza o ponto de vista reformista?",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "“Controle populacional já, ou o país não resistirá.”",
+            "“Com saúde e educação, o planejamento familiar virá por opção!”",
+            "“População controlada, país rico!”",
+            "“Basta mais gente, que o país vai para frente!”",
+            "“População menor, educação melhor!”"
+        ],
+        "correta": 1,
+        "gabarito_comentado": "A teoria reformista preconiza que o acesso universal à educação de qualidade, saúde e justiça social gera a transição demográfica natural, tornando o planejamento familiar uma escolha consciente e emancipada.",
+        "tags": ["Demografia", "Teoria Reformista", "Planejamento Familiar"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q024",
+        "materia": "Matemática",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT307",
+            "descricao": "Interpretar relações de igualdade e lugares geométricos em sistemas de coordenadas cartesianas.",
+            "unidade_tematica": "Geometria Analítica"
+        },
+        "enunciado": "José e Antônio combinaram um encontro no marco inicial da rodovia entre 12h (origem 0) e 13h (ponto 1). Chamando de x o horário de chegada de José e de y o horário de chegada de Antônio no plano cartesiano (região quadrada OPQR de lado 1):\n\nO conjunto de pontos que representa o evento “José e Antônio chegam ao marco inicial exatamente no mesmo horário” (\\(x = y\\)) corresponde:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Região quadrada no plano cartesiano"
+        },
+        "alternativas": [
+            "à diagonal OQ.",
+            "à diagonal PR.",
+            "ao lado PQ.",
+            "ao lado QR.",
+            "ao lado OR."
+        ],
+        "correta": 0,
+        "gabarito_comentado": "A condição de chegadas simultâneas é descrita pela equação linear da bissetriz dos quadrantes ímpares \\(y = x\\), que liga a origem \\(O(0,0)\\) ao vértice oposto \\(Q(1,1)\\), correspondendo exatamente à diagonal OQ do quadrado unitário.",
+        "tags": ["Geometria Analítica", "Plano Cartesiano", "Bissetriz"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q025",
+        "materia": "Matemática",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT311",
+            "descricao": "Calcular probabilidades geométricas contínuas através de áreas de regiões planas.",
+            "unidade_tematica": "Probabilidade Geométrica"
+        },
+        "enunciado": "Como o primeiro a chegar esperará no máximo meia hora (0,5 h = 1/2), a condição para que se encontrem é \\(|y - x| \\le 1/2\\), o que delimita uma faixa hexagonal central (regiões II e III) dentro do quadrado unitário de área 1, obtida subtraindo-se dois triângulos de cantos de catetos \\(1/2\\) (regiões I e IV).\n\nAs chances (probabilidade percentual) de José e Antônio viajarem juntos são de:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Probabilidade geométrica no quadrado unitário"
+        },
+        "alternativas": [
+            "0%",
+            "25%",
+            "50%",
+            "75%",
+            "100%"
+        ],
+        "correta": 3,
+        "gabarito_comentado": "A área total do quadrado é \\(1 \\times 1 = 1\\). Os dois triângulos correspondentes ao não encontro têm catetos iguais a \\(1 - 1/2 = 1/2\\). A área de cada triângulo é \\(\\frac{(1/2) \\times (1/2)}{2} = 1/8\\). A soma das áreas de não encontro é \\(1/8 + 1/8 = 2/8 = 1/4 = 25\\%\\). Logo, a probabilidade de se encontrarem é \\(1 - 0{,}25 = 0{,}75 = 75\\%\\).",
+        "tags": ["Probabilidade Geométrica", "Geometria Plana", "Áreas"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q026",
+        "materia": "Geografia / Astronomia",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS103",
+            "descricao": "Relacionar a inclinação dos raios solares no solstício com a latitude e o comprimento de sombras.",
+            "unidade_tematica": "Movimentos da Terra e Solstício"
+        },
+        "enunciado": "No primeiro dia do inverno no Hemisfério Sul (solstício de junho, quando o Sol está no zênite sobre o Trópico de Câncer no Hemisfério Norte), foi realizada uma medição de sombras de varetas verticais ao meio-dia em Macapá (latitude 0°), Recife (latitude ~8°S) e Porto Alegre (latitude ~30°S).\n\nLevando-se em conta a localização geográfica, os comprimentos das sombras ao meio-dia serão tanto maiores quanto maior for o afastamento da cidade em relação ao:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "litoral.",
+            "Equador.",
+            "nível do mar.",
+            "Trópico de Capricórnio.",
+            "Meridiano de Greenwich."
+        ],
+        "correta": 1,
+        "gabarito_comentado": "No solstício de inverno do Hemisfério Sul, o Sol está no Hemisfério Norte. Quanto maior a latitude sul (ou seja, quanto maior o afastamento em relação à linha do Equador), mais inclinados e oblíquos incidem os raios solares, projetando sombras progressivamente mais compridas.",
+        "tags": ["Geografia", "Solstício", "Latitude e Sombras"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q027",
+        "materia": "Geografia / Fusos Horários",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS103",
+            "descricao": "Compreender o meio-dia solar local e a longitude dos meridianos.",
+            "unidade_tematica": "Cartografia e Fusos Horários"
+        },
+        "enunciado": "No mesmo instante da experiência (meio-dia oficial), em Recife a sombra se projeta ligeiramente à direita da linha Norte-Sul e em Porto Alegre e Macapá à esquerda. Isso indica que a linha Norte-Sul coincide com a passagem meridiana do Sol no meio-dia solar local.\n\nDentre as localidades abaixo, em qual a sombra estaria mais próxima de cruzar exatamente a linha pontilhada Norte-Sul?",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "Natal.",
+            "Manaus.",
+            "Cuiabá.",
+            "Brasília.",
+            "Boa Vista."
+        ],
+        "correta": 3,
+        "gabarito_comentado": "Recife fica a leste (longitude ~35°W) e Porto Alegre/Macapá a oeste (longitudes ~51°W). O meio-dia oficial do Brasil adota o fuso de Brasília (longitude ~47°45'W, meridiano central de 45°W), que fica em posição intermediária entre Recife e as demais cidades, onde o Sol está culminando no meridiano local.",
+        "tags": ["Geografia", "Fusos Horários", "Longitude"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q028",
+        "materia": "Biologia",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT301",
+            "descricao": "Compreender a clonagem por transferência nuclear somática e a herança do genoma nuclear.",
+            "unidade_tematica": "Biotecnologia e Genética"
+        },
+        "enunciado": "A seqüência abaixo indica os passos seguidos para a clonagem de uma vaca:\nI. Retirou-se um óvulo da vaca Z e o núcleo foi desprezado (óvulo anucleado).\nII. Retirou-se uma célula da glândula mamária da vaca W e o núcleo celular foi isolado.\nIII. O núcleo da vaca W foi introduzido no óvulo anucleado da vaca Z, estimulando-se a divisão.\nIV. O embrião foi implantado no útero da vaca Y (mãe de aluguel), que gerou o clone.\n\nConsiderando que os animais Z, W e Y não têm parentesco, o animal resultante da clonagem possui o patrimônio genético nuclear da vaca:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "Z, apenas.",
+            "W, apenas.",
+            "Y, apenas.",
+            "Z e da W, apenas.",
+            "Z, W e Y."
+        ],
+        "correta": 1,
+        "gabarito_comentado": "Na clonagem por transferência nuclear de células somáticas, o material genético cromossômico nuclear que determina as características fenotípicas do organismo clone provém integralmente do núcleo doado pela vaca W.",
+        "tags": ["Genética", "Clonagem", "Biotecnologia"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q029",
+        "materia": "Biologia",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT201",
+            "descricao": "Calcular coeficientes de parentesco genético entre gerações biológicas.",
+            "unidade_tematica": "Genética Mendeliana"
+        },
+        "enunciado": "Se a vaca Y, utilizada como “mãe de aluguel”, for a mãe biológica da vaca W (doadora do núcleo), a porcentagem de genes da “mãe de aluguel” (Y) presentes no clone (que é cópia genética de W) será de:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "0%",
+            "25%",
+            "50%",
+            "75%",
+            "100%"
+        ],
+        "correta": 2,
+        "gabarito_comentado": "Como o clone é geneticamente idêntico à vaca W, e a vaca W herdou exatamente 50% de seus genes de sua mãe biológica Y (e 50% de seu pai biológico), o clone possui 50% dos genes de Y.",
+        "tags": ["Genética", "Hereditariedade", "Clonagem"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q030",
+        "materia": "Matemática",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT309",
+            "descricao": "Identificar sólidos de revolução obtidos pela rotação de figuras planas em torno de um eixo.",
+            "unidade_tematica": "Geometria Espacial e Revoluções"
+        },
+        "enunciado": "Sólidos de revolução resultam da rotação completa de figuras planas em torno de um eixo vertical:\n1. Trapézio retângulo e triângulo girando geram cones e troncos de cone conjugados (sólido D).\n2. Dupla aba triangular gera bitronco/cone duplo (sólido E).\n3. Retângulo central gera cilindro com reentrâncias (sólido A).\n4. Perfil em cruz/reentrâncias gera cilindro escalonado (sólido B).\n5. Degraus retangulares geram discos cilíndricos superpostos (sólido C).\n\nA correspondência correta entre as figuras planas (1 a 5) e os sólidos obtidos (A a E) é:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Perfis planos e sólidos de revolução"
+        },
+        "alternativas": [
+            "1A, 2B, 3C, 4D, 5E.",
+            "1B, 2C, 3D, 4E, 5A.",
+            "1B, 2D, 3E, 4A, 5C.",
+            "1D, 2E, 3A, 4B, 5C.",
+            "1D, 2E, 3B, 4C, 5A."
+        ],
+        "correta": 3,
+        "gabarito_comentado": "Analisando a simetria de revolução de cada perfil plano: a figura 1 gera o sólido D (cilindros com rebaixo); a figura 2 gera o sólido E (cones pontiagudos); a figura 3 gera o sólido A (peça com perfil losangular); a figura 4 gera o sólido B; e a figura 5 gera o sólido C (três anéis cilíndricos). Correspondência: 1D, 2E, 3A, 4B, 5C.",
+        "tags": ["Geometria Espacial", "Sólidos de Revolução", "Visão Espacial"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q031",
+        "materia": "Filosofia / História da Ciência",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS101",
+            "descricao": "Identificar os pilares do método científico moderno no Renascimento (Copérnico e Da Vinci).",
+            "unidade_tematica": "Revolução Científica e Racionalismo"
+        },
+        "enunciado": "Leia os trechos:\n1. 'Depois de longas investigações, convenci-me de que o Sol é uma estrela fixa no centro... Nenhuma demonstração deve ser julgada senão por matemáticos.' (Copérnico, De Revolutionibus)\n2. 'Aqueles que se entregam à prática sem ciência são como o navegador sem bússola... experimente duas ou três vezes e verifique se as experiências produzem os mesmos efeitos.' (Leonardo da Vinci, Carnets)\n\nO aspecto a ser ressaltado em ambos os textos para exemplificar o racionalismo moderno é:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "a fé como guia das descobertas.",
+            "o senso crítico para se chegar a Deus.",
+            "a limitação da ciência pelos princípios bíblicos.",
+            "a importância da experiência e da observação.",
+            "o princípio da autoridade e da tradição."
+        ],
+        "correta": 3,
+        "gabarito_comentado": "O Renascimento e a Revolução Científica fundaram o pensamento moderno na conjunção do método empírico indutivo (observação sistemática e experimentação repetível) com a demonstração matemática rigorosa, superando o princípio escolástico da autoridade.",
+        "tags": ["Filosofia da Ciência", "Renascimento", "Empirismo"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q032",
+        "materia": "Física / Química",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT102",
+            "descricao": "Explicar o funcionamento da panela de pressão com base no diagrama de fases da água.",
+            "unidade_tematica": "Termologia e Diagrama de Fases"
+        },
+        "enunciado": "A panela de pressão permite que os alimentos sejam cozidos em água muito mais rapidamente do que em panelas convencionais abertas. A vantagem do uso da panela de pressão deve-se:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Diagrama de fase da água e panela de pressão"
+        },
+        "alternativas": [
+            "à pressão no seu interior, que é igual à pressão externa.",
+            "à temperatura de seu interior, que está acima da temperatura de ebulição da água no local.",
+            "à quantidade de calor adicional que é transferida à panela.",
+            "à quantidade de vapor que está sendo liberada pela válvula.",
+            "à espessura da sua parede, que é maior que a das panelas comuns."
+        ],
+        "correta": 1,
+        "gabarito_comentado": "O aumento da pressão interna (atingindo cerca de 2 atm) eleva a temperatura de ebulição da água líquida para aproximadamente 120°C. Com a água fervendo a uma temperatura mais alta, as reações químicas de cozimento dos alimentos ocorrem de forma muito mais rápida.",
+        "tags": ["Termodinâmica", "Pressão e Ebulição", "Diagrama de Fases"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q033",
+        "materia": "Física / Química",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT102",
+            "descricao": "Reconhecer que durante as mudanças de fase a temperatura de uma substância pura permanece constante.",
+            "unidade_tematica": "Termologia e Mudança de Fase"
+        },
+        "enunciado": "Se, por economia, abaixarmos o fogo sob uma panela de pressão logo que se inicia a saída contínua de vapor pela válvula, de forma simplesmente a manter a fervura, o tempo de cozimento:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "será maior porque a panela “esfria”.",
+            "será menor, pois diminui a perda de água.",
+            "será maior, pois a pressão diminui.",
+            "será maior, pois a evaporação diminui.",
+            "não será alterado, pois a temperatura não varia."
+        ],
+        "correta": 4,
+        "gabarito_comentado": "Durante a mudança de estado (ebulição a pressão constante), a temperatura do sistema líquido-vapor permanece fixa no ponto de ebulição (~120°C). Aumentar a chama apenas aumenta a taxa de vaporização sem elevar a temperatura.",
+        "tags": ["Termodinâmica", "Calor Latente", "Mudança de Estado"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q034",
+        "materia": "Geografia / Ciências",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT203",
+            "descricao": "Avaliar os impactos microclimáticos gerados pelo represamento de grandes bacias hidrográficas.",
+            "unidade_tematica": "Impactos Ambientais de Hidrelétricas"
+        },
+        "enunciado": "A construção de grandes projetos hidroelétricos deve ser analisada do ponto de vista do regime das águas e de seu ciclo na região. Em relação ao ciclo da água, a formação de grandes lagos e represas:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "não causa impactos na região, uma vez que a quantidade total de água da Terra permanece constante.",
+            "não causa impactos na região, uma vez que a água que alimenta a represa prossegue depois rio abaixo com a mesma vazão e velocidade.",
+            "aumenta a velocidade dos rios, acelerando o ciclo da água na região.",
+            "aumenta a evaporação na região da represa, acompanhada também por um aumento local da umidade relativa do ar.",
+            "diminui a quantidade de água disponível para a realização do ciclo da água."
+        ],
+        "correta": 3,
+        "gabarito_comentado": "O represamento alaga extensas áreas superficiais, aumentando expressivamente a área de contato da lâmina de água com a atmosfera, o que eleva as taxas de evaporação local e altera o microclima circundante com aumento da umidade relativa do ar.",
+        "tags": ["Impactos Ambientais", "Hidrelétricas", "Ciclo da Água"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q035",
+        "materia": "Física / Matemática",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT301",
+            "descricao": "Calcular razões e ordens de grandeza em notação científica a partir de fluxos energéticos globais.",
+            "unidade_tematica": "Energia Solar e Notação Científica"
+        },
+        "enunciado": "Um diagrama de fluxo de energia mostra que a radiação solar que atinge a Terra totaliza 200 bilhões de MW (\\(200 \\times 10^9\\text{ MW} = 2 \\times 10^{11}\\text{ MW}\\)), e que a humanidade aproveita na geração de eletricidade um total de 500.000 MW (\\(5 \\times 10^5\\text{ MW}\\)).\n\nA fração da energia recebida como radiação solar aproveitada na forma de energia elétrica corresponde a:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Diagrama de aproveitamento da energia solar na Terra"
+        },
+        "alternativas": [
+            "\\(4 \\times 10^{-9}\\)",
+            "\\(2{,}5 \\times 10^{-6}\\)",
+            "\\(4 \\times 10^{-4}\\)",
+            "\\(2{,}5 \\times 10^{-3}\\)",
+            "\\(4 \\times 10^{-2}\\)"
+        ],
+        "correta": 1,
+        "gabarito_comentado": "A razão é: \\(\\frac{500.000\\text{ MW}}{200\\text{ bilhões de MW}} = \\frac{5 \\times 10^5}{200 \\times 10^9} = \\frac{5 \\times 10^5}{2 \\times 10^{11}} = 2{,}5 \\times 10^{-6}\\).",
+        "tags": ["Notação Científica", "Energia Solar", "Proporção"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q036",
+        "materia": "Geografia / Ciências",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT106",
+            "descricao": "Caracterizar a gênese geológica e a escala temporal de formação dos combustíveis fósseis.",
+            "unidade_tematica": "Combustíveis Fósseis e Termoelétricas"
+        },
+        "enunciado": "Uma das modalidades de produção de energia elétrica envolve combustíveis fósseis. A modalidade de produção, o combustível e a escala de tempo típica associada à formação geológica desse combustível são, respectivamente:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "hidroelétricas - chuvas - um dia",
+            "hidroelétricas - aquecimento do solo - um mês",
+            "termoelétricas - petróleo - 200 anos",
+            "termoelétricas - aquecimento do solo - 1 milhão de anos",
+            "termoelétricas - petróleo - 500 milhões de anos"
+        ],
+        "correta": 4,
+        "gabarito_comentado": "Usinas termoelétricas convencionais queimam combustíveis fósseis (como carvão mineral, gás natural e derivados de petróleo), cuja formação geológica por soterramento e diagênese de matéria orgânica ocorreu em escalas de centenas de milhões de anos (tempo geológico profundo).",
+        "tags": ["Termoelétricas", "Combustíveis Fósseis", "Tempo Geológico"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q037",
+        "materia": "Geografia / Física",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT106",
+            "descricao": "Comparar matrizes energéticas hidrelétricas e termoelétricas quanto à renovabilidade e impactos.",
+            "unidade_tematica": "Matriz Energética Brasileira"
+        },
+        "enunciado": "No Brasil, a construção de usinas hidroelétricas tem sido historicamente priorizada e incentivada porque:\nI. utilizam fontes renováveis, ao contrário de combustíveis fósseis termoelétricos que levam milhões de anos para serem repostos pela natureza.\nII. apresentam impacto ambiental nulo, pelo represamento das águas no curso normal dos rios.\nIII. aumentam o índice pluviométrico da região de seca do Nordeste, pelo represamento de águas.\n\nDas três afirmações acima, somente:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "I está correta.",
+            "II está correta.",
+            "III está correta.",
+            "I e II estão corretas.",
+            "II e III estão corretas."
+        ],
+        "correta": 0,
+        "gabarito_comentado": "Apenas a afirmação I é correta, pois a água faz parte do ciclo hidrológico renovável. A afirmação II é incorreta (hidrelétricas causam expressivos impactos socioambientais, inundando florestas e deslocando populações) e a III é incorreta (represas não alteram as massas de ar regionais que governam a pluviosidade do semiárido).",
+        "tags": ["Matriz Energética", "Hidrelétricas", "Fontes Renováveis"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q038",
+        "materia": "Matemática / Estatística",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT311",
+            "descricao": "Compreender a independência de eventos aleatórios e a falácia do jogador em processos estocásticos.",
+            "unidade_tematica": "Probabilidade e Eventos Independentes"
+        },
+        "enunciado": "Uma estação distribuidora de energia elétrica foi atingida por um raio. Segundo estatísticas climatológicas, ocorre em média a cada 10 anos um fato desse tipo nessa região. Com base nessa informação probabilística, pode-se afirmar que:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "a estação está em funcionamento há no máximo 10 anos.",
+            "daqui a 10 anos deverá cair outro raio na mesma estação.",
+            "se a estação já existe há mais de 10 anos, brevemente deverá cair outro raio na mesma.",
+            "a probabilidade de ocorrência de um raio na estação independe do seu tempo de existência.",
+            "é impossível a estação existir há mais de 30 anos sem que um raio já a tenha atingido anteriormente."
+        ],
+        "correta": 3,
+        "gabarito_comentado": "Descargas atmosféricas (raios) são eventos físicos independentes e sem memória histórica (processo estocástico). A probabilidade de ocorrência em qualquer instante futuro independe de quanto tempo a estação já existe ou de quando ocorreu a última descarga.",
+        "tags": ["Probabilidade", "Estatística", "Eventos Independentes"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q039",
+        "materia": "Língua Portuguesa",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13LP07",
+            "descricao": "Aplicar regras de acentuação gráfica (paroxítonas terminadas em ditongo e regras de hiato).",
+            "unidade_tematica": "Ortografia e Acentuação Gráfica"
+        },
+        "enunciado": "Diante de uma placa indicando SAPATARIA PAPALIA, alunos discutiram as regras de acentuação gráfica:\nI. Se a sílaba tônica for o segundo PA, a escrita deveria ser PAPÁLIA, pois a palavra seria paroxítona terminada em ditongo crescente.\nII. Se a sílaba tônica for LI, a escrita deveria ser PAPALÍA, pois “i” e “a” estariam formando hiato.\nIII. Se a sílaba tônica for LI, a escrita deveria ser PAPALIA, pois não haveria razão para o uso de acento gráfico (o 'i' tônico não forma hiato com vogal anterior e paroxítonas terminadas em 'a' não são acentuadas).\n\nA conclusão está correta apenas em:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "I",
+            "II",
+            "III",
+            "I e II",
+            "I e III"
+        ],
+        "correta": 4,
+        "gabarito_comentado": "A proposição I está correta (Pa-pá-lia: paroxítona terminada em ditongo exige acento, como em história/família). A proposição III está correta (Pa-pa-li-a: paroxítona terminada em 'a' sem hiato antecedido de vogal não recebe acento, como em padaria/bacia). A proposição II é errada porque a regra do hiato só acentua 'i' tônico quando forma hiato com vogal que o antecede na sílaba anterior (como em sa-í-da).",
+        "tags": ["Gramática", "Acentuação Gráfica", "Fonética"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q040",
+        "materia": "Geografia / Sociologia",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS201",
+            "descricao": "Caracterizar o território brasileiro quanto à heterogeneidade socioespacial e desigualdades regionais.",
+            "unidade_tematica": "Geografia do Brasil e Sociedade"
+        },
+        "enunciado": "Uma pesquisadora francesa descreve o país: 'O Brasil, quinto país do mundo em extensão territorial... dispõe de vastos territórios subpovoados como o da Amazônia, conhece também um crescimento urbano extremamente rápido, índices de pobreza que não diminuem e uma das sociedades mais desiguais do mundo. Qualificado de “terra de contrastes”, o Brasil é um país moderno do Terceiro Mundo...'\n\nO Brasil é qualificado como uma “terra de contrastes” por:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "fazer parte do mundo tropical, mas ter um crescimento urbano semelhante ao dos países temperados.",
+            "não conseguir evitar seu rápido crescimento urbano, por ser um país com grande extensão de fronteiras terrestres e de costa.",
+            "possuir grandes diferenças sociais e regionais e ser considerado um país moderno do Terceiro Mundo.",
+            "possuir vastos territórios subpovoados, apesar de não ter recursos econômicos e tecnológicos para explorá-los.",
+            "ter elevados índices de pobreza, por ser um país com grande extensão territorial e predomínio de atividades rurais."
+        ],
+        "correta": 2,
+        "gabarito_comentado": "A expressão 'terra de contrastes' consagra a coexistência de polos de modernidade tecnológica e industrial com profundas disparidades socioeconômicas, concentração de renda e desigualdades regionais históricas.",
+        "tags": ["Geografia do Brasil", "Desigualdade Social", "Urbanização"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q041",
+        "materia": "Matemática / Física",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT301",
+            "descricao": "Calcular razões entre grandezas de impacto ambiental e potência hidrelétrica instalada.",
+            "unidade_tematica": "Razão e Proporção"
+        },
+        "enunciado": "A razão entre a área alagada (km²) e a potência gerada (MW) estima o dano por benefício trazido por hidrelétricas:\n- Tucuruí: 2.430 km² / 4.240 MW ≈ 0,57 km²/MW\n- Sobradinho: 4.214 km² / 1.050 MW ≈ 4,01 km²/MW\n- Itaipu: 1.350 km² / 12.600 MW ≈ 0,11 km²/MW\n- Ilha Solteira: 1.077 km² / 3.230 MW ≈ 0,33 km²/MW\n- Furnas: 1.450 km² / 1.312 MW ≈ 1,11 km²/MW\n\nO projeto que mais onerou o ambiente em termos de área alagada por potência produzida foi:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Tabela de dados de usinas hidrelétricas brasileiras"
+        },
+        "alternativas": [
+            "Tucuruí.",
+            "Furnas.",
+            "Itaipu.",
+            "Ilha Solteira.",
+            "Sobradinho."
+        ],
+        "correta": 4,
+        "gabarito_comentado": "A usina de Sobradinho possui a maior razão área alagada / potência instalada (\\(4214 / 1050 \\approx 4{,}01\\text{ km}^2/\\text{MW}\\)), significando que foi necessária a maior área inundada para cada unidade de potência elétrica gerada.",
+        "tags": ["Matemática", "Razão e Proporção", "Impacto Ambiental"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q042",
+        "materia": "Língua Portuguesa / Literatura",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13LP48",
+            "descricao": "Analisar o projeto estético e o compromisso social na poética de João Cabral de Melo Neto.",
+            "unidade_tematica": "Geração de 45 e João Cabral"
+        },
+        "enunciado": "Leia o que disse João Cabral de Melo Neto sobre a função de seus textos:\n“Falo somente com o que falo: a linguagem enxuta, contato denso; falo somente do que falo: a vida seca, áspera e clara do sertão; falo somente por quem falo: o homem sertanejo sobrevivendo na adversidade e na míngua. Falo somente para quem falo: para os que precisam ser alertados para a situação da miséria no Nordeste.”\n\nPara João Cabral de Melo Neto, no texto literário:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "a linguagem do texto deve refletir o tema, e a fala do autor deve denunciar o fato social para determinados leitores.",
+            "a linguagem do texto não deve ter relação com o tema, e o autor deve ser imparcial para que seu texto seja lido.",
+            "o escritor deve saber separar a linguagem do tema e a perspectiva pessoal da perspectiva do leitor.",
+            "a linguagem pode ser separada do tema, e o escritor deve ser o delator do fato social para todos os leitores.",
+            "a linguagem está além do tema, e o fato social deve ser a proposta do escritor para convencer o leitor."
+        ],
+        "correta": 0,
+        "gabarito_comentado": "A poética cabralina une a forma à matéria: a linguagem é despojada e áspera para espelhar a secura do sertão ('falo com o que falo... do que falo'), enquanto a função social do poema é conscientizar os leitores sobre a realidade do sertanejo.",
+        "tags": ["Literatura", "João Cabral de Melo Neto", "Função Social da Arte"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q043",
+        "materia": "Biologia / Imunologia",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT301",
+            "descricao": "Diferenciar os mecanismos de imunização ativa (vacina) e passiva (soro imune).",
+            "unidade_tematica": "Imunologia e Vacinação"
+        },
+        "enunciado": "A variação da quantidade de anticorpos específicos foi medida em duas crianças:\n- Criança I: aplicação de soro imune (imunização passiva: anticorpos prontos recebidos, concentração alta imediata que decai com o tempo).\n- Criança II: vacinação (imunização ativa: antígenos inoculados estimulam a produção lenta e duradoura de anticorpos e células de memória).\n\nO gráfico que melhor representa a concentração de anticorpos ao longo do tempo nas crianças I e II é:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Gráficos comparativos de imunização ativa vs. passiva"
+        },
+        "alternativas": [
+            "Gráfico A (curva I e II crescendo juntas).",
+            "Gráfico B (curva I decrescendo a partir do máximo inicial e curva II crescendo progressivamente).",
+            "Gráfico C (duas retas crescentes).",
+            "Gráfico D (duas curvas decrescentes).",
+            "Gráfico E (curva única)."
+        ],
+        "correta": 1,
+        "gabarito_comentado": "O soro imune (Criança I) introduz anticorpos prontos em alta concentração que são gradativamente metabolizados e diminuem com o tempo (curva decrescente). A vacina (Criança II) induz a resposta imunitária ativa primária, cuja concentração de anticorpos aumenta gradualmente após alguns dias (curva ascendente). O Gráfico B representa perfeitamente essas duas dinâmicas.",
+        "tags": ["Imunologia", "Soro e Vacina", "Fisiologia Humana"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q044",
+        "materia": "Geografia / Agronomia",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS103",
+            "descricao": "Avaliar técnicas de manejo e conservação de solos em terrenos inclinados para prevenção da erosão.",
+            "unidade_tematica": "Conservação de Solos"
+        },
+        "enunciado": "Um agricultor adquiriu terras em encosta com rochas permeáveis sobre rocha impermeável que descem em declive até um rio no fundo do vale. Pensando em plantar na encosta inclinada, consultou seus vizinhos.\n\nAssinale a frase do vizinho que deu a sugestão agronômica e ambientalmente mais correta:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Perfil geológico e topográfico de encosta e rio"
+        },
+        "alternativas": [
+            "“O terreno só se presta ao plantio, revolvendo o solo com arado.”",
+            "“Não plante neste local, porque é impossível evitar a erosão”.",
+            "“Pode ser utilizado, desde que se plante em curvas de nível”.",
+            "“Você perderá sua plantação, quando as chuvas provocarem inundação”.",
+            "“Plante forragem para pasto”."
+        ],
+        "correta": 2,
+        "gabarito_comentado": "O plantio em curvas de nível (acompanhando as cotas altimétricas do relevo) e o terraceamento reduzem a velocidade do escoamento superficial da água das chuvas, contendo a erosão laminar e o assoreamento do rio no fundo do vale.",
+        "tags": ["Conservação do Solo", "Curvas de Nível", "Erosão"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q045",
+        "materia": "Física",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT101",
+            "descricao": "Reconhecer o Primeiro Princípio da Termodinâmica e o Princípio Universal da Conservação da Energia.",
+            "unidade_tematica": "Termodinâmica e Conservação da Energia"
+        },
+        "enunciado": "Uma tabela apresenta diversos exemplos de processos e objetos onde ocorrem transformações de energia (transformador, termopar, dinamite, pêndulo, fusão, reações endotérmicas).\n\nDentre os processos indicados na tabela, ocorre conservação da quantidade total de energia:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Tabela de conversões entre energia elétrica, química, mecânica e térmica"
+        },
+        "alternativas": [
+            "em todos os processos.",
+            "somente nos processos que envolvem transformações de energia sem dissipação de calor.",
+            "somente nos processos que envolvem transformações de energia mecânica.",
+            "somente nos processos que não envolvem energia química.",
+            "somente nos processos que não envolvem nem energia química nem energia térmica."
+        ],
+        "correta": 0,
+        "gabarito_comentado": "Pelo Princípio Fundamental da Conservação da Energia (Primeira Lei da Termodinâmica), em qualquer sistema físico ou transformação (química, térmica, mecânica ou elétrica), a energia total nunca é criada nem destruída, apenas se transforma e se redistribui.",
+        "tags": ["Física", "Conservação de Energia", "Primeira Lei da Termodinâmica"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q046",
+        "materia": "Geografia / Economia",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS204",
+            "descricao": "Distinguir desemprego conjuntural de desemprego estrutural no contexto da Terceira Revolução Industrial.",
+            "unidade_tematica": "Mundo do Trabalho e Tecnologia"
+        },
+        "enunciado": "O desemprego estrutural manifesta-se hoje na maioria das economias mundiais, atingindo países ricos e emergentes. Pode-se compreender o desemprego estrutural em termos da internacionalização da economia associada:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "a uma economia desaquecida que provoca ondas gigantescas de desemprego, gerando revoltas e crises institucionais.",
+            "ao setor de serviços que se expande provocando ondas de desemprego no setor industrial, atraindo essa mão-de-obra para este novo setor.",
+            "ao setor industrial que passa a produzir menos, buscando enxugar custos provocando, com isso, demissões em larga escala.",
+            "a novas formas de gerenciamento de produção e novas tecnologias que são inseridas no processo produtivo, eliminando empregos que não voltam.",
+            "ao emprego informal que cresce, já que uma parcela da população não tem condições de regularizar o seu comércio."
+        ],
+        "correta": 3,
+        "gabarito_comentado": "O desemprego estrutural decorre da automação industrial, robótica, informatização e novas técnicas organizacionais (toyotismo) que eliminam postos de trabalho permanentes de forma irreversível.",
+        "tags": ["Economia", "Desemprego Estrutural", "Automação"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q047",
+        "materia": "Matemática / Química",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT102",
+            "descricao": "Interpretar gráficos de funções de taxa de variação decrescente (curvas côncavas para baixo).",
+            "unidade_tematica": "Taxa de Variação e Gráficos"
+        },
+        "enunciado": "A obsidiana (vidro vulcânico) fixa umidade do ar formando uma camada hidratada cuja espessura (em mícrons) varia em função da idade (em anos). O gráfico mostra uma curva côncava para baixo, onde a espessura cresce rapidamente nos primeiros milhares de anos e sua taxa de crescimento diminui gradualmente com o tempo.\n\nCom base no gráfico, pode-se concluir que a espessura da camada hidratada de uma obsidiana:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Gráfico de Espessura Hidratada x Idade da Obsidiana"
+        },
+        "alternativas": [
+            "é diretamente proporcional à sua idade.",
+            "dobra a cada 10 000 anos.",
+            "aumenta mais rapidamente quando a pedra é mais jovem.",
+            "aumenta mais rapidamente quando a pedra é mais velha.",
+            "a partir de 100 000 anos não aumenta mais."
+        ],
+        "correta": 2,
+        "gabarito_comentado": "A inclinação da reta tangente ao gráfico é muito mais íngreme nas idades iniciais (pedra mais jovem), o que significa que a velocidade/taxa de hidratação superficial é máxima no início e desacelera progressivamente ao longo dos milênios.",
+        "tags": ["Matemática", "Taxa de Variação", "Análise Gráfica"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q048",
+        "materia": "Língua Portuguesa / Literatura",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13LP49",
+            "descricao": "Reconhecer mecanismos de intertextualidade e paródia na poesia moderna brasileira.",
+            "unidade_tematica": "Intertextualidade Poética"
+        },
+        "enunciado": "Leia os textos:\nI. 'Quando nasci, um anjo torto / Desses que vivem na sombra / Disse: Vai Carlos! Ser “gauche” na vida' (Carlos Drummond de Andrade)\nII. 'Quando nasci veio um anjo safado / O chato dum querubim / E decretou que eu tava predestinado / A ser errado assim...' (Chico Buarque)\nIII. 'Quando nasci um anjo esbelto / Desses que tocam trombeta, anunciou: / Vai carregar bandeira...' (Adélia Prado)\n\nAdélia Prado e Chico Buarque estabelecem intertextualidade, em relação a Carlos Drummond de Andrade, por:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "reiteração de imagens.",
+            "oposição de idéias.",
+            "falta de criatividade.",
+            "negação dos versos.",
+            "ausência de recursos."
+        ],
+        "correta": 0,
+        "gabarito_comentado": "Tanto Chico Buarque quanto Adélia Prado recriam a célebre matriz lírica do 'Poema de Sete Faces' de Drummond por meio da reiteração e reelaboração da imagem do 'anjo anunciador' que prediz o destino poético do eu lírico no momento do nascimento.",
+        "tags": ["Literatura", "Intertextualidade", "Drummond"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q049",
+        "materia": "História",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS201",
+            "descricao": "Analisar as lutas sindicais e a conquista de direitos e legislação trabalhista no século XIX e XX.",
+            "unidade_tematica": "Movimento Operário e Direitos Sociais"
+        },
+        "enunciado": "A Revolução Industrial do final do século XVIII transformou as relações de trabalho com jornadas extenuantes de 12 a 14 horas diárias. A legislação trabalhista surgiu lentamente ao longo do século XIX e a jornada de 8 horas concretizou-se no início do século XX.\n\nPode-se afirmar que as conquistas decorrentes da legislação trabalhista estão relacionadas com:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "a expansão do capitalismo e a consolidação dos regimes monárquicos constitucionais.",
+            "a expressiva diminuição da oferta de mão-de-obra, devido à demanda por trabalhadores especializados.",
+            "a capacidade de mobilização dos trabalhadores em defesa dos seus interesses.",
+            "o crescimento do Estado ao mesmo tempo que diminuía a representação operária nos parlamentos.",
+            "a vitória dos partidos comunistas nas eleições das principais capitais européias."
+        ],
+        "correta": 2,
+        "gabarito_comentado": "A redução da jornada de trabalho e as leis de proteção ao trabalhador resultaram historicamente das greves, mobilizações sindicais e luta organizada da classe operária em defesa de seus direitos humanos e trabalhistas fundamentais.",
+        "tags": ["História", "Movimento Operário", "Direitos Trabalhistas"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q050",
+        "materia": "Biologia / Ecologia",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT203",
+            "descricao": "Representar e interpretar teias tróficas e efeitos em cascata causados por desequilíbrios ecológicos.",
+            "unidade_tematica": "Cadeias e Teias Alimentares"
+        },
+        "enunciado": "Um agricultor que criava galinhas e plantava milho exterminou os cachorros-do-mato (predadores). Em seguida, explodiu a população de pássaros e roedores. Após exterminar pássaros e roedores, ocorreu uma praga devastadora de gafanhotos que destruiu o milho e deixou as galinhas sem alimento.\n\nA teia alimentar que representa corretamente essas relações tróficas e o desequilíbrio ecológico desencadeado é:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Diagramas de fluxo de teias alimentares"
+        },
+        "alternativas": [
+            "milho -> gafanhotos -> pássaro -> galinha -> roedores -> cachorro-do-mato",
+            "Diagrama B (Milho como produtor servindo a gafanhoto, pássaro, galinha e roedores; pássaros predando gafanhotos; e cachorro-do-mato predando galinhas, roedores e pássaros).",
+            "Diagrama C (Galinha como produtora primária do milho).",
+            "Diagrama D (Cachorro-do-mato como produtor na base).",
+            "Diagrama E (Cadeia estritamente linear iniciando em galinha)."
+        ],
+        "correta": 1,
+        "gabarito_comentado": "O milho é o produtor primário na base da teia alimentar, consumido por roedores, gafanhotos, pássaros e galinhas. Os pássaros controlam os gafanhotos, e o cachorro-do-mato atua como predador de topo consumindo galinhas, roedores e pássaros. Ao eliminar o predador de topo, toda a rede entra em colapso trófico em cascata (Diagrama B).",
+        "tags": ["Ecologia", "Teias Alimentares", "Desequilíbrio Ecológico"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q051",
+        "materia": "Física",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT103",
+            "descricao": "Analisar as consequências da sobretensão elétrica sobre a potência dissipada, brilho e vida útil de lâmpadas incandescentes.",
+            "unidade_tematica": "Eletrodinâmica e Potência"
+        },
+        "enunciado": "A tabela apresenta as características medidas de duas lâmpadas incandescentes de 60W quando ligadas em uma rede de 127V:\n- Lâmpada 60W-127V: Potência = 60W, Luminosidade = 750 lúmens, Vida útil média = 1000 horas.\n- Lâmpada 60W-120V: Potência = 65W, Luminosidade = 920 lúmens, Vida útil média = 452 horas.\n\nAcender uma lâmpada de 60W-120V em uma tomada de 127V, comparativamente a uma lâmpada de 60W-127V no mesmo local, tem como resultado:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "mesma potência, maior intensidade de luz e maior durabilidade.",
+            "mesma potência, maior intensidade de luz e menor durabilidade.",
+            "maior potência, maior intensidade de luz e maior durabilidade.",
+            "maior potência, maior intensidade de luz e menor durabilidade.",
+            "menor potência, menor intensidade de luz e menor durabilidade."
+        ],
+        "correta": 3,
+        "gabarito_comentado": "Ao ligar a lâmpada de 120V na rede de 127V (tensão maior que a nominal de projeto), a corrente e a potência aumentam (65W > 60W), aumentando o fluxo luminoso (920 lm > 750 lm), porém o superaquecimento do filamento de tungstênio reduz drasticamente sua vida útil (452 h < 1000 h).",
+        "tags": ["Física", "Eletrodinâmica", "Potência e Tensão"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q052",
+        "materia": "Matemática",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT102",
+            "descricao": "Interpretar gráficos de curvas populacionais em função do tempo.",
+            "unidade_tematica": "Análise Gráfica e Funções"
+        },
+        "enunciado": "O número de indivíduos de certa população é representado por um gráfico no tempo que cresce de 1940 até atingir o pico de 10.000 indivíduos em 1967, e em seguida declina gradativamente, atingindo cerca de 8.000 indivíduos em 1975.\n\nEm 1975, a população tinha um tamanho aproximadamente igual ao registrado no ano de:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Gráfico de crescimento e declínio populacional (1940-1990)"
+        },
+        "alternativas": [
+            "1960",
+            "1963",
+            "1967",
+            "1970",
+            "1980"
+        ],
+        "correta": 1,
+        "gabarito_comentado": "Traçando uma linha horizontal no nível populacional de 1975 (cerca de 8.000 indivíduos), a curva na fase ascendente intercepta a mesma altura horizontal exatamente no ano de 1963.",
+        "tags": ["Matemática", "Interpretação Gráfica", "Populações"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q053",
+        "materia": "Literatura / História",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13LP48",
+            "descricao": "Analisar o Naturalismo brasileiro e as transformações urbanas e industriais do século XIX.",
+            "unidade_tematica": "Naturalismo e Urbanização"
+        },
+        "enunciado": "“Viam-se de cima as casas acavaladas umas pelas outras, formando ruas, contornando praças. As chaminés principiavam a fumar; deslizavam as carrocinhas multicores dos padeiros; as vacas de leite caminhavam com o seu passo vagaroso, parando à porta dos fregueses... cruzavam-se na rua os libertinos retardios com os operários que se levantavam para a obrigação; ouvia-se o ruído estalado dos carros de água, o rodar monótono dos bondes.” (AZEVEDO, Aluísio de. Casa de Pensão, 1884)\n\nO trecho descreve o cotidiano de uma cidade brasileira no seguinte contexto:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "a convivência entre elementos de uma economia agrária e os de uma economia industrial indicam o início da industrialização no Brasil, no século XIX.",
+            "desde o século XVIII, a principal atividade da economia brasileira era industrial, como se observa no cotidiano descrito.",
+            "apesar de a industrialização ter-se iniciado no século XIX, ela continuou a ser uma atividade pouco desenvolvida no Brasil.",
+            "apesar da industrialização, muitos operários levantavam cedo, porque iam diariamente para o campo desenvolver atividades rurais.",
+            "a vida urbana, caracterizada pelo cotidiano apresentado no texto, ignora a industrialização existente na época."
+        ],
+        "correta": 0,
+        "gabarito_comentado": "O fragmento naturalista retrata com precisão o período de transição da segunda metade do século XIX no Rio de Janeiro, onde símbolos tradicionais rurais (vacas leiteiras nas ruas) conviviam com elementos emergentes da modernização industrial (chaminés fumegando, operários assalariados e bondes).",
+        "tags": ["Literatura", "Aluísio Azevedo", "Urbanização e Indústria"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q054",
+        "materia": "Biologia / Ecologia",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT202",
+            "descricao": "Explicar a ciclagem rápida de nutrientes e a serapilheira em florestas tropicais sobre solos lixiviados.",
+            "unidade_tematica": "Ecologia de Florestas Tropicais"
+        },
+        "enunciado": "“Apesar da riqueza das florestas tropicais, elas estão geralmente baseadas em solos inférteis e improdutivos. Grande parte dos nutrientes é armazenada nas folhas que caem sobre o solo, não no solo propriamente dito. Quando esse ambiente é intensamente modificado pelo ser humano, a vegetação desaparece, o ciclo dos nutrientes é alterado e a terra se torna rapidamente infértil.” (CORSON, 1993)\n\nA existência de florestas exuberantes sobre solos pobres é explicada pela:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "profundidade do solo, pois, embora pobre, sua espessura garante a disponibilidade de nutrientes para a sustentação dos vegetais da região.",
+            "boa iluminação das regiões tropicais, uma vez que a duração regular do dia e da noite garante os ciclos dos nutrientes nas folhas dos vegetais da região.",
+            "existência de grande diversidade animal, com número expressivo de populações que, com seus dejetos, fertilizam o solo.",
+            "capacidade de produção abundante de oxigênio pelas plantas das florestas tropicais, consideradas os “pulmões” do mundo.",
+            "rápida reciclagem dos nutrientes, potencializada pelo calor e umidade das florestas tropicais, o que favorece a vida dos decompositores."
+        ],
+        "correta": 4,
+        "gabarito_comentado": "O clima quente e úmido das florestas equatoriais/tropicais acelera a atividade biológica de fungos e bactérias decompositoras da serapilheira, promovendo uma rápida e contínua ciclagem de nutrientes minerais que são imediatamente reabsorvidos pelas raízes superficiais das plantas.",
+        "tags": ["Ecologia", "Florestas Tropicais", "Ciclagem de Nutrientes"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q055",
+        "materia": "Geografia / Meio Ambiente",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT203",
+            "descricao": "Propor e avaliar ações de sustentabilidade, economia circular e preservação de florestas nativas.",
+            "unidade_tematica": "Sustentabilidade e Reciclagem"
+        },
+        "enunciado": "Para evitar que novas áreas de florestas nativas sejam destruídas para suprir a produção crescente de papel, foram propostas as seguintes ações:\nI. Aumentar a reciclagem de papel, através da coleta seletiva e processamento em usinas.\nII. Reduzir as tarifas de importação de papel.\nIII. Diminuir os impostos para produtos que usem papel reciclado.\n\nPara um meio ambiente global mais saudável, apenas:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "a proposta I é adequada.",
+            "a proposta II é adequada.",
+            "a proposta III é adequada.",
+            "as propostas I e II são adequadas.",
+            "as propostas I e III são adequadas."
+        ],
+        "correta": 4,
+        "gabarito_comentado": "Aumentar a coleta seletiva/reciclagem (I) e incentivar economicamente produtos sustentáveis com desoneração fiscal (III) reduzem diretamente a demanda por madeira virgem. A proposta II apenas deslocaria o desmatamento para outros países do planeta sem solucionar o problema global.",
+        "tags": ["Meio Ambiente", "Reciclagem", "Sustentabilidade"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q056",
+        "materia": "Biologia / Agronomia",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT301",
+            "descricao": "Comparar os efeitos do controle biológico e dos agrotóxicos sobre populações de pragas e predadores.",
+            "unidade_tematica": "Controle Biológico e Agrotóxicos"
+        },
+        "enunciado": "Um gráfico de densidade populacional de praga agrícola mostra que:\n- No momento 1, o agricultor introduziu um inimigo natural (controle biológico), fazendo a população de pragas cair e se estabilizar abaixo do nível de prejuízo P.\n- No momento 2, impaciente, aplicou inseticida químico de largo espectro. Pouco tempo depois, a população de pragas sofreu uma explosão sem controle, superando largamente o nível de dano P.\n\nA análise do gráfico permite concluir que:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Gráfico de densidade da praga após controle biológico e químico"
+        },
+        "alternativas": [
+            "se o inseticida tivesse sido usado no momento marcado pela seta 1, a praga teria sido controlada definitivamente, sem necessidade de um tratamento posterior.",
+            "se não tivesse sido usado o inseticida no momento marcado pela seta 2, a população de praga continuaria aumentando rapidamente e causaria grandes danos à lavoura.",
+            "o uso do inseticida tornou-se necessário, uma vez que o controle biológico aplicado no momento 1 não resultou na diminuição da densidade da população da praga.",
+            "o inseticida atacou tanto as pragas quanto os seus predadores; entretanto, a população de pragas recuperou-se mais rápido voltando a causar dano à lavoura.",
+            "o controle de pragas por meio do uso de inseticidas é muito mais eficaz que o controle biológico, pois os seus efeitos são muito mais rápidos e têm maior durabilidade."
+        ],
+        "correta": 3,
+        "gabarito_comentado": "Inseticidas químicos de amplo espectro dizimam tanto as pragas quanto seus predadores naturais e competidores. Como as pragas têm ciclo reprodutivo mais curto e maior taxa de fecundidade, elas ressurgem livres de inimigos naturais (efeito rebote), causando infestações ainda mais graves.",
+        "tags": ["Ecologia", "Controle Biológico", "Agrotóxicos"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q057",
+        "materia": "Química / Geografia",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT105",
+            "descricao": "Avaliar aspectos termodinâmicos, energéticos e econômicos dos processos de dessalinização da água do mar.",
+            "unidade_tematica": "Recursos Hídricos e Dessalinização"
+        },
+        "enunciado": "Em nosso planeta a quantidade de água está estimada em \\(1{,}36 \\times 10^6\\) trilhões de toneladas, das quais cerca de 95% são salgadas. O uso de água do mar para obtenção de água potável ainda não é uma realidade em larga escala no mundo principalmente porque:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "o custo dos processos tecnológicos de dessalinização é muito alto.",
+            "não se sabe como separar adequadamente os sais nela dissolvidos.",
+            "comprometeria muito a vida aquática dos oceanos.",
+            "a água do mar possui materiais irremovíveis.",
+            "a água salgada do mar tem temperatura de ebulição alta."
+        ],
+        "correta": 0,
+        "gabarito_comentado": "Os métodos industriais de dessalinização (como osmose reversa e destilação térmica em múltiplos estágios) exigem infraestrutura de alto custo financeiro e consomem elevada quantidade de energia elétrica, tornando o processo economicamente inacessível para abastecimento em larga escala na maior parte dos países.",
+        "tags": ["Química", "Recursos Hídricos", "Dessalinização"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q058",
+        "materia": "Química / Meio Ambiente",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT104",
+            "descricao": "Explicar o fenômeno da salinização de solos agrícolas associado à evaporação da água de irrigação.",
+            "unidade_tematica": "Solos e Salinização"
+        },
+        "enunciado": "No ciclo da água, a evaporação é um processo de mudança de fase no qual apenas as moléculas de \\(\\text{H}_2\\text{O}\\) passam para o estado gasoso, enquanto os sais minerais não voláteis permanecem em solução. Desse ponto de vista, uma das conseqüências da evaporação intensa pode ser:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "a formação da chuva ácida, em regiões poluídas, a partir de quantidades muito pequenas de substâncias ácidas evaporadas juntamente com a água.",
+            "a perda de sais minerais, no solo, que são evaporados juntamente com a água.",
+            "o aumento, nos campos irrigados, da concentração de sais minerais na água presente no solo.",
+            "a perda, nas plantas, de substâncias indispensáveis à manutenção da vida vegetal, por meio da respiração.",
+            "a diminuição, nos oceanos, da salinidade das camadas de água mais próximas da superfície."
+        ],
+        "correta": 2,
+        "gabarito_comentado": "Em lavouras irrigadas sob clima quente e seco, a evaporação contínua da água da superfície do solo deixa para trás os sais dissolvidos (salinização do solo), aumentando progressivamente a pressão osmótica e a salinidade da solução edáfica.",
+        "tags": ["Química Ambiental", "Salinização", "Ciclo da Água"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q059",
+        "materia": "Química / Biologia",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT104",
+            "descricao": "Analisar os fatores que influenciam a cinética de degradação e conservação térmica de alimentos.",
+            "unidade_tematica": "Cinética Química e Microbiologia"
+        },
+        "enunciado": "Em uma embalagem de leite longa-vida, lê-se: “Após aberto é preciso guardá-lo em geladeira”.\nConsidere os fatores de conservação:\nI. microrganismos dependem da água líquida para sua sobrevivência.\nII. microrganismos necessitam de temperaturas adequadas para se multiplicarem (mais rápida entre 25°C e 45°C).\nIII. transformações químicas têm maior rapidez quanto maior for a temperatura e a superfície de contato.\nIV. substâncias químicas conservantes dificultam a sobrevivência microbiana.\nV. no ar há microrganismos que encontram alimento, água líquida e temperaturas adequadas.\n\nCaso a embalagem aberta fique fora da geladeira no verão tropical, o leite se deteriorará rapidamente devido às razões relacionadas aos fatores:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "o fator I, apenas.",
+            "o fator II, apenas.",
+            "os fatores II, III e V, apenas.",
+            "os fatores I, II e III, apenas.",
+            "os fatores I, II, III, IV e V."
+        ],
+        "correta": 2,
+        "gabarito_comentado": "Ao abrir a caixa, microrganismos presentes no ar entram em contato com o leite (fator V). No calor do verão (25°C a 45°C), as bactérias encontram sua temperatura ideal de proliferação acelerada (fator II) e as reações químicas de oxidação e fermentação tornam-se cineticamente muito mais rápidas com o aumento da temperatura (fator III).",
+        "tags": ["Cinética Química", "Microbiologia", "Conservação de Alimentos"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q060",
+        "materia": "História",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS202",
+            "descricao": "Caracterizar o contexto histórico da Guerra Fria e a bipolaridade ideológica e armamentista.",
+            "unidade_tematica": "Guerra Fria"
+        },
+        "enunciado": "Os 45 anos que vão do lançamento das bombas atômicas (1945) até o fim da União Soviética (1991) foram marcados pela situação internacional peculiar conhecida por Guerra Fria (Eric Hobsbawm, Era dos Extremos).\n\nO período da Guerra Fria pode ser definido como aquele momento histórico em que houve:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "corrida armamentista entre as potências imperialistas européias ocasionando a Primeira Guerra Mundial.",
+            "domínio dos países socialistas do Sul do globo pelos países capitalistas do Norte.",
+            "choque ideológico entre a Alemanha Nazista / União Soviética Stalinista, durante os anos 30.",
+            "disputa pela supremacia da economia mundial entre o Ocidente e as potências orientais, como a China e o Japão.",
+            "constante confronto das duas superpotências que emergiram da Segunda Guerra Mundial."
+        ],
+        "correta": 4,
+        "gabarito_comentado": "A Guerra Fria foi o estado permanente de tensão geopolítica, ideológica, tecnológica e militar entre os Estados Unidos (bloco capitalista) e a União Soviética (bloco socialista), as duas superpotências hegemônicas que despontaram no pós-Segunda Guerra Mundial.",
+        "tags": ["História Contemporânea", "Guerra Fria", "Bipolaridade"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q061",
+        "materia": "Matemática",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT102",
+            "descricao": "Calcular média aritmética ponderada a partir de gráficos de distribuição de frequências percentuais.",
+            "unidade_tematica": "Estatística e Média Ponderada"
+        },
+        "enunciado": "Um levantamento estatístico de radar registrou a distribuição percentual de veículos por velocidade:\n- 20 km/h: 5%\n- 30 km/h: 15%\n- 40 km/h: 30%\n- 50 km/h: 40%\n- 60 km/h: 6%\n- 70 km/h: 3%\n- 80 km/h: 1%\n\nA velocidade média dos veículos que trafegam nessa avenida é de:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Gráfico de barras da velocidade dos veículos (%)"
+        },
+        "alternativas": [
+            "35 km/h",
+            "44 km/h",
+            "55 km/h",
+            "76 km/h",
+            "85 km/h"
+        ],
+        "correta": 1,
+        "gabarito_comentado": "Calculando a média ponderada pelas porcentagens registradas:\n\\(V_m = \\frac{20(5) + 30(15) + 40(30) + 50(40) + 60(6) + 70(3) + 80(1)}{100}\\)\n\\(V_m = \\frac{100 + 450 + 1200 + 2000 + 360 + 210 + 80}{100} = \\frac{4400}{100} = 44\\text{ km/h}\\).",
+        "tags": ["Estatística", "Média Ponderada", "Gráficos"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q062",
+        "materia": "Biologia / Saúde",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT301",
+            "descricao": "Reconhecer a cadeia epidemiológica da leptospirose e as relações de causa e efeito com saneamento e enchentes.",
+            "unidade_tematica": "Epidemiologia e Leptospirose"
+        },
+        "enunciado": "Considere os fatos noticiados sobre casos de leptospirose:\nI. Quando ocorre uma enchente, as águas espalham os dejetos dos animais.\nII. O acúmulo de lixo cria ambiente propício para a proliferação dos ratos.\nIII. O lixo acumulado nos terrenos baldios e margens de rios entope bueiros e compromete o escoamento das águas da chuva.\nIV. As pessoas na enchente entram em contato com a água contaminada e contraem leptospirose.\n\nA seqüência cronológica de causa e efeito que relaciona corretamente a leptospirose, o lixo, as enchentes e os roedores é:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "I, II, III e IV",
+            "I, III, IV e II",
+            "IV, III, II e I",
+            "II, IV, I e III",
+            "II, III, I e IV"
+        ],
+        "correta": 4,
+        "gabarito_comentado": "A sequência lógica de causalidade epidemiológica é: 1º o acúmulo de lixo atrai e multiplica os roedores (II); 2º o lixo entope bueiros e causa inundações (III); 3º as águas das enchentes espalham a urina infectada dos ratos com a bactéria Leptospira (I); 4º a população em contato com a água contaminada contrai a infecção (IV).",
+        "tags": ["Saúde Pública", "Leptospirose", "Saneamento Básico"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1999_q063",
+        "materia": "Língua Portuguesa / Literatura",
+        "ano": "ENEM 1999",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13LP48",
+            "descricao": "Analisar a concisão, economia expressiva e lirismo na crônica contemporânea brasileira.",
+            "unidade_tematica": "Crônica Literária e Rubem Braga"
+        },
+        "enunciado": "Em sua crônica sobre as penas do pavão, Rubem Braga afirma que 'este é o luxo do grande artista, atingir o máximo de matizes com o mínimo de elementos. De água e luz ele faz seu esplendor; seu grande mistério é a simplicidade.'\n\nCarlos Drummond de Andrade, ao analisar a obra de Rubem Braga, escreveu que ele é o poeta que conta 'o seu expediente de homem, apanhado no essencial, narrativa direta e econômica. (...) É o poeta do real, do palpável...'\n\nA afirmação de Rubem Braga sobre a simplicidade do artista encontra correspondência no texto de Drummond quando este caracteriza a obra de Braga como:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "uma narrativa direta e econômica.",
+            "real, palpável.",
+            "sentimento de realidade.",
+            "seu expediente de homem.",
+            "seu remédio."
+        ],
+        "correta": 0,
+        "gabarito_comentado": "A ideia de 'atingir o máximo com o mínimo de elementos' (síntese e economia de meios) corresponde diretamente ao conceito drummondiano de uma 'narrativa direta e econômica', que capta a essência da realidade sem excessos formais.",
+        "tags": ["Literatura", "Rubem Braga", "Crônica"],
+        "preDefinida": true
+    }
+]

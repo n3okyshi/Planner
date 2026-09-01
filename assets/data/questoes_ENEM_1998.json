@@ -7,30 +7,26 @@
         "dificuldade": "Média",
         "tempo_estimado": 10,
         "bncc": {
-            "codigo": "",
-            "descricao": "",
-            "unidade_tematica": ""
+            "codigo": "EM13MAT309",
+            "descricao": "Resolver e elaborar problemas de contagem e cálculo de volumes de prismas retos e blocos retangulares.",
+            "unidade_tematica": "Geometria Espacial"
         },
-        "enunciado": "Uma pessoa arrumou as bolinhas em camadas superpostas iguais, tendo assim empregado:",
+        "enunciado": "Observe nas questões 1 e 2 o que foi feito para colocar bolinhas de gude de 1 cm de diâmetro numa caixa cúbica com 10 cm de aresta.\n\nUma pessoa arrumou as bolinhas em camadas superpostas iguais, tendo assim empregado:",
         "suporte": {
             "tem_imagem": true,
-            "url_imagem": "./img/ENEM_1998/enem_1998_q001.jpg",
-            "legenda": ""
+            "url_imagem": "./assets/data/img/ENEM_1998/q001.png",
+            "legenda": "Arrumação em camadas cúbicas superpostas"
         },
         "alternativas": [
-            "100",
-            "300",
-            "1000",
-            "2000",
-            "10000"
+            "100 bolinhas.",
+            "300 bolinhas.",
+            "1000 bolinhas.",
+            "2000 bolinhas.",
+            "10000 bolinhas."
         ],
         "correta": 2,
-        "gabarito_comentado": "Para saber a quantidade de um elementos de um cubo 10x10x10, calculamos o volume do cubo, que é dado pela fórmula: $V = lado^3$. Nesse caso, o lado é 10, então o volume é $10^3 = 1000$.",
-        "tags": [
-            "Cubo",
-            "Geometria",
-            "Volume"
-        ],
+        "gabarito_comentado": "Cada aresta da caixa mede 10 cm e cada bolinha tem 1 cm de diâmetro. Logo, cabem 10 bolinhas ao longo de cada aresta. Uma camada possui \\(10 \\times 10 = 100\\) bolinhas. Como a altura também comporta 10 camadas completas, o total de bolinhas empregadas é \\(10 \\times 10 \\times 10 = 1000\\) bolinhas.",
+        "tags": ["Geometria Espacial", "Volume", "Contagem"],
         "preDefinida": true
     },
     {
@@ -41,45 +37,131 @@
         "dificuldade": "Média",
         "tempo_estimado": 10,
         "bncc": {
-            "codigo": "",
-            "descricao": "",
-            "unidade_tematica": ""
+            "codigo": "EM13MAT309",
+            "descricao": "Resolver problemas de contagem e arranjo espacial.",
+            "unidade_tematica": "Geometria Espacial"
         },
         "enunciado": "Uma segunda pessoa procurou encontrar outra maneira de arrumar as bolas na caixa achando que seria uma boa idéia organizá-las em camadas alternadas, onde cada bolinha de uma camada se apoiaria em 4 bolinhas da camada inferior, como mostra a figura. Deste modo, ela conseguiu fazer 12 camadas. Portanto, ela conseguiu colocar na caixa:",
         "suporte": {
             "tem_imagem": true,
-            "url_imagem": "./img/ENEM_1998/enem_1998_q002.jpg",
-            "legenda": ""
+            "url_imagem": "./assets/data/img/ENEM_1998/q002.png",
+            "legenda": "Camadas alternadas apoiadas em 4 bolinhas"
         },
         "alternativas": [
-            "729",
-            "984",
-            "1000",
-            "1086",
-            "12000"
+            "729 bolinhas.",
+            "984 bolinhas.",
+            "1000 bolinhas.",
+            "1086 bolinhas.",
+            "1200 bolinhas."
         ],
         "correta": 3,
-        "gabarito_comentado": "Para saber a quantidade de um elementos de um cubo 10x10x10, calculamos o volume do cubo, que é dado pela fórmula: $V = lado^3$. Nesse caso, o lado é 10, então o volume é $10^3 = 1000$.",
-        "tags": [
-            "Cubo",
-            "Geometria",
-            "Volume"
-        ],
+        "gabarito_comentado": "A 1ª camada contém uma grade de \\(10 \\times 10 = 100\\) bolinhas. A 2ª camada se apoia nos vãos da camada anterior, formando uma grade de \\(9 \\times 9 = 81\\) bolinhas. Como foram dispostas 12 camadas no total (6 camadas ímpares de 100 e 6 camadas pares de 81), o total de bolinhas é: \\(6 \\times 100 + 6 \\times 81 = 600 + 486 = 1086\\) bolinhas.",
+        "tags": ["Geometria Espacial", "Arranjos", "Contagem"],
         "preDefinida": true
     },
     {
-        "id": "enem_1998_q002",
-        "materia": "Ciências",
+        "id": "enem_1998_q003",
+        "materia": "Língua Portuguesa",
         "ano": "ENEM 1998",
         "tipo": "multipla",
         "dificuldade": "Média",
         "tempo_estimado": 10,
         "bncc": {
-            "codigo": "",
-            "descricao": "",
-            "unidade_tematica": ""
+            "codigo": "EM13LP01",
+            "descricao": "Analisar o funcionamento das linguagens para interpretar e produzir discursos em contextos específicos.",
+            "unidade_tematica": "Variação Linguística"
         },
-        "enunciado": "O sol participa do ciclo da água, pois além de aquecer a superfície da Terra dando origem aos ventos, provoca a evaporação da água dos rios, lagos e mares. O vapor da água, ao se resfriar, condensa em minúsculas gotinhas, que se agrupam formando as nuvens, neblinas ou névoas úmidas. As nuvens podem ser levadas pelos ventos de uma região para outra. Com a condensação e, em seguida, a chuva, a água volta à superfície da Terra, caindo sobre o solo, rios, lagos e mares. Parte dessa água evapora retornando à atmosfera, outra parte escoa superficialmente ou infiltra-se no solo, indo alimentar rios e lagos. Esse processo é chamado de ciclo da água.\n Considere, então, as seguintes afirmativas:\n I. a evaporação é maior nos continentes, uma vez que o aquecimento ali é maior do que nos oceanos.\n II. a vegetação participa do ciclo hidrológico por meio da transpiração.\n III. o ciclo hidrológico condiciona processos que ocorrem na litosfera, na atmosfera e na biosfera.\n IV. a energia gravitacional movimenta a água dentro do seu ciclo.\n V. o ciclo hidrológico é passível de sofrer interferência humana, podendo apresentar desequilíbrios.",
+        "enunciado": "Para falar e escrever bem, é preciso, além de conhecer o padrão formal da Língua Portuguesa, saber adequar o uso da linguagem ao contexto discursivo. Para exemplificar este fato, seu professor de Língua Portuguesa convida-o a ler o texto Aí, Galera, de Luís Fernando Veríssimo. No texto, o autor brinca com situações de discurso oral que fogem à expectativa do ouvinte.\n\nAí, Galera\n\nJogadores de futebol podem ser vítimas de estereotipação. Por exemplo, você pode imaginar um jogador de futebol dizendo “estereotipação”? E, no entanto, por que não?\n- Aí, campeão. Uma palavrinha pra galera.\n- Minha saudação aos aficionados do clube e aos demais esportistas, aqui presentes ou no recesso dos seus lares.\n- Como é?\n- Aí, galera.\n- Quais são as instruções do técnico?\n- Nosso treinador vaticinou que, com um trabalho de contenção coordenada, com energia otimizada, na zona de preparação, aumentam as probabilidades de, recuperado o esférico, concatenarmos um contragolpe agudo com parcimônia de meios e extrema objetividade, valendo-nos da desestruturação momentânea do sistema oposto, surpreendido pela reversão inesperada do fluxo da ação.\n- Ahn?\n- É pra dividir no meio e ir pra cima pra pegá eles sem calça.\n- Certo. Você quer dizer mais alguma coisa?\n- Posso dirigir uma mensagem de caráter sentimental, algo banal, talvez mesmo previsível e piegas, a uma pessoa à qual sou ligado por razões, inclusive, genéticas?\n- Pode.\n- Uma saudação para a minha progenitora.\n- Como é?\n- Alô, mamãe!\n- Estou vendo que você é um, um...\n- Um jogador que confunde o entrevistador, pois não corresponde à expectativa de que o atleta seja um ser algo primitivo com dificuldade de expressão e assim sabota a estereotipação?\n- Estereoquê?\n- Um chato?\n- Isso.\n(Correio Braziliense, 13/05/1998)\n\nO texto retrata duas situações relacionadas que fogem à expectativa do público. São elas:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "a saudação do jogador aos fãs do clube, no início da entrevista, e a saudação final dirigida à sua mãe.",
+            "a linguagem muito formal do jogador, inadequada à situação da entrevista, e um jogador que fala, com desenvoltura, de modo muito rebuscado.",
+            "o uso da expressão “galera”, por parte do entrevistador, e da expressão “progenitora”, por parte do jogador.",
+            "o desconhecimento, por parte do entrevistador, da palavra “estereotipação”, e a fala do jogador em “é pra dividir no meio e ir pra cima pra pegá eles sem calça”.",
+            "o fato de os jogadores de futebol serem vítimas de estereotipação e o jogador entrevistado não corresponder ao estereótipo."
+        ],
+        "correta": 1,
+        "gabarito_comentado": "A quebra de expectativa no texto provém do contraste entre o vocabulário rebuscado/extremamente formal utilizado pelo atleta e o contexto tipicamente informal de uma entrevista futebolística no campo, rompendo o estereótipo esperado pelo entrevistador e pelo público.",
+        "tags": ["Variação Linguística", "Adequação Vocabular", "Ironia"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q004",
+        "materia": "Língua Portuguesa",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13LP01",
+            "descricao": "Identificar níveis de formalidade e adequação da linguagem ao contexto de comunicação.",
+            "unidade_tematica": "Níveis de Linguagem"
+        },
+        "enunciado": "O texto mostra uma situação em que a linguagem usada é inadequada ao contexto. Considerando as diferenças entre língua oral e língua escrita, assinale a opção que representa também uma inadequação da linguagem usada ao contexto:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "“o carro bateu e capotô, mas num deu pra vê direito” - um pedestre que assistiu ao acidente comenta com o outro que vai passando.",
+            "“E aí, ô meu! Como vai essa força?” - um jovem que fala para um amigo.",
+            "“Só um instante, por favor. Eu gostaria de fazer uma observação” - alguém comenta em uma reunião de trabalho.",
+            "“Venho manifestar meu interesse em candidatar-me ao cargo de Secretária Executiva desta conceituada empresa” - alguém que escreve uma carta candidatando-se a um emprego.",
+            "“Porque se a gente não resolve as coisas como têm que ser, a gente corre o risco de termos, num futuro próximo, muito pouca comida nos lares brasileiros” - um professor universitário em um congresso internacional."
+        ],
+        "correta": 4,
+        "gabarito_comentado": "Em um congresso internacional, o registro exigido para um professor universitário é o padrão formal da norma culta. O uso de construções excessivamente coloquiais como 'se a gente não resolve', 'a gente corre o risco de termos' e 'muito pouca comida' demonstra inadequação ao contexto acadêmico solene.",
+        "tags": ["Adequação Linguística", "Norma Culta", "Contexto Discursivo"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q005",
+        "materia": "Língua Portuguesa",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13LP02",
+            "descricao": "Compreender e interpretar relações semânticas e expressões idiomáticas.",
+            "unidade_tematica": "Semântica e Estilística"
+        },
+        "enunciado": "A expressão “pegá eles sem calça” poderia ser substituída, sem comprometimento de sentido, em língua culta, formal, por:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "pegá-los na mentira.",
+            "pegá-los desprevenidos.",
+            "pegá-los em flagrante.",
+            "pegá-los rapidamente.",
+            "pegá-los momentaneamente."
+        ],
+        "correta": 1,
+        "gabarito_comentado": "A locução idiomática popular 'pegar sem calça' ou 'pegar de calças curtas' denota surpreender o oponente desprevenido, desatento ou despreparado para reagir.",
+        "tags": ["Expressões Idiomáticas", "Semântica", "Sinonímia"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q006",
+        "materia": "Geografia / Ciências",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT203",
+            "descricao": "Avaliar o ciclo hidrológico e os impactos socioambientais associados aos recursos hídricos.",
+            "unidade_tematica": "Ciclo Hidrológico"
+        },
+        "enunciado": "O sol participa do ciclo da água, pois além de aquecer a superfície da Terra dando origem aos ventos, provoca a evaporação da água dos rios, lagos e mares. O vapor da água, ao se resfriar, condensa em minúsculas gotinhas, que se agrupam formando as nuvens, neblinas ou névoas úmidas. As nuvens podem ser levadas pelos ventos de uma região para outra. Com a condensação e, em seguida, a chuva, a água volta à superfície da Terra, caindo sobre o solo, rios, lagos e mares. Parte dessa água evapora retornando à atmosfera, outra parte escoa superficialmente ou infiltra-se no solo, indo alimentar rios e lagos. Esse processo é chamado de ciclo da água.\n\nConsidere, então, as seguintes afirmativas:\nI. a evaporação é maior nos continentes, uma vez que o aquecimento ali é maior do que nos oceanos.\nII. a vegetação participa do ciclo hidrológico por meio da transpiração.\nIII. o ciclo hidrológico condiciona processos que ocorrem na litosfera, na atmosfera e na biosfera.\nIV. a energia gravitacional movimenta a água dentro do seu ciclo.\nV. o ciclo hidrológico é passível de sofrer interferência humana, podendo apresentar desequilíbrios.",
         "suporte": {
             "tem_imagem": false,
             "url_imagem": "",
@@ -87,17 +169,1724 @@
         },
         "alternativas": [
             "somente a afirmativa III está correta.",
-            "somente as afirmativas III e IV estão corretas",
+            "somente as afirmativas III e IV estão corretas.",
             "somente as afirmativas I, II e V estão corretas.",
             "somente as afirmativas II, III, IV e V estão corretas.",
             "todas as afirmativas estão corretas."
         ],
         "correta": 3,
-        "gabarito_comentado": "Vamos analisar cada afirmativa:\n I. A evaporação é maior nos oceanos do que nos continentes, pois a superfície dos oceanos é maior e a água retém calor por mais tempo.\n II. A vegetação participa do ciclo hidrológico por meio da transpiração, liberando vapor de água na atmosfera.\n III. O ciclo hidrológico condiciona processos na litosfera (erosão, transporte de sedimentos), atmosfera (formação de nuvens, precipitação) e biosfera (condições de vida para os seres vivos).\n IV. A energia gravitacional movimenta a água no ciclo, pois a água escoa de áreas mais altas para áreas mais baixas.\n V. O ciclo hidrológico pode ser afetado por ações humanas, como desmatamento, urbanização e irrigação, podendo causar desequilíbrios.\n Portanto, as afirmativas corretas são II, III, IV e V.",
-        "tags": [
-            "Ciclo da água",
-            "Hidrologia"
+        "gabarito_comentado": "A afirmativa I é falsa porque a maior taxa de evaporação ocorre nos oceanos, devido à sua enorme extensão territorial superficial (~71% do planeta). As afirmativas II (evapotranspiração), III (integração entre esferas terrestres), IV (ação da gravidade no escoamento e precipitação) e V (impactos antrópicos) são todas corretas.",
+        "tags": ["Ciclo Hidrológico", "Recursos Hídricos", "Ecologia"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q007",
+        "materia": "Física",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT101",
+            "descricao": "Analisar e quantificar o equilíbrio de corpos rígidos através das condições de forças e torques.",
+            "unidade_tematica": "Estática e Torque"
+        },
+        "enunciado": "Um portão está fixo em um muro por duas dobradiças A e B, conforme mostra a figura, sendo P o peso do portão.\n\nCaso um garoto se dependure no portão pela extremidade livre, e supondo que as reações máximas suportadas pelas dobradiças sejam iguais,",
+        "suporte": {
+            "tem_imagem": true,
+            "url_imagem": "./assets/data/img/ENEM_1998/q007.png",
+            "legenda": "Portão com dobradiças A (superior) e B (inferior)"
+        },
+        "alternativas": [
+            "é mais provável que a dobradiça A arrebente primeiro que a B.",
+            "é mais provável que a dobradiça B arrebente primeiro que a A.",
+            "seguramente as dobradiças A e B arrebentarão simultaneamente.",
+            "nenhuma delas sofrerá qualquer esforço.",
+            "o portão quebraria ao meio, ou nada sofreria."
         ],
+        "correta": 0,
+        "gabarito_comentado": "Tomando a dobradiça inferior B como ponto de rotação, o peso do portão e a força extra do garoto exercem um torque horário. Para equilibrar essa rotação, a dobradiça superior A é tracionada para fora da parede (força horizontal de tração), enquanto a dobradiça B sofre compressão contra o muro. Dobradiças presas à alvenaria suportam melhor a compressão e tendem a arrebentar primeiro sob esforço de arrancamento/tração (dobradiça A).",
+        "tags": ["Estática", "Torque", "Momento de Força"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q008",
+        "materia": "Língua Portuguesa / Literatura",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13LP49",
+            "descricao": "Perceber as peculiaridades dos textos literários de diferentes épocas e escolas.",
+            "unidade_tematica": "Intertextualidade e Literatura"
+        },
+        "enunciado": "Texto 1\n“Mulher, Irmã, escuta-me: não ames,\nQuando a teus pés um homem terno e curvo\njurar amor, chorar pranto de sangue,\nNão creias, não, mulher: ele te engana!\nAs lágrimas são gotas da mentira\nE o juramento manto da perfídia.”\n(Joaquim Manoel de Macedo)\n\nTexto 2\n“Teresa, se algum sujeito bancar o\nsentimental em cima de você\nE te jurar uma paixão do tamanho de um bonde\nSe ele chorar\nSe ele ajoelhar\nSe ele se rasgar todo\nNão acredite não Teresa\nÉ lágrima de cinema\nÉ tapeação\nMentira\nCAI FORA”\n(Manuel Bandeira)\n\nOs autores, ao fazerem alusão às imagens da lágrima sugerem que:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "há um tratamento idealizado da relação homem/mulher.",
+            "há um tratamento realista da relação homem/mulher.",
+            "a relação familiar é idealizada.",
+            "a mulher é superior ao homem.",
+            "a mulher é igual ao homem."
+        ],
+        "correta": 0,
+        "gabarito_comentado": "Nos dois poemas (romântico e modernista), as atitudes exageradas e melodramáticas (lágrimas, juras extremas) representam uma convenção idealizada e artificial de corte amorosa, desmascarada como artifício enganoso.",
+        "tags": ["Literatura", "Intertextualidade", "Romantismo e Modernismo"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q009",
+        "materia": "Biologia",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT301",
+            "descricao": "Construir e analisar questões éticas e científicas sobre biotecnologia, saúde pública e substâncias hormonais.",
+            "unidade_tematica": "Fisiologia Humana e Saúde"
+        },
+        "enunciado": "Matéria publicada em jornal diário discute o uso de anabolizantes (apelidados de “bombas”) por praticantes de musculação. Segundo o jornal, “os anabolizantes são hormônios que dão uma força extra aos músculos. Quem toma consegue ganhar massa muscular mais rápido que normalmente. Isso porque uma pessoa pode crescer até certo ponto, segundo sua herança genética e independentemente do quanto ela se exercite”. Um professor de musculação, diz: “Comecei a tomar bomba por conta própria. Ficava nervoso e tremia. Fiquei impotente durante uns seis meses. Mas como sou lutador de vale tudo, tenho que tomar”.\n\nA respeito desta matéria, dois amigos fizeram os seguintes comentários:\nI. o maior perigo da auto-medicação é seu fator anabolizante, que leva à impotência sexual.\nII. o crescimento corporal depende tanto dos fatores hereditários quanto do tipo de alimentação da pessoa, se pratica ou não esportes, se dorme as 8 horas diárias.\nIII. os anabolizantes devem ter mexido com o sistema circulatório do professor de musculação, pois ele até ficou impotente.\nIV. os anabolizantes são mais perigosos para os homens, pois as mulheres, além de não correrem o risco da impotência, são protegidas pelos hormônios femininos.\n\nTomando como referência as informações da matéria do jornal e o que se conhece da fisiologia humana, pode-se considerar que estão corretos os comentários:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "I, II, III e IV.",
+            "I, II e IV, apenas.",
+            "III e IV, apenas.",
+            "II e III, apenas.",
+            "I, II e III, apenas."
+        ],
+        "correta": 3,
+        "gabarito_comentado": "A afirmativa II está correta ao abordar a interação entre genótipo e fatores ambientais no desenvolvimento corporal. A afirmativa III está correta, pois a ereção depende diretamente da dinâmica cardiovascular/vascular e os esteroides desregulam o sistema circulatório e endócrino. A afirmativa I generaliza erroneamente os efeitos da automedicação e a IV é incorreta pois as mulheres sofrem graves efeitos colaterais com anabolizantes.",
+        "tags": ["Fisiologia Humana", "Hormônios", "Saúde Pública"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q010",
+        "materia": "Matemática",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT310",
+            "descricao": "Resolver problemas envolvendo proporcionalidade e semelhança de triângulos.",
+            "unidade_tematica": "Geometria Plana"
+        },
+        "enunciado": "A sombra de uma pessoa que tem 1,80 m de altura mede 60 cm. No mesmo momento, a seu lado, a sombra projetada de um poste mede 2,00 m. Se, mais tarde, a sombra do poste diminuiu 50 cm, a sombra da pessoa passou a medir:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "30 cm",
+            "45 cm",
+            "50 cm",
+            "80 cm",
+            "90 cm"
+        ],
+        "correta": 1,
+        "gabarito_comentado": "No primeiro momento, a proporção altura/sombra da pessoa é \\(\\frac{1{,}80}{0{,}60} = 3\\). Logo, a altura do poste é \\(3 \\times 2{,}00 = 6{,}00\\text{ m}\\). Mais tarde, a nova sombra do poste passa para \\(2{,}00 - 0{,}50 = 1{,}50\\text{ m}\\). A nova razão é \\(\\frac{6{,}00}{1{,}50} = 4\\). Assim, a nova sombra da pessoa será \\(\\frac{1{,}80}{4} = 0{,}45\\text{ m} = 45\\text{ cm}\\).",
+        "tags": ["Geometria", "Semelhança de Triângulos", "Proporcionalidade"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q011",
+        "materia": "Física / Ciências",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT106",
+            "descricao": "Avaliar os princípios de geração e transformação de energia elétrica em diferentes matrizes energéticas.",
+            "unidade_tematica": "Energia e Usinas"
+        },
+        "enunciado": "Na figura esquematiza-se um tipo de usina utilizada na geração de eletricidade, onde a água de uma represa em desnível h desce através de dutos para acionar uma turbina mecânica ligada a um gerador elétrico e torre de transmissão.\n\nAnalisando o esquema, é possível identificar que se trata de uma usina:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Esquema representativo de Usina Hidrelétrica"
+        },
+        "alternativas": [
+            "hidrelétrica, porque a água corrente baixa a temperatura da turbina.",
+            "hidrelétrica, porque a usina faz uso da energia cinética da água.",
+            "termoelétrica, porque no movimento das turbinas ocorre aquecimento.",
+            "eólica, porque a turbina é movida pelo movimento da água.",
+            "nuclear, porque a energia é obtida do núcleo das moléculas de água."
+        ],
+        "correta": 1,
+        "gabarito_comentado": "O esquema ilustra uma usina hidrelétrica, na qual a água represada em desnível desce pelo duto, convertendo energia potencial gravitacional em energia cinética para movimentar as pás da turbina, que por sua vez aciona o gerador de energia elétrica.",
+        "tags": ["Energia", "Hidrelétrica", "Geração de Eletricidade"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q012",
+        "materia": "Física / Matemática",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Difícil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT106",
+            "descricao": "Calcular parâmetros de potência, rendimento e conservação de energia em sistemas hidrelétricos.",
+            "unidade_tematica": "Trabalho e Energia"
+        },
+        "enunciado": "A eficiência de uma usina hidrelétrica é da ordem de 0,9, ou seja, 90% da energia da água no início do processo se transforma em energia elétrica. A usina Ji-Paraná, do Estado de Rondônia, tem potência instalada de 512 Milhões de Watt, e a barragem tem altura de aproximadamente 120m. A vazão do rio Ji-Paraná, em litros de água por segundo, deve ser da ordem de:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "50",
+            "500",
+            "5.000",
+            "50.000",
+            "500.000"
+        ],
+        "correta": 4,
+        "gabarito_comentado": "A potência útil gerada é \\(P = \\eta \\cdot \\rho \\cdot Z \\cdot g \\cdot h\\), onde \\(\\eta = 0{,}9\\), \\(\\rho = 1000\\text{ kg/m}^3\\), \\(g \\approx 10\\text{ m/s}^2\\), \\(h = 120\\text{ m}\\) e \\(P = 512 \\times 10^6\\text{ W}\\). Substituindo: \\(512 \\times 10^6 = 0{,}9 \\cdot 1000 \\cdot Z \\cdot 10 \\cdot 120 = 1{,}08 \\times 10^6 \\cdot Z\\). Assim, a vazão volumétrica \\(Z = \\frac{512 \\times 10^6}{1{,}08 \\times 10^6} \\approx 474\\text{ m}^3/\\text{s}\\). Em litros por segundo (\\(1\\text{ m}^3 = 1000\\text{ L}\\)), temos cerca de \\(474.000\\text{ L/s}\\), que é da ordem de grandeza de \\(500.000\\text{ L/s}\\).",
+        "tags": ["Física", "Potência e Energia", "Hidrodinâmica"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q013",
+        "materia": "Física",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT101",
+            "descricao": "Identificar transformações de energia mecânica, cinética, potencial e elétrica.",
+            "unidade_tematica": "Conservação de Energia"
+        },
+        "enunciado": "No processo de obtenção de eletricidade em usinas hidrelétricas, ocorrem várias transformações de energia. Considere duas delas:\nI. cinética em elétrica\nII. potencial gravitacional em cinética\n\nAnalisando o esquema hidrelétrico, é possível identificar que elas se encontram, respectivamente, entre:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "I- a água no nível h e a turbina, II- o gerador e a torre de distribuição.",
+            "I- a água no nível h e a turbina, II- a turbina e o gerador.",
+            "I- a turbina e o gerador, II- a turbina e o gerador.",
+            "I- a turbina e o gerador, II- a água no nível h e a turbina.",
+            "I- o gerador e a torre de distribuição, II- a água no nível h e a turbina."
+        ],
+        "correta": 3,
+        "gabarito_comentado": "A transformação I (cinética em elétrica) ocorre no conjunto turbina/gerador. A transformação II (potencial gravitacional em cinética) ocorre quando a água cai da represa (nível h) pela tubulação até a turbina.",
+        "tags": ["Física", "Transformação de Energia", "Mecânica"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q014",
+        "materia": "História / Geografia",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS202",
+            "descricao": "Analisar conflitos geopolíticos contemporâneos e a corrida armamentista nuclear.",
+            "unidade_tematica": "Geopolítica Mundial"
+        },
+        "enunciado": "Os efeitos abomináveis das armas nucleares já foram sentidos pelos japoneses há mais de 50 anos (1945). Vários países têm, isoladamente, capacidade nuclear para comprometer a vida na Terra. Montar o seu sistema de defesa é um direito de todas as nações, mas um ato irresponsável ou um descuido pode desestruturar, pelo medo ou uso, a vida civilizada em vastas regiões. A não-proliferação de armas nucleares é importante.\nNo 1º domingo de junho de 98, Índia e Paquistão rejeitaram a condenação da ONU, decorrente da explosão de bombas atômicas pelos dois países, a título de teste nuclear e comemoradas com festa, especialmente no Paquistão. O governo paquistanês (país que possui maioria da população muçulmana) considerou que a condenação não levou em conta o motivo da disputa: o território de CAXEMIRA, pelo qual já travaram 3 guerras desde sua independência (em 1947, do Império Britânico, que tinha o Subcontinente Indiano como colônia). Dois terços da região, de maioria muçulmana, pertencem à Índia e 1/3 ao Paquistão.\n\nSobre o tempo e os argumentos podemos dizer que:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "a bomba atômica não existia no mundo antes de o Paquistão existir como país.",
+            "a força não tem sido usada para tentar resolver os problemas entre Paquistão e Índia.",
+            "Caxemira tornou-se um país independente em 1947.",
+            "os governos da Índia e Paquistão encontram-se numa perigosa escalada de solução de problemas pela força.",
+            "diferentemente do século anterior, no início do século XX, o Império Britânico não tinha mais expressão mundial."
+        ],
+        "correta": 3,
+        "gabarito_comentado": "O texto explicita que Índia e Paquistão já travaram três guerras pelo território da Caxemira e realizaram testes nucleares bélicos, caracterizando uma grave e perigosa escalada de disputa militarizada por meios de força.",
+        "tags": ["Geopolítica", "Conflitos Internacionais", "Guerra Fria"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q015",
+        "materia": "Matemática / Geografia",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT102",
+            "descricao": "Analisar gráficos estatísticos de séries temporais de indicadores socioeconômicos.",
+            "unidade_tematica": "Estatística e Gráficos"
+        },
+        "enunciado": "Um estudo sobre o problema do desemprego na Grande São Paulo, no período 1985-1996, realizado pelo SEADE-DIEESE, apresentou um gráfico sobre a taxa de desemprego total no qual os valores oscilaram entre o mínimo de aproximadamente 8,7% (em 1989) e o máximo de 15,2% (em 1996).\n\nPela análise do gráfico, é correto afirmar que, no período considerado,",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Gráfico de Médias Anuais da Taxa de Desemprego Total (Grande SP, 1985-1996)"
+        },
+        "alternativas": [
+            "a maior taxa de desemprego foi de 14%.",
+            "a taxa de desemprego no ano de 1995 foi a menor do período.",
+            "a partir de 1992, a taxa de desemprego foi decrescente.",
+            "no período 1985-1996, a taxa de desemprego esteve entre 8% e 16%.",
+            "a taxa de desemprego foi crescente no período compreendido entre 1988 e 1991."
+        ],
+        "correta": 3,
+        "gabarito_comentado": "A leitura do gráfico temporal do SEADE-DIEESE mostra que todas as taxas registradas entre 1985 e 1996 mantiveram-se estritamente na faixa percentual compreendida entre 8% e 16%.",
+        "tags": ["Estatística", "Interpretação Gráfica", "Indicadores Sociais"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q016",
+        "materia": "Geografia / História",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS204",
+            "descricao": "Comparar e avaliar os blocos econômicos supranacionais e as políticas neoliberais contemporâneas.",
+            "unidade_tematica": "Blocos Econômicos"
+        },
+        "enunciado": "As diferentes formas em que as sociedades se organizam socioeconomicamente visam a atender suas necessidades para a época. O liberalismo, atualmente, assume papel crescente, com os Estados diminuindo sua atuação em várias áreas, inclusive vendendo empresas estatais. Da idéia de interferência estatal na economia, do “Estado de Bem-Estar”, da assistência social ampla e emprego garantido por lei, e, às vezes, à custa de subsídios (na Europa defendido pela Social-Democracia), caminha-se para um Estado enxuto e ágil, onde a manutenção do progresso econômico e uma maior liberdade na conquista do mercado são as formas de assegurar ao cidadão o acesso ao bem-estar. Nem sempre a população concorda.\nNeste contexto, as eleições gerais na Alemanha, em 1998, poderão levar Helmuth Kohl, com longa e frutuosa carreira à frente daquele país, a entregar o posto ao social-democrata Gerhard Schroeder. O desemprego na Alemanha atinge seu ponto máximo. A moeda única européia será o fim do Marco Alemão. A imagem de Helmuth Kohl começa a desvanecer-se. Conseguirá vencer este ano? Seja como for, ele luta. Mas recebeu um novo e tremendo golpe: o Partido Liberal (FDP) deixou Kohl. O secretário Geral do FDP, Guido Westerwelle declarou: Começou o fim da era Kohl!\n\nA Alemanha ajuda a concretizar o bloco econômico da União Européia. A participação neste bloco implica a adoção de um sistema socioeconômico que:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "dificulta a livre iniciativa econômica, inclusive das grandes empresas na Alemanha.",
+            "ofereça mercado europeu mais restrito aos produtos e serviços alemães.",
+            "diminua as oportunidades de iniciativa econômica para os alemães em outros países e vice-versa.",
+            "garanta o emprego, na Alemanha, pelo afastamento da concorrência de outros países da própria União Européia.",
+            "por meio da união de esforços com os países da União Européia, permita à economia alemã concorrer em melhores condições com países de fora da União Européia."
+        ],
+        "correta": 4,
+        "gabarito_comentado": "A formação e consolidação de blocos econômicos supranacionais, como a União Europeia, visa fortalecer o mercado comum e a competitividade conjunta dos Estados-membros frente a outras grandes potências econômicas mundiais (como EUA e Japão).",
+        "tags": ["Geopolítica", "União Europeia", "Economia"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q017",
+        "materia": "Língua Portuguesa / Literatura",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13LP48",
+            "descricao": "Identificar as inovações estéticas, temáticas e linguísticas do Modernismo brasileiro.",
+            "unidade_tematica": "Modernismo Brasileiro"
+        },
+        "enunciado": "A discussão sobre gramática na classe está “quente”. Será que os brasileiros sabem gramática? A professora de Português propõe para debate o seguinte texto:\n\nPRA MIM BRINCAR\nNão há nada mais gostoso do que o mim sujeito de verbo no infinito. Pra mim brincar. As cariocas que não sabem gramática falam assim. Todos os brasileiros deviam de querer falar como as cariocas que não sabem gramática.\n— As palavras mais feias da língua portuguesa são quiçá, alhures e miúde.\n(BANDEIRA, Manuel. Seleta em prosa e verso. Org: Emanuel de Moraes. 4ª ed. Rio de Janeiro, José Olympio, 1986. Pág. 19)\n\nCom a orientação da professora e após o debate sobre o texto de Manuel Bandeira, os alunos chegaram à seguinte conclusão:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "uma das propostas mais ousadas do Modernismo foi a busca da identidade do povo brasileiro e o registro, no texto literário, da diversidade das falas brasileiras.",
+            "apesar de os modernistas registrarem as falas regionais do Brasil, ainda foram preconceituosos em relação às cariocas.",
+            "a tradição dos valores portugueses foi a pauta temática do movimento modernista.",
+            "Manuel Bandeira e os modernistas brasileiros exaltaram em seus textos o primitivismo da nação brasileira.",
+            "Manuel Bandeira considera a diversidade dos falares brasileiros uma agressão à Língua Portuguesa."
+        ],
+        "correta": 0,
+        "gabarito_comentado": "Uma das maiores bandeiras do Modernismo de 1922 foi a valorização da língua falada no Brasil ('língua brasileira'), incorporando os falares populares e regionais à literatura e rompendo com o purismo arcaico lusitano.",
+        "tags": ["Modernismo", "Manuel Bandeira", "Variação Linguística"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q018",
+        "materia": "Matemática",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT314",
+            "descricao": "Resolver problemas de divisão proporcional e pesagem com balanças de pratos.",
+            "unidade_tematica": "Raciocínio Lógico e Medidas"
+        },
+        "enunciado": "Um armazém recebe sacos de açúcar de 24kg para que sejam empacotados em embalagens menores. O único objeto disponível para pesagem é uma balança de 2 pratos, sem os pesos metálicos.\n\nRealizando uma única pesagem, é possível montar pacotes de:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Balança de 2 pratos sem pesos"
+        },
+        "alternativas": [
+            "3kg",
+            "4kg",
+            "6kg",
+            "8kg",
+            "12kg"
+        ],
+        "correta": 4,
+        "gabarito_comentado": "Com uma balança de 2 pratos e sem pesos auxiliares, em uma única operação distribui-se o conteúdo total de 24 kg igualmente entre os dois pratos até que a balança atinja o equilíbrio. O resultado são duas porções idênticas de \\(24 / 2 = 12\\text{ kg}\\).",
+        "tags": ["Raciocínio Lógico", "Divisão", "Pesagens"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q019",
+        "materia": "Matemática",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT314",
+            "descricao": "Resolver problemas de combinações de pesagens sucessivas.",
+            "unidade_tematica": "Raciocínio Lógico e Medidas"
+        },
+        "enunciado": "Realizando exatamente duas pesagens com a balança de dois pratos (partindo do saco inicial de 24 kg e sem pesos metálicos), os pacotes que podem ser feitos são os de:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "3kg e 6kg",
+            "3kg, 6kg e 12kg",
+            "6kg, 12kg e 18kg",
+            "4kg e 8kg",
+            "4kg, 6kg e 8kg"
+        ],
+        "correta": 2,
+        "gabarito_comentado": "1ª pesagem: divide os 24 kg em duas partes iguais de 12 kg. 2ª pesagem: pega uma das partes de 12 kg e divide igualmente nos dois pratos em duas partes de 6 kg. Assim, ficamos com porções de 12 kg, 6 kg e 6 kg. Combinando a porção de 12 kg com uma de 6 kg, podemos formar um pacote de 18 kg. Portanto, é possível montar pacotes de 6 kg, 12 kg e 18 kg.",
+        "tags": ["Raciocínio Lógico", "Divisões Sucessivas", "Pesagem"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q020",
+        "materia": "Matemática",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT311",
+            "descricao": "Calcular probabilidades em espaços amostrais finitos e equiprováveis através de permutações.",
+            "unidade_tematica": "Probabilidade e Estatística"
+        },
+        "enunciado": "Em um concurso de televisão, apresentam-se ao participante 3 fichas voltadas para baixo, estando representada em cada uma delas as letras T, V e E. As fichas encontram-se alinhadas em uma ordem qualquer. O participante deve ordenar as fichas ao seu gosto, mantendo as letras voltadas para baixo, tentando obter a sigla TVE. Ao desvirá-las, para cada letra que esteja na posição correta ganhará um prêmio de R$ 200,00.\n\nA probabilidade de o participante não ganhar qualquer prêmio é igual a:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "0",
+            "1/3",
+            "1/4",
+            "1/2",
+            "1/6"
+        ],
+        "correta": 1,
+        "gabarito_comentado": "Existem \\(3! = 6\\) permutações possíveis para as letras (TVE, TEV, VTE, VET, ETV, EVT). A meta é TVE. As ordens em que nenhuma letra coincide com a posição original são chamadas de permutações caóticas (derangements): VET e ETV (2 casos). Logo, a probabilidade de zero acertos é \\(\\frac{2}{6} = \\frac{1}{3}\\).",
+        "tags": ["Probabilidade", "Análise Combinatória", "Permutação"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q021",
+        "materia": "Matemática",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT311",
+            "descricao": "Avaliar eventos impossíveis e distribuições de probabilidades.",
+            "unidade_tematica": "Probabilidade"
+        },
+        "enunciado": "Ainda com relação ao concurso das 3 fichas (T, V, E), a probabilidade de o concorrente ganhar exatamente o valor de R$400,00 é igual a:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "0",
+            "1/3",
+            "1/2",
+            "2/3",
+            "1/6"
+        ],
+        "correta": 0,
+        "gabarito_comentado": "Para ganhar exatamente R$ 400,00, o participante teria que acertar exatamente 2 letras em 3. Porém, se 2 letras de um conjunto de 3 já estão em suas posições corretas, a 3ª letra obrigatoriamente estará também na posição correta (resultando em 3 acertos e R$ 600,00). É impossível acertar exatamente 2 posições em 3. Logo, a probabilidade é 0 (evento impossível).",
+        "tags": ["Probabilidade", "Lógica Matemática", "Eventos Impossíveis"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q022",
+        "materia": "Matemática",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT301",
+            "descricao": "Resolver problemas envolvendo proporcionalidade direta e cálculos de tarifação.",
+            "unidade_tematica": "Funções e Proporcionalidade"
+        },
+        "enunciado": "No quadro abaixo estão as contas de luz e água de uma mesma residência:\n- Na conta de luz: Fornecimento de 401 kWh x 0,13276000 = R$ 53,23.\n- Na conta de água: Tarifa mínima de até 10 m³ custa R$ 5,50; de 11 a 20 m³ custa R$ 0,85 por m³ (consumiu 7 m³ excedentes = R$ 5,95), totalizando R$ 11,45 para 17 m³.\n\nSuponha que, no próximo mês, dobre o consumo de energia elétrica dessa residência. O novo valor da conta será de:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "R$ 55,23",
+            "R$ 106,46",
+            "R$ 802,00",
+            "R$ 100,00",
+            "R$ 22,90"
+        ],
+        "correta": 1,
+        "gabarito_comentado": "Como o valor da conta de energia é diretamente proporcional ao consumo em kWh (sem taxa fixa de base), dobrando o consumo de energia, o valor a pagar também dobra: \\(2 \\times \\text{R\\$\\ } 53{,}23 = \\text{R\\$\\ } 106{,}46\\).",
+        "tags": ["Matemática Financeira", "Proporcionalidade Direta", "Função Linear"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q023",
+        "materia": "Matemática",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT302",
+            "descricao": "Construir e interpretar modelos de tarifação por faixas escalonadas.",
+            "unidade_tematica": "Função Definida por Partes"
+        },
+        "enunciado": "Suponha agora que dobre o consumo d’água da mesma residência (o consumo original foi de 17 m³, cujo total foi R$ 11,45). O novo valor da conta de água será de:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "R$ 22,90",
+            "R$ 106,46",
+            "R$ 43,82",
+            "R$ 17,40",
+            "R$ 22,52"
+        ],
+        "correta": 2,
+        "gabarito_comentado": "O consumo inicial era de 17 m³ (10 m³ da taxa mínima + 7 m³ na faixa 11 a 20). Dobrando o consumo, passamos para \\(17 \\times 2 = 34\\text{ m}^3\\). O cálculo por faixas é: primeiros 10 m³ = R$ 5,50; próximos 10 m³ (de 11 a 20 m³) a R$ 0,85 = R$ 8,50; próximos 10 m³ (de 21 a 30 m³) a R$ 2,13 = R$ 21,30; últimos 4 m³ (de 31 a 34 m³) a R$ 2,13 = R$ 8,52. Somando todas as faixas: \\(5{,}50 + 8{,}50 + 21{,}30 + 8{,}52 = \\text{R\\$\\ } 43{,}82\\).",
+        "tags": ["Matemática Financeira", "Função por Partes", "Tarifação de Água"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q024",
+        "materia": "Matemática",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT302",
+            "descricao": "Identificar gráficos de funções reais definidas por partes em contextos econômicos.",
+            "unidade_tematica": "Gráficos de Funções"
+        },
+        "enunciado": "Dos gráficos abaixo, o que melhor representa o valor da conta de água (eixo vertical R$), de acordo com o consumo em m³ (eixo horizontal), considerando que até 10 m³ o valor é fixo (tarifa mínima) e a partir daí cresce linearmente em faixas com inclinações progressivamente maiores, é:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Gráficos de comportamento de tarifas escalonadas"
+        },
+        "alternativas": [
+            "Gráfico A (trecho horizontal inicial de 0 a 10 m³ seguido por reta com inclinação crescente).",
+            "Gráfico B (curva estritamente parabólica desde a origem).",
+            "Gráfico C (linha reta contínua partindo da origem).",
+            "Gráfico D (reta decrescente).",
+            "Gráfico E (gráfico constante em todo o intervalo)."
+        ],
+        "correta": 0,
+        "gabarito_comentado": "A estrutura de tarifação de água possui uma taxa mínima fixa até 10 m³ (linha horizontal constante), e após isso passa a crescer conforme as faixas de consumo de volume excedente. O Gráfico A ilustra perfeitamente essa função definida por partes.",
+        "tags": ["Funções", "Interpretação Gráfica", "Tarifa de Água"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q025",
+        "materia": "Biologia",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT208",
+            "descricao": "Interpretar cladogramas e árvores filogenéticas relacionando espécies e seus ancestrais evolutivos.",
+            "unidade_tematica": "Evolução Biológica"
+        },
+        "enunciado": "O assunto na aula de Biologia era a evolução do Homem. Foi apresentada aos alunos uma árvore filogenética que relacionava primatas atuais e seus ancestrais (desde os mamíferos insetívoros há 50 milhões de anos, passando por Dryopithecus, Ramapithecus, Australopithecus até chegar aos antropóides modernos: gibão, orangotango, gorila, chimpanzé e homem).\n\nApós observar o material fornecido pelo professor, os alunos emitiram várias opiniões, a saber:\nI. os macacos antropóides (orangotango, gorila e chimpanzé e gibão) surgiram na Terra mais ou menos contemporaneamente ao Homem.\nII. alguns homens primitivos, hoje extintos, descendem dos macacos antropóides.\nIII. na história evolutiva, os homens e os macacos antropóides tiveram um ancestral comum.\nIV. não existe relação de parentesco genético entre macacos antropóides e homens.\n\nAnalisando a árvore filogenética, você pode concluir que:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Árvore filogenética dos antropóides"
+        },
+        "alternativas": [
+            "todas as afirmativas estão corretas.",
+            "apenas as afirmativas I e III estão corretas.",
+            "apenas as afirmativas II e IV estão corretas.",
+            "apenas a afirmativa II está correta.",
+            "apenas a afirmativa IV está correta."
+        ],
+        "correta": 1,
+        "gabarito_comentado": "A afirmativa I é correta, pois as linhagens modernas dos antropoides e do Homo sapiens coexistem no tempo geológico presente (ápice da árvore evolutiva). A afirmativa III é correta, pois a árvore mostra nós ancestrais comuns compartilhados (como o Dryopithecus). A afirmativa II é falsa (o homem não descende dos macacos atuais) e a IV é falsa (há íntimo parentesco genético comprovado).",
+        "tags": ["Evolução", "Filogenia", "Primatas"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q026",
+        "materia": "Biologia",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT208",
+            "descricao": "Analisar evidências moleculares e filogenéticas de proximidade evolutiva.",
+            "unidade_tematica": "Evolução e Genética"
+        },
+        "enunciado": "Foram feitas comparações entre DNA e proteínas da espécie humana com DNA e proteínas de diversos primatas. Observando a árvore filogenética, você espera que os dados bioquímicos tenham apontado, entre os primatas atuais, como nosso parente mais próximo o:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "Australopithecus.",
+            "Chimpanzé.",
+            "Ramapithecus.",
+            "Gorila.",
+            "Orangotango."
+        ],
+        "correta": 1,
+        "gabarito_comentado": "Entre os primatas atuais (vivos), o chimpanzé é o que compartilha a ramificação mais recente e o ancestral comum mais próximo com a linhagem humana na árvore filogenética, apresentando mais de 98% de similaridade genética.",
+        "tags": ["Evolução", "Genética Comparada", "Primatas"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q027",
+        "materia": "Biologia / História Natural",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT208",
+            "descricao": "Estimar escalas de tempo geológico em processos evolutivos.",
+            "unidade_tematica": "Tempo Geológico e Evolução"
+        },
+        "enunciado": "Se fosse possível a uma máquina do tempo percorrer a evolução dos primatas em sentido contrário, aproximadamente quantos milhões de anos precisaríamos retroceder, de acordo com a árvore filogenética apresentada, para encontrar o ancestral comum do homem e dos macacos antropóides (gibão, orangotango, gorila e chimpanzé)?",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "5",
+            "10",
+            "15",
+            "30",
+            "60"
+        ],
+        "correta": 2,
+        "gabarito_comentado": "Na escala temporal da árvore filogenética apresentada no exame, o nó de divergência ancestral comum a todos os antropoides (incluindo o ramo dos hilobatídeos/gibão) localiza-se na faixa de aproximadamente 15 milhões de anos atrás (nó anterior ao Dryopithecus).",
+        "tags": ["Evolução", "Tempo Geológico", "Filogenia"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q028",
+        "materia": "Física",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT101",
+            "descricao": "Analisar a transmissão de movimento circular uniforme através de correntes e engrenagens.",
+            "unidade_tematica": "Cinemática e Movimento Circular"
+        },
+        "enunciado": "As bicicletas possuem uma corrente que liga uma coroa dentada dianteira, movimentada pelos pedais, a uma coroa localizada no eixo da roda traseira. O número de voltas dadas pela roda traseira a cada pedalada depende do tamanho relativo destas coroas.\n\nEm que opção abaixo a roda traseira dá o maior número de voltas por pedalada?",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Configurações de coroas e catracas em bicicletas"
+        },
+        "alternativas": [
+            "Coroa dianteira grande e coroa traseira (catraca) pequena.",
+            "Coroa dianteira pequena e coroa traseira grande.",
+            "Coroa dianteira média e coroa traseira média.",
+            "Coroa dianteira pequena e coroa traseira pequena.",
+            "Coroa dianteira média e coroa traseira grande."
+        ],
+        "correta": 0,
+        "gabarito_comentado": "A relação de transmissão do movimento circular por corrente é dada por \\(f_{\\text{traseira}} = f_{\\text{dianteira}} \\times \\frac{R_{\\text{dianteira}}}{R_{\\text{traseira}}}\\). Para maximizar o número de voltas da roda traseira a cada volta do pedal, devemos maximizar o raio da coroa dianteira e minimizar o raio da coroa traseira.",
+        "tags": ["Física", "Movimento Circular", "Transmissão Mecânica"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q029",
+        "materia": "Matemática / Física",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT310",
+            "descricao": "Calcular comprimentos de circunferência e deslocamentos lineares decorrentes de rotação.",
+            "unidade_tematica": "Geometria e Cinemática"
+        },
+        "enunciado": "Considere uma bicicleta onde a coroa dianteira tem diâmetro de 30 cm, a catraca traseira tem diâmetro de 10 cm e a roda traseira tem diâmetro de 80 cm (raio R = 40 cm). Quando se dá uma pedalada completa (uma volta completa da coroa acionada pelos pedais), qual é a distância aproximada percorrida pela bicicleta, sabendo-se que o comprimento de um círculo de raio R é igual a 2πR, onde π ≈ 3?",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Bicicleta com medidas de coroas e raio da roda"
+        },
+        "alternativas": [
+            "1,2 m",
+            "2,4 m",
+            "7,2 m",
+            "14,4 m",
+            "48,0 m"
+        ],
+        "correta": 2,
+        "gabarito_comentado": "A relação entre os diâmetros das coroas é \\(\\frac{30\\text{ cm}}{10\\text{ cm}} = 3\\). Portanto, 1 volta da coroa dianteira produz 3 voltas na roda traseira. O perímetro da roda traseira (diâmetro 80 cm = 0,80 m, raio 0,40 m) é \\(C = 2 \\cdot \\pi \\cdot R = 2 \\cdot 3 \\cdot 0{,}40 = 2{,}40\\text{ m}\\). Em 3 voltas completas da roda traseira, a distância percorrida é \\(3 \\times 2{,}40\\text{ m} = 7{,}2\\text{ m}\\).",
+        "tags": ["Geometria", "Circunferência", "Cinemática"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q030",
+        "materia": "Física",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT101",
+            "descricao": "Analisar forças, marchas mecânicas e conservação de energia em situações cotidianas.",
+            "unidade_tematica": "Mecânica e Estática"
+        },
+        "enunciado": "Com relação ao funcionamento de uma bicicleta de marchas, onde cada marcha é uma combinação de uma das coroas dianteiras com uma das coroas traseiras, são formuladas as seguintes afirmativas:\nI. numa bicicleta que tenha duas coroas dianteiras e cinco traseiras, temos um total de dez marchas possíveis onde cada marcha representa a associação de uma das coroas dianteiras com uma das traseiras.\nII. em alta velocidade, convém acionar a coroa dianteira de maior raio com a coroa traseira de maior raio também.\nIII. em uma subida íngreme, convém acionar a coroa dianteira de menor raio e a coroa traseira de maior raio.\n\nEntre as afirmações acima, estão corretas:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "I e III apenas.",
+            "I, II e III.",
+            "I e II apenas.",
+            "II apenas.",
+            "III apenas."
+        ],
+        "correta": 0,
+        "gabarito_comentado": "A afirmativa I está correta (princípio fundamental da contagem: \\(2 \\times 5 = 10\\) combinações). A afirmativa III está correta, pois em subidas íngremes necessita-se de maior vantagem mecânica (maior torque), o que é obtido com a menor coroa na frente e a maior atrás. A afirmativa II é incorreta porque, para altas velocidades, usa-se a coroa dianteira maior associada à coroa traseira menor.",
+        "tags": ["Física", "Mecânica", "Engrenagens"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q031",
+        "materia": "Biologia",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT201",
+            "descricao": "Aplicar as leis de complementaridade de bases nitrogenadas (Regra de Chargaff) no DNA.",
+            "unidade_tematica": "Genética e Biologia Molecular"
+        },
+        "enunciado": "Analisando-se o DNA de um animal, detectou-se que 40% de suas bases nitrogenadas eram constituídas por Adenina. Relacionando esse valor com o emparelhamento específico das bases (Regra de Chargaff), os valores encontrados para as outras bases nitrogenadas foram:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "T = 40%; C = 20%; G = 40%",
+            "T = 10%; C = 10%; G = 40%",
+            "T = 10%; C = 40%; G = 10%",
+            "T = 40%; C = 10%; G = 10%",
+            "T = 40%; C = 60%; G = 60%"
+        ],
+        "correta": 3,
+        "gabarito_comentado": "Na molécula de DNA dupla-fita, a Adenina (A) emparelha-se exclusivamente com a Timina (T), e a Guanina (G) com a Citosina (C). Se \\(A = 40\\%\\), então \\(T = 40\\%\\). As bases restantes somam \\(100\\% - 80\\% = 20\\%\\). Como \\(C = G\\), cada uma representa \\(20\\% / 2 = 10\\%\\). Portanto: \\(T = 40\\%\\), \\(C = 10\\%\\) e \\(G = 10\\%\\).",
+        "tags": ["Biologia Molecular", "DNA", "Regra de Chargaff"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q032",
+        "materia": "Biologia",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT201",
+            "descricao": "Identificar a estrutura em dupla hélice e as fitas complementares do DNA.",
+            "unidade_tematica": "Estrutura do DNA"
+        },
+        "enunciado": "No estudo da estrutura e funcionamento do DNA, observa-se o seguinte trecho de molécula:\nFita 1: A T C C G G A T G C T T\nFita 2: T A G G C C T A C G A A\n\nObservando o modelo representado, pode-se concluir que:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Esquema da dupla-fita de DNA"
+        },
+        "alternativas": [
+            "a molécula de DNA é formada por 2 cadeias caracterizadas por seqüências de bases nitrogenadas.",
+            "na molécula de DNA, podem existir diferentes tipos de complementação de bases nitrogenadas.",
+            "a quantidade de A presente em uma das cadeias é exatamente igual à quantidade de A da cadeia complementar.",
+            "na molécula de DNA, podem existir 5 diferentes tipos de bases nitrogenadas.",
+            "no processo de mitose, cada molécula de DNA dá origem a 4 moléculas de DNA exatamente iguais."
+        ],
+        "correta": 0,
+        "gabarito_comentado": "A representação ilustra com clareza que o DNA é formado por duas fitas/cadeias helicoidais antiparalelas complementares ligadas por sequências de pares de bases nitrogenadas.",
+        "tags": ["Biologia Molecular", "Estrutura do DNA", "Ácidos Nucleicos"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q033",
+        "materia": "Língua Portuguesa / Literatura",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13LP06",
+            "descricao": "Analisar efeitos de sentido decorrentes do uso de figuras de linguagem em sonetos clássicos.",
+            "unidade_tematica": "Figuras de Linguagem"
+        },
+        "enunciado": "Amor é fogo que arde sem se ver;\né ferida que dói e não se sente;\né um contentamento descontente;\né dor que desatina sem doer;\n\nÉ um não querer mais que bem querer;\né solitário andar por entre a gente;\né nunca contentar-se de contente;\né cuidar que se ganha em se perder;\n\nÉ querer estar preso por vontade;\né servir a quem vence, o vencedor;\né ter com quem nos mata lealdade.\n\nMas como causar pode seu favor\nnos corações humanos amizade,\nse tão contrário a si é o mesmo Amor?\n(Luís de Camões)\n\nO poema tem, como característica, a figura de linguagem denominada antítese, relação de oposição de palavras ou idéias. Assinale a opção em que essa oposição se faz claramente presente.",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "“Amor é fogo que arde sem se ver.”",
+            "“É um contentamento descontente.”",
+            "“É servir a quem se vence, o vencedor.”",
+            "“Mas como causar pode seu favor.”",
+            "“Se tão contrário a si é o mesmo Amor?”"
+        ],
+        "correta": 1,
+        "gabarito_comentado": "A expressão 'contentamento descontente' une de forma imediata dois vocábulos de sentidos opostos (contentamento vs. descontente), caracterizando a clássica antítese e o paradoxo camoniano do amor.",
+        "tags": ["Literatura", "Camões", "Antítese e Paradoxo"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q034",
+        "materia": "Língua Portuguesa",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13LP05",
+            "descricao": "Identificar a tipologia textual e a estrutura composicional de textos líricos argumentativos.",
+            "unidade_tematica": "Tipologia Textual"
+        },
+        "enunciado": "Considerando a estrutura discursiva do soneto de Luís de Camões (“Amor é fogo que arde sem se ver...”), onde o eu lírico encadeia sucessivas definições e teses para concluir com uma indagação sobre a essência do amor, o poema pode ser considerado como um texto:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "argumentativo.",
+            "narrativo.",
+            "épico.",
+            "de propaganda.",
+            "teatral."
+        ],
+        "correta": 0,
+        "gabarito_comentado": "Embora seja um poema lírico, sua estrutura interna é de natureza argumentativa (ensaística e reflexiva): o autor apresenta premissas e argumentos baseados nas contradições do sentimento amoroso para sustentar sua reflexão final na última estrofe.",
+        "tags": ["Tipologia Textual", "Argumentação", "Gêneros Textuais"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q035",
+        "materia": "Química / Saúde",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT303",
+            "descricao": "Interpretar tabelas toxicológicas relacionando concentração de poluentes e efeitos biológicos.",
+            "unidade_tematica": "Poluição e Saúde"
+        },
+        "enunciado": "Um dos índices de qualidade do ar diz respeito à concentração de monóxido de carbono (CO). As tabelas informam que:\n- Qualidade do ar Inadequada: 15 a 30 ppm\n- Qualidade do ar Péssima: 30 a 40 ppm\n- Qualidade do ar Crítica: Acima de 40 ppm\n\nE os sintomas em seres humanos são:\n- 10 ppm: Nenhum\n- 15 ppm: Diminuição da capacidade visual\n- 60 ppm: Dores de cabeça\n- 100 ppm: Tonturas, fraqueza muscular\n- 270 ppm: Inconsciência\n- 800 ppm: Morte\n\nSuponha que você tenha lido em um jornal que na cidade de São Paulo foi atingido um péssimo nível de qualidade do ar (30 a 40 ppm). Uma pessoa que estivesse nessa área poderia:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "não apresentar nenhum sintoma.",
+            "ter sua capacidade visual alterada.",
+            "apresentar fraqueza muscular e tontura.",
+            "ficar inconsciente.",
+            "morrer."
+        ],
+        "correta": 1,
+        "gabarito_comentado": "No nível 'Péssimo' (30 a 40 ppm de CO), a concentração já ultrapassa o limite de 15 ppm onde se manifesta a diminuição da capacidade visual, sem contudo atingir as faixas superiores de dores de cabeça (60 ppm), tontura (100 ppm) ou inconsciência (270 ppm).",
+        "tags": ["Poluição do Ar", "Toxicologia", "Interpretação de Dados"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q036",
+        "materia": "Matemática",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT315",
+            "descricao": "Resolver problemas de porcentagem e equações lineares através do preenchimento de tabelas de dupla entrada.",
+            "unidade_tematica": "Porcentagem e Álgebra"
+        },
+        "enunciado": "Uma escola de ensino médio tem 250 alunos matriculados na 1ª, 2ª ou 3ª série. 32% dos alunos são homens e 40% dos homens estão na 1ª série. 20% dos alunos matriculados estão na 3ª série, sendo 10 alunos homens. Dentre os alunos da 2ª série, o número de mulheres é igual ao número de homens.\n\nA tabela abaixo pode ser preenchida com as informações dadas:\n| Categoria | 1ª Série | 2ª Série | 3ª Série | Total |\n|---|---|---|---|---|\n| Mulher | a | b | c | a+b+c |\n| Homem | d | e | f | d+e+f |\n| Total | a+d | b+e | c+f | 250 |\n\nO valor de a (número de mulheres na 1ª série) é:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "10",
+            "48",
+            "92",
+            "102",
+            "120"
+        ],
+        "correta": 2,
+        "gabarito_comentado": "Total de homens na escola: \\(32\\% \\text{ de } 250 = 80\\) homens. Total de mulheres: \\(250 - 80 = 170\\) mulheres. Homens na 1ª série (d): \\(40\\% \\text{ de } 80 = 32\\). Total de alunos na 3ª série: \\(20\\% \\text{ de } 250 = 50\\) alunos, sendo 10 homens (f) e \\(50 - 10 = 40\\) mulheres (c). Homens na 2ª série (e): \\(80 - (32 + 10) = 38\\). Como na 2ª série o número de mulheres é igual ao de homens, \\(b = e = 38\\). Assim, o número de mulheres na 1ª série (a) é: \\(170 - (b + c) = 170 - (38 + 40) = 170 - 78 = 92\\).",
+        "tags": ["Porcentagem", "Equações", "Tabelas de Dupla Entrada"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q037",
+        "materia": "Biologia / Saúde",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT301",
+            "descricao": "Analisar o ciclo biológico de parasitas e propor medidas profiláticas eficazes para endemias.",
+            "unidade_tematica": "Parasitologia e Saúde Pública"
+        },
+        "enunciado": "Em uma aula de Biologia, o seguinte texto é apresentado:\nLAGOA AZUL ESTÁ DOENTE\nOs vereadores da pequena cidade de Lagoa Azul estavam discutindo a situação da Saúde no Município. A situação era mais grave com relação a três doenças: Doença de Chagas, Esquistossomose e Ascaridíase (lombriga). Na tentativa de prevenir novos casos, foram apresentadas várias propostas:\nProposta 1: Promover uma campanha de vacinação.\nProposta 2: Promover uma campanha de educação da população com relação a noções básicas de higiene, incluindo fervura de água.\nProposta 3: Construir rede de saneamento básico.\nProposta 4: Melhorar as condições de edificação das moradias e estimular o uso de telas nas portas e janelas e mosquiteiros de filó.\nProposta 5: Realizar campanha de esclarecimento sobre os perigos de banhos nas lagoas.\nProposta 6: Aconselhar o uso controlado de inseticidas.\nProposta 7: Drenar e aterrar as lagoas do município.\n\nEm relação à Esquistossomose, a situação é complexa, pois o ciclo de vida do verme que causa a doença tem vários estágios, incluindo a existência de um hospedeiro intermediário, um caramujo aquático que é contaminado pelas fezes das pessoas doentes. Analisando as medidas propostas, o combate à doença terá sucesso se forem implementadas:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "1 e 6, pois envolvem a eliminação do agente causador da doença e de seu hospedeiro intermediário.",
+            "1 e 4, pois além de eliminarem o agente causador da doença, também previnem o contato do transmissor com as pessoas sãs.",
+            "4 e 6, pois envolvem o extermínio do transmissor da doença.",
+            "1, 4 e 6, pois atingirão todas as fases do ciclo de vida do agente causador da doença, incluindo o seu hospedeiro intermediário.",
+            "3 e 5, pois prevenirão a contaminação do hospedeiro intermediário pelas fezes das pessoas doentes e a contaminação de pessoas sãs por águas contaminadas."
+        ],
+        "correta": 4,
+        "gabarito_comentado": "A esquistossomose (Schistosoma mansoni) é prevenida bloqueando os dois pontos vulneráveis do ciclo: a construção de saneamento básico (Proposta 3) impede que fezes com ovos cheguem às lagoas contaminando os caramujos (Biomphalaria), e evitar banhos em lagoas com cercárias (Proposta 5) impede a infecção cutânea ativa de pessoas saudáveis.",
+        "tags": ["Parasitologia", "Esquistossomose", "Saneamento Básico"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q038",
+        "materia": "Biologia / Saúde",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT301",
+            "descricao": "Avaliar medidas de saneamento básico e higiene no combate a verminoses intestinais.",
+            "unidade_tematica": "Saúde Pública e Parasitologia"
+        },
+        "enunciado": "Com base nas propostas apresentadas no texto “Lagoa Azul Está Doente”, para o combate da Ascaridíase (lombriga), a proposta que trará maior benefício social e efeito duradouro, se implementada pela Prefeitura, será:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "Proposta 1 (Campanha de vacinação)",
+            "Proposta 3 (Construir rede de saneamento básico)",
+            "Proposta 4 (Melhorar moradias com telas)",
+            "Proposta 5 (Evitar banhos nas lagoas)",
+            "Proposta 6 (Uso de inseticidas)"
+        ],
+        "correta": 1,
+        "gabarito_comentado": "A ascaridíase (Ascaris lumbricoides) é transmitida pela ingestão de água e alimentos contaminados com ovos do verme eliminados nas fezes humanas. A construção de rede de saneamento básico (tratamento de esgoto e água potável) é a medida sanitária de maior alcance e benefício preventivo definitivo.",
+        "tags": ["Parasitologia", "Ascaridíase", "Saneamento"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q039",
+        "materia": "Biologia / Saúde",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT301",
+            "descricao": "Reconhecer vetores biológicos e métodos de prevenção contra a Doença de Chagas.",
+            "unidade_tematica": "Parasitologia e Vetores"
+        },
+        "enunciado": "Você sabe que a Doença de Chagas é causada por um protozoário (Trypanosoma cruzi) transmitido por meio das fezes do inseto hematófago (barbeiro). Das medidas propostas no texto “A Lagoa Azul Está Doente”, as mais efetivas na prevenção dessa doença são:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "1 e 2",
+            "3 e 5",
+            "4 e 6",
+            "1 e 3",
+            "2 e 3"
+        ],
+        "correta": 2,
+        "gabarito_comentado": "A prevenção da Doença de Chagas dá-se pela erradicação do vetor (barbeiro) nos ambientes domésticos. As medidas mais eficazes são a melhoria habitacional (substituindo casas de pau-a-pique por alvenaria e usando telas - Proposta 4) e o controle químico com inseticidas adequados (Proposta 6).",
+        "tags": ["Doença de Chagas", "Trypanosoma Cruzi", "Saúde Pública"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q040",
+        "materia": "História",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS101",
+            "descricao": "Analisar criticamente fontes históricas e divergências historiográficas sobre o período varguista.",
+            "unidade_tematica": "Era Vargas e Historiografia"
+        },
+        "enunciado": "A figura de Getúlio Vargas, como personagem histórica, é bastante polêmica, devido à complexidade e à magnitude de suas ações como presidente do Brasil durante um longo período de quinze anos (1930-1945). Foram anos de grandes e importantes mudanças para o país e para o mundo. Pode-se perceber o destaque dado a Getúlio Vargas pelo simples fato de este período ser conhecido no Brasil como a \"Era Vargas\".\nEntretanto, Vargas não é visto de forma favorável por todos. Se muitos o consideram como um fervoroso nacionalista, um progressista ativo e o \"Pai dos Pobres\", existem outros tantos que o definem como ditador oportunista, um intervencionista e amigo das elites.\n\nProvavelmente você percebeu que as duas opiniões sobre Vargas são opostas, defendendo valores praticamente antagônicos. As diferentes interpretações do papel de uma personalidade histórica podem ser explicadas, conforme uma das opções abaixo. Assinale-a.",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "Um dos grupos está totalmente errado, uma vez que a permanência no poder depende de idéias coerentes e de uma política contínua.",
+            "O grupo que acusa Vargas de ser ditador está totalmente errado. Ele nunca teve uma orientação ideológica favorável aos regimes politicamente fechados e só tomou medidas duras forçado pelas circunstâncias.",
+            "Os dois grupos estão certos. Cada um mostra Vargas da forma que serve melhor aos seus interesses, pois ele foi um governante apático e fraco - um verdadeiro marionete nas mãos das elites da época.",
+            "O grupo que defende Vargas como um autêntico nacionalista está totalmente enganado. Poucas medidas nacionalizantes foram tomadas para iludir os brasileiros, devido à política populista do varguismo, e ele fazia tudo para agradar aos grupos estrangeiros.",
+            "Os dois grupos estão errados, por assumirem características parciais e, às vezes conjunturais, como sendo posturas definitivas e absolutas."
+        ],
+        "correta": 4,
+        "gabarito_comentado": "A análise historiográfica contemporânea reconhece que interpretações maniqueístas e unilaterais falham ao tentar rotular governos complexos de forma absoluta. Vargas adotou medidas contraditórias e conjunturais em diferentes fases (Aliança Liberal, Governo Constitucional e Estado Novo ditatorial).",
+        "tags": ["História do Brasil", "Era Vargas", "Historiografia"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q041",
+        "materia": "Biologia / Ecologia",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT202",
+            "descricao": "Analisar adaptações morfofisiológicas de xerófitas em ecossistemas áridos e de restinga.",
+            "unidade_tematica": "Botânica e Adaptações Ecológicas"
+        },
+        "enunciado": "Alunos de uma escola no Rio de Janeiro participam de uma excursão ao Parque Nacional de Jurubatiba. Antes do passeio, eles lêem um trecho de reportagem:\n“Jurubatiba será o primeiro parque nacional em área de restinga, num braço de areia com 31 quilômetros de extensão, formado entre o mar e dezoito lagoas... Nos terrenos mais baixos, próximos aos lençóis freáticos, as plantas têm água suficiente para agüentar longas secas. Já nas áreas planas, os cactos são um dos poucos vegetais que proliferam, pintando o areal com um verde pálido.”\n\nDepois de ler o texto, os alunos podem supor que, em Jurubatiba, os vegetais que sobrevivem nas áreas planas têm características tais como:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "quantidade considerável de folhas, para aumentar a área de contato com a umidade do ar nos dias chuvosos.",
+            "redução na velocidade da fotossíntese e realização ininterrupta desse processo, durante as 24 horas.",
+            "caules e folhas cobertos por espessas cutículas que impedem o ressecamento e a conseqüente perda de água.",
+            "redução do calibre dos vasos que conduzem a água e os sais minerais da raiz aos centros produtores do vegetal, para evitar perdas.",
+            "crescimento sob a copa de árvores frondosas, que impede o ressecamento e conseqüente perda de água."
+        ],
+        "correta": 2,
+        "gabarito_comentado": "Plantas adaptadas a ambientes arenosos e secos (xerófitas, como os cactos de restinga) apresentam folhas modificadas em espinhos, caules suculentos e presença de cutícula cerosa espessa e impermeabilizante para minimizar a perda de água por transpiração.",
+        "tags": ["Ecologia", "Botânica", "Restinga e Xerófitas"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q042",
+        "materia": "Biologia",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT202",
+            "descricao": "Classificar os grandes grupos de animais vertebrados e invertebrados.",
+            "unidade_tematica": "Zoologia dos Vertebrados"
+        },
+        "enunciado": "O texto anterior cita alguns exemplos de animais que vivem em Jurubatiba: jacarés, capivaras, lontras, tamanduás-mirins, aves e peixes de água doce e salgada. Esses animais podem ser classificados como:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "mamíferos, peixes e aves, apenas.",
+            "mamíferos, peixes, aves e anfíbios.",
+            "répteis, aves e anfíbios apenas.",
+            "mamíferos, répteis, peixes e aves.",
+            "animais pertencentes a uma só classe."
+        ],
+        "correta": 3,
+        "gabarito_comentado": "O texto lista jacarés (répteis), capivaras, lontras e tamanduás-mirins (mamíferos), aves e peixes. Portanto, estão presentes quatro classes distintas de vertebrados: mamíferos, répteis, peixes e aves (anfíbios não foram citados no texto).",
+        "tags": ["Zoologia", "Vertebrados", "Classificação Biológica"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q043",
+        "materia": "Geografia / Sociologia",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS201",
+            "descricao": "Analisar fluxos migratórios internos e os processos de exclusão social no Brasil urbano.",
+            "unidade_tematica": "Migrações e Sociedade Brasileira"
+        },
+        "enunciado": "Depois de estudar as migrações, no Brasil, você lê o seguinte texto:\n“O Brasil, por suas características de crescimento econômico, e apesar da crise e do retrocesso das últimas décadas, é classificado como um país moderno. Tal conceito pode ser, na verdade, questionado se levarmos em conta os indicadores sociais: o grande número de desempregados, o índice de analfabetismo, o déficit de moradia, o sucateamento da saúde, enfim, a avalanche de brasileiros envolvidos e tragados num processo de repetidas migrações(...)” (Valin, 1996).\n\nAnalisando os indicadores citados no texto, você pode afirmar que:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "o grande número de desempregados no Brasil está exclusivamente ligado ao grande aumento da população.",
+            "existe uma “exclusão social” que é resultado da grande concorrência existente entre a mão-de-obra qualificada.",
+            "o déficit da moradia está intimamente ligado à falta de espaços nas cidades grandes.",
+            "os trabalhadores brasileiros não qualificados engrossam as fileiras dos “excluídos”.",
+            "por conta do crescimento econômico do país, os trabalhadores pertencem à categoria de mão-de-obra qualificada."
+        ],
+        "correta": 3,
+        "gabarito_comentado": "O processo histórico de migração desordenada campo-cidade aliado à baixa escolaridade e falta de qualificação profissional marginaliza milhões de trabalhadores, empurrando-os para a informalidade, desemprego e déficit habitacional.",
+        "tags": ["Geografia Humana", "Migrações", "Exclusão Social"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q044",
+        "materia": "Geografia / Sociologia",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS204",
+            "descricao": "Identificar os impactos da globalização e da divisão internacional do trabalho.",
+            "unidade_tematica": "Globalização e Trabalho"
+        },
+        "enunciado": "Um dos fenômenos mais discutidos e polêmicos da atualidade é a “Globalização”, a qual impacta de forma negativa:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "na mão-de-obra desqualificada, desacelerando o fluxo migratório.",
+            "nos países subdesenvolvidos, aumentando o crescimento populacional.",
+            "no desenvolvimento econômico dos países industrializados desenvolvidos.",
+            "nos países subdesenvolvidos, provocando o fenômeno da “exclusão social”.",
+            "na mão-de-obra qualificada, proporcionando o crescimento de ofertas de emprego e fazendo os salários caírem vertiginosamente."
+        ],
+        "correta": 3,
+        "gabarito_comentado": "Embora a globalização dinamize o comércio internacional e a circulação de capitais, ela acentua disparidades socioeconômicas em países periféricos/subdesenvolvidos, gerando precarização do trabalho e exclusão social para as populações vulneráveis.",
+        "tags": ["Globalização", "Economia Mundial", "Sociologia"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q045",
+        "materia": "Geografia / Sociologia",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS204",
+            "descricao": "Analisar a homogeneização cultural e o consumo na sociedade globalizada.",
+            "unidade_tematica": "Cultura e Globalização"
+        },
+        "enunciado": "Você está fazendo uma pesquisa sobre a globalização e lê a seguinte passagem:\n“A SOCIEDADE GLOBAL: As pessoas se alimentam, se vestem, moram, se comunicam, se divertem, por meio de bens e serviços mundiais, utilizando mercadorias produzidas pelo capitalismo mundial, globalizado. Suponhamos que você vá com seus amigos comer Big Mac e tomar Coca-Cola no Mc Donald’s. Em seguida, assiste a um filme de Steven Spielberg e volta para casa num ônibus de marca Mercedes. Ao chegar em casa, liga seu aparelho de TV Philips para ver o videoclip de Michael Jackson e, em seguida, deve ouvir um CD do grupo Simply Red, gravado pela BMG Ariola Discos em seu equipamento AIWA. Veja quantas empresas transnacionais estiveram presentes nesse seu curto programa de algumas horas.” (Adap. Praxedes et al., 1997).\n\nCom base no texto e em seus conhecimentos de Geografia e História, marque a resposta correta.",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "O capitalismo globalizado está eliminando as particularidades culturais dos povos da terra.",
+            "A cultura, transmitida por empresas transnacionais, tornou-se um fenômeno criador das novas nações.",
+            "A globalização do capitalismo neutralizou o surgimento de movimentos nacionalistas de forte cunho cultural e divisionista.",
+            "O capitalismo globalizado atinge apenas a Europa e a América do Norte.",
+            "Empresas transnacionais pertencem a países de uma mesma cultura."
+        ],
+        "correta": 0,
+        "gabarito_comentado": "O texto destaca a padronização e homogeneização dos hábitos de consumo (alimentação, música, vestuário, cinema), promovida pelas grandes corporações multinacionais, que tende a diluir singularidades e tradições culturais locais.",
+        "tags": ["Globalização", "Cultura de Massa", "Consumo"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q046",
+        "materia": "Geografia / Sociologia",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS204",
+            "descricao": "Avaliar criticamente os aspectos culturais, econômicos e corporativos da globalização.",
+            "unidade_tematica": "Economia Global"
+        },
+        "enunciado": "A leitura do texto sobre a Sociedade Global ajuda você a compreender que:\nI. a globalização é um processo ideal para garantir o acesso a bens e serviços para toda a população.\nII. a globalização é um fenômeno econômico e, ao mesmo tempo, cultural.\nIII. a globalização favorece a manutenção da diversidade de costumes.\nIV. filmes, programas de TV e música são mercadorias como quaisquer outras.\nV. as sedes das empresas transnacionais mencionadas são os EUA, Europa Ocidental e Japão.\n\nDestas afirmativas estão corretas:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "I, II e IV, apenas.",
+            "II, IV e V, apenas.",
+            "II, III e IV, apenas.",
+            "I, III e IV, apenas.",
+            "III, IV e V, apenas."
+        ],
+        "correta": 1,
+        "gabarito_comentado": "As afirmativas II (hibridismo econômico-cultural), IV (indústria cultural e mercantilização de produções artísticas) e V (concentração das sedes da Tríade: EUA, Europa Ocidental e Japão) são corretas. A afirmativa I é falsa (o acesso não é universal e gera exclusão) e a III é falsa (a tendência dominante é a padronização e não a diversidade).",
+        "tags": ["Globalização", "Indústria Cultural", "Transnacionais"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q047",
+        "materia": "Química / Meio Ambiente",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT105",
+            "descricao": "Compreender os processos de separação de misturas aplicados no tratamento de água e esgoto.",
+            "unidade_tematica": "Tratamento de Água e Saneamento"
+        },
+        "enunciado": "Em uma matéria que descreve hábitos de um morador de Barcelona relacionados ao consumo de energia e meio ambiente, destaca-se que, no banho matinal, um cidadão utiliza cerca de 50 litros de água que depois terá que ser tratada.\n\nAs afirmações abaixo dizem respeito a tratamentos e destinos dessa água. Entre elas, a mais plausível é a de que a água:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "passa por peneiração, cloração, floculação, filtração e pós-cloração, e é canalizada para os rios.",
+            "passa por cloração e destilação, sendo devolvida aos consumidores em condições adequadas para ser ingerida.",
+            "é fervida e clorada em reservatórios, onde fica armazenada por algum tempo antes de retornar aos consumidores.",
+            "passa por decantação, filtração, cloração e, em alguns casos, por fluoretação, retornando aos consumidores.",
+            "não pode ser tratada devido à presença do sabão, por isso é canalizada e despejada em rios."
+        ],
+        "correta": 3,
+        "gabarito_comentado": "Nas estações de tratamento de água (ETA), as etapas padrão fundamentais envolvem floculação/decantação (remoção de partículas suspensas), filtração (retenção mecânica), cloração (desinfecção bacteriológica) e fluoretação (prevenção odontológica de cáries) antes do fornecimento à população.",
+        "tags": ["Química Ambiental", "Tratamento de Água", "Saneamento"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q048",
+        "materia": "Física",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT103",
+            "descricao": "Identificar e calcular a conversão de energia elétrica em térmica pelo Efeito Joule.",
+            "unidade_tematica": "Eletricidade e Efeito Joule"
+        },
+        "enunciado": "Também com relação ao banho, supondo a existência de um chuveiro elétrico comum, pode-se afirmar que:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "a energia usada para aquecer o chuveiro é de origem química, transformando-se em energia elétrica.",
+            "a energia elétrica é transformada no chuveiro em energia mecânica e, posteriormente, em energia térmica.",
+            "o aquecimento da água deve-se à resistência do chuveiro, onde a energia elétrica é transformada em energia térmica.",
+            "a energia térmica consumida nesse banho é posteriormente transformada em energia elétrica.",
+            "como a geração da energia perturba o ambiente, pode-se concluir que sua fonte é algum derivado do petróleo."
+        ],
+        "correta": 2,
+        "gabarito_comentado": "O princípio de funcionamento de um chuveiro elétrico baseia-se no Efeito Joule: a passagem da corrente elétrica por um resistor elétrico dissipa energia na forma de calor, aquecendo a água que flui ao redor da resistência.",
+        "tags": ["Física", "Efeito Joule", "Eletrodinâmica"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q049",
+        "materia": "Química / Meio Ambiente",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT104",
+            "descricao": "Analisar reações de combustão incompleta e formação de poluentes gasosos.",
+            "unidade_tematica": "Reações de Combustão"
+        },
+        "enunciado": "O trecho da matéria aponta que, na hora de ir para o trabalho de carro, liberam-se monóxido de carbono (CO) e óxidos de nitrogênio.\n\nCom referência a esses fatos, pode-se afirmar que:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "um automóvel produz monóxido de carbono pelo fato de que a queima dos combustíveis utilizados não é completa.",
+            "pode-se concluir que o automóvel em questão não utiliza o álcool como combustível.",
+            "a produção de óxido de nitrogênio contribui para a chuva ácida.",
+            "o texto está equivocado, pois os óxidos de nitrogênio lançados na atmosfera não têm qualquer relação com o automóvel.",
+            "caso o automóvel fosse elétrico, não poluiria o ambiente com monóxido de carbono, mas lançaria ao ar radiações eletromagnéticas prejudiciais à saúde."
+        ],
+        "correta": 0,
+        "gabarito_comentado": "O monóxido de carbono (CO) é gerado especificamente durante a combustão incompleta de hidrocarbonetos (combustíveis fósseis) quando há oxigênio insuficiente na câmara de combustão interna dos motores automotivos.",
+        "tags": ["Química", "Combustão Incompleta", "Poluição"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q050",
+        "materia": "Matemática",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT102",
+            "descricao": "Interpretar gráficos de colunas e estimar totais de amostragem estatística.",
+            "unidade_tematica": "Estatística e Gráficos"
+        },
+        "enunciado": "Uma pesquisa de opinião foi realizada para avaliar os níveis de audiência de canais de televisão entre 20h e 21h:\n- TvA: ~32 residências\n- TvB: ~30 residências\n- TvC: ~20 residências\n- TvD: ~100 residências\n- Nenhum canal: ~18 residências\n\nO número de residências atingidas nessa pesquisa foi aproximadamente de:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Gráfico de barras de audiência de televisão"
+        },
+        "alternativas": [
+            "100",
+            "135",
+            "150",
+            "200",
+            "220"
+        ],
+        "correta": 3,
+        "gabarito_comentado": "Somando os valores de cada coluna do gráfico de barras: \\(32\\text{ (TvA)} + 30\\text{ (TvB)} + 20\\text{ (TvC)} + 100\\text{ (TvD)} + 18\\text{ (Nenhum)} = 200\\) residências no total amostrado.",
+        "tags": ["Estatística", "Leitura de Gráficos", "Adição"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q051",
+        "materia": "Matemática",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13MAT315",
+            "descricao": "Calcular porcentagens a partir de dados estatísticos agregados.",
+            "unidade_tematica": "Estatística e Porcentagem"
+        },
+        "enunciado": "Com base nos mesmos dados da pesquisa de audiência de televisão (total de 200 residências amostradas), a percentagem de entrevistados que declararam estar assistindo à TvB (30 residências) é aproximadamente igual a:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "15%",
+            "20%",
+            "22%",
+            "27%",
+            "30%"
+        ],
+        "correta": 0,
+        "gabarito_comentado": "A TvB registrou 30 residências em um total de 200 residências pesquisadas: \\(\\frac{30}{200} = \\frac{15}{100} = 15\\%\\).",
+        "tags": ["Matemática", "Porcentagem", "Estatística"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q052",
+        "materia": "Química / Meio Ambiente",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT104",
+            "descricao": "Identificar reações de corrosão ácida em rochas carbonáticas e metais estruturais.",
+            "unidade_tematica": "Química e Chuva Ácida"
+        },
+        "enunciado": "Um dos danos ao meio ambiente decorrentes da poluição atmosférica por dióxido de enxofre (SO₂) diz respeito à corrosão de certos materiais pela chuva ácida. Considere as seguintes obras:\nI. monumento Itamarati - Brasília (mármore / carbonato de cálcio).\nII. esculturas do Aleijadinho - MG (pedra sabão, contém carbonato de cálcio).\nIII. grades de ferro ou alumínio de edifícios.\n\nA ação corrosiva da chuva ácida pode acontecer em:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "I, apenas.",
+            "I e II, apenas.",
+            "I e III, apenas.",
+            "II e III, apenas.",
+            "I, II e III."
+        ],
+        "correta": 4,
+        "gabarito_comentado": "A chuva ácida reage quimicamente com carbonatos presentes em rochas e monumentos de mármore e pedra-sabão (\\(\\text{CaCO}_3 + \\text{H}_2\\text{SO}_4 \\rightarrow \\text{CaSO}_4 + \\text{H}_2\\text{O} + \\text{CO}_2\\)), além de acelerar a oxidação e corrosão eletroquímica de metais estruturais (ferro e alumínio). Logo, atua em I, II e III.",
+        "tags": ["Química", "Chuva Ácida", "Reações Inorgânicas"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q053",
+        "materia": "Química / Biologia",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT104",
+            "descricao": "Avaliar o impacto do pH ácido sobre ecossistemas aquáticos e edáficos.",
+            "unidade_tematica": "pH e Meio Ambiente"
+        },
+        "enunciado": "Com relação aos efeitos da chuva ácida sobre o ecossistema, pode-se afirmar que:\nI. as chuvas ácidas poderiam causar a diminuição do pH da água de um lago, o que acarretaria a morte de algumas espécies, rompendo a cadeia alimentar.\nII. as chuvas ácidas poderiam provocar acidificação do solo, o que prejudicaria o crescimento de certos vegetais.\nIII. as chuvas ácidas causam danos se apresentarem valor de pH maior que o da água destilada.\n\nDessas afirmativas está(ão) correta(s):",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "I, apenas.",
+            "III, apenas.",
+            "I e II, apenas.",
+            "II e III, apenas.",
+            "I e III, apenas."
+        ],
+        "correta": 2,
+        "gabarito_comentado": "As afirmativas I e II são corretas, pois a redução do pH aquático desnatura enzimas e afeta organismos sensíveis, enquanto solos acidificados perdem nutrientes minerais essenciais. A afirmativa III é incorreta porque água destilada possui pH neutro (7,0) e a chuva ácida caracteriza-se por pH significativamente menor (mais ácido, tipicamente abaixo de 5,6).",
+        "tags": ["Química", "pH e Acidez", "Ecologia"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q054",
+        "materia": "Geografia",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS103",
+            "descricao": "Interpretar climogramas e associar temperatura e pluviosidade na caracterização de tipos climáticos.",
+            "unidade_tematica": "Climatologia"
+        },
+        "enunciado": "Leia e analise:\n“A distribuição das chuvas no decorrer do ano, conforme mostrado nos gráficos climogramas, é um parâmetro importante na caracterização de um clima.”\n\nA esse respeito podemos dizer que a afirmativa:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Climogramas com temperatura e pluviosidade"
+        },
+        "alternativas": [
+            "está errada, pois o que importa é o total pluviométrico anual.",
+            "está certa, pois, juntamente com o total pluviométrico anual, são importantes variáveis na definição das condições de umidade.",
+            "está errada, pois a distribuição das chuvas não tem nenhuma relação com a temperatura.",
+            "está certa, pois é o que vai definir as estações climáticas.",
+            "está certa, pois este é o parâmetro que define o clima de uma dada área."
+        ],
+        "correta": 1,
+        "gabarito_comentado": "A sazonalidade e a distribuição mensal das chuvas (regime pluviométrico), somadas ao volume total anual e à temperatura, são os fatores determinantes para classificar os tipos climáticos (como climas equatoriais úmidos, tropicais com estação seca, semiáridos ou mediterrâneos).",
+        "tags": ["Geografia", "Climatologia", "Climogramas"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q055",
+        "materia": "História / Sociologia",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS201",
+            "descricao": "Analisar os argumentos do debate agrário e do direito à propriedade no Brasil.",
+            "unidade_tematica": "Questão Agrária no Brasil"
+        },
+        "enunciado": "Em uma disputa por terras em Mato Grosso do Sul, o proprietário de uma fazenda declara (Depoimento 1):\n“A minha propriedade foi conseguida com muito sacrifício pelos meus antepassados. Não admito invasão. Essa gente não sabe de nada. Estão sendo manipulados pelos comunistas. Minha resposta será à bala. Esse povo tem que saber que a Constituição do Brasil garante a propriedade privada. Além disso, se esse governo quiser as minhas terras para a Reforma Agrária terá que pagar, em dinheiro, o valor que eu quero.”\n\nA partir da leitura do depoimento 1, os argumentos utilizados para defender a posição do proprietário de terras são:\nI. A Constituição do país garante o direito à propriedade privada, portanto, invadir terras é crime.\nII. O MST é um movimento político controlado por partidos políticos.\nIII. As terras são o fruto do árduo trabalho das famílias que as possuem.\nIV. Este é um problema político e depende unicamente da decisão da justiça.\n\nEstão corretas as proposições:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "I, apenas.",
+            "I e IV, apenas.",
+            "II e IV, apenas.",
+            "I , II e III, apenas.",
+            "I, III e IV, apenas."
+        ],
+        "correta": 3,
+        "gabarito_comentado": "No depoimento 1, o fazendeiro fundamenta sua posição na garantia constitucional da propriedade privada (I), na acusação de manipulação política/ideológica dos manifestantes (II) e na herança do sacrifício e trabalho árduo de seus antepassados (III).",
+        "tags": ["Sociologia", "Questão Agrária", "Interpretação Textual"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q056",
+        "materia": "História / Sociologia",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS201",
+            "descricao": "Compreender a função social da terra e as demandas dos movimentos sociais camponeses.",
+            "unidade_tematica": "Movimentos Sociais e Terra"
+        },
+        "enunciado": "No Depoimento 2, um trabalhador rural do Movimento dos Sem Terra declara:\n“Sempre lutei muito. Minha família veio para a cidade porque fui despedido quando as máquinas chegaram lá na Usina. Seu moço, acontece que eu sou um homem da terra... Aprendi que a terra tem um valor social. Ela é feita para produzir alimento. O que o homem come vem da terra. O que é duro é ver que aqueles que possuem muita terra e não dependem dela para sobreviver, pouco se preocupam em produzir nela.”\n\nA partir da leitura do depoimento 2, quais os argumentos utilizados para defender a posição de um trabalhador rural sem terra?\nI. A distribuição mais justa da terra no país está sendo resolvida, apesar de que muitos ainda não têm acesso a ela.\nII. A terra é para quem trabalha nela e não para quem a acumula como bem material.\nIII. É necessário que se suprima o valor social da terra.\nIV. A mecanização do campo acarreta a dispensa de mão-de-obra rural.\n\nEstão corretas as proposições:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "I, apenas.",
+            "II, apenas.",
+            "II e IV, apenas.",
+            "I, II e III, apenas.",
+            "III, I, IV, apenas."
+        ],
+        "correta": 2,
+        "gabarito_comentado": "O trabalhador argumenta que foi demitido devido à mecanização agrícola nas usinas (IV) e defende o princípio da função social da terra, sustentando que a terra deve pertencer e servir a quem nela trabalha e produz alimentos (II).",
+        "tags": ["Sociologia", "Reforma Agrária", "Função Social da Terra"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q057",
+        "materia": "Biologia / Ecologia",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT203",
+            "descricao": "Avaliar o impacto da remoção de predadores de topo sobre as cadeias tróficas e a capacidade de suporte do habitat.",
+            "unidade_tematica": "Dinâmica de Populações e Predação"
+        },
+        "enunciado": "No início do século XX, com a finalidade de possibilitar o crescimento da população de veados no planalto de Kaibab (Arizona, EUA), moveu-se uma caçada impiedosa aos seus predadores (pumas, coiotes e lobos). Um gráfico registrou que a população de veados saltou de 4.000 para 100.000 em 1924, mas em seguida entrou em colapso trágico devido à morte de 60% dos filhotes por fome e degradação da vegetação.\n\nPara explicar o fenômeno que ocorreu com a população de veados após a interferência do homem, um estudante elaborou as seguintes hipóteses e/ou conclusões:\nI. lobos, pumas e coiotes não eram, certamente, os únicos e mais vorazes predadores dos veados; quando estes predadores, até então desapercebidos, foram favorecidos pela eliminação de seus competidores, aumentaram numericamente e quase dizimaram a população de veados.\nII. a falta de alimentos representou para os veados um mal menor que a predação.\nIII. ainda que a atuação dos predadores pudesse representar a morte para muitos veados, a predação demonstrou-se um fator positivo para o equilíbrio dinâmico e sobrevivência da população como um todo.\nIV. a morte dos predadores acabou por permitir um crescimento exagerado da população de veados, isto levou à degradação excessiva das pastagens, tanto pelo consumo excessivo como pelo seu pisoteamento.\n\nO estudante acertou se indicou as afirmativas:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Gráfico da população de veados em Kaibab (1905-1940)"
+        },
+        "alternativas": [
+            "I, II, III e IV.",
+            "I, II e III, apenas.",
+            "I, II e IV, apenas.",
+            "II e III, apenas.",
+            "III e IV, apenas."
+        ],
+        "correta": 4,
+        "gabarito_comentado": "A eliminação dos predadores de topo gerou superpopulação descontrolada de herbívoros, ultrapassando a capacidade de suporte ambiental (carrying capacity), esgotando as pastagens e provocando mortandade em massa por inanição. Isso comprova que a predação natural é essencial ao equilíbrio ecológico sustentável (III e IV).",
+        "tags": ["Ecologia", "Dinâmica Populacional", "Cadeias Tróficas"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q058",
+        "materia": "História / Sociologia",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS502",
+            "descricao": "Analisar as permanências e desafios da plena cidadania para populações afrodescendentes após a abolição.",
+            "unidade_tematica": "Cidadania e Desigualdade Racial"
+        },
+        "enunciado": "Você lê dois documentos:\nTexto 1 (1879): Discurso do deputado Jerônimo Sodré Pereira na Câmara afirmando que o poder público precisava olhar para 1 milhão de cativos brasileiros, ao que outro deputado retrucou: “BRASILEIROS, NÃO”.\nTexto 2 (1998): Relato sobre o Projeto Axé em Salvador, que atende milhares de crianças e adolescentes de rua em situação de vulnerabilidade, oportunizando educação e cidadania.\n\nCom a leitura dos dois textos, você descobriu que a cidadania:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "jamais foi negada aos cativos e seus descendentes.",
+            "foi obtida pelos ex-escravos tão logo a abolição fora decretada.",
+            "não era incompatível com a escravidão.",
+            "ainda hoje continua incompleta para milhões de brasileiros.",
+            "consiste no direito de eleger deputados."
+        ],
+        "correta": 3,
+        "gabarito_comentado": "O paralelo histórico evidencia que a abolição jurídica em 1888 não veio acompanhada de políticas de integração econômica, educacional e social, mantendo até a contemporaneidade milhões de descendentes marginalizados da cidadania plena.",
+        "tags": ["História do Brasil", "Cidadania", "Desigualdade Social"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q059",
+        "materia": "Física",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Fácil",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT101",
+            "descricao": "Interpretar gráficos de velocidade em função do tempo na cinemática escalar.",
+            "unidade_tematica": "Cinemática Gráfica"
+        },
+        "enunciado": "Em uma prova de 100 m rasos, o desempenho típico de um corredor padrão é representado por um gráfico de velocidade (m/s) em função do tempo (s). No gráfico, a velocidade cresce de 0 a 10 m/s nos primeiros 5 segundos, estabiliza-se em uma linha horizontal de 10 m/s entre 5 e 8 segundos, e depois decai suavemente até os 15 segundos.\n\nBaseado no gráfico, em que intervalo de tempo a velocidade do corredor é aproximadamente constante?",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Gráfico Velocidade x Tempo de corrida de 100m"
+        },
+        "alternativas": [
+            "Entre 0 e 1 segundo.",
+            "Entre 1 e 5 segundos.",
+            "Entre 5 e 8 segundos.",
+            "Entre 8 e 11 segundos.",
+            "Entre 12 e 15 segundos."
+        ],
+        "correta": 2,
+        "gabarito_comentado": "A velocidade é constante no trecho em que a curva do gráfico v(t) forma um patamar perfeitamente horizontal, o que ocorre no intervalo entre 5 e 8 segundos com valor fixo em 10 m/s.",
+        "tags": ["Física", "Cinemática", "Interpretação Gráfica"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q060",
+        "materia": "Física",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT101",
+            "descricao": "Determinar aceleração através da inclinação/derivada da curva de velocidade no tempo.",
+            "unidade_tematica": "Cinemática e Aceleração"
+        },
+        "enunciado": "No mesmo gráfico de velocidade em função do tempo da prova de 100 m rasos, em que intervalo de tempo o corredor apresenta aceleração máxima?",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "Entre 0 e 1 segundo.",
+            "Entre 1 e 5 segundos.",
+            "Entre 5 e 8 segundo.",
+            "Entre 8 e 11 segundos.",
+            "Entre 9 e 15 segundos."
+        ],
+        "correta": 0,
+        "gabarito_comentado": "A aceleração escalar instantânea corresponde à inclinação (declividade) da reta tangente ao gráfico v(t). O trecho de maior inclinação positiva ocorre na largada (entre 0 e 1 segundo), onde o atleta sai do repouso e ganha velocidade com maior taxa de variação temporal.",
+        "tags": ["Física", "Cinemática", "Aceleração"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q061",
+        "materia": "Geografia / História",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CHS202",
+            "descricao": "Analisar as transições democráticas e reformas econômicas na América Latina no final do século XX.",
+            "unidade_tematica": "América Latina Contemporânea"
+        },
+        "enunciado": "A América Latina dos últimos anos insere-se num processo de democratização, oferecendo algumas oportunidades de crescimento econômico-social num contexto de liberdade e dependência econômica internacional. Cuba continua caracterizada por uma organização própria com restrições à liberdade econômica e política, crescimento em alguns aspectos sociais e um embargo econômico americano datado de 1962. Em 1998, o Papa João Paulo II visitou Cuba e expressou o desejo de que sejam criados novos espaços legais e sociais para que a sociedade civil cubana possa crescer em autonomia e participação.\n\nA maioria dos países latino-americanos tem se envolvido, nos últimos anos, em processos de formação socioeconômicos caracterizados por:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": ""
+        },
+        "alternativas": [
+            "um processo de democratização à semelhança de Cuba.",
+            "restrições legais generalizadas à ação da Igreja no continente.",
+            "um processo de desenvolvimento econômico com restrições generalizadas à liberdade política.",
+            "excelentes níveis de crescimento econômico.",
+            "democratização e oferecimento de algumas oportunidades de crescimento econômico."
+        ],
+        "correta": 4,
+        "gabarito_comentado": "O texto afirma no primeiro parágrafo que os países da América Latina (após o término dos regimes ditatoriais militares das décadas de 1970/1980) inseriram-se num processo de redemocratização política e busca de oportunidades de crescimento socioeconômico no mercado global.",
+        "tags": ["Geopolítica", "América Latina", "Democratização"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q062",
+        "materia": "Física / Química",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT102",
+            "descricao": "Relacionar pressão de vapor, pressão atmosférica e ponto de ebulição com a altitude.",
+            "unidade_tematica": "Termologia e Propriedades Coligativas"
+        },
+        "enunciado": "A tabela a seguir registra a pressão atmosférica em diferentes altitudes:\n- 0 km (nível do mar): 760 mmHg\n- 1 km: 600 mmHg\n- 2 km: 480 mmHg\n- 3 km: ~380 mmHg\n\nE o gráfico relaciona a pressão de vapor da água com a temperatura (atingindo 760 mmHg a 100°C).\n\nUm líquido, num frasco aberto, entra em ebulição a partir do momento em que a sua pressão de vapor se iguala à pressão atmosférica. Assinale a opção correta sobre as cidades: Natal (RN - nível do mar), Campos do Jordão (SP - altitude 1.628 m) e Pico da Neblina (RR - altitude 3.014 m):\n\nA temperatura de ebulição da água será:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Tabela de altitude e curva de pressão de vapor da água"
+        },
+        "alternativas": [
+            "maior em Campos do Jordão.",
+            "menor em Natal.",
+            "menor no Pico da Neblina.",
+            "igual em Campos do Jordão e Natal.",
+            "não dependerá da altitude."
+        ],
+        "correta": 2,
+        "gabarito_comentado": "Quanto maior a altitude, menor é a coluna de ar e, consequentemente, menor é a pressão atmosférica. Como a água ferve quando sua pressão de vapor iguala-se à pressão atmosférica local, no local de maior altitude (Pico da Neblina, 3.014 m) a pressão é a mais baixa, fazendo com que a água atinja a ebulição em uma temperatura significativamente menor do que ao nível do mar.",
+        "tags": ["Física Térmica", "Pressão Atmosférica", "Ebulição"],
+        "preDefinida": true
+    },
+    {
+        "id": "enem_1998_q063",
+        "materia": "Química",
+        "ano": "ENEM 1998",
+        "tipo": "multipla",
+        "dificuldade": "Média",
+        "tempo_estimado": 10,
+        "bncc": {
+            "codigo": "EM13CNT104",
+            "descricao": "Compreender o conceito logarítmico de pH e os efeitos de diluição sobre soluções ácidas.",
+            "unidade_tematica": "Equilíbrio Químico e pH"
+        },
+        "enunciado": "O pH informa a acidez ou a basicidade de uma solução (escala de 0 a 14, onde 7 é neutro, abaixo de 7 é ácido e acima é básico). Uma solução desconhecida foi testada por um grupo de alunos no laboratório, obtendo valores de pH situados entre 4,5 e 6,0 (média de aproximadamente 5,0 a 5,2).\n\nDa solução testada pelos alunos, o professor retirou 100 ml e adicionou água pura até completar 200 ml de solução diluída. O próximo grupo de alunos a medir o pH deverá encontrar para o mesmo:",
+        "suporte": {
+            "tem_imagem": false,
+            "url_imagem": "",
+            "legenda": "Escala de pH e tabela de medições laboratoriais"
+        },
+        "alternativas": [
+            "valores inferiores a 1,0.",
+            "os mesmos valores.",
+            "valores entre 5 e 7.",
+            "valores entre 5 e 3.",
+            "sempre o valor 7."
+        ],
+        "correta": 2,
+        "gabarito_comentado": "A solução original é ácida (pH inicial médio ~5,2). Ao dobrar o volume adicionando água destilada (diluição 1:2), a concentração de íons hidrônio \\([\\text{H}^+]\\) é reduzida à metade. Como \\(\\text{pH} = -\\log[\\text{H}^+]\\), a diminuição de \\([\\text{H}^+]\\) faz o pH aumentar em cerca de \\(\\log(2) \\approx 0{,}3\\), aproximando a solução da neutralidade. Portanto, o novo pH continuará na faixa ácida, porém com valor ligeiramente mais alto, situado entre 5 e 7.",
+        "tags": ["Química", "pH e Diluição", "Soluções Aquosas"],
         "preDefinida": true
     }
 ]
