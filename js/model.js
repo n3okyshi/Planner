@@ -196,13 +196,13 @@ export const model = {
             merged.horario = { ...(local.horario || {}), ...(cloud.horario || {}) };
         }
 
-        // 6. Coleções baseadas em Array (Questões, Materiais, Quizzes, Flashcards, Mindmaps)
+        // 6. Coleções baseadas em Array (Questões, Materiais, Quizzes, Flashcards, Mindmaps, Pastas)
         const mergeColecaoPorId = (localArr = [], cloudArr = []) => {
             const map = new Map();
             localArr.forEach(item => map.set(String(item.id), item));
 
             const getTime = (item) => {
-                const t = item.updatedAt || item.deletadoEm || item.createdAt;
+                const t = item.updatedAt || item.deletadoEm || item.deletadaEm || item.createdAt;
                 return t ? new Date(t).getTime() : 0;
             };
 
@@ -217,11 +217,13 @@ export const model = {
                     if (timeC > timeL) {
                         map.set(id, item);
                     } else if (timeC === timeL) {
-                        // Empate exato: se a versão da nuvem tiver a flag naLixeira (ou updatedAt), prioriza ela
-                        if (item.naLixeira && !existente.naLixeira) {
+                        // Empate exato: se a versão da nuvem tiver flag de exclusão (deletadaEm/naLixeira), prioriza ela
+                        const cloudDeletado = item.naLixeira || item.deletadaEm || item.deletadoEm;
+                        const localDeletado = existente.naLixeira || existente.deletadaEm || existente.deletadoEm;
+                        if (cloudDeletado && !localDeletado) {
                             map.set(id, item);
-                        } else if (!item.naLixeira && existente.naLixeira) {
-                            // Mantém a versão local já marcada como lixeira
+                        } else if (!cloudDeletado && localDeletado) {
+                            // Mantém a versão local já excluída
                         } else {
                             map.set(id, item);
                         }
@@ -236,23 +238,30 @@ export const model = {
             merged[key] = mergeColecaoPorId(local[key] || [], cloud[key] || []);
         });
 
-        // Auto-reconciliação de integridade para pastas de materiais
+        // Limpeza de integridade: materiais e estudos apontando para pastas deletadas voltam para a Raiz
+        const pastasMateriaisDeletadas = new Set(
+            (merged.pastasMateriais || []).filter(p => p.deletadaEm).map(p => String(p.id))
+        );
         if (merged.materiaisGerados && Array.isArray(merged.materiaisGerados)) {
-            if (!merged.pastasMateriais) merged.pastasMateriais = [];
-            const pastaIdsExistentes = new Set(merged.pastasMateriais.map(p => String(p.id)));
             merged.materiaisGerados.forEach(m => {
-                if (m.pastaId && !pastaIdsExistentes.has(String(m.pastaId))) {
-                    const nomePasta = m.nomePasta || 'Pasta de Materiais';
-                    merged.pastasMateriais.push({
-                        id: String(m.pastaId),
-                        nome: nomePasta,
-                        parentId: null,
-                        createdAt: new Date().toISOString()
-                    });
-                    pastaIdsExistentes.add(String(m.pastaId));
+                if (m.pastaId && pastasMateriaisDeletadas.has(String(m.pastaId))) {
+                    m.pastaId = null;
                 }
             });
         }
+
+        const pastasEstudosDeletadas = new Set(
+            (merged.pastasEstudos || []).filter(p => p.deletadaEm).map(p => String(p.id))
+        );
+        ['flashcards', 'mindmaps'].forEach(col => {
+            if (merged[col] && Array.isArray(merged[col])) {
+                merged[col].forEach(item => {
+                    if (item.pastaId && pastasEstudosDeletadas.has(String(item.pastaId))) {
+                        item.pastaId = null;
+                    }
+                });
+            }
+        });
 
         return merged;
     },
@@ -621,11 +630,28 @@ export const model = {
     },
     criarPastaMaterial(nome, parentId = null) {
         if (!this.state.pastasMateriais) this.state.pastasMateriais = [];
+        const nomeTrim = (nome || '').trim();
+        if (!nomeTrim) {
+            if (Toast) Toast.show('Por favor, digite um nome válido para a pasta.', 'warning');
+            return null;
+        }
+
+        // Validação anti-duplicação no mesmo nível hierárquico
+        const jaExiste = this.state.pastasMateriais.some(p => 
+            String(p.parentId || '') === String(parentId || '') && 
+            p.nome.trim().toLowerCase() === nomeTrim.toLowerCase()
+        );
+        if (jaExiste) {
+            if (Toast) Toast.show(`Já existe uma pasta com o nome "${nomeTrim}" neste local. Escolha outro nome.`, 'warning');
+            return null;
+        }
+
         const novaPasta = {
             id: 'pasta_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-            nome: (nome || 'Nova Pasta').trim(),
+            nome: nomeTrim,
             parentId: parentId || null,
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
         };
         this.state.pastasMateriais.push(novaPasta);
         this.saveLocal();
@@ -637,29 +663,91 @@ export const model = {
         return novaPasta;
     },
 
+    renomearPastaMaterial(pastaId, novoNome) {
+        if (!this.state.pastasMateriais) this.state.pastasMateriais = [];
+        const nomeTrim = (novoNome || '').trim();
+        if (!nomeTrim) {
+            if (Toast) Toast.show('O nome da pasta não pode ser vazio.', 'warning');
+            return false;
+        }
+
+        const pastaAlvo = this.state.pastasMateriais.find(p => String(p.id) === String(pastaId));
+        if (!pastaAlvo) {
+            if (Toast) Toast.show('Pasta não encontrada.', 'error');
+            return false;
+        }
+
+        // Se o nome não mudou, apenas retorna sucesso
+        if (pastaAlvo.nome.trim() === nomeTrim) return true;
+
+        // Validação anti-duplicação entre irmãs (mesmo parentId)
+        const jaExiste = this.state.pastasMateriais.some(p => 
+            String(p.id) !== String(pastaId) && 
+            String(p.parentId || '') === String(pastaAlvo.parentId || '') && 
+            p.nome.trim().toLowerCase() === nomeTrim.toLowerCase()
+        );
+        if (jaExiste) {
+            if (Toast) Toast.show(`Já existe outra pasta chamada "${nomeTrim}" neste local.`, 'warning');
+            return false;
+        }
+
+        pastaAlvo.nome = nomeTrim;
+        pastaAlvo.updatedAt = new Date().toISOString();
+        this.saveLocal();
+
+        if (this.currentUser && firebaseService && typeof firebaseService.saveRoot === 'function') {
+            firebaseService.saveRoot(this.currentUser.uid, this.state).catch(e => console.warn("Erro ao sincronizar renomeação na nuvem:", e));
+        }
+        if (Toast) Toast.show(`Pasta renomeada para "${nomeTrim}" com sucesso.`, 'success');
+        this._atualizarViewsMaterial();
+        return true;
+    },
+
     excluirPastaMaterial(pastaId) {
         if (!this.state.pastasMateriais) this.state.pastasMateriais = [];
+        const now = new Date().toISOString();
+        let materiaisMovidos = 0;
+
+        // 1. Materiais contidos na pasta retornam para a Raiz com timestamp e sincronização individual no Firestore
         if (this.state.materiaisGerados) {
             this.state.materiaisGerados.forEach(m => {
                 if (String(m.pastaId) === String(pastaId)) {
                     m.pastaId = null;
+                    m.updatedAt = now;
+                    materiaisMovidos++;
+                    if (this.currentUser && typeof syncService !== 'undefined' && syncService.persistMaterialDoc) {
+                        syncService.persistMaterialDoc(this.currentUser.uid, m);
+                    }
                 }
             });
         }
+
+        // 2. Marca a pasta com tombstone (deletadaEm e updatedAt) para reconciliação perfeita entre dispositivos
         const pastaAlvo = this.state.pastasMateriais.find(p => String(p.id) === String(pastaId));
         const parentId = pastaAlvo ? pastaAlvo.parentId : null;
+
+        if (pastaAlvo) {
+            pastaAlvo.deletadaEm = now;
+            pastaAlvo.updatedAt = now;
+        }
+
+        // 3. Subpastas filhas sobem para o nível pai com updatedAt
         this.state.pastasMateriais.forEach(p => {
-            if (String(p.parentId) === String(pastaId)) {
+            if (String(p.parentId) === String(pastaId) && !p.deletadaEm) {
                 p.parentId = parentId;
+                p.updatedAt = now;
             }
         });
 
-        this.state.pastasMateriais = this.state.pastasMateriais.filter(p => String(p.id) !== String(pastaId));
         this.saveLocal();
         if (this.currentUser && firebaseService && typeof firebaseService.saveRoot === 'function') {
             firebaseService.saveRoot(this.currentUser.uid, this.state).catch(e => console.warn("Erro ao sincronizar exclusão de pasta na nuvem:", e));
         }
-        if (Toast) Toast.show('Pasta removida.', 'info');
+
+        const msg = materiaisMovidos > 0 
+            ? `Pasta excluída. ${materiaisMovidos} ${materiaisMovidos === 1 ? 'material movido' : 'materiais movidos'} para a Raiz.` 
+            : 'Pasta excluída com sucesso.';
+        if (Toast) Toast.show(msg, 'info');
         this._atualizarViewsMaterial();
     },
 
@@ -681,6 +769,39 @@ export const model = {
         }
     },
 
+    moverMateriaisEmLoteParaPasta(materialIds, pastaId = null) {
+        if (!this.state.materiaisGerados || !materialIds) return 0;
+        const idsSet = new Set(Array.from(materialIds).map(String));
+        if (idsSet.size === 0) return 0;
+
+        let movidosCount = 0;
+        const pIdAlvo = pastaId ? String(pastaId) : null;
+        const now = new Date().toISOString();
+
+        this.state.materiaisGerados.forEach(m => {
+            if (idsSet.has(String(m.id))) {
+                m.pastaId = pIdAlvo;
+                m.updatedAt = now;
+                movidosCount++;
+                if (this.currentUser && typeof syncService !== 'undefined' && syncService.persistMaterialDoc) {
+                    syncService.persistMaterialDoc(this.currentUser.uid, m);
+                }
+            }
+        });
+
+        if (movidosCount > 0) {
+            this.saveLocal();
+            if (this.currentUser && firebaseService && typeof firebaseService.saveRoot === 'function') {
+                firebaseService.saveRoot(this.currentUser.uid, this.state).catch(e => console.warn("Erro ao sincronizar movimentação em lote na nuvem:", e));
+            }
+            const nomeDestino = pIdAlvo ? (this.state.pastasMateriais?.find(p => String(p.id) === pIdAlvo && !p.deletadaEm)?.nome || 'Pasta') : 'Raiz';
+            if (Toast) Toast.show(`${movidosCount} ${movidosCount === 1 ? 'material movido' : 'materiais movidos'} para "${nomeDestino}".`, 'success');
+            this._atualizarViewsMaterial();
+        }
+
+        return movidosCount;
+    },
+
     obterCaminhoCompletoPasta(pastaId) {
         if (!pastaId || !this.state.pastasMateriais) return '';
         const caminho = [];
@@ -689,7 +810,7 @@ export const model = {
 
         while (currId && !visitados.has(currId)) {
             visitados.add(currId);
-            const pasta = this.state.pastasMateriais.find(p => String(p.id) === currId);
+            const pasta = this.state.pastasMateriais.find(p => String(p.id) === currId && !p.deletadaEm);
             if (!pasta) break;
             caminho.unshift(pasta.nome);
             currId = pasta.parentId ? String(pasta.parentId) : null;
@@ -706,7 +827,7 @@ export const model = {
 
         while (currId && !visitados.has(currId)) {
             visitados.add(currId);
-            const pasta = this.state.pastasMateriais.find(p => String(p.id) === currId);
+            const pasta = this.state.pastasMateriais.find(p => String(p.id) === currId && !p.deletadaEm);
             if (!pasta) break;
             cadeia.unshift({ id: pasta.id, nome: pasta.nome });
             currId = pasta.parentId ? String(pasta.parentId) : null;
@@ -723,7 +844,7 @@ export const model = {
         while (alterou) {
             alterou = false;
             for (const p of this.state.pastasMateriais) {
-                if (p.parentId && ids.has(String(p.parentId)) && !ids.has(String(p.id))) {
+                if (!p.deletadaEm && p.parentId && ids.has(String(p.parentId)) && !ids.has(String(p.id))) {
                     ids.add(String(p.id));
                     alterou = true;
                 }
@@ -741,12 +862,29 @@ export const model = {
 
     criarPastaEstudo(nome, parentId = null, tipo = 'flashcard') {
         if (!this.state.pastasEstudos) this.state.pastasEstudos = [];
+        const nomeTrim = (nome || '').trim();
+        if (!nomeTrim) {
+            if (Toast) Toast.show('Por favor, informe um nome para a pasta.', 'warning');
+            return null;
+        }
+
+        // Validação anti-duplicação
+        const jaExiste = this.state.pastasEstudos.some(p => 
+            String(p.parentId || '') === String(parentId || '') && 
+            p.nome.trim().toLowerCase() === nomeTrim.toLowerCase()
+        );
+        if (jaExiste) {
+            if (Toast) Toast.show(`Já existe uma pasta com o nome "${nomeTrim}" neste local.`, 'warning');
+            return null;
+        }
+
         const novaPasta = {
             id: 'pasta_estudo_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-            nome: nome || 'Nova Pasta',
+            nome: nomeTrim,
             parentId: parentId || null,
             tipo: tipo || 'flashcard',
-            createdAt: new Date().toISOString()
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
         };
         this.state.pastasEstudos.push(novaPasta);
         this.saveLocal();
@@ -760,19 +898,75 @@ export const model = {
         return novaPasta;
     },
 
+    renomearPastaEstudo(pastaId, novoNome) {
+        if (!this.state.pastasEstudos) this.state.pastasEstudos = [];
+        const nomeTrim = (novoNome || '').trim();
+        if (!nomeTrim) {
+            if (Toast) Toast.show('O nome da pasta não pode ser vazio.', 'warning');
+            return false;
+        }
+
+        const pastaAlvo = this.state.pastasEstudos.find(p => String(p.id) === String(pastaId));
+        if (!pastaAlvo) return false;
+
+        if (pastaAlvo.nome.trim() === nomeTrim) return true;
+
+        const jaExiste = this.state.pastasEstudos.some(p => 
+            String(p.id) !== String(pastaId) && 
+            String(p.parentId || '') === String(pastaAlvo.parentId || '') && 
+            p.nome.trim().toLowerCase() === nomeTrim.toLowerCase()
+        );
+        if (jaExiste) {
+            if (Toast) Toast.show(`Já existe outra pasta com o nome "${nomeTrim}" neste local.`, 'warning');
+            return false;
+        }
+
+        pastaAlvo.nome = nomeTrim;
+        pastaAlvo.updatedAt = new Date().toISOString();
+        this.saveLocal();
+
+        if (this.currentUser && firebaseService && typeof firebaseService.saveRoot === 'function') {
+            firebaseService.saveRoot(this.currentUser.uid, this.state).catch(e => console.warn("Erro ao sincronizar renomeação na nuvem:", e));
+        }
+        if (typeof this.emit === 'function') {
+            this.emit('estudos:changed', { timestamp: Date.now() });
+        }
+        if (Toast) Toast.show(`Pasta renomeada para "${nomeTrim}" com sucesso.`, 'success');
+        return true;
+    },
+
     excluirPastaEstudo(pastaId) {
         if (!this.state.pastasEstudos) this.state.pastasEstudos = [];
+        const now = new Date().toISOString();
+        let itensMovidos = 0;
+
         ['flashcards', 'mindmaps'].forEach(colecao => {
             if (this.state[colecao]) {
                 this.state[colecao].forEach(item => {
                     if (String(item.pastaId) === String(pastaId)) {
                         item.pastaId = null;
+                        item.updatedAt = now;
+                        itensMovidos++;
                     }
                 });
             }
         });
 
-        this.state.pastasEstudos = this.state.pastasEstudos.filter(p => String(p.id) !== String(pastaId));
+        const pastaAlvo = this.state.pastasEstudos.find(p => String(p.id) === String(pastaId));
+        const parentId = pastaAlvo ? pastaAlvo.parentId : null;
+
+        if (pastaAlvo) {
+            pastaAlvo.deletadaEm = now;
+            pastaAlvo.updatedAt = now;
+        }
+
+        this.state.pastasEstudos.forEach(p => {
+            if (String(p.parentId) === String(pastaId) && !p.deletadaEm) {
+                p.parentId = parentId;
+                p.updatedAt = now;
+            }
+        });
+
         this.saveLocal();
         if (this.currentUser && firebaseService && typeof firebaseService.saveRoot === 'function') {
             firebaseService.saveRoot(this.currentUser.uid, this.state).catch(e => console.warn("Erro ao sincronizar exclusão de pasta de estudos na nuvem:", e));
@@ -780,7 +974,10 @@ export const model = {
         if (typeof this.emit === 'function') {
             this.emit('estudos:changed', { timestamp: Date.now() });
         }
-        if (Toast) Toast.show('Pasta de estudos removida.', 'info');
+        const msg = itensMovidos > 0 
+            ? `Pasta de estudos excluída. ${itensMovidos} ${itensMovidos === 1 ? 'item retornado' : 'itens retornados'} para a Raiz.` 
+            : 'Pasta de estudos removida.';
+        if (Toast) Toast.show(msg, 'info');
     },
 
     moverEstudoParaPasta(colecao, itemId, pastaId) {
@@ -799,6 +996,37 @@ export const model = {
             }
             if (Toast) Toast.show('Item movido para a pasta com sucesso.', 'success');
         }
+    },
+
+    moverEstudosEmLoteParaPasta(colecao, itemIds, pastaId = null) {
+        const colecaoAlvo = colecao === 'mindmaps' ? 'mindmaps' : 'flashcards';
+        if (!this.state[colecaoAlvo] || !itemIds) return 0;
+        const idsSet = new Set(Array.from(itemIds).map(String));
+        if (idsSet.size === 0) return 0;
+
+        let movidosCount = 0;
+        const pIdAlvo = pastaId ? String(pastaId) : null;
+
+        this.state[colecaoAlvo].forEach(item => {
+            if (idsSet.has(String(item.id))) {
+                item.pastaId = pIdAlvo;
+                item.updatedAt = new Date().toISOString();
+                movidosCount++;
+            }
+        });
+
+        if (movidosCount > 0) {
+            this.saveLocal();
+            if (this.currentUser && firebaseService && typeof firebaseService.saveRoot === 'function') {
+                firebaseService.saveRoot(this.currentUser.uid, this.state).catch(e => console.warn("Erro ao sincronizar estudos em lote na nuvem:", e));
+            }
+            if (typeof this.emit === 'function') {
+                this.emit('estudos:changed', { timestamp: Date.now() });
+            }
+            if (Toast) Toast.show(`${movidosCount} itens movidos para a pasta com sucesso.`, 'success');
+        }
+
+        return movidosCount;
     },
 
     async persist(cloudOperation) {

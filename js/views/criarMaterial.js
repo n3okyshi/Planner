@@ -588,8 +588,13 @@ export const criarMaterialView = {
     },
 
     modalCriarPasta() {
+        if (typeof this._modalActionsCleanup === 'function') {
+            this._modalActionsCleanup();
+            this._modalActionsCleanup = null;
+        }
+
         const modalHtml = `
-            <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+            <div id="modal-criar-pasta-container" style="display: flex; flex-direction: column; gap: 1.25rem;">
                 <p style="font-size: 0.9375rem; color: var(--color-slate-600); font-weight: 500; margin: 0;">
                     Digite o nome da nova pasta para organizar seus materiais pedagógicos:
                 </p>
@@ -600,7 +605,7 @@ export const criarMaterialView = {
                            style="width: 100%; padding: 0.625rem 0.875rem; font-size: 0.9375rem;" autofocus />
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem; padding-top: 1rem; border-top: 1px solid var(--color-slate-200);">
-                    <button type="button" data-action="fechar-modal" class="btn-secondary" style="padding: 0.5rem 1.25rem; font-weight: 700;">Cancelar</button>
+                    <button type="button" data-action="fechar-modal-pasta" class="btn-secondary" style="padding: 0.5rem 1.25rem; font-weight: 700;">Cancelar</button>
                     <button type="button" data-action="confirmar-criar-pasta-material" class="btn-primary" style="padding: 0.5rem 1.5rem; font-weight: 800; background-color: #059669;">
                         <i class="fas fa-folder-plus mr-1"></i> Criar Pasta
                     </button>
@@ -610,30 +615,219 @@ export const criarMaterialView = {
         controller.openModal('Nova Pasta de Materiais', modalHtml, 'small');
 
         setTimeout(() => {
-            const modalEl = document.getElementById('global-modal');
+            const containerEl = document.getElementById('modal-criar-pasta-container');
             const inputEl = document.getElementById('input-nome-pasta-material');
             if (inputEl) inputEl.focus();
 
-            if (modalEl) {
-                EventDelegator.bind(modalEl, {
+            if (containerEl) {
+                this._modalActionsCleanup = EventDelegator.bind(containerEl, {
                     'confirmar-criar-pasta-material': () => {
                         const val = inputEl ? inputEl.value.trim() : '';
-                        if (val) {
-                            model.criarPastaMaterial(val, this.pastaAtualId);
+                        if (!val) {
+                            Toast.show('Informe um nome para a pasta.', 'warning');
+                            return;
+                        }
+                        const criada = model.criarPastaMaterial(val, this.pastaAtualId);
+                        if (criada) {
+                            if (typeof this._modalActionsCleanup === 'function') {
+                                this._modalActionsCleanup();
+                                this._modalActionsCleanup = null;
+                            }
                             controller.closeModal();
                             this.render('view-container');
                         }
                     },
-                    'fechar-modal': () => controller.closeModal()
+                    'fechar-modal-pasta': () => {
+                        if (typeof this._modalActionsCleanup === 'function') {
+                            this._modalActionsCleanup();
+                            this._modalActionsCleanup = null;
+                        }
+                        controller.closeModal();
+                    }
+                }, 'click');
+
+                if (inputEl) {
+                    inputEl.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const btn = containerEl.querySelector('[data-action="confirmar-criar-pasta-material"]');
+                            if (btn) btn.click();
+                        }
+                    });
+                }
+            }
+        }, 50);
+    },
+
+    modalRenomearPasta(pastaId) {
+        if (typeof this._modalActionsCleanup === 'function') {
+            this._modalActionsCleanup();
+            this._modalActionsCleanup = null;
+        }
+
+        const pasta = (model.state.pastasMateriais || []).find(p => String(p.id) === String(pastaId));
+        if (!pasta) {
+            Toast.show('Pasta não encontrada.', 'error');
+            return;
+        }
+
+        const nomeAtualEscaped = window.escapeHTML(pasta.nome);
+
+        const modalHtml = `
+            <div id="modal-renomear-pasta-container" style="display: flex; flex-direction: column; gap: 1.25rem;">
+                <p style="font-size: 0.9375rem; color: var(--color-slate-600); font-weight: 500; margin: 0;">
+                    Digite o novo nome para a pasta <strong>${nomeAtualEscaped}</strong>:
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 0.375rem;">
+                    <label class="form-label" for="input-renomear-pasta-material" style="font-size: 0.8125rem; font-weight: 700;">Novo Nome da Pasta</label>
+                    <input type="text" id="input-renomear-pasta-material" class="form-input" 
+                           value="${nomeAtualEscaped}"
+                           placeholder="ex: Avaliações 2026..." 
+                           style="width: 100%; padding: 0.625rem 0.875rem; font-size: 0.9375rem;" autofocus />
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem; padding-top: 1rem; border-top: 1px solid var(--color-slate-200);">
+                    <button type="button" data-action="fechar-modal-renomear" class="btn-secondary" style="padding: 0.5rem 1.25rem; font-weight: 700;">Cancelar</button>
+                    <button type="button" data-action="confirmar-renomear-pasta-material" class="btn-primary" style="padding: 0.5rem 1.5rem; font-weight: 800; background-color: #059669;">
+                        <i class="fas fa-save mr-1"></i> Salvar Nome
+                    </button>
+                </div>
+            </div>
+        `;
+        controller.openModal('Renomear Pasta', modalHtml, 'small');
+
+        setTimeout(() => {
+            const containerEl = document.getElementById('modal-renomear-pasta-container');
+            const inputEl = document.getElementById('input-renomear-pasta-material');
+            if (inputEl) {
+                inputEl.focus();
+                inputEl.select();
+            }
+
+            if (containerEl) {
+                this._modalActionsCleanup = EventDelegator.bind(containerEl, {
+                    'confirmar-renomear-pasta-material': () => {
+                        const val = inputEl ? inputEl.value.trim() : '';
+                        if (!val) {
+                            Toast.show('O nome da pasta não pode ser vazio.', 'warning');
+                            return;
+                        }
+                        const ok = model.renomearPastaMaterial(pastaId, val);
+                        if (ok) {
+                            if (typeof this._modalActionsCleanup === 'function') {
+                                this._modalActionsCleanup();
+                                this._modalActionsCleanup = null;
+                            }
+                            controller.closeModal();
+                            this.render('view-container');
+                        }
+                    },
+                    'fechar-modal-renomear': () => {
+                        if (typeof this._modalActionsCleanup === 'function') {
+                            this._modalActionsCleanup();
+                            this._modalActionsCleanup = null;
+                        }
+                        controller.closeModal();
+                    }
+                }, 'click');
+
+                if (inputEl) {
+                    inputEl.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const btn = containerEl.querySelector('[data-action="confirmar-renomear-pasta-material"]');
+                            if (btn) btn.click();
+                        }
+                    });
+                }
+            }
+        }, 50);
+    },
+
+    modalMoverSelecionadosParaPasta() {
+        if (this.selecionadas.size === 0) {
+            Toast.show('Selecione pelo menos um material para mover.', 'warning');
+            return;
+        }
+
+        if (typeof this._modalActionsCleanup === 'function') {
+            this._modalActionsCleanup();
+            this._modalActionsCleanup = null;
+        }
+
+        const pastas = (model.state.pastasMateriais || []).filter(p => !p.deletadaEm);
+        let optionsHtml = `<option value="">📁 Raiz (Nenhuma Pasta)</option>`;
+        pastas.forEach(p => {
+            const caminhoCompleto = model.obterCaminhoCompletoPasta ? model.obterCaminhoCompletoPasta(p.id) : p.nome;
+            optionsHtml += `<option value="${p.id}">📁 ${window.escapeHTML(caminhoCompleto)}</option>`;
+        });
+
+        const qtdSelecionados = this.selecionadas.size;
+
+        const modalHtml = `
+            <div id="modal-mover-selecionados-container" style="display: flex; flex-direction: column; gap: 1.25rem;">
+                <div style="padding: 0.75rem 1rem; background-color: #f8fafc; border-radius: var(--radius-lg); border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 0.75rem;">
+                    <div style="width: 2.25rem; height: 2.25rem; border-radius: 50%; background-color: #e0e7ff; color: #4338ca; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;">
+                        <i class="fas fa-layer-group"></i>
+                    </div>
+                    <div>
+                        <strong style="font-size: 0.875rem; color: #1e293b; display: block;">${qtdSelecionados} ${qtdSelecionados === 1 ? 'material selecionado' : 'materiais selecionados'}</strong>
+                        <span style="font-size: 0.75rem; color: #64748b;">Escolha a pasta para onde deseja mover os arquivos</span>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 0.375rem;">
+                    <label class="form-label" for="select-dest-lote-pasta" style="font-size: 0.8125rem; font-weight: 700;">Pasta de Destino</label>
+                    <select id="select-dest-lote-pasta" class="form-select" style="font-size: 0.9375rem; padding: 0.625rem 0.875rem;">
+                        ${optionsHtml}
+                    </select>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem; padding-top: 1rem; border-top: 1px solid var(--color-slate-200);">
+                    <button type="button" data-action="fechar-modal-lote" class="btn-secondary" style="padding: 0.5rem 1.25rem; font-weight: 700;">Cancelar</button>
+                    <button type="button" data-action="confirmar-mover-lote-pasta" class="btn-primary" style="padding: 0.5rem 1.5rem; font-weight: 800; background-color: #4f46e5;">
+                        <i class="fas fa-folder-open mr-1"></i> Mover ${qtdSelecionados} ${qtdSelecionados === 1 ? 'Item' : 'Itens'}
+                    </button>
+                </div>
+            </div>
+        `;
+        controller.openModal('Mover Materiais em Lote', modalHtml, 'md');
+
+        setTimeout(() => {
+            const containerEl = document.getElementById('modal-mover-selecionados-container');
+            if (containerEl) {
+                this._modalActionsCleanup = EventDelegator.bind(containerEl, {
+                    'confirmar-mover-lote-pasta': () => {
+                        const pId = document.getElementById('select-dest-lote-pasta')?.value || null;
+                        model.moverMateriaisEmLoteParaPasta(this.selecionadas, pId);
+                        this.selecionadas.clear();
+                        if (typeof this._modalActionsCleanup === 'function') {
+                            this._modalActionsCleanup();
+                            this._modalActionsCleanup = null;
+                        }
+                        controller.closeModal();
+                        this.render('view-container');
+                    },
+                    'fechar-modal-lote': () => {
+                        if (typeof this._modalActionsCleanup === 'function') {
+                            this._modalActionsCleanup();
+                            this._modalActionsCleanup = null;
+                        }
+                        controller.closeModal();
+                    }
                 }, 'click');
             }
         }, 50);
     },
 
     moverMaterialModal(materialId) {
+        if (typeof this._modalActionsCleanup === 'function') {
+            this._modalActionsCleanup();
+            this._modalActionsCleanup = null;
+        }
+
         const mat = (model.state.materiaisGerados || []).find(m => String(m.id) === String(materialId));
         const currPastaId = mat ? String(mat.pastaId || '') : '';
-        const pastas = model.state.pastasMateriais || [];
+        const pastas = (model.state.pastasMateriais || []).filter(p => !p.deletadaEm);
 
         let optionsHtml = `<option value="" ${!currPastaId ? 'selected' : ''}>📁 Raiz (Nenhuma Pasta)</option>`;
         pastas.forEach(p => {
@@ -642,14 +836,14 @@ export const criarMaterialView = {
         });
 
         const modalHtml = `
-            <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <div id="modal-mover-material-container" style="display: flex; flex-direction: column; gap: 1rem;">
                 <p style="font-size: 0.9375rem; color: #475569; font-weight: 600;">Selecione a pasta de destino para organizar este material:</p>
                 <select id="select-dest-pasta" class="form-select" style="font-size: 0.9375rem; padding: 0.6rem;">
                     ${optionsHtml}
                 </select>
                 <div style="display: flex; justify-content: flex-end; gap: var(--spacing-3); margin-top: var(--spacing-6); padding-top: var(--spacing-4); border-top: 1px solid var(--color-slate-200);">
-                    <button type="button" data-action="fechar-modal" class="btn-secondary">Cancelar</button>
-                    <button type="button" data-action="mover-para-pasta-modal" data-id="${materialId}" class="btn-primary" style="background-color: #4f46e5;">
+                    <button type="button" data-action="fechar-modal-mover" class="btn-secondary">Cancelar</button>
+                    <button type="button" data-action="confirmar-mover-material-individual" data-id="${materialId}" class="btn-primary" style="background-color: #4f46e5;">
                         Mover Material
                     </button>
                 </div>
@@ -658,17 +852,27 @@ export const criarMaterialView = {
         controller.openModal('Organizar em Pasta', modalHtml, 'md');
 
         setTimeout(() => {
-            const modalEl = document.getElementById('global-modal');
-            if (modalEl) {
-                EventDelegator.bind(modalEl, {
-                    'mover-para-pasta-modal': (e, target) => {
-                        const mId = target.getAttribute('data-id');
+            const containerEl = document.getElementById('modal-mover-material-container');
+            if (containerEl) {
+                this._modalActionsCleanup = EventDelegator.bind(containerEl, {
+                    'confirmar-mover-material-individual': (e, target) => {
+                        const mId = target.getAttribute('data-id') || materialId;
                         const pId = document.getElementById('select-dest-pasta')?.value;
                         model.moverMaterialParaPasta(mId, pId);
+                        if (typeof this._modalActionsCleanup === 'function') {
+                            this._modalActionsCleanup();
+                            this._modalActionsCleanup = null;
+                        }
                         controller.closeModal();
                         this.render('view-container');
                     },
-                    'fechar-modal': () => controller.closeModal()
+                    'fechar-modal-mover': () => {
+                        if (typeof this._modalActionsCleanup === 'function') {
+                            this._modalActionsCleanup();
+                            this._modalActionsCleanup = null;
+                        }
+                        controller.closeModal();
+                    }
                 }, 'click');
             }
         }, 50);
@@ -882,7 +1086,11 @@ export const criarMaterialView = {
                     <span>selecionados</span>
                 </div>
 
-                <button type="button" data-action="compilar-pacote-selecionados" class="floating-action-bar__btn floating-action-bar__btn--primary" title="Compilar materiais selecionados em um único arquivo integrado com capa e sumário">
+                <button type="button" data-action="modal-mover-selecionados-para-pasta" class="floating-action-bar__btn floating-action-bar__btn--primary" style="background: #4f46e5;" title="Mover materiais selecionados para uma pasta">
+                    <i class="fas fa-folder-open"></i> Mover para Pasta
+                </button>
+
+                <button type="button" data-action="compilar-pacote-selecionados" class="floating-action-bar__btn floating-action-bar__btn--secondary" title="Compilar materiais selecionados em um único arquivo integrado com capa e sumário">
                     <i class="fas fa-layer-group"></i> Compilar em Pacote
                 </button>
 
@@ -912,7 +1120,7 @@ export const criarMaterialView = {
     renderMeusMateriais(materiaisPaginados, totalItens, totalPaginas) {
         const todosMarcados = materiaisPaginados.length > 0 && materiaisPaginados.every(m => this.selecionadas.has(String(m.id)));
 
-        const todasPastas = model.state.pastasMateriais || [];
+        const todasPastas = (model.state.pastasMateriais || []).filter(p => !p.deletadaEm);
         const pastaAtual = todasPastas.find(p => String(p.id) === String(this.pastaAtualId));
         const pastasNoNivel = todasPastas.filter(p => String(p.parentId || '') === String(this.pastaAtualId || ''));
         const cadeiaHierarquica = model.obterCadeiaHierarquicaPasta ? model.obterCadeiaHierarquicaPasta(this.pastaAtualId) : (pastaAtual ? [{ id: pastaAtual.id, nome: pastaAtual.nome }] : []);
@@ -976,9 +1184,14 @@ export const criarMaterialView = {
                                             <span style="font-size: 0.6875rem; color: #64748b; font-weight: 600;">${qtdItens} ${qtdItens === 1 ? 'item' : 'itens'}</span>
                                         </div>
                                     </div>
-                                    <button type="button" data-action="excluir-pasta" data-pasta-id="${p.id}" class="interactive-element" style="border: none; background: transparent; color: #94a3b8; padding: 0.35rem; cursor: pointer; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;" title="Excluir Pasta">
-                                        <i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>
-                                    </button>
+                                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+                                        <button type="button" data-action="modal-renomear-pasta" data-pasta-id="${p.id}" class="interactive-element" style="border: none; background: transparent; color: #64748b; padding: 0.35rem; cursor: pointer; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;" title="Renomear Pasta">
+                                            <i class="fas fa-edit" style="font-size: 0.75rem;"></i>
+                                        </button>
+                                        <button type="button" data-action="excluir-pasta" data-pasta-id="${p.id}" class="interactive-element" style="border: none; background: transparent; color: #94a3b8; padding: 0.35rem; cursor: pointer; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;" title="Excluir Pasta">
+                                            <i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             `;
         }).join('')}
@@ -2352,7 +2565,7 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
             'abrir-modal-criar-material': () => this.abrirModalCriarMaterial(),
             'set-pasta-raiz': () => this.setPastaAtual(null),
             'voltar-pasta-anterior': () => {
-                const todasPastas = model.state.pastasMateriais || [];
+                const todasPastas = (model.state.pastasMateriais || []).filter(p => !p.deletadaEm);
                 const curr = todasPastas.find(p => String(p.id) === String(this.pastaAtualId));
                 this.setPastaAtual(curr ? curr.parentId : null);
             },
@@ -2362,6 +2575,12 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
             },
             'modal-importar-material': () => this.modalImportarMaterial(),
             'modal-criar-pasta': () => this.modalCriarPasta(),
+            'modal-renomear-pasta': (e, target) => {
+                e.stopPropagation();
+                const id = target.getAttribute('data-pasta-id') || target.getAttribute('data-id');
+                if (id) this.modalRenomearPasta(id);
+            },
+            'modal-mover-selecionados-para-pasta': () => this.modalMoverSelecionadosParaPasta(),
             'excluir-pasta': (e, target) => {
                 e.stopPropagation();
                 const id = target.getAttribute('data-pasta-id') || target.getAttribute('data-id');
@@ -3309,7 +3528,7 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
         }, 50);
     },
     modalImportarMaterial() {
-        const todasPastas = model.state.pastasMateriais || [];
+        const todasPastas = (model.state.pastasMateriais || []).filter(p => !p.deletadaEm);
         const opcoesPastasHtml = `
             <option value="">Raiz (Sem pasta)</option>
             ${todasPastas.map(p => `<option value="${p.id}" ${String(p.id) === String(this.pastaAtualId) ? 'selected' : ''}>📁 ${window.escapeHTML(p.nome)}</option>`).join('')}

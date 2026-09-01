@@ -1999,7 +1999,7 @@ export const estudosVisuaisView = {
     // =========================================================================
 
     renderBarraPastas(tipoAba) {
-        const todasPastas = model.state.pastasEstudos || [];
+        const todasPastas = (model.state.pastasEstudos || []).filter(p => !p.deletadaEm);
         const pastaAtual = todasPastas.find(p => String(p.id) === String(this.pastaAtualId));
         const pastasNoNivel = todasPastas.filter(p => String(p.parentId || '') === String(this.pastaAtualId || ''));
         const colecaoNome = tipoAba === 'mindmaps' ? 'mindmaps' : 'flashcards';
@@ -2016,6 +2016,9 @@ export const estudosVisuaisView = {
                             <span style="color: var(--color-slate-400); font-weight: 800;">/</span>
                             <div style="display: flex; align-items: center; gap: 0.5rem; background: var(--color-white); padding: 0.35rem 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--color-slate-300); font-size: 0.8125rem; font-weight: 700; color: var(--color-slate-800);">
                                 <i class="fas fa-folder-open" style="color: #f59e0b;"></i> ${sanitizeComLatex(pastaAtual.nome)}
+                                <button type="button" data-action="renomear-pasta" data-id="${pastaAtual.id}" class="btn-icon" style="color: #64748b; margin-left: 0.25rem;" title="Renomear Pasta">
+                                    <i class="fas fa-edit" style="font-size: 0.75rem;"></i>
+                                </button>
                                 <button type="button" data-action="excluir-pasta" data-id="${pastaAtual.id}" class="btn-icon" style="color: #ef4444; margin-left: 0.25rem;" title="Excluir Pasta">
                                     <i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>
                                 </button>
@@ -2053,8 +2056,13 @@ export const estudosVisuaisView = {
     },
 
     criarPastaModal() {
+        if (typeof this._modalActionsCleanup === 'function') {
+            this._modalActionsCleanup();
+            this._modalActionsCleanup = null;
+        }
+
         const modalHtml = `
-            <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+            <div id="modal-criar-pasta-estudo-container" style="display: flex; flex-direction: column; gap: 1.25rem;">
                 <p style="font-size: 0.9375rem; color: var(--color-slate-600); font-weight: 500; margin: 0;">
                     Digite o nome da nova pasta para organizar seus baralhos e mapas de estudo:
                 </p>
@@ -2065,7 +2073,7 @@ export const estudosVisuaisView = {
                            style="width: 100%; padding: 0.625rem 0.875rem; font-size: 0.9375rem;" autofocus />
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem; padding-top: 1rem; border-top: 1px solid var(--color-slate-200);">
-                    <button type="button" data-action="fechar-modal" class="btn-secondary" style="padding: 0.5rem 1.25rem; font-weight: 700;">Cancelar</button>
+                    <button type="button" data-action="fechar-modal-estudo-pasta" class="btn-secondary" style="padding: 0.5rem 1.25rem; font-weight: 700;">Cancelar</button>
                     <button type="button" data-action="confirmar-criar-pasta-estudo" class="btn-primary" style="padding: 0.5rem 1.5rem; font-weight: 800; background-color: #4f46e5;">
                         <i class="fas fa-folder-plus mr-1"></i> Criar Pasta
                     </button>
@@ -2075,30 +2083,126 @@ export const estudosVisuaisView = {
         controller.openModal('Nova Pasta de Estudos', modalHtml, 'small');
 
         setTimeout(() => {
-            const modalEl = document.getElementById('global-modal');
+            const containerEl = document.getElementById('modal-criar-pasta-estudo-container');
             const inputEl = document.getElementById('input-nome-pasta-estudo');
             if (inputEl) inputEl.focus();
 
-            if (modalEl) {
-                EventDelegator.bind(modalEl, {
+            if (containerEl) {
+                this._modalActionsCleanup = EventDelegator.bind(containerEl, {
                     'confirmar-criar-pasta-estudo': () => {
                         const val = inputEl ? inputEl.value.trim() : '';
-                        if (val) {
-                            model.criarPastaEstudo(val, this.pastaAtualId, this.abaAtiva);
+                        if (!val) {
+                            Toast.show('Por favor, informe um nome para a pasta de estudos.', 'warning');
+                            return;
+                        }
+                        const criada = model.criarPastaEstudo(val, this.pastaAtualId, this.abaAtiva);
+                        if (criada) {
+                            if (typeof this._modalActionsCleanup === 'function') {
+                                this._modalActionsCleanup();
+                                this._modalActionsCleanup = null;
+                            }
                             controller.closeModal();
                             this.render(this._getContainer());
-                        } else {
-                            Toast.show('Por favor, informe um nome para a pasta de estudos.', 'warning');
                         }
                     },
-                    'fechar-modal': () => controller.closeModal()
+                    'fechar-modal-estudo-pasta': () => {
+                        if (typeof this._modalActionsCleanup === 'function') {
+                            this._modalActionsCleanup();
+                            this._modalActionsCleanup = null;
+                        }
+                        controller.closeModal();
+                    }
                 }, 'click');
 
                 if (inputEl) {
                     inputEl.addEventListener('keydown', (e) => {
                         if (e.key === 'Enter') {
                             e.preventDefault();
-                            const btn = modalEl.querySelector('[data-action="confirmar-criar-pasta-estudo"]');
+                            const btn = containerEl.querySelector('[data-action="confirmar-criar-pasta-estudo"]');
+                            if (btn) btn.click();
+                        }
+                    });
+                }
+            }
+        }, 50);
+    },
+
+    renomearPastaModal(pastaId) {
+        if (typeof this._modalActionsCleanup === 'function') {
+            this._modalActionsCleanup();
+            this._modalActionsCleanup = null;
+        }
+
+        const pasta = (model.state.pastasEstudos || []).find(p => String(p.id) === String(pastaId));
+        if (!pasta) {
+            Toast.show('Pasta de estudos não encontrada.', 'error');
+            return;
+        }
+
+        const nomeAtualEscaped = window.escapeHTML(pasta.nome);
+
+        const modalHtml = `
+            <div id="modal-renomear-pasta-estudo-container" style="display: flex; flex-direction: column; gap: 1.25rem;">
+                <p style="font-size: 0.9375rem; color: var(--color-slate-600); font-weight: 500; margin: 0;">
+                    Digite o novo nome para a pasta de estudos <strong>${nomeAtualEscaped}</strong>:
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 0.375rem;">
+                    <label class="form-label" for="input-renomear-pasta-estudo" style="font-size: 0.8125rem; font-weight: 700;">Novo Nome da Pasta</label>
+                    <input type="text" id="input-renomear-pasta-estudo" class="form-input" 
+                           value="${nomeAtualEscaped}"
+                           placeholder="ex: Biologia 2026..." 
+                           style="width: 100%; padding: 0.625rem 0.875rem; font-size: 0.9375rem;" autofocus />
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem; padding-top: 1rem; border-top: 1px solid var(--color-slate-200);">
+                    <button type="button" data-action="fechar-modal-renomear-estudo" class="btn-secondary" style="padding: 0.5rem 1.25rem; font-weight: 700;">Cancelar</button>
+                    <button type="button" data-action="confirmar-renomear-pasta-estudo" class="btn-primary" style="padding: 0.5rem 1.5rem; font-weight: 800; background-color: #4f46e5;">
+                        <i class="fas fa-save mr-1"></i> Salvar Nome
+                    </button>
+                </div>
+            </div>
+        `;
+        controller.openModal('Renomear Pasta de Estudos', modalHtml, 'small');
+
+        setTimeout(() => {
+            const containerEl = document.getElementById('modal-renomear-pasta-estudo-container');
+            const inputEl = document.getElementById('input-renomear-pasta-estudo');
+            if (inputEl) {
+                inputEl.focus();
+                inputEl.select();
+            }
+
+            if (containerEl) {
+                this._modalActionsCleanup = EventDelegator.bind(containerEl, {
+                    'confirmar-renomear-pasta-estudo': () => {
+                        const val = inputEl ? inputEl.value.trim() : '';
+                        if (!val) {
+                            Toast.show('O nome da pasta não pode ser vazio.', 'warning');
+                            return;
+                        }
+                        const ok = model.renomearPastaEstudo(pastaId, val);
+                        if (ok) {
+                            if (typeof this._modalActionsCleanup === 'function') {
+                                this._modalActionsCleanup();
+                                this._modalActionsCleanup = null;
+                            }
+                            controller.closeModal();
+                            this.render(this._getContainer());
+                        }
+                    },
+                    'fechar-modal-renomear-estudo': () => {
+                        if (typeof this._modalActionsCleanup === 'function') {
+                            this._modalActionsCleanup();
+                            this._modalActionsCleanup = null;
+                        }
+                        controller.closeModal();
+                    }
+                }, 'click');
+
+                if (inputEl) {
+                    inputEl.addEventListener('keydown', (e) => {
+                        if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const btn = containerEl.querySelector('[data-action="confirmar-renomear-pasta-estudo"]');
                             if (btn) btn.click();
                         }
                     });
@@ -2116,7 +2220,7 @@ export const estudosVisuaisView = {
     },
 
     moverParaPastaModal(colecao, itemId) {
-        const pastas = model.state.pastasEstudos || [];
+        const pastas = (model.state.pastasEstudos || []).filter(p => !p.deletadaEm);
         let optionsHtml = `<option value="">📁 Raiz (Nenhuma Pasta)</option>`;
         pastas.forEach(p => {
             optionsHtml += `<option value="${p.id}">📁 ${window.escapeHTML(p.nome)}</option>`;
@@ -2229,6 +2333,10 @@ export const estudosVisuaisView = {
             'zoom-out': () => this.ajustarZoom(-0.15),
             'resetar-zoom': () => this.resetarZoom(),
             'pasta-raiz': () => this.setPastaAtual(null),
+            'renomear-pasta': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) this.renomearPastaModal(id);
+            },
             'excluir-pasta': (e, target) => {
                 const id = target.getAttribute('data-id');
                 this.excluirPasta(id);
