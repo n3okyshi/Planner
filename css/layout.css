@@ -394,17 +394,21 @@
   grid-template-columns: 1fr;
   gap: 2rem;
   align-items: start;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .provas-main-content {
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 @media (min-width: 1024px) {
   .provas-layout { grid-template-columns: repeat(3, 1fr); }
-  .provas-main-content { grid-column: span 2; }
+  .provas-main-content { grid-column: span 2; min-width: 0; }
 }
 
 /* Filtros da Tela de Provas */

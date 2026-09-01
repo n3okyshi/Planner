@@ -111,42 +111,47 @@ export const settingsView = {
                         </div>
 
                         <!-- Coluna Direita: Live Preview -->
-                        <div style="display: flex; flex-direction: column; gap: var(--spacing-3); position: sticky; top: 5.5rem;">
-                            <span style="font-size: 0.6875rem; font-weight: 900; color: var(--color-slate-400); text-transform: uppercase; letter-spacing: 0.1em;">Pré-Visualização em Tempo Real</span>
+                        <div style="display: flex; flex-direction: column; gap: var(--spacing-3); position: sticky; top: 5.5rem; min-width: 0; max-width: 100%;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
+                                <span style="font-size: 0.6875rem; font-weight: 900; color: var(--color-slate-400); text-transform: uppercase; letter-spacing: 0.1em;">Pré-Visualização em Tempo Real</span>
+                                <span style="font-size: 0.625rem; font-weight: 700; color: var(--color-slate-400);"><i class="fas fa-arrows-alt-h"></i> Adaptável</span>
+                            </div>
                             
-                            <div style="background-color: white; border: 1px solid var(--color-slate-300); border-radius: var(--radius-xl); overflow: hidden; box-shadow: var(--shadow-md);">
-                                <div style="background-color: var(--color-primary); color: white; padding: 0.75rem 1rem; display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 0.875rem;">
-                                    <div style="display: flex; align-items: center; gap: 0.5rem; overflow: hidden;">
-                                        <div id="prev-logo-container" style="width: 1.75rem; height: 1.75rem; background-color: white; border-radius: var(--radius-sm); display: ${logoUrl ? 'flex' : 'none'}; align-items: center; justify-content: center; overflow: hidden; padding: 1px; flex-shrink: 0;">
-                                            <img id="prev-logo" src="${logoUrl}" style="width: 100%; height: 100%; object-fit: contain;">
+                            <div class="scrollable-tabs" style="background-color: white; border: 1px solid var(--color-slate-300); border-radius: var(--radius-xl); overflow-x: auto; overflow-y: hidden; box-shadow: var(--shadow-md); width: 100%; max-width: 100%; -webkit-overflow-scrolling: touch; padding: 0; display: block;">
+                                <div style="min-width: 280px; width: 100%;">
+                                    <div style="background-color: var(--color-primary); color: white; padding: 0.625rem 0.875rem; display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 0.8125rem; gap: 0.5rem;">
+                                        <div style="display: flex; align-items: center; gap: 0.5rem; overflow: hidden; min-width: 0; flex: 1;">
+                                            <div id="prev-logo-container" style="width: 1.5rem; height: 1.5rem; background-color: white; border-radius: var(--radius-sm); display: ${logoUrl ? 'flex' : 'none'}; align-items: center; justify-content: center; overflow: hidden; padding: 1px; flex-shrink: 0;">
+                                                <img id="prev-logo" src="${logoUrl}" style="width: 100%; height: 100%; object-fit: contain;">
+                                            </div>
+                                            <span id="prev-escola" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.8125rem; font-weight: 800;">${nomeEscolaSafe || 'Nome da Escola'}</span>
                                         </div>
-                                        <span id="prev-escola" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${nomeEscolaSafe || 'Nome da Escola'}</span>
-                                    </div>
-                                    <span id="prev-cidade" style="font-size: 0.6875rem; opacity: 0.85; font-weight: 700; white-space: nowrap; margin-left: 0.5rem;">${cidadeSafe}</span>
-                                </div>
-
-                                <div style="padding: 1rem; background-color: #fafafa; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.75rem; color: var(--color-slate-600);">
-                                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--color-slate-200); padding-bottom: 0.5rem;">
-                                        <div style="flex: 1;">
-                                            <span style="font-size: 0.5625rem; font-weight: 800; color: var(--color-slate-400); text-transform: uppercase; display: block;">Professor(a)</span>
-                                            <strong id="prev-prof" style="color: var(--color-slate-800); font-size: 0.8125rem;">${nomeProfSafe || 'Professor(a)'}</strong>
-                                        </div>
-                                        <div style="flex: 1; border-left: 1px solid var(--color-slate-200); padding-left: 0.5rem; display: ${showDisciplina ? 'block' : 'none'};" id="prev-container-disciplina">
-                                            <span style="font-size: 0.5625rem; font-weight: 800; color: var(--color-slate-400); text-transform: uppercase; display: block;">Disciplina</span>
-                                            <strong style="color: var(--color-slate-800); font-size: 0.8125rem;">—</strong>
-                                        </div>
-                                        <div style="flex: 1; border-left: 1px solid var(--color-slate-200); padding-left: 0.5rem; display: ${showSerie ? 'block' : 'none'};" id="prev-container-serie">
-                                            <span style="font-size: 0.5625rem; font-weight: 800; color: var(--color-slate-400); text-transform: uppercase; display: block;">Turma</span>
-                                            <strong style="color: var(--color-slate-800); font-size: 0.8125rem;">—</strong>
-                                        </div>
-                                        <div style="flex: 1; border-left: 1px solid var(--color-slate-200); padding-left: 0.5rem; display: ${showData ? 'block' : 'none'};" id="prev-container-data">
-                                            <span style="font-size: 0.5625rem; font-weight: 800; color: var(--color-slate-400); text-transform: uppercase; display: block;">Data</span>
-                                            <strong style="color: var(--color-slate-800); font-size: 0.8125rem;">__/__/____</strong>
-                                        </div>
+                                        <span id="prev-cidade" style="font-size: 0.6875rem; opacity: 0.85; font-weight: 700; white-space: nowrap; flex-shrink: 0; margin-left: auto;">${cidadeSafe}</span>
                                     </div>
 
-                                    <div style="padding: 1.5rem 0; text-align: center; color: var(--color-slate-400); font-style: italic;">
-                                        O enunciado da avaliação e as questões aparecem aqui...
+                                    <div style="padding: 0.75rem 0.875rem; background-color: #fafafa; display: flex; flex-direction: column; gap: 0.5rem; font-size: 0.75rem; color: var(--color-slate-600);">
+                                        <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--color-slate-200); padding-bottom: 0.5rem; gap: 0.35rem; overflow: hidden;">
+                                            <div style="flex: 1 1 0; min-width: 0;">
+                                                <span style="font-size: 0.5625rem; font-weight: 800; color: var(--color-slate-400); text-transform: uppercase; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Professor(a)</span>
+                                                <strong id="prev-prof" style="color: var(--color-slate-800); font-size: 0.75rem; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${nomeProfSafe || 'Professor(a)'}</strong>
+                                            </div>
+                                            <div style="flex: 1 1 0; min-width: 0; border-left: 1px solid var(--color-slate-200); padding-left: 0.35rem; display: ${showDisciplina ? 'block' : 'none'};" id="prev-container-disciplina">
+                                                <span style="font-size: 0.5625rem; font-weight: 800; color: var(--color-slate-400); text-transform: uppercase; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Disciplina</span>
+                                                <strong style="color: var(--color-slate-800); font-size: 0.75rem; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">—</strong>
+                                            </div>
+                                            <div style="flex: 1 1 0; min-width: 0; border-left: 1px solid var(--color-slate-200); padding-left: 0.35rem; display: ${showSerie ? 'block' : 'none'};" id="prev-container-serie">
+                                                <span style="font-size: 0.5625rem; font-weight: 800; color: var(--color-slate-400); text-transform: uppercase; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Turma</span>
+                                                <strong style="color: var(--color-slate-800); font-size: 0.75rem; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">—</strong>
+                                            </div>
+                                            <div style="flex: 1 1 0; min-width: 0; border-left: 1px solid var(--color-slate-200); padding-left: 0.35rem; display: ${showData ? 'block' : 'none'};" id="prev-container-data">
+                                                <span style="font-size: 0.5625rem; font-weight: 800; color: var(--color-slate-400); text-transform: uppercase; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Data</span>
+                                                <strong style="color: var(--color-slate-800); font-size: 0.75rem; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">__/__/__</strong>
+                                            </div>
+                                        </div>
+
+                                        <div style="padding: 1.25rem 0; text-align: center; color: var(--color-slate-400); font-style: italic; font-size: 0.75rem;">
+                                            O enunciado da avaliação e as questões aparecem aqui...
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -321,6 +326,10 @@ export const settingsView = {
             if (typeof cleanChange === 'function') cleanChange();
             if (typeof cleanInput === 'function') cleanInput();
         };
+
+        if (window.uiController && typeof window.uiController.initScrollableTabs === 'function') {
+            window.uiController.initScrollableTabs(container);
+        }
 
         setTimeout(() => this.atualizarPreview(), 100);
     },

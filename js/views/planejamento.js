@@ -72,7 +72,7 @@ export const planejamentoView = {
                         <button type="button" data-action="abrir-modal-5es-btn" class="btn-primary" style="padding: 0.45rem 1rem; font-size: 0.8125rem; font-weight: 800;">
                             <i class="fas fa-magic"></i> <span>Gerar Plano 5Es (IA)</span>
                         </button>
-                        <div style="display: flex; gap: 0.375rem; background-color: var(--color-slate-100); padding: 0.35rem; border-radius: var(--radius-xl);">
+                        <div class="scrollable-tabs" style="display: flex; gap: 0.375rem; background-color: var(--color-slate-100); padding: 0.35rem; border-radius: var(--radius-xl); max-width: 100%; overflow-x: auto;">
                             <button type="button" data-action="mudar-aba-planejamento" data-aba="periodo" class="interactive-element"
                                     style="padding: 0.45rem 1rem; font-size: 0.8125rem; font-weight: 800; border-radius: var(--radius-lg); border: none; cursor: pointer; transition: all 0.2s; ${this.abaAtiva === 'periodo' ? 'background-color: #ffffff; color: var(--color-primary); box-shadow: var(--shadow-sm);' : 'background: transparent; color: var(--color-slate-600);'}">
                                 <i class="fas fa-layer-group"></i> Por Período

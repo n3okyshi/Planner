@@ -38,7 +38,7 @@ export const correcaoAutomaticaView = {
                         <p style="font-size: 0.875rem; color: var(--color-slate-500);">Avalie redações com critérios do ENEM ou digitalize gabaritos pela câmera/foto.</p>
                     </div>
 
-                    <div class="mode-toggle-group">
+                    <div class="mode-toggle-group scrollable-tabs" style="max-width: 100%;">
                         <button type="button" data-action="mudar-aba" data-aba="redacao" class="mode-toggle-btn interactive-element ${this.abaAtiva === 'redacao' ? 'mode-toggle-btn--active' : ''}">
                             <i class="fas fa-pen-nib"></i> <span>Redação ENEM</span>
                         </button>

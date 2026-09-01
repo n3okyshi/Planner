@@ -69,7 +69,7 @@ export const estudosVisuaisView = {
                     </div>
 
                     <!-- ABAS DE NAVEGAÇÃO -->
-                    <div style="display: flex; background-color: var(--color-slate-100); padding: 0.25rem; border-radius: var(--radius-xl); gap: 0.25rem;">
+                    <div class="scrollable-tabs" style="display: flex; background-color: var(--color-slate-100); padding: 0.25rem; border-radius: var(--radius-xl); gap: 0.25rem; max-width: 100%; overflow-x: auto;">
                         <button type="button" data-action="mudar-aba" data-aba="flashcards" class="btn-secondary" style="padding: 0.5rem 1.25rem; font-size: 0.875rem; font-weight: 800; border-radius: var(--radius-lg); ${this.abaAtiva === 'flashcards' ? 'background-color: #ffffff; color: var(--color-primary); box-shadow: var(--shadow-sm);' : 'background: transparent; border: none; color: var(--color-slate-600);'}">
                             <i class="fas fa-layer-group"></i> <span>Flashcards</span>
                         </button>
@@ -84,7 +84,7 @@ export const estudosVisuaisView = {
                     <span style="font-size: 0.875rem; font-weight: 800; color: #334155; display: flex; align-items: center; gap: 0.5rem;">
                         <i class="fas fa-brain" style="color: #4f46e5;"></i> Estudo Visual:
                     </span>
-                    <div style="display: flex; background-color: #e2e8f0; padding: 0.25rem; border-radius: 0.75rem; gap: 0.25rem;">
+                    <div class="scrollable-tabs" style="display: flex; background-color: #e2e8f0; padding: 0.25rem; border-radius: 0.75rem; gap: 0.25rem; max-width: 100%; overflow-x: auto;">
                         <button type="button" data-action="mudar-aba" data-aba="flashcards" class="interactive-element" style="padding: 0.4rem 1rem; font-size: 0.8125rem; font-weight: 800; border-radius: 0.5rem; ${this.abaAtiva === 'flashcards' ? 'background-color: #ffffff; color: #4f46e5; box-shadow: 0 1px 2px rgba(0,0,0,0.05);' : 'background: transparent; border: none; color: #64748b;'}">
                             <i class="fas fa-layer-group"></i> Flashcards
                         </button>

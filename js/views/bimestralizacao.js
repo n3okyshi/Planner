@@ -205,7 +205,7 @@ export const bimestralizacaoView = {
                 <!-- SUBMENU: TABS NO PADRÃO BANCO DE QUESTÕES (MODE-TOGGLE-GROUP) -->
                 <div style="display: flex; flex-direction: column; gap: var(--spacing-4);">
                     
-                    <div class="mode-toggle-group" style="width: fit-content;">
+                    <div class="mode-toggle-group scrollable-tabs" style="max-width: 100%;">
                         ${this.bimestresDisponiveis.map(b => {
                             const isAtivo = b.valor === this.bimestreSelecionado;
                             return `

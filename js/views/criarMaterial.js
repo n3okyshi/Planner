@@ -2297,7 +2297,7 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                     </div>
                 </div>
 
-                <div class="mode-toggle-group" style="width: fit-content; margin-bottom: 1.5rem;">
+                <div class="mode-toggle-group scrollable-tabs" style="max-width: 100%; margin-bottom: 1.5rem;">
                     <button type="button" data-action="mudar-aba" data-aba="meus" 
                             class="mode-toggle-btn interactive-element ${this.abaAtiva === 'meus' ? 'mode-toggle-btn--active' : ''}">
                         <i class="fas fa-folder-open" style="margin-right: 0.375rem;"></i> Meus Materiais (${meusMateriais.length})
@@ -2330,6 +2330,10 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
 
         if (window.renderKatex) {
             window.renderKatex(container);
+        }
+
+        if (window.uiController && typeof window.uiController.initScrollableTabs === 'function') {
+            window.uiController.initScrollableTabs(container);
         }
 
         this._setupListeners(container);

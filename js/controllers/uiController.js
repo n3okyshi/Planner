@@ -706,6 +706,95 @@ export const uiController = {
         });
     },
 
+    /**
+     * Inicializa comportamento fluido de arrasto por mouse, rolagem por toque
+     * e rolagem por roda do mouse para todos os containers de abas (.mode-toggle-group e .scrollable-tabs).
+     * @param {HTMLElement|string} scope 
+     */
+    initScrollableTabs(scope = document) {
+        const container = (typeof scope === 'string' ? document.getElementById(scope) : scope) || document;
+        const tabGroups = container.querySelectorAll ? container.querySelectorAll('.mode-toggle-group, .scrollable-tabs, [data-scrollable-tabs]') : [];
+        if (!tabGroups || tabGroups.length === 0) return;
+
+        tabGroups.forEach(tabGroup => {
+            if (tabGroup.dataset.dragScrollInitialized === 'true') {
+                // Se já inicializado, apenas centraliza a aba ativa atualizada
+                requestAnimationFrame(() => {
+                    const activeBtn = tabGroup.querySelector('.mode-toggle-btn--active, [data-active="true"], .active, [aria-selected="true"]');
+                    if (activeBtn && typeof activeBtn.scrollIntoView === 'function') {
+                        activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    }
+                });
+                return;
+            }
+            tabGroup.dataset.dragScrollInitialized = 'true';
+
+            let isDown = false;
+            let startX = 0;
+            let scrollLeft = 0;
+            let hasMoved = false;
+
+            // 1. Início do arrasto por mouse (Desktop)
+            tabGroup.addEventListener('mousedown', (e) => {
+                if (e.target.tagName === 'SELECT' || e.target.tagName === 'INPUT') return;
+                isDown = true;
+                hasMoved = false;
+                tabGroup.style.cursor = 'grabbing';
+                startX = e.pageX - tabGroup.offsetLeft;
+                scrollLeft = tabGroup.scrollLeft;
+            });
+
+            // 2. Fim do arrasto
+            const stopDragging = () => {
+                if (!isDown) return;
+                isDown = false;
+                tabGroup.style.cursor = 'grab';
+                setTimeout(() => { hasMoved = false; }, 50);
+            };
+
+            tabGroup.addEventListener('mouseleave', stopDragging);
+            tabGroup.addEventListener('mouseup', stopDragging);
+
+            // 3. Movimentação e rolagem horizontal por arrasto do mouse
+            tabGroup.addEventListener('mousemove', (e) => {
+                if (!isDown) return;
+                const x = e.pageX - tabGroup.offsetLeft;
+                const walk = (x - startX) * 1.5;
+                if (Math.abs(walk) > 5) {
+                    hasMoved = true;
+                    e.preventDefault();
+                    tabGroup.scrollLeft = scrollLeft - walk;
+                }
+            });
+
+            // 4. Prevenção de troca acidental de aba se o usuário estava arrastando
+            tabGroup.addEventListener('click', (e) => {
+                if (hasMoved) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            }, true);
+
+            // 5. Suporte a rolagem horizontal via roda do mouse (scrollwheel)
+            tabGroup.addEventListener('wheel', (e) => {
+                if (tabGroup.scrollWidth > tabGroup.clientWidth) {
+                    if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                        e.preventDefault();
+                        tabGroup.scrollLeft += e.deltaY;
+                    }
+                }
+            }, { passive: false });
+
+            // 6. Centralização automática suave da aba ativa visível
+            requestAnimationFrame(() => {
+                const activeBtn = tabGroup.querySelector('.mode-toggle-btn--active, [data-active="true"], .active, [aria-selected="true"]');
+                if (activeBtn && typeof activeBtn.scrollIntoView === 'function') {
+                    activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                }
+            });
+        });
+    },
+
     async abrirCentroSincronizacao() {
         const isOnline = navigator.onLine;
         const filaDetalhada = window.syncService ? await window.syncService.obterDetalhesFilaOffline() : [];

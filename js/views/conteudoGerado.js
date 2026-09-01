@@ -89,7 +89,7 @@ export const conteudoGeradoView = {
                         </div>
 
                         <!-- SELETOR DE MODO (PADRÃO BANCO DE QUESTÕES) -->
-                        <div class="mode-toggle-group" style="width: fit-content;">
+                        <div class="mode-toggle-group scrollable-tabs" style="max-width: 100%;">
                             <button type="button" data-action="modo-aluno" 
                                     class="mode-toggle-btn interactive-element ${isAluno ? 'mode-toggle-btn--active' : ''}">
                                 <i class="fas fa-user-graduate" style="margin-right: 0.375rem; color: ${isAluno ? 'var(--color-primary)' : 'inherit'};"></i>

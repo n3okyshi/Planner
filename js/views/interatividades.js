@@ -44,7 +44,7 @@ export const interatividadesView = {
                 </div>
 
                 <!-- BARRA DE ABAS SUPERIORES PERMANENTE -->
-                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; padding: 0.35rem; background-color: var(--color-slate-100); border-radius: var(--radius-2xl); width: fit-content; border: 1px solid var(--color-slate-200); overflow-x: auto;">
+                <div class="scrollable-tabs" style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; padding: 0.35rem; background-color: var(--color-slate-100); border-radius: var(--radius-2xl); width: fit-content; max-width: 100%; border: 1px solid var(--color-slate-200); overflow-x: auto;">
                     <button type="button" data-action="mudar-aba-interatividades" data-aba="apresentacoes"
                             class="interactive-element"
                             style="padding: 0.6rem 1.25rem; border-radius: var(--radius-xl); font-size: 0.8125rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s ease; cursor: pointer; border: none; white-space: nowrap; ${this.abaAtiva === 'apresentacoes' ? 'background-color: var(--color-white); color: #4f46e5; box-shadow: var(--shadow-sm);' : 'background-color: transparent; color: var(--color-slate-600);'}">

@@ -222,7 +222,7 @@ export const turmasView = {
                 </div>
 
                 <!-- SUBMENU PERMANENTE NO TOPO: NOTAS POR PERÍODO / MAPA DE SALA -->
-                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; padding: 0.35rem; background-color: var(--color-slate-100); border-radius: var(--radius-2xl); width: fit-content; border: 1px solid var(--color-slate-200); overflow-x: auto;">
+                <div class="scrollable-tabs" style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; padding: 0.35rem; background-color: var(--color-slate-100); border-radius: var(--radius-2xl); width: fit-content; max-width: 100%; border: 1px solid var(--color-slate-200); overflow-x: auto;">
                     <button type="button" data-action="mudar-subaba-turma" data-subaba="notas" data-id="${turmaId}"
                             class="interactive-element"
                             style="padding: 0.6rem 1.35rem; border-radius: var(--radius-xl); font-size: 0.8125rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s ease; cursor: pointer; border: none; white-space: nowrap; ${this.subAbaAtiva === 'notas' ? 'background-color: var(--color-white); color: #4f46e5; box-shadow: var(--shadow-sm);' : 'background-color: transparent; color: var(--color-slate-600);'}">
@@ -497,7 +497,7 @@ export const turmasView = {
     },
     _renderConteudoNotas(turma, turmaId, numPeriodos, tipoConfig, statsPeriodo, statsGeral, gradientPeriodo, gradientGeral, avaliacoesFiltradas) {
         return `
-            <div style="display: flex; align-items: center; gap: var(--spacing-2); margin-bottom: var(--spacing-6); padding: var(--spacing-1); background-color: var(--color-slate-100); border-radius: var(--radius-2xl); width: fit-content; border: 1px solid var(--color-slate-200); overflow-x: auto;">
+            <div class="scrollable-tabs" style="display: flex; align-items: center; gap: var(--spacing-2); margin-bottom: var(--spacing-6); padding: var(--spacing-1); background-color: var(--color-slate-100); border-radius: var(--radius-2xl); width: fit-content; max-width: 100%; border: 1px solid var(--color-slate-200); overflow-x: auto;">
                 ${Array.from({ length: numPeriodos }, (_, i) => `
                     <button type="button" data-action="mudar-periodo-turma" data-id="${turmaId}" data-periodo="${i + 1}"
                              style="padding: 0.5rem 1.5rem; border-radius: var(--radius-xl); font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; transition: all var(--transition-fast); cursor: pointer; border: none; white-space: nowrap; ${this.periodoAtivo === (i + 1) ? 'background-color: var(--color-white); color: var(--color-primary); box-shadow: var(--shadow-sm);' : 'background-color: transparent; color: var(--color-slate-500);'}"

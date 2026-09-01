@@ -44,7 +44,7 @@ export const horarioView = {
                     </div>
 
                     <div style="display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap;">
-                        <div class="mode-toggle-group">
+                        <div class="mode-toggle-group scrollable-tabs" style="max-width: 100%;">
                             <button type="button" data-action="mudar-turno" data-turno="matutino" class="mode-toggle-btn interactive-element ${this.turnoAtual === 'matutino' ? 'mode-toggle-btn--active' : ''}">Manhã</button>
                             <button type="button" data-action="mudar-turno" data-turno="vespertino" class="mode-toggle-btn interactive-element ${this.turnoAtual === 'vespertino' ? 'mode-toggle-btn--active' : ''}">Tarde</button>
                             <button type="button" data-action="mudar-turno" data-turno="noturno" class="mode-toggle-btn interactive-element ${this.turnoAtual === 'noturno' ? 'mode-toggle-btn--active' : ''}">Noite</button>

@@ -249,7 +249,7 @@ export const provasView = {
             </div>
             <div class="provas-layout">
                 <div class="provas-main-content">
-                    <div class="mode-toggle-group" style="width: fit-content;">
+                    <div class="mode-toggle-group scrollable-tabs" style="max-width: 100%; margin-bottom: 1rem;">
                         <button type="button" data-action="mudar-aba-provas" data-aba="minhas" 
                                 class="mode-toggle-btn interactive-element ${this.abaAtiva === 'minhas' ? 'mode-toggle-btn--active' : ''}">
                             Minhas Questões (${minhasQuestoes.length})
@@ -438,6 +438,9 @@ export const provasView = {
         };
 
         this.renderizarLatex(container);
+        if (window.uiController && typeof window.uiController.initScrollableTabs === 'function') {
+            window.uiController.initScrollableTabs(container);
+        }
         questoesPaginadas.forEach(async (q) => {
             if (q.suporte && q.suporte.tem_imagem) {
                 const containerImg = document.getElementById(`img-container-${q.id}`);

@@ -103,7 +103,7 @@ export const comunidadeView = {
                 </header>
 
                 <!-- SELETOR DE ABAS DA COMUNIDADE -->
-                <div class="mode-toggle-group" style="width: fit-content; margin-bottom: 1.5rem;">
+                <div class="mode-toggle-group scrollable-tabs" style="max-width: 100%; margin-bottom: 1.5rem;">
                     <button type="button" data-action="mudar-aba-comunidade" data-aba="questoes" 
                             class="mode-toggle-btn interactive-element ${!isMateriais ? 'mode-toggle-btn--active' : ''}">
                         <i class="fas fa-question-circle" style="color: ${!isMateriais ? 'var(--color-primary)' : 'inherit'}; margin-right: 0.35rem;"></i> Banco de Questões

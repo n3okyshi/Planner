@@ -2633,32 +2633,51 @@
   font-size: 0.625rem;
 }
 
-/* Alternador de Modo de Geração (IA vs Manual) */
-.mode-toggle-group {
+/* Alternador de Modo de Geração & Abas com Rolagem Suave / Drag-to-Scroll */
+.mode-toggle-group,
+.scrollable-tabs {
   display: flex;
+  align-items: center;
   padding: 0.25rem;
   background-color: #f8fafc;
-  /* slate-50 */
   border: 1px solid #e2e8f0;
-  /* border-slate-200 */
   border-radius: 1rem;
-  /* rounded-2xl */
   gap: 0.25rem;
+  max-width: 100%;
+  width: fit-content;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE e Edge */
+  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+  user-select: none;
+  cursor: grab;
+}
+
+.mode-toggle-group:active,
+.scrollable-tabs:active {
+  cursor: grabbing;
+}
+
+.mode-toggle-group::-webkit-scrollbar,
+.scrollable-tabs::-webkit-scrollbar {
+  display: none; /* Chrome, Safari e Opera */
 }
 
 .mode-toggle-btn {
-  flex: 1 1 0%;
-  padding: 0.75rem 1rem;
+  flex: 0 0 auto;
+  white-space: nowrap;
+  padding: 0.625rem 1rem;
   border-radius: 0.75rem;
-  /* rounded-xl */
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   color: #64748b;
-  /* slate-500 */
   border: 1px solid transparent;
   background: transparent;
   cursor: pointer;
@@ -2667,6 +2686,7 @@
 
 .mode-toggle-btn:hover:not(.mode-toggle-btn--active) {
   color: #334155;
+  background-color: rgba(241, 245, 249, 0.6);
 }
 
 .mode-toggle-btn--active {

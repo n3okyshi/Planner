@@ -126,6 +126,7 @@ const controllerCore = {
                 uiController.initLazyLoading(wrapper);
                 uiController.updateBreadcrumb(target);
                 uiController.initAllDropdowns(container);
+                uiController.initScrollableTabs(container);
                 authController.updateSidebarUserArea();
                 if (window.innerWidth < 768) {
                     const sidebar = document.getElementById('app-sidebar');
