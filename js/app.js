@@ -59,6 +59,15 @@ export const app = {
                     }
                 }
             });
+
+            // Registro transparente do Service Worker para PWA Offline-First
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.register('./sw.js').then((reg) => {
+                    console.log('[PWA] Service Worker ativo:', reg.scope);
+                }).catch((err) => {
+                    console.warn('[PWA] Falha ao registrar Service Worker:', err);
+                });
+            }
         }
     }
 };

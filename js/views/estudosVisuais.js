@@ -2281,6 +2281,20 @@ export const estudosVisuaisView = {
             if (typeof unbindClick === 'function') unbindClick();
             if (typeof unbindChange === 'function') unbindChange();
         };
+
+        if (!this._hasModelListener && typeof model.on === 'function') {
+            this._hasModelListener = true;
+            model.on('estudos:changed', () => {
+                if (window.controller && window.controller.currentView === 'estudos-visuais') {
+                    this.render(this._getContainer());
+                }
+            });
+            model.on('state:hydrated', () => {
+                if (window.controller && window.controller.currentView === 'estudos-visuais') {
+                    this.render(this._getContainer());
+                }
+            });
+        }
     }
 };
 

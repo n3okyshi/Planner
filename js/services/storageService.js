@@ -154,17 +154,17 @@ export const storageService = {
     save(value) {
         try {
             const cleanStr = typeof value === 'string' ? value : JSON.stringify(value);
+            // Se o payload for maior que 2.5MB, não força gravação no localStorage (limite é 5MB)
+            if (cleanStr.length > 2.5 * 1024 * 1024) {
+                return false;
+            }
             localStorage.setItem(this.namespace, cleanStr);
             return true;
         } catch (error) {
             const isQuota = error.name === 'QuotaExceededError' || error.name === 'NS_ERROR_DOM_QUOTA_REACHED' || error.code === 22 || error.code === 1014;
             if (isQuota) {
-                console.warn('[storageService] LocalStorage Quota Exceeded. Alternando para IndexedDB.', error);
-                if (!this._quotaAlertShown) {
-                    this._quotaAlertShown = true;
-                    Toast.show("Espaço local do navegador cheio! Dados salvos com segurança via IndexedDB/Nuvem.", "warning");
-                    setTimeout(() => { this._quotaAlertShown = false; }, 30000);
-                }
+                // Fallback 100% silencioso: IndexedDB assume toda a retenção offline sem alarmar o professor
+                console.debug('[storageService] LocalStorage saturado (>5MB). Persistência mantida transparentemente via IndexedDB.');
             } else {
                 console.error('[storageService] Erro ao salvar no localStorage:', error);
             }

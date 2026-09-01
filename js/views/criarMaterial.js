@@ -2512,6 +2512,20 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
             if (typeof cleanupChanges === 'function') cleanupChanges();
             if (typeof cleanupInputs === 'function') cleanupInputs();
         };
+
+        if (!this._hasModelListener && typeof model.on === 'function') {
+            this._hasModelListener = true;
+            model.on('materiais:changed', () => {
+                if (window.controller && (window.controller.currentView === 'materiais-comunidade' || window.controller.currentView === 'criar-material')) {
+                    this.render('view-container');
+                }
+            });
+            model.on('state:hydrated', () => {
+                if (window.controller && (window.controller.currentView === 'materiais-comunidade' || window.controller.currentView === 'criar-material')) {
+                    this.render('view-container');
+                }
+            });
+        }
     },
 
     destroy() {

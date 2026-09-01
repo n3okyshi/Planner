@@ -262,6 +262,9 @@ export const model = {
                 this.saveLocal();
                 this.state.isCloudSynced = true;
                 this.updateStatusCloud('<i class="fas fa-check"></i> Sincronizado', 'text-emerald-600');
+                this.emit('materiais:changed', { timestamp: Date.now(), source: 'cloud' });
+                this.emit('estudos:changed', { timestamp: Date.now(), source: 'cloud' });
+                this.emit('state:hydrated', { source: 'cloud' });
             } else {
                 if ((!this.state.userConfig.profName || this.state.userConfig.profName.trim() === '') && this.currentUser.displayName) {
                     this.state.userConfig.profName = this.currentUser.displayName;
@@ -285,6 +288,9 @@ export const model = {
                         this.state[k] = merged[k];
                     });
                     storageService.saveAsync(this.state).catch(() => { });
+                    this.emit('materiais:changed', { timestamp: Date.now(), source: 'cloud-snapshot' });
+                    this.emit('estudos:changed', { timestamp: Date.now(), source: 'cloud-snapshot' });
+                    this.emit('state:hydrated', { source: 'cloud-snapshot' });
                 } finally {
                     setTimeout(() => {
                         this._isRemoteSyncing = false;
@@ -295,9 +301,9 @@ export const model = {
     },
     saveLocal() {
         try {
-            storageService.save(this.state);
+            storageService.saveAsync(this.state).catch(() => { });
         } catch (e) {
-            console.error("Quota Exceeded ou erro de disco", e);
+            console.warn("Erro ao salvar estado local:", e);
         }
         this._debouncedCloudSave();
     },
@@ -593,6 +599,9 @@ export const model = {
         };
         this.state.pastasMateriais.push(novaPasta);
         this.saveLocal();
+        if (this.currentUser && firebaseService && typeof firebaseService.saveRoot === 'function') {
+            firebaseService.saveRoot(this.currentUser.uid, this.state).catch(e => console.warn("Erro ao sincronizar pasta na nuvem:", e));
+        }
         if (Toast) Toast.show(`Pasta "${novaPasta.nome}" criada com sucesso.`, 'success');
         this._atualizarViewsMaterial();
         return novaPasta;
@@ -617,6 +626,9 @@ export const model = {
 
         this.state.pastasMateriais = this.state.pastasMateriais.filter(p => String(p.id) !== String(pastaId));
         this.saveLocal();
+        if (this.currentUser && firebaseService && typeof firebaseService.saveRoot === 'function') {
+            firebaseService.saveRoot(this.currentUser.uid, this.state).catch(e => console.warn("Erro ao sincronizar exclusão de pasta na nuvem:", e));
+        }
         if (Toast) Toast.show('Pasta removida.', 'info');
         this._atualizarViewsMaterial();
     },
@@ -630,6 +642,9 @@ export const model = {
             this.saveLocal();
             if (this.currentUser && typeof syncService !== 'undefined' && syncService.persistMaterialDoc) {
                 syncService.persistMaterialDoc(this.currentUser.uid, mat);
+            }
+            if (this.currentUser && firebaseService && typeof firebaseService.saveRoot === 'function') {
+                firebaseService.saveRoot(this.currentUser.uid, this.state).catch(e => console.warn("Erro ao sincronizar movimentação na nuvem:", e));
             }
             if (Toast) Toast.show('Material movido com sucesso.', 'success');
             this._atualizarViewsMaterial();
@@ -705,6 +720,12 @@ export const model = {
         };
         this.state.pastasEstudos.push(novaPasta);
         this.saveLocal();
+        if (this.currentUser && firebaseService && typeof firebaseService.saveRoot === 'function') {
+            firebaseService.saveRoot(this.currentUser.uid, this.state).catch(e => console.warn("Erro ao sincronizar pasta de estudos na nuvem:", e));
+        }
+        if (typeof this.emit === 'function') {
+            this.emit('estudos:changed', { timestamp: Date.now() });
+        }
         if (Toast) Toast.show('Pasta de estudos criada com sucesso.', 'success');
         return novaPasta;
     },
@@ -723,6 +744,12 @@ export const model = {
 
         this.state.pastasEstudos = this.state.pastasEstudos.filter(p => String(p.id) !== String(pastaId));
         this.saveLocal();
+        if (this.currentUser && firebaseService && typeof firebaseService.saveRoot === 'function') {
+            firebaseService.saveRoot(this.currentUser.uid, this.state).catch(e => console.warn("Erro ao sincronizar exclusão de pasta de estudos na nuvem:", e));
+        }
+        if (typeof this.emit === 'function') {
+            this.emit('estudos:changed', { timestamp: Date.now() });
+        }
         if (Toast) Toast.show('Pasta de estudos removida.', 'info');
     },
 
@@ -734,6 +761,12 @@ export const model = {
             item.pastaId = pastaId || null;
             item.updatedAt = new Date().toISOString();
             this.saveLocal();
+            if (this.currentUser && firebaseService && typeof firebaseService.saveRoot === 'function') {
+                firebaseService.saveRoot(this.currentUser.uid, this.state).catch(e => console.warn("Erro ao sincronizar movimentação de estudos na nuvem:", e));
+            }
+            if (typeof this.emit === 'function') {
+                this.emit('estudos:changed', { timestamp: Date.now() });
+            }
             if (Toast) Toast.show('Item movido para a pasta com sucesso.', 'success');
         }
     },

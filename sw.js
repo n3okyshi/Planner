@@ -1,4 +1,4 @@
-const CACHE_NAME = 'planner-pro-docente-v2.7';
+const CACHE_NAME = 'planner-pro-docente-v2.8';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -90,6 +90,7 @@ const ASSETS_TO_CACHE = [
 ];
 
 self.addEventListener('install', (event) => {
+    self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then((cache) => {
             console.log('[Service Worker] Cache atualizado com sucesso');
@@ -100,14 +101,17 @@ self.addEventListener('install', (event) => {
 
 self.addEventListener('activate', (event) => {
     event.waitUntil(
-        caches.keys().then((keyList) => {
-            return Promise.all(keyList.map((key) => {
-                if (key !== CACHE_NAME) {
-                    console.log('[Service Worker] Removendo cache antigo:', key);
-                    return caches.delete(key);
-                }
-            }));
-        })
+        Promise.all([
+            self.clients.claim(),
+            caches.keys().then((keyList) => {
+                return Promise.all(keyList.map((key) => {
+                    if (key !== CACHE_NAME) {
+                        console.log('[Service Worker] Removendo cache antigo:', key);
+                        return caches.delete(key);
+                    }
+                }));
+            })
+        ])
     );
 });
 
