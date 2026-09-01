@@ -236,6 +236,24 @@ export const model = {
             merged[key] = mergeColecaoPorId(local[key] || [], cloud[key] || []);
         });
 
+        // Auto-reconciliação de integridade para pastas de materiais
+        if (merged.materiaisGerados && Array.isArray(merged.materiaisGerados)) {
+            if (!merged.pastasMateriais) merged.pastasMateriais = [];
+            const pastaIdsExistentes = new Set(merged.pastasMateriais.map(p => String(p.id)));
+            merged.materiaisGerados.forEach(m => {
+                if (m.pastaId && !pastaIdsExistentes.has(String(m.pastaId))) {
+                    const nomePasta = m.nomePasta || 'Pasta de Materiais';
+                    merged.pastasMateriais.push({
+                        id: String(m.pastaId),
+                        nome: nomePasta,
+                        parentId: null,
+                        createdAt: new Date().toISOString()
+                    });
+                    pastaIdsExistentes.add(String(m.pastaId));
+                }
+            });
+        }
+
         return merged;
     },
 
@@ -262,6 +280,18 @@ export const model = {
                 this.saveLocal();
                 this.state.isCloudSynced = true;
                 this.updateStatusCloud('<i class="fas fa-check"></i> Sincronizado', 'text-emerald-600');
+
+                // Auto-Upload Reconciliador: Se o estado local continha pastas de materiais ou estudos que
+                // faltavam na nuvem (ex: criadas no desktop antes do sync), faz o upload imediato ao Firestore!
+                if (firebaseService && typeof firebaseService.saveRoot === 'function') {
+                    const localTinhaMaisPastas = (merged.pastasMateriais?.length > (cloudData.pastasMateriais?.length || 0)) ||
+                                                 (merged.pastasEstudos?.length > (cloudData.pastasEstudos?.length || 0));
+                    if (localTinhaMaisPastas) {
+                        console.log("🚀 [model] Sincronizando pastas locais existentes com a nuvem Firestore...");
+                        firebaseService.saveRoot(this.currentUser.uid, merged).catch(e => console.warn("Aviso ao auto-sincronizar pastas com a nuvem:", e));
+                    }
+                }
+
                 this.emit('materiais:changed', { timestamp: Date.now(), source: 'cloud' });
                 this.emit('estudos:changed', { timestamp: Date.now(), source: 'cloud' });
                 this.emit('state:hydrated', { source: 'cloud' });
