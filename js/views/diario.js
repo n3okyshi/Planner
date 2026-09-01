@@ -128,6 +128,21 @@ export const diarioView = {
                 const texto = target.getAttribute('data-texto');
                 if (texto) this.adicionarHabilidadeTexto(texto);
             },
+            'inserir-snippet-metodologia': (e, target) => {
+                const snippet = target.getAttribute('data-snippet');
+                const textarea = document.getElementById('plan-metodologia');
+                if (textarea && snippet) {
+                    if (textarea.value.trim()) {
+                        textarea.value += '\n' + snippet;
+                    } else {
+                        textarea.value = snippet;
+                    }
+                    textarea.focus();
+                    if (window.planejamentoController?.salvarDiario) {
+                        window.planejamentoController.salvarDiario(true);
+                    }
+                }
+            },
             'imprimir-diario': () => this.imprimirPlano(),
             'salvar-diario': () => controller.salvarDiario(),
             'open-seletor-bncc-diario': () => controller.openSeletorBnccDiario(this.currentTurmaId),
@@ -454,7 +469,27 @@ export const diarioView = {
                             <textarea id="plan-objetivos" rows="3" class="autosave-input form-input custom-scrollbar" style="resize: vertical;" placeholder="O que os estudantes deverão assimilar..."></textarea>
                         </div>
                         <div>
-                            <label class="form-label">Metodologia e Dinâmica</label>
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-2); flex-wrap: wrap; gap: 0.25rem;">
+                                <label class="form-label" style="margin-bottom: 0;">Metodologia e Dinâmica</label>
+                                <span style="font-size: 0.6875rem; color: var(--color-slate-400); font-weight: 700;">Modelos rápidos:</span>
+                            </div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-bottom: 0.5rem;">
+                                <button type="button" data-action="inserir-snippet-metodologia" data-snippet="Aula expositiva dialogada com apresentação de conceitos no quadro e participação ativa dos estudantes." class="pill-item" style="font-size: 0.6875rem; background: var(--color-slate-100); border: 1px solid var(--color-slate-200); padding: 0.2rem 0.5rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; color: var(--color-slate-700);">
+                                    💬 Expositiva Dialogada
+                                </button>
+                                <button type="button" data-action="inserir-snippet-metodologia" data-snippet="Resolução e correção comentada de exercícios práticos e fixação de conteúdos." class="pill-item" style="font-size: 0.6875rem; background: var(--color-slate-100); border: 1px solid var(--color-slate-200); padding: 0.2rem 0.5rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; color: var(--color-slate-700);">
+                                    ✏️ Correção de Exercícios
+                                </button>
+                                <button type="button" data-action="inserir-snippet-metodologia" data-snippet="Atividade prática colaborativa em pequenos grupos com mediação pedagógica." class="pill-item" style="font-size: 0.6875rem; background: var(--color-slate-100); border: 1px solid var(--color-slate-200); padding: 0.2rem 0.5rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; color: var(--color-slate-700);">
+                                    👥 Trabalho em Grupo
+                                </button>
+                                <button type="button" data-action="inserir-snippet-metodologia" data-snippet="Revisão geral dos tópicos principais e esclarecimento de dúvidas para avaliação." class="pill-item" style="font-size: 0.6875rem; background: var(--color-slate-100); border: 1px solid var(--color-slate-200); padding: 0.2rem 0.5rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; color: var(--color-slate-700);">
+                                    🎯 Revisão de Conteúdo
+                                </button>
+                                <button type="button" data-action="inserir-snippet-metodologia" data-snippet="Aplicação de instrumento avaliativo individual para verificação de aprendizagem." class="pill-item" style="font-size: 0.6875rem; background: var(--color-slate-100); border: 1px solid var(--color-slate-200); padding: 0.2rem 0.5rem; border-radius: var(--radius-md); font-weight: 600; cursor: pointer; color: var(--color-slate-700);">
+                                    📝 Avaliação
+                                </button>
+                            </div>
                             <textarea id="plan-metodologia" rows="3" class="autosave-input form-input custom-scrollbar" style="resize: vertical;" placeholder="Estratégias de ensino, atividades em grupo..."></textarea>
                         </div>
                     </div>

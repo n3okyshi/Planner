@@ -1,4 +1,4 @@
-const CACHE_NAME = 'planner-pro-docente-v2.6';
+const CACHE_NAME = 'planner-pro-docente-v2.7';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
@@ -62,6 +62,7 @@ const ASSETS_TO_CACHE = [
     './js/views/conteudoGerado.js',
     './js/views/correcaoAutomatica.js',
     './js/views/simuladores.js',
+    './js/views/interatividades.js',
     './js/views/estudosVisuais.js',
     './js/views/horario.js',
     './js/views/calendario.js',

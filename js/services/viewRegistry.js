@@ -28,6 +28,7 @@ import { apresentacoesView } from '../views/apresentacoes.js';
 import { apresentadorPlayerView } from '../views/apresentadorPlayer.js';
 import { coordenacaoView } from '../views/coordenacao.js';
 import { pdiView } from '../views/pdi.js';
+import { interatividadesView } from '../views/interatividades.js';
 
 export const viewRegistry = {
     dashboard: dashboardView,
@@ -59,6 +60,7 @@ export const viewRegistry = {
     'conteudo-gerado': conteudoGeradoView,
     correcao: correcaoAutomaticaView,
     simuladores: simuladoresView,
+    interatividades: interatividadesView,
     'estudos-visuais': estudosVisuaisView,
     flashcards: estudosVisuaisView,
     mindmaps: estudosVisuaisView,
@@ -104,7 +106,8 @@ export const publicViewAliases = {
     apresentacoesView,
     apresentadorPlayerView,
     coordenacaoView,
-    pdiView
+    pdiView,
+    interatividadesView
 };
 
 if (typeof window !== 'undefined') {

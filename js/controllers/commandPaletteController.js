@@ -59,6 +59,22 @@ export const commandPaletteController = {
             if (e.key === 'Escape' && this.isOpen) {
                 this.close();
             }
+            // Atalhos diretos de navegação Alt + 1 a Alt + 6
+            if (e.altKey && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                const rotasAlt = {
+                    '1': 'dashboard',
+                    '2': 'turmas',
+                    '3': 'frequencia',
+                    '4': 'dia',
+                    '5': 'provas',
+                    '6': 'criar-material'
+                };
+                if (rotasAlt[e.key]) {
+                    e.preventDefault();
+                    if (this.isOpen) this.close();
+                    controller.navigate(rotasAlt[e.key]);
+                }
+            }
         });
     },
 

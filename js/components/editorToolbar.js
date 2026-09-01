@@ -341,6 +341,24 @@ export const EditorToolbar = {
                                 </div>
                             </div>
                         </div>
+
+                        <!-- BOTÃO: INSERIR LATEX COM LIVE PREVIEW -->
+                        <button type="button" class="planner-toolbar-btn planner-toolbar-btn--badge" 
+                                data-action="tb-inserir-latex" data-target="${safeTargetId}"
+                                onmousedown="EditorToolbar.salvarSelecao()"
+                                title="Inserir Fórmula / Equação LaTeX com Pré-visualização em Tempo Real">
+                            <i class="fas fa-square-root-variable" style="color: #6366f1;"></i>
+                            <span>+ LaTeX</span>
+                        </button>
+
+                        <!-- BOTÃO: RENDERIZAR FÓRMULAS LATEX NO DOCUMENTO -->
+                        <button type="button" class="planner-toolbar-btn" 
+                                data-action="tb-render-latex" data-target="${safeTargetId}"
+                                onmousedown="event.preventDefault();"
+                                title="Renderizar todas as fórmulas LaTeX no texto agora">
+                            <i class="fas fa-wand-magic-sparkles" style="color: #059669;"></i>
+                            <span>Renderizar LaTeX</span>
+                        </button>
                     </div>
 
                     <div class="planner-toolbar-divider"></div>
@@ -945,6 +963,205 @@ export const EditorToolbar = {
         `).join('');
     },
 
+    /**
+     * Renderização sob demanda de todas as fórmulas LaTeX no editor
+     */
+    renderizarLatex(targetId) {
+        const editor = document.getElementById(targetId);
+        if (!editor) return;
+        if (window.renderKatex) {
+            window.renderKatex(editor);
+            Toast.show("Fórmulas LaTeX renderizadas com sucesso!", "success");
+        } else if (typeof renderMathInElement === 'function') {
+            try {
+                renderMathInElement(editor, {
+                    delimiters: [
+                        { left: '\\[', right: '\\]', display: true },
+                        { left: '\\(', right: '\\)', display: false }
+                    ],
+                    throwOnError: false
+                });
+                Toast.show("Fórmulas LaTeX renderizadas!", "success");
+            } catch (err) {
+                console.warn("Erro ao renderizar LaTeX:", err);
+            }
+        }
+    },
+
+    /**
+     * Modal completo de inserção de equação LaTeX com Live Preview KaTeX
+     */
+    abrirModalInserirLatex(targetId) {
+        const editor = document.getElementById(targetId);
+        if (!editor) return;
+        this.salvarSelecao();
+
+        const modalHtml = `
+            <div id="modal-inserir-latex-wrap" style="padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; max-width: 580px; width: 100%;">
+                <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.5rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-square-root-variable" style="color: #4f46e5; font-size: 1.25rem;"></i>
+                        <h3 style="font-size: 1.1rem; font-weight: 800; color: #1e293b; margin: 0;">Inserir Equação / Fórmula LaTeX</h3>
+                    </div>
+                </div>
+
+                <!-- TIPO DE EXIBIÇÃO: INLINE VS DESTAQUE -->
+                <div style="display: flex; gap: 1rem; align-items: center; background: #f8fafc; padding: 0.5rem 0.75rem; border-radius: 0.5rem; border: 1px solid #e2e8f0;">
+                    <span style="font-size: 0.8rem; font-weight: 800; color: #475569;">Modo da Fórmula:</span>
+                    <label style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
+                        <input type="radio" name="latex-modo" id="latex-modo-inline" value="inline" checked>
+                        <span>No Texto (Inline) <code>\\( ... \\)</code></span>
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.35rem; font-size: 0.85rem; font-weight: 600; cursor: pointer;">
+                        <input type="radio" name="latex-modo" id="latex-modo-display" value="display">
+                        <span>Centralizada (Bloco) <code>\\[ ... \\]</code></span>
+                    </label>
+                </div>
+
+                <!-- ATALHOS RÁPIDOS DE ESTRUTURAS -->
+                <div>
+                    <span style="font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">Atalhos de Estrutura:</span>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.25rem;">
+                        <button type="button" class="btn-secondary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;" data-action="quick-latex" data-snippet="\\frac{a}{b}">Fração</button>
+                        <button type="button" class="btn-secondary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;" data-action="quick-latex" data-snippet="\\sqrt{x}">Raiz Quadrada</button>
+                        <button type="button" class="btn-secondary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;" data-action="quick-latex" data-snippet="\\sqrt[n]{x}">Raiz n-ésima</button>
+                        <button type="button" class="btn-secondary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;" data-action="quick-latex" data-snippet="x^{n}">Expoente</button>
+                        <button type="button" class="btn-secondary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;" data-action="quick-latex" data-snippet="x_{i}">Índice</button>
+                        <button type="button" class="btn-secondary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;" data-action="quick-latex" data-snippet="\\int_{a}^{b} f(x) \\, dx">Integral</button>
+                        <button type="button" class="btn-secondary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;" data-action="quick-latex" data-snippet="\\sum_{i=1}^{n} x_i">Somatório</button>
+                        <button type="button" class="btn-secondary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;" data-action="quick-latex" data-snippet="\\lim_{x \\to 0} \\frac{f(x)}{x}">Limite</button>
+                        <button type="button" class="btn-secondary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;" data-action="quick-latex" data-snippet="\\begin{pmatrix} a & b \\\\ c & d \\end{pmatrix}">Matriz</button>
+                    </div>
+                </div>
+
+                <!-- CÓDIGO DA FÓRMULA -->
+                <div>
+                    <label class="form-label" style="font-size: 0.8rem; font-weight: 800;">Código LaTeX:</label>
+                    <textarea id="latex-input-code" class="form-input custom-scrollbar" rows="3" placeholder="Ex: \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}" style="font-family: monospace; font-size: 0.95rem; width: 100%;"></textarea>
+                </div>
+
+                <!-- PREVIEW AO VIVO -->
+                <div>
+                    <span style="font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">Pré-visualização em Tempo Real:</span>
+                    <div id="latex-live-preview" style="min-height: 55px; background: #ffffff; border: 2px dashed #c7d2fe; border-radius: 0.5rem; padding: 0.75rem; display: flex; align-items: center; justify-content: center; font-size: 1.15rem; color: #1e293b; overflow-x: auto;">
+                        <span style="color: #94a3b8; font-size: 0.85rem;">(Digite ou clique em um atalho para visualizar)</span>
+                    </div>
+                </div>
+
+                <!-- AÇÕES -->
+                <div style="display: flex; justify-content: flex-end; gap: 0.5rem; border-top: 1px solid #e2e8f0; padding-top: 0.75rem;">
+                    <button type="button" data-action="fechar-modal-latex" class="btn-secondary">Cancelar</button>
+                    <button type="button" data-action="confirmar-inserir-latex" data-target="${targetId}" class="btn-primary" style="background: #4f46e5; border-color: #4f46e5;">
+                        <i class="fas fa-check mr-1"></i> Inserir no Documento
+                    </button>
+                </div>
+            </div>
+        `;
+
+        if (window.controller && typeof window.controller.openModal === 'function') {
+            window.controller.openModal('Inserir Equação LaTeX', modalHtml, 'medium');
+        }
+
+        const wrap = document.getElementById('modal-inserir-latex-wrap');
+        const txtArea = document.getElementById('latex-input-code');
+        const previewEl = document.getElementById('latex-live-preview');
+
+        const atualizarPreview = () => {
+            if (!txtArea || !previewEl) return;
+            const code = txtArea.value.trim();
+            if (!code) {
+                previewEl.innerHTML = '<span style="color: #94a3b8; font-size: 0.85rem;">(Digite ou clique em um atalho para visualizar)</span>';
+                return;
+            }
+            const isDisplay = document.getElementById('latex-modo-display')?.checked;
+            try {
+                if (typeof katex !== 'undefined' && typeof katex.renderToString === 'function') {
+                    previewEl.innerHTML = katex.renderToString(code, { displayMode: isDisplay, throwOnError: false });
+                } else {
+                    previewEl.textContent = isDisplay ? `\\[${code}\\]` : `\\(${code}\\)`;
+                }
+            } catch (err) {
+                previewEl.innerHTML = `<span style="color: #ef4444; font-size: 0.8rem;">Erro de Sintaxe LaTeX</span>`;
+            }
+        };
+
+        if (txtArea) {
+            txtArea.addEventListener('input', atualizarPreview);
+            setTimeout(() => txtArea.focus(), 50);
+        }
+
+        const radios = wrap?.querySelectorAll('input[name="latex-modo"]');
+        radios?.forEach(r => r.addEventListener('change', atualizarPreview));
+
+        if (wrap) {
+            EventDelegator.bind(wrap, {
+                'fechar-modal-latex': () => window.controller?.closeModal(),
+                'quick-latex': (e, target) => {
+                    const snippet = target.getAttribute('data-snippet');
+                    if (txtArea && snippet) {
+                        const start = txtArea.selectionStart || 0;
+                        const end = txtArea.selectionEnd || 0;
+                        txtArea.setRangeText(snippet, start, end, 'end');
+                        txtArea.focus();
+                        atualizarPreview();
+                    }
+                },
+                'confirmar-inserir-latex': (e, target) => {
+                    const tid = target.getAttribute('data-target');
+                    const code = txtArea?.value.trim();
+                    if (!code) {
+                        return Toast.show("Digite a fórmula antes de inserir.", "warning");
+                    }
+                    const isDisplay = document.getElementById('latex-modo-display')?.checked;
+                    const delimitado = isDisplay ? ` \\[ ${code} \\] ` : ` \\(${code}\\) `;
+                    window.controller?.closeModal();
+                    this.inserirSnippet(tid, delimitado);
+                    setTimeout(() => this.renderizarLatex(tid), 50);
+                }
+            }, 'click');
+        }
+    },
+
+    /**
+     * Modal dinâmico para seleção da quantidade de linhas discursivas contínuas
+     */
+    abrirModalInserirLinhas(targetId) {
+        const modalHtml = `
+            <div id="modal-linhas-wrap" style="padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; max-width: 380px;">
+                <h3 style="font-size: 1.1rem; font-weight: 800; color: #1e293b; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-align-justify" style="color: #4f46e5;"></i> Linhas para Resposta
+                </h3>
+                <div>
+                    <label class="form-label" style="font-size: 0.8rem; font-weight: 700;">Quantidade de Linhas Contínuas:</label>
+                    <input type="number" id="input-qtd-linhas-resp" class="form-input" value="4" min="1" max="20" style="font-weight: 700; font-size: 1.1rem; text-align: center;">
+                </div>
+                <div style="display: flex; justify-content: flex-end; gap: 0.5rem; border-top: 1px solid #e2e8f0; padding-top: 0.75rem;">
+                    <button type="button" data-action="fechar-modal-linhas" class="btn-secondary">Cancelar</button>
+                    <button type="button" data-action="confirmar-linhas-resp" data-target="${targetId}" class="btn-primary">
+                        Inserir Linhas
+                    </button>
+                </div>
+            </div>
+        `;
+        if (window.controller && typeof window.controller.openModal === 'function') {
+            window.controller.openModal('Linhas para Resposta', modalHtml, 'small');
+        }
+        const wrap = document.getElementById('modal-linhas-wrap');
+        if (wrap) {
+            EventDelegator.bind(wrap, {
+                'fechar-modal-linhas': () => window.controller?.closeModal(),
+                'confirmar-linhas-resp': (e, target) => {
+                    const tid = target.getAttribute('data-target');
+                    const qtd = parseInt(document.getElementById('input-qtd-linhas-resp')?.value || '4', 10);
+                    window.controller?.closeModal();
+                    if (window.conteudoGeradoView) {
+                        window.conteudoGeradoView.inserirLinhasResposta(tid, qtd);
+                    }
+                }
+            }, 'click');
+        }
+    },
+
     _renderTableGridCells(targetId) {
         let html = '';
         for (let r = 1; r <= 8; r++) {
@@ -1000,7 +1217,11 @@ if (typeof document !== 'undefined') {
         'tb-bloco-pedagogico': (e, target) => {
             const tid = target.getAttribute('data-target');
             const tipo = target.getAttribute('data-tipo');
-            if (tid && tipo) EditorToolbar.inserirBlocoPedagogico(tid, tipo);
+            if (tipo === 'linhas') {
+                EditorToolbar.abrirModalInserirLinhas(tid);
+            } else if (tid && tipo) {
+                EditorToolbar.inserirBlocoPedagogico(tid, tipo);
+            }
         },
         'tb-inserir-simbolo': (e, target) => {
             const tid = target.getAttribute('data-target');
@@ -1009,6 +1230,14 @@ if (typeof document !== 'undefined') {
         'tb-inserir-equacao': (e, target) => {
             const tid = target.getAttribute('data-target');
             if (tid) EditorToolbar.inserirEquacaoDoCard(target, tid);
+        },
+        'tb-inserir-latex': (e, target) => {
+            const tid = target.getAttribute('data-target');
+            if (tid) EditorToolbar.abrirModalInserirLatex(tid);
+        },
+        'tb-render-latex': (e, target) => {
+            const tid = target.getAttribute('data-target');
+            if (tid) EditorToolbar.renderizarLatex(tid);
         },
         'tb-selecionar-table-grid': (e, target) => {
             const tid = target.getAttribute('data-target');
@@ -1022,6 +1251,29 @@ if (typeof document !== 'undefined') {
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.planner-popover-wrapper')) {
             document.querySelectorAll('.planner-popover-content').forEach(p => p.classList.add('hidden'));
+        }
+    });
+
+    // Escape de cursor em blocos especiais e tabelas (garante linha livre abaixo)
+    document.addEventListener('keydown', (e) => {
+        const activeEl = document.activeElement;
+        if (!activeEl || !activeEl.isContentEditable) return;
+
+        if (e.key === 'Enter' || e.key === 'ArrowDown') {
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0) return;
+            const range = sel.getRangeAt(0);
+            let node = range.endContainer;
+            if (node.nodeType === 3) node = node.parentElement;
+
+            const blocoEspecial = node.closest('.bloco-rubrica-avaliacao, .bloco-roteiro-pbl, .bloco-jogo-jeopardy, .bloco-choice-board, .gabarito-bloco, .comentario-professor, .linhas-resposta, table');
+            if (blocoEspecial && blocoEspecial.parentElement === activeEl) {
+                if (!blocoEspecial.nextElementSibling || blocoEspecial.nextElementSibling.tagName !== 'P') {
+                    const p = document.createElement('p');
+                    p.innerHTML = '<br>';
+                    blocoEspecial.after(p);
+                }
+            }
         }
     });
 }

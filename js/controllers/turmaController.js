@@ -3,6 +3,7 @@ import { controller } from '../controller.js';
 import { turmasView } from '../views/turmas.js';
 import { Toast } from '../components/toast.js';
 import { EventDelegator } from '../utils/eventDelegator.js';
+import { gradeCalculatorService } from '../services/gradeCalculatorService.js';
 
 export const turmaController = {
     wizard: {
@@ -108,7 +109,7 @@ export const turmaController = {
 
             return {
                 idPrefixo: idOuChamada,
-                nome: nome,
+                nome: nome.toUpperCase(),
                 matricula: matricula,
                 dataNascimento: dataNascimento
             };
@@ -120,7 +121,7 @@ export const turmaController = {
 
             return {
                 idPrefixo: '',
-                nome: nome,
+                nome: nome.toUpperCase(),
                 matricula: '',
                 dataNascimento: ''
             };
@@ -136,7 +137,7 @@ export const turmaController = {
         linhas.forEach(linha => {
             const parsed = this.parseLinhaAlunoLote(linha);
             if (parsed) {
-                alunosLimpos.push(parsed.nome);
+                alunosLimpos.push(parsed.nome.toUpperCase());
             }
         });
         this.wizard.data.alunosRascunho = alunosLimpos;
@@ -165,7 +166,7 @@ export const turmaController = {
             const numChamada = String(index + 1).padStart(2, '0');
             novaTurma.alunos.push({
                 id: 'aluno_' + Date.now().toString(36) + '_' + index,
-                nome: nomeAluno,
+                nome: (nomeAluno || '').trim().toUpperCase(),
                 chamada: numChamada,
                 matricula: '',
                 dataNascimento: '',
@@ -943,10 +944,10 @@ export const turmaController = {
         }
     },
     saveAluno(turmaId, alunoId = null) {
-        const nome = document.getElementById('al-nome').value.trim();
+        const nome = document.getElementById('al-nome').value.trim().toUpperCase();
         const chamada = document.getElementById('al-chamada').value.trim();
         const matricula = document.getElementById('al-matricula').value.trim();
-        const status = document.getElementById('al-status').value;
+        const status = document.getElementById('al-status').value || 'cursando';
         if (!nome) return Toast.show("O nome do aluno é obrigatório.", "error");
         const turma = model.state.turmas.find(t => String(t.id) === String(turmaId));
         if (alunoId && alunoId !== 'null' && alunoId !== '') {
@@ -1076,14 +1077,111 @@ export const turmaController = {
             Toast.show("Avaliação removida.", "info");
         }
     },
+    openBatchFillNota(turmaId, avId, avNome, maxNota) {
+        const turma = model.state.turmas.find(t => String(t.id) === String(turmaId));
+        if (!turma) return;
+        const totalAlunos = (turma.alunos || []).filter(a => a.status === 'cursando').length;
+        const semNota = (turma.alunos || []).filter(a => a.status === 'cursando' && (a.notas?.[avId] === undefined || a.notas?.[avId] === '')).length;
+
+        const maxNum = Number(maxNota) || 10;
+        const html = `
+            <div id="modal-batch-fill-wrap" style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4);">
+                <div class="alert alert--info" style="font-size: 0.8125rem;">
+                    <i class="fas fa-info-circle" style="margin-right: 0.35rem;"></i>
+                    Atribuindo nota em lote para a avaliação <strong>${window.escapeHTML(avNome || 'Avaliação')}</strong> (Valor Máximo: ${maxNum}).
+                </div>
+
+                <div>
+                    <label class="form-label">Nota a Atribuir (0 a ${maxNum}) *</label>
+                    <input type="text" id="batch-fill-nota" class="form-input" inputmode="decimal" placeholder="Ex: ${maxNum}.0 ou 8.5" autofocus>
+                </div>
+
+                <div style="background-color: var(--color-slate-50); border: 1px solid var(--color-slate-200); border-radius: var(--radius-lg); padding: var(--spacing-3);">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.8125rem; font-weight: 700; color: var(--color-slate-700); cursor: pointer;">
+                        <input type="checkbox" id="batch-fill-apenas-vazios" checked style="accent-color: var(--color-primary);">
+                        <span>Preencher apenas estudantes <strong>sem nota</strong> (${semNota} de ${totalAlunos})</span>
+                    </label>
+                    <p style="font-size: 0.6875rem; color: var(--color-slate-400); margin: 0.25rem 0 0 1.5rem;">
+                        Desmarque para sobrescrever também as notas já digitadas anteriormente.
+                    </p>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: var(--spacing-3); padding-top: var(--spacing-2);">
+                    <button type="button" data-action="fechar-modal" class="btn-secondary">Cancelar</button>
+                    <button type="button" data-action="confirmar-batch-fill" class="btn-primary">
+                        <i class="fas fa-check-circle" style="margin-right: 0.35rem;"></i> Aplicar Notas
+                    </button>
+                </div>
+            </div>
+        `;
+
+        controller.openModal('Preenchimento em Lote de Notas', html);
+
+        const wrap = document.getElementById('modal-batch-fill-wrap');
+        if (wrap) {
+            EventDelegator.bind(wrap, {
+                'fechar-modal': () => controller.closeModal(),
+                'confirmar-batch-fill': () => {
+                    const inputNota = document.getElementById('batch-fill-nota');
+                    const apenasVazios = document.getElementById('batch-fill-apenas-vazios')?.checked ?? true;
+                    const parsed = gradeCalculatorService.parseNota(inputNota?.value);
+
+                    if (parsed === null) {
+                        Toast.show("Informe uma nota válida (ex: 10 ou 8.5).", "warning");
+                        inputNota?.focus();
+                        return;
+                    }
+
+                    if (parsed < 0 || parsed > maxNum) {
+                        Toast.show(`A nota deve estar entre 0 e ${maxNum}.`, "warning");
+                        inputNota?.focus();
+                        return;
+                    }
+
+                    this.applyBatchNota(turmaId, avId, parsed, apenasVazios);
+                    controller.closeModal();
+                }
+            }, 'click');
+        }
+    },
+
+    applyBatchNota(turmaId, avId, notaNum, apenasVazios = true) {
+        const turma = model.state.turmas.find(t => String(t.id) === String(turmaId));
+        if (!turma) return;
+
+        let totalAlterados = 0;
+        (turma.alunos || []).forEach(aluno => {
+            if (aluno.status !== 'cursando') return;
+            if (!aluno.notas) aluno.notas = {};
+
+            const notaAtual = aluno.notas[avId];
+            const estaVazio = notaAtual === undefined || notaAtual === null || notaAtual === '';
+
+            if (!apenasVazios || estaVazio) {
+                aluno.notas[avId] = Number(notaNum);
+                totalAlterados++;
+            }
+        });
+
+        model.saveLocal();
+        if (model.currentUser && window.firebaseService?.saveTurma) {
+            window.firebaseService.saveTurma(model.currentUser.uid, turma);
+        }
+
+        if (turmasView) {
+            turmasView.renderDetalhesTurma('view-container', turmaId);
+        }
+        Toast.show(`Nota ${notaNum.toFixed(1).replace('.', ',')} atribuída com sucesso a ${totalAlterados} estudante(s)!`, "success");
+    },
     updateNota(turmaId, alunoId, avId, valor) {
-        const notaLimpa = valor === "" ? "" : Number(valor);
+        const parsed = gradeCalculatorService.parseNota(valor);
+        const notaLimpa = parsed !== null ? parsed : (valor === "" || valor === null || valor === undefined ? "" : "");
 
         model.updateNota(turmaId, alunoId, avId, notaLimpa);
 
-        const turma = model.state.turmas.find(t => t.id === turmaId);
+        const turma = model.state.turmas.find(t => String(t.id) === String(turmaId));
         if (!turma) return;
-        const aluno = turma.alunos.find(a => a.id === alunoId);
+        const aluno = turma.alunos.find(a => String(a.id) === String(alunoId));
         if (!aluno) return;
 
         const avaliacoesFiltradas = (turma.avaliacoes || []).filter(av => Number(av.periodo || 1) === (turmasView?.periodoAtivo || 1));

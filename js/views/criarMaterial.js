@@ -1751,17 +1751,26 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
     },
 
     carregarModeloEstruturadoManual() {
+        const wysiwyg = document.getElementById('manual-conteudo-wysiwyg');
         const areaConteudo = document.getElementById('manual-conteudo-html');
-        if (!areaConteudo) return;
+        if (!wysiwyg && !areaConteudo) return;
         const tipo = this.ferramentaAtiva || 'geral';
         const modelo = this.modelosEstruturadosManuais[tipo] || this.modelosEstruturadosManuais['geral'];
 
-        if (areaConteudo.value.trim() !== '') {
+        const conteudoAtual = wysiwyg ? wysiwyg.innerHTML.trim() : (areaConteudo ? areaConteudo.value.trim() : '');
+        if (conteudoAtual !== '') {
             if (!confirm('Deseja substituir o conteúdo atual pelo modelo estruturado recomendado?')) {
                 return;
             }
         }
-        areaConteudo.value = modelo;
+
+        const modeloHtml = this.converterMarkdownParaHtml(modelo) + '<p><br></p>';
+        if (wysiwyg) {
+            wysiwyg.innerHTML = modeloHtml;
+        }
+        if (areaConteudo) {
+            areaConteudo.value = modelo;
+        }
         if (Toast) Toast.show('Modelo estruturado carregado com sucesso!', 'info');
     },
 
@@ -1770,10 +1779,13 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
         const disciplina = document.getElementById('manual-disciplina')?.value || 'Geral';
         const serie = document.getElementById('manual-serie')?.value || 'Geral';
         const bncc = document.getElementById('manual-bncc')?.value.trim() || '';
-        const rawConteudo = document.getElementById('manual-conteudo-html')?.value.trim() || 'Nenhum conteúdo digitado ainda.';
+
+        const wysiwyg = document.getElementById('manual-conteudo-wysiwyg');
+        const textarea = document.getElementById('manual-conteudo-html');
+        const rawConteudo = (wysiwyg && wysiwyg.innerHTML.trim()) ? wysiwyg.innerHTML.trim() : (textarea?.value.trim() || '<p>Nenhum conteúdo digitado ainda.</p>');
 
         let conteudoHtml = rawConteudo;
-        if (!rawConteudo.includes('<h2') && !rawConteudo.includes('<h3') && !rawConteudo.includes('<div')) {
+        if (!rawConteudo.includes('<h2') && !rawConteudo.includes('<h3') && !rawConteudo.includes('<div') && !rawConteudo.includes('<p>')) {
             conteudoHtml = this.converterMarkdownParaHtml(rawConteudo);
         }
 
@@ -1828,12 +1840,18 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
             const selectDisc = document.getElementById('manual-disciplina');
             const selectSerie = document.getElementById('manual-serie');
             const inputBncc = document.getElementById('manual-bncc');
+            const wysiwyg = document.getElementById('manual-conteudo-wysiwyg');
             const areaConteudo = document.getElementById('manual-conteudo-html');
 
             if (inputTitulo) inputTitulo.value = mat.titulo || mat.tema || '';
             if (selectDisc && mat.disciplina) selectDisc.value = mat.disciplina;
             if (selectSerie && mat.serie) selectSerie.value = mat.serie;
             if (inputBncc && mat.bncc) inputBncc.value = mat.bncc;
+            
+            const conteudo = mat.conteudo_html || mat.raw_markdown || '';
+            if (wysiwyg) {
+                wysiwyg.innerHTML = conteudo.includes('<') ? conteudo : this.converterMarkdownParaHtml(conteudo);
+            }
             if (areaConteudo) areaConteudo.value = mat.raw_markdown || mat.conteudo_html || '';
         }, 50);
     },

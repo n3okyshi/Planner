@@ -31,10 +31,11 @@ export const turmaMethods = {
     },
     addAluno(turmaId, nomeAluno) {
         const turma = this.state.turmas.find(t => String(t.id) === String(turmaId));
-        if (turma && nomeAluno.trim()) {
+        if (turma && nomeAluno && nomeAluno.trim()) {
             const novoAluno = {
                 id: generateId('aluno'),
-                nome: nomeAluno.trim(),
+                nome: nomeAluno.trim().toUpperCase(),
+                status: 'cursando',
                 notas: {},
                 frequencia: {},
                 posicao: null
@@ -94,11 +95,12 @@ export const turmaMethods = {
             const aluno = turma.alunos.find(a => String(a.id) === String(alunoId));
             if (aluno) {
                 if (!aluno.notas) aluno.notas = {};
-                if (valor === "" || valor === null) {
+                if (valor === "" || valor === null || valor === undefined) {
                     aluno.notas[avId] = "";
                 } else {
-                    const valorFormatado = String(valor).replace(',', '.');
-                    aluno.notas[avId] = Number(valorFormatado);
+                    const str = String(valor).replace(',', '.').trim();
+                    const num = parseFloat(str);
+                    aluno.notas[avId] = isNaN(num) ? "" : num;
                 }
                 this.saveLocal();
                 if (this.currentUser && firebaseService?.saveAluno) {

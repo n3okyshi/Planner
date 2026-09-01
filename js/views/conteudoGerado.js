@@ -687,9 +687,14 @@ export const conteudoGeradoView = {
         textarea.focus();
     },
 
-    inserirLinhasResposta(targetId = 'editor-mat-wysiwyg') {
+    inserirLinhasResposta(targetId = 'editor-mat-wysiwyg', qtd = 4) {
         const target = (typeof targetId === 'string' ? document.getElementById(targetId) : targetId) || document.getElementById('editor-mat-wysiwyg') || document.getElementById('manual-conteudo-wysiwyg') || document.getElementById('editor-mat-conteudo');
-        const blocoHTML = `<div class="linhas-resposta" style="margin: 1.25rem 0; font-family: monospace; color: #94a3b8;"><p style="border-bottom: 1px dashed #cbd5e1; height: 1.8rem; margin: 0;"></p><p style="border-bottom: 1px dashed #cbd5e1; height: 1.8rem; margin: 0;"></p><p style="border-bottom: 1px dashed #cbd5e1; height: 1.8rem; margin: 0;"></p></div><p>&nbsp;</p>`;
+        const numLinhas = Math.max(1, Math.min(20, parseInt(qtd, 10) || 4));
+        let linhasHtml = '';
+        for (let i = 0; i < numLinhas; i++) {
+            linhasHtml += `<div style="border-bottom: 1px dashed #94a3b8; height: 1.85rem; width: 100%; box-sizing: border-box;"></div>`;
+        }
+        const blocoHTML = `<div class="linhas-resposta" style="margin: 1rem 0; width: 100%; display: flex; flex-direction: column; gap: 0;">${linhasHtml}</div><p><br></p>`;
 
         if (!target) return;
         target.focus();

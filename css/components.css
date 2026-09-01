@@ -5324,3 +5324,26 @@ body.dark-mode .dropdown-item:hover {
     transform: translateY(0) scale(1);
   }
 }
+
+/* ==========================================================================
+   INPUTS DE NOTAS E AVALIAÇÕES (LANÇAMENTO EM LOTE)
+   ========================================================================== */
+.input-notas {
+  -moz-appearance: textfield;
+  appearance: textfield;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.input-notas::-webkit-outer-spin-button,
+.input-notas::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.input-notas:focus {
+  border-color: var(--color-primary) !important;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.18) !important;
+  background-color: #ffffff !important;
+  outline: none;
+}

@@ -227,7 +227,7 @@ export const salaView = {
         const fragment = document.createDocumentFragment();
 
         for (let i = 1; i <= totalAssentos; i++) {
-            const aluno = (turma.alunos || []).find(a => a.posicao === i);
+            const aluno = (turma.alunos || []).find(a => a.posicao === i && (a.status === 'cursando' || (!a.status && a.status !== 'transferido' && a.status !== 'realocado' && a.status !== 'evadido')));
             const isSelecionado = this.alunoSelecionadoParaMover === i;
 
             let borderStyle = 'border: 2px dashed var(--color-slate-300); background-color: var(--color-slate-50);';
@@ -315,7 +315,7 @@ export const salaView = {
 
     obterNomeExibicaoMapa(aluno, todosAlunos = []) {
         if (!aluno || !aluno.nome) return '';
-        const partes = aluno.nome.trim().split(/\s+/);
+        const partes = aluno.nome.trim().toUpperCase().split(/\s+/);
         if (partes.length <= 1) return partes[0];
 
         const primeiroNome = partes[0].toLowerCase();
@@ -325,9 +325,9 @@ export const salaView = {
         });
 
         if (homonimos.length > 1) {
-            return `${partes[0]} ${partes[1] || ''}`.trim();
+            return `${partes[0]} ${partes[1] || ''}`.trim().toUpperCase();
         }
-        return partes[0];
+        return partes[0].toUpperCase();
     },
 
     clicarAssento(posicao) {
@@ -338,14 +338,15 @@ export const salaView = {
         const turma = model.state.turmas.find(t => String(t.id) === String(this.currentTurmaId));
         if (!turma) return;
 
-        const alunoNaPosicao = (turma.alunos || []).find(a => a.posicao === posicao);
-        const alunosNaoSentados = (turma.alunos || []).filter(a => !a.posicao || a.posicao <= 0);
-        const todosAlunos = [...(turma.alunos || [])].sort((a, b) => a.nome.localeCompare(b.nome));
+        const alunoNaPosicao = (turma.alunos || []).find(a => a.posicao === posicao && (a.status === 'cursando' || (!a.status && a.status !== 'transferido' && a.status !== 'realocado' && a.status !== 'evadido')));
+        const alunosAtivos = (turma.alunos || []).filter(a => a.status === 'cursando' || (!a.status && a.status !== 'transferido' && a.status !== 'realocado' && a.status !== 'evadido'));
+        const alunosNaoSentados = alunosAtivos.filter(a => !a.posicao || a.posicao <= 0);
+        const todosAlunos = [...alunosAtivos].sort((a, b) => (a.nome || '').localeCompare((b.nome || '')));
 
         const htmlAlunosSelect = todosAlunos.map(a => {
             const isAtual = alunoNaPosicao && String(a.id) === String(alunoNaPosicao.id);
             const statusPos = a.posicao ? (a.posicao === posicao ? `(Aluno Atual)` : `(Na Carteira #${a.posicao})`) : `(Sem Carteira / Novo)`;
-            return `<option value="${a.id}" ${isAtual ? 'selected' : ''}>${window.escapeHTML(a.nome)} ${statusPos}</option>`;
+            return `<option value="${a.id}" ${isAtual ? 'selected' : ''}>${window.escapeHTML((a.nome || '').toUpperCase())} ${statusPos}</option>`;
         }).join('');
 
         const htmlConteudo = `
@@ -545,13 +546,24 @@ export const salaView = {
             return Toast.show("Nenhum aluno nesta turma para embaralhar.", "warning");
         }
 
+        const alunosAtivos = (turma.alunos || []).filter(a => a.status === 'cursando' || (!a.status && a.status !== 'transferido' && a.status !== 'realocado' && a.status !== 'evadido'));
+        if (alunosAtivos.length === 0) {
+            return Toast.show("Nenhum aluno ativo nesta turma para sortear assentos.", "warning");
+        }
+
         const linhas = turma.mapaConfig?.linhas || 6;
         const colunas = turma.mapaConfig?.colunas || 6;
         const total = linhas * colunas;
 
         const posicoes = secureShuffle(Array.from({ length: total }, (_, i) => i + 1));
-        turma.alunos.forEach((aluno, index) => {
-            aluno.posicao = posicoes[index] || (index + 1);
+        
+        turma.alunos.forEach(aluno => {
+            const indexAtivo = alunosAtivos.indexOf(aluno);
+            if (indexAtivo >= 0) {
+                aluno.posicao = posicoes[indexAtivo] || (indexAtivo + 1);
+            } else {
+                aluno.posicao = null;
+            }
         });
 
         if (model.saveTurma) {

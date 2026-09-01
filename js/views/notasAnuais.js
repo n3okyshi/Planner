@@ -161,9 +161,9 @@ export const notasAnuaisView = {
         const numPeriodos = tipo === 'bimestre' ? 4 : tipo === 'trimestre' ? 3 : 2;
 
         const stats = gradeCalculatorService.calcularEstatisticasTurma(turma);
-        const mediaGeral = stats.mediaGeral;
-        const taxaAprovacao = stats.taxaAprovacao;
-        const idebEstimado = stats.idebEstimado;
+        const mediaGeral = stats.mediaGeral ?? stats.mediaTurma ?? 0;
+        const taxaAprovacao = stats.taxaAprovacao ?? 0;
+        const idebEstimado = stats.idebEstimado ?? 0;
 
         const idebBannerHtml = `
             <div class="card p-4" style="margin-bottom: var(--spacing-4); background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%); border: 1px solid #c7d2fe; border-radius: var(--radius-xl);">
@@ -792,11 +792,11 @@ Escreva em texto corrido e formal, pronto para inserção no diário oficial ou 
         const anoLetivo = config.anoLetivo || new Date().getFullYear();
         const stats = gradeCalculatorService.calcularEstatisticasTurma(turma);
 
-        const total = stats.totalAlunos;
-        const aprovados = stats.aprovados;
-        const proficiencia = stats.mediaGeral;
-        const taxaAprovacao = stats.taxaAprovacao;
-        const idebEstimado = stats.idebEstimado;
+        const total = stats.totalAlunos || 0;
+        const aprovados = stats.aprovados || 0;
+        const proficiencia = stats.mediaGeral ?? stats.mediaTurma ?? 0;
+        const taxaAprovacao = stats.taxaAprovacao ?? 0;
+        const idebEstimado = stats.idebEstimado ?? 0;
 
         const printWindow = window.open('', '_blank');
         if (!printWindow) return Toast.show("Permita pop-ups para visualizar o relatório.", "warning");

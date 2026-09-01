@@ -1,5 +1,6 @@
 
-export { EventDelegator } from './utils/eventDelegator.js';
+import { EventDelegator } from './utils/eventDelegator.js';
+export { EventDelegator };
 
 export function debounce(func, wait) {
     let timeout;

@@ -299,9 +299,9 @@ export const frequenciaView = {
             return Toast.show('Não há alunos nesta turma para realizar a chamada.', 'warning');
         }
 
-        const alunosAtivos = turma.alunos.filter(a => a.status !== 'transferido');
+        const alunosAtivos = (turma.alunos || []).filter(a => a.status === 'cursando' || (!a.status && a.status !== 'transferido' && a.status !== 'realocado' && a.status !== 'evadido'));
         if (alunosAtivos.length === 0) {
-            return Toast.show('Todos os estudantes desta turma estão marcados como transferidos.', 'warning');
+            return Toast.show('Não há estudantes cursando nesta turma para realizar a chamada.', 'warning');
         }
 
         this.alunosChamada = window.ordenarEstudantes
@@ -343,10 +343,11 @@ export const frequenciaView = {
         }
 
         const aluno = this.alunosChamada[this.alunoIndex];
+        const nomeUpper = (aluno.nome || '').toUpperCase();
         const pct = Math.round((this.alunoIndex / this.alunosChamada.length) * 100);
         if (progressoEl) progressoEl.textContent = `${pct}% concluído (${this.alunoIndex + 1} de ${this.alunosChamada.length})`;
 
-        const inicial = (aluno.nome || '?').charAt(0).toUpperCase();
+        const inicial = (nomeUpper || '?').charAt(0).toUpperCase();
         const palettes = [
             { bg: '#e0e7ff', color: '#4338ca' },
             { bg: '#dcfce7', color: '#15803d' },
@@ -383,7 +384,7 @@ export const frequenciaView = {
 
                     <h3 style="font-size: 1.375rem; font-weight: 900; color: #1e293b;
                                line-height: 1.2; max-width: 100%; word-break: break-word;">
-                        ${window.escapeHTML(aluno.nome)}
+                        ${window.escapeHTML(nomeUpper)}
                     </h3>
 
                     ${numChamadaText ? `
@@ -546,16 +547,17 @@ export const frequenciaView = {
             `;
         }
 
+        const alunosAtivos = (turma.alunos || []).filter(a => a.status === 'cursando' || (!a.status && a.status !== 'transferido' && a.status !== 'realocado' && a.status !== 'evadido'));
+
         const alunosOrdenados = window.ordenarEstudantes
-            ? window.ordenarEstudantes(turma.alunos.filter(a => a.status !== 'transferido'), 'chamada_asc')
-            : [...turma.alunos]
-                .filter(a => a.status !== 'transferido')
-                .sort((a, b) => (a.nome || '').localeCompare((b.nome || ''), 'pt-BR', { sensitivity: 'base' }));
+            ? window.ordenarEstudantes(alunosAtivos, 'chamada_asc')
+            : [...alunosAtivos].sort((a, b) => (a.nome || '').localeCompare((b.nome || ''), 'pt-BR', { sensitivity: 'base' }));
 
         let alunosEmRiscoLDB = 0;
         const larguraAluno = this.obterLarguraColunaAluno();
 
         const linhasAlunos = alunosOrdenados.map(aluno => {
+            const nomeUpper = (aluno.nome || '').toUpperCase();
             let colunas = '';
             for (let d = 1; d <= diasNoMes; d++) {
                 const mesFmt = (mes + 1).toString().padStart(2, '0');
@@ -576,7 +578,7 @@ export const frequenciaView = {
                          data-aluno="${aluno.id}"
                          data-iso="${dataIso}"
                          style="min-width: 40px; height: 3rem; border-right: 1px solid var(--color-slate-100); display: flex; align-items: center; justify-content: center; cursor: pointer; ${cellBg}"
-                         title="${window.escapeHTML(aluno.nome)} - ${d}/${mes + 1}">
+                         title="${window.escapeHTML(nomeUpper)} - ${d}/${mes + 1}">
                          ${this.getIconeStatus(status)}
                     </div>
                 `;
@@ -609,9 +611,9 @@ export const frequenciaView = {
                 <div style="display: flex; align-items: center; border-bottom: 1px solid var(--color-slate-100); background-color: var(--color-white);">
                     <div class="col-aluno-sticky" style="padding: var(--spacing-3); border-right: 1px solid var(--color-slate-200); background-color: var(--color-white); z-index: 10; display: flex; align-items: center; gap: var(--spacing-2);">
                         <div style="width: 1.75rem; height: 1.75rem; border-radius: 50%; background-color: var(--color-slate-100); display: flex; align-items: center; justify-content: center; color: var(--color-slate-600); font-size: 0.6875rem; font-weight: 800; border: 1px solid var(--color-slate-200); flex-shrink: 0;">
-                            ${aluno.nome.charAt(0)}
+                            ${nomeUpper.charAt(0)}
                         </div>
-                        <span style="font-size: 0.8125rem; font-weight: 600; color: var(--color-slate-700); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;">${window.escapeHTML(aluno.nome)}</span>
+                        <span style="font-size: 0.8125rem; font-weight: 600; color: var(--color-slate-700); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;">${window.escapeHTML(nomeUpper)}</span>
                         ${badgeRisco}
                     </div>
                     ${colunas}

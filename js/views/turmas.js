@@ -191,6 +191,9 @@ export const turmasView = {
                          <button type="button" data-action="nav-notas-anuais" class="btn-outline" style="height: 2.5rem; color: #4f46e5; background-color: #eef2ff; border-color: #e0e7ff;" onmouseover="this.style.backgroundColor='#e0e7ff'" onmouseout="this.style.backgroundColor='#eef2ff'">
                             <i class="fas fa-award" style="margin-right: 0.5rem;"></i> Notas Anuais
                         </button>
+                        <button type="button" data-action="ver-mapa-turma" data-id="${turmaId}" class="btn-outline" style="height: 2.5rem; color: #0284c7; background-color: #f0f9ff; border-color: #bae6fd;" title="Ver e gerenciar mapa de sala e disposição das carteiras">
+                            <i class="fas fa-chair" style="margin-right: 0.5rem;"></i> Mapa de Sala
+                        </button>
                         <button type="button" data-action="exportar-turma-tsv" data-id="${turmaId}" class="btn-outline" style="height: 2.5rem;" title="Exportar dados e notas da turma em TSV para importar em outros sistemas">
                             <i class="fas fa-file-export" style="margin-right: 0.5rem;"></i> Exportar Notas (TSV)
                         </button>
@@ -305,15 +308,18 @@ export const turmasView = {
                                         Nome do Aluno <i class="fas fa-sort" style="font-size: 0.625rem; opacity: 0.5;"></i>
                                     </th>
                                     ${avaliacoesFiltradas.map(av => `
-                                        <th style="padding: var(--spacing-2); text-align: center; min-width: 100px; position: relative;" class="hover-group">
+                                        <th style="padding: var(--spacing-2); text-align: center; min-width: 110px; position: relative;" class="hover-group">
                                             <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                                                <span style="font-size: 0.625rem; font-weight: 700; color: var(--color-slate-400); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 80px;" title="${window.escapeHTML(av.nome)}">${window.escapeHTML(av.nome)}</span>
+                                                <span style="font-size: 0.625rem; font-weight: 700; color: var(--color-slate-400); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 85px;" title="${window.escapeHTML(av.nome)}">${window.escapeHTML(av.nome)}</span>
                                                 <div style="display: flex; align-items: center; gap: 0.25rem; margin-top: 0.125rem;">
                                                     <span style="font-size: 0.5625rem; color: var(--color-slate-400); background-color: var(--color-slate-100); padding: 0 0.375rem; border-radius: 0.25rem;">${av.periodo || 1}º Per.</span>
                                                     <span style="font-size: 0.5625rem; color: var(--color-slate-300);">Max: ${av.max}</span>
                                                 </div>
+                                                <button type="button" data-action="batch-fill-avaliacao" data-turma="${turmaId}" data-av="${av.id}" data-max="${av.max}" data-nome="${window.escapeHTML(av.nome)}" style="font-size: 0.625rem; font-weight: 700; color: var(--color-primary); background: none; border: none; cursor: pointer; margin-top: 0.25rem; display: inline-flex; align-items: center; gap: 0.25rem; transition: color var(--transition-fast);" title="Preencher nota em lote para estudantes desta avaliação">
+                                                    <i class="fas fa-fill-drip"></i> Lote
+                                                </button>
                                             </div>
-                                            <button type="button" data-action="delete-avaliacao" data-turma="${turmaId}" data-av="${av.id}" style="position: absolute; top: 0.25rem; right: 0.25rem; color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" class="hover-show" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--color-slate-300)'">
+                                            <button type="button" data-action="delete-avaliacao" data-turma="${turmaId}" data-av="${av.id}" style="position: absolute; top: 0.25rem; right: 0.25rem; color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" class="hover-show" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--color-slate-300)'" title="Excluir Avaliação">
                                                 <i class="fas fa-times"></i>
                                             </button>
                                         </th>
@@ -373,9 +379,12 @@ export const turmasView = {
                         const nota = aluno.notas && aluno.notas[av.id] !== undefined ? aluno.notas[av.id] : '';
                         return `
                                                         <td style="padding: var(--spacing-2); text-align: center;">
-                                                            <input type="number" 
+                                                            <input type="text" 
+                                                                    inputmode="decimal"
+                                                                    autocomplete="off"
+                                                                    spellcheck="false"
                                                                     ${status !== 'cursando' ? 'disabled title="Aluno inativo"' : ''}
-                                                                    value="${nota}" 
+                                                                    value="${nota !== '' && nota !== null && nota !== undefined ? String(nota).replace(',', '.') : ''}" 
                                                                     placeholder="-"
                                                                     data-action="update-nota-aluno"
                                                                     data-turma="${turmaId}"
@@ -452,9 +461,23 @@ export const turmasView = {
                 const id = target.getAttribute('data-id');
                 if (id) this.iniciarExclusao(id);
             },
+            'ver-mapa-turma': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) {
+                    if (window.salaView) window.salaView.currentTurmaId = id;
+                    controller.navigate('mapa');
+                }
+            },
             'replicar-avaliacao': (e, target) => {
                 const id = target.getAttribute('data-id');
                 if (id) turmaController.abrirModalReplicarAvaliacao(id);
+            },
+            'batch-fill-avaliacao': (e, target) => {
+                const turmaId = target.getAttribute('data-turma');
+                const avId = target.getAttribute('data-av');
+                const avNome = target.getAttribute('data-nome');
+                const max = target.getAttribute('data-max');
+                if (turmaId && avId) turmaController.openBatchFillNota(turmaId, avId, avNome, max);
             },
             'open-add-avaliacao': (e, target) => {
                 const id = target.getAttribute('data-id');
@@ -523,7 +546,12 @@ export const turmasView = {
                 const turmaId = target.getAttribute('data-turma');
                 const alunoId = target.getAttribute('data-aluno');
                 const avId = target.getAttribute('data-av');
-                if (turmaId && alunoId && avId) controller.updateNota(turmaId, alunoId, avId, target.value);
+                if (turmaId && alunoId && avId) {
+                    controller.updateNota(turmaId, alunoId, avId, target.value);
+                    if (target.value && target.value.includes(',')) {
+                        target.value = target.value.replace(',', '.');
+                    }
+                }
             },
             'select-turma-detalhe-change': (e, target) => {
                 this.renderDetalhesTurma('view-container', target.value);
@@ -534,9 +562,96 @@ export const turmasView = {
             }
         }, 'change');
 
+        const unbindFocusOut = EventDelegator.bind(container, {
+            'update-nota-aluno': (e, target) => {
+                if (target.value && target.value.includes(',')) {
+                    target.value = target.value.replace(',', '.');
+                }
+            }
+        }, 'focusout');
+
+        const unbindWheel = EventDelegator.bind(container, {
+            'update-nota-aluno': (e) => {
+                e.preventDefault();
+            }
+        }, 'wheel', { passive: false });
+
+        const unbindKeydown = EventDelegator.bind(container, {
+            'update-nota-aluno': (e, target) => {
+                const turmaId = target.getAttribute('data-turma');
+                const alunoId = target.getAttribute('data-aluno');
+                const avId = target.getAttribute('data-av');
+
+                // --- TECLA ENTER: Navegação Vertical para a mesma avaliação no próximo aluno ---
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+
+                    // Salva a nota comitada
+                    if (turmaId && alunoId && avId) {
+                        controller.updateNota(turmaId, alunoId, avId, target.value);
+                        if (target.value && target.value.includes(',')) {
+                            target.value = target.value.replace(',', '.');
+                        }
+                    }
+
+                    // Localiza todos os inputs ativos desta mesma coluna de avaliação
+                    const colInputs = Array.from(container.querySelectorAll(`input.input-notas[data-av="${avId}"]:not([disabled])`));
+                    const idx = colInputs.indexOf(target);
+
+                    if (idx !== -1) {
+                        if (e.shiftKey) {
+                            // Shift+Enter: foca no aluno anterior na mesma avaliação
+                            if (idx > 0) {
+                                colInputs[idx - 1].focus();
+                                colInputs[idx - 1].select();
+                            }
+                        } else {
+                            // Enter: foca no próximo aluno na mesma avaliação
+                            if (idx + 1 < colInputs.length) {
+                                colInputs[idx + 1].focus();
+                                colInputs[idx + 1].select();
+                            }
+                        }
+                    }
+                    return;
+                }
+
+                // --- TECLA TAB: Navegação Horizontal sequencial entre avaliações ---
+                if (e.key === 'Tab') {
+                    const allGradeInputs = Array.from(container.querySelectorAll('input.input-notas:not([disabled])'));
+                    const idx = allGradeInputs.indexOf(target);
+
+                    if (idx !== -1) {
+                        if (e.shiftKey) {
+                            if (idx > 0) {
+                                e.preventDefault();
+                                if (target.value && target.value.includes(',')) {
+                                    target.value = target.value.replace(',', '.');
+                                }
+                                allGradeInputs[idx - 1].focus();
+                                allGradeInputs[idx - 1].select();
+                            }
+                        } else {
+                            if (idx + 1 < allGradeInputs.length) {
+                                e.preventDefault();
+                                if (target.value && target.value.includes(',')) {
+                                    target.value = target.value.replace(',', '.');
+                                }
+                                allGradeInputs[idx + 1].focus();
+                                allGradeInputs[idx + 1].select();
+                            }
+                        }
+                    }
+                }
+            }
+        }, 'keydown');
+
         this._cleanupDelegators = () => {
             if (typeof unbindClick === 'function') unbindClick();
             if (typeof unbindChange === 'function') unbindChange();
+            if (typeof unbindFocusOut === 'function') unbindFocusOut();
+            if (typeof unbindWheel === 'function') unbindWheel();
+            if (typeof unbindKeydown === 'function') unbindKeydown();
         };
 
         uiController.initAllDropdowns(container);

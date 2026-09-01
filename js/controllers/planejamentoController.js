@@ -34,6 +34,99 @@ export const planejamentoController = {
             }
         }
     },
+    abrirModalReplicarPlanoDiario(dataIso, turmaOrigemId) {
+        const turmaAtual = model.state.turmas.find(t => String(t.id) === String(turmaOrigemId));
+        if (!turmaAtual) return;
+        const planoOrigem = model.getPlanoDiario(dataIso, turmaOrigemId);
+        if (!planoOrigem || (!planoOrigem.tema && !planoOrigem.bncc && !planoOrigem.objetivos && !planoOrigem.metodologia)) {
+            Toast.show("Não há conteúdo preenchido na aula atual para replicar.", "warning");
+            return;
+        }
+
+        const outrasTurmas = model.state.turmas.filter(t => String(t.id) !== String(turmaOrigemId));
+        if (outrasTurmas.length === 0) {
+            Toast.show("Você não possui outras turmas cadastradas para replicação.", "warning");
+            return;
+        }
+
+        const [anoF, mesF, diaF] = dataIso.split('-');
+        const dataFmt = `${diaF}/${mesF}/${anoF}`;
+
+        const html = `
+            <div id="modal-replicar-diario-wrap" style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4);">
+                <div class="alert alert--info" style="font-size: 0.8125rem;">
+                    <i class="fas fa-info-circle" style="margin-right: 0.35rem;"></i>
+                    Replicando a aula de <strong>${dataFmt}</strong> da turma <strong>${window.escapeHTML(turmaAtual.nome)}</strong>.
+                </div>
+
+                <div>
+                    <label class="form-label">Selecione as turmas de destino:</label>
+                    <div style="display: flex; flex-direction: column; gap: var(--spacing-2); max-height: 220px; overflow-y: auto; padding: var(--spacing-2); border: 1px solid var(--color-slate-200); border-radius: var(--radius-lg); background-color: var(--color-slate-50);">
+                        ${outrasTurmas.map(t => {
+                            const isMesmaSerie = t.serie === turmaAtual.serie;
+                            return `
+                                <label style="display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem; background-color: white; border: 1px solid var(--color-slate-200); border-radius: var(--radius-md); cursor: pointer; transition: background-color var(--transition-fast);" onmouseover="this.style.backgroundColor='var(--color-slate-50)'" onmouseout="this.style.backgroundColor='white'">
+                                    <input type="checkbox" name="turma-destino-diario" value="${window.escapeHTML(t.id)}" ${isMesmaSerie ? 'checked' : ''} style="accent-color: var(--color-primary); width: 1.125rem; height: 1.125rem;">
+                                    <div style="display: flex; flex-direction: column;">
+                                        <span style="font-weight: 700; font-size: 0.875rem; color: var(--color-slate-800);">${window.escapeHTML(t.nome)}</span>
+                                        <span style="font-size: 0.6875rem; color: var(--color-slate-400);">${window.escapeHTML(t.serie || '')} • ${window.escapeHTML(t.disciplina || '')} ${isMesmaSerie ? '<strong style="color: var(--color-primary);">(Mesma Série)</strong>' : ''}</span>
+                                    </div>
+                                </label>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: var(--spacing-3); padding-top: var(--spacing-2);">
+                    <button type="button" data-action="fechar-modal" class="btn-secondary">Cancelar</button>
+                    <button type="button" data-action="confirmar-replicar-diario" class="btn-primary">
+                        <i class="fas fa-copy" style="margin-right: 0.35rem;"></i> Replicar Plano
+                    </button>
+                </div>
+            </div>
+        `;
+
+        controller.openModal('Replicar Aula do Diário', html);
+
+        const wrap = document.getElementById('modal-replicar-diario-wrap');
+        if (wrap) {
+            EventDelegator.bind(wrap, {
+                'fechar-modal': () => controller.closeModal(),
+                'confirmar-replicar-diario': () => {
+                    const checkboxes = Array.from(wrap.querySelectorAll('input[name="turma-destino-diario"]:checked'));
+                    const turmasDestinoIds = checkboxes.map(cb => cb.value);
+
+                    if (turmasDestinoIds.length === 0) {
+                        Toast.show("Selecione pelo menos uma turma de destino.", "warning");
+                        return;
+                    }
+
+                    this.salvarReplicacaoPlanoDiario(dataIso, turmaOrigemId, turmasDestinoIds);
+                    controller.closeModal();
+                }
+            }, 'click');
+        }
+    },
+
+    salvarReplicacaoPlanoDiario(dataIso, turmaOrigemId, turmasDestinoIds) {
+        const planoOrigem = model.getPlanoDiario(dataIso, turmaOrigemId);
+        if (!planoOrigem) return;
+
+        let qtd = 0;
+        turmasDestinoIds.forEach(tId => {
+            const copia = {
+                ...planoOrigem,
+                id: `${dataIso}_${tId}`,
+                turmaId: tId,
+                data: dataIso,
+                updatedAt: new Date().toISOString()
+            };
+            model.salvarPlanoDiario(copia);
+            qtd++;
+        });
+
+        Toast.show(`Plano de aula replicado com sucesso para ${qtd} turma(s)!`, "success");
+    },
     abrirModalCopiarPlanejamento(turmaIdAtual) {
         const turmaAtual = model.state.turmas.find(t => String(t.id) === String(turmaIdAtual));
         if (!turmaAtual) return;

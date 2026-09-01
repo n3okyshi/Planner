@@ -152,15 +152,24 @@ export const gradeCalculatorService = {
     },
 
     /**
-     * Calcula estatísticas analíticas consolidadas de uma turma
-     * @param {Array<Object>} alunos - Lista de alunos
-     * @param {Function} extrairMediaAluno - Função pura que extrai a média de um aluno
-     * @returns {Object} { mediaTurma, maiorNota, menorNota, totalAlunos, aprovados, recuperacao, reprovados }
+     * Calcula estatísticas analíticas consolidadas de uma turma ou lista de alunos
+     * @param {Object|Array<Object>} turmaOuAlunos - Objeto da turma ou lista de alunos
+     * @param {Function} [extrairMediaAluno=null] - Função pura que extrai a média de um aluno
+     * @returns {Object} { mediaTurma, mediaGeral, taxaAprovacao, idebEstimado, maiorNota, menorNota, totalAlunos, aprovados, recuperacao, reprovados }
      */
-    calcularEstatisticasTurma(alunos = [], extrairMediaAluno = null) {
-        if (!Array.isArray(alunos) || alunos.length === 0) {
+    calcularEstatisticasTurma(turmaOuAlunos = [], extrairMediaAluno = null) {
+        const alunos = Array.isArray(turmaOuAlunos)
+            ? turmaOuAlunos
+            : (turmaOuAlunos && Array.isArray(turmaOuAlunos.alunos) ? turmaOuAlunos.alunos : []);
+
+        const alunosValidos = alunos.filter(a => a && a.status !== 'transferido' && a.status !== 'realocado' && a.status !== 'evadido');
+
+        if (alunosValidos.length === 0) {
             return {
                 mediaTurma: 0,
+                mediaGeral: 0,
+                taxaAprovacao: 0,
+                idebEstimado: 0,
                 maiorNota: 0,
                 menorNota: 0,
                 totalAlunos: 0,
@@ -175,10 +184,19 @@ export const gradeCalculatorService = {
         let recuperacao = 0;
         let reprovados = 0;
 
-        alunos.forEach(aluno => {
-            const m = typeof extrairMediaAluno === 'function' 
-                ? extrairMediaAluno(aluno)
-                : this.parseNota(aluno.mediaFinal ?? aluno.media);
+        alunosValidos.forEach(aluno => {
+            let m = null;
+            if (typeof extrairMediaAluno === 'function') {
+                m = extrairMediaAluno(aluno);
+            } else {
+                m = this.parseNota(aluno.mediaFinal ?? aluno.mediaAnual ?? aluno.media);
+                if (m === null && aluno.notas && typeof aluno.notas === 'object') {
+                    const valores = Object.values(aluno.notas).map(v => this.parseNota(v)).filter(v => v !== null);
+                    if (valores.length > 0) {
+                        m = valores.reduce((a, b) => a + b, 0) / valores.length;
+                    }
+                }
+            }
 
             if (m !== null && !isNaN(m)) {
                 medias.push(m);
@@ -191,9 +209,12 @@ export const gradeCalculatorService = {
         if (medias.length === 0) {
             return {
                 mediaTurma: 0,
+                mediaGeral: 0,
+                taxaAprovacao: 0,
+                idebEstimado: 0,
                 maiorNota: 0,
                 menorNota: 0,
-                totalAlunos: alunos.length,
+                totalAlunos: alunosValidos.length,
                 aprovados: 0,
                 recuperacao: 0,
                 reprovados: 0
@@ -202,14 +223,20 @@ export const gradeCalculatorService = {
 
         const soma = medias.reduce((acc, v) => acc + v, 0);
         const mediaTurma = Math.round((soma / medias.length) * 10) / 10;
+        const mediaGeral = mediaTurma;
+        const taxaAprovacao = alunosValidos.length > 0 ? (aprovados / alunosValidos.length) : 0;
+        const idebEstimado = Math.round((mediaGeral * (taxaAprovacao > 0 ? taxaAprovacao : 1)) * 10) / 10;
         const maiorNota = Math.max(...medias);
         const menorNota = Math.min(...medias);
 
         return {
             mediaTurma,
+            mediaGeral,
+            taxaAprovacao,
+            idebEstimado,
             maiorNota,
             menorNota,
-            totalAlunos: alunos.length,
+            totalAlunos: alunosValidos.length,
             aprovados,
             recuperacao,
             reprovados

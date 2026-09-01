@@ -334,7 +334,14 @@ export const provasView = {
                                     style="width: 100%; padding: 0.75rem 0; background-color: var(--color-slate-800); color: var(--color-white); border-radius: var(--radius-xl); font-weight: 700; transition: background-color var(--transition-fast); display: flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: var(--shadow-md); border: none; cursor: ${this.selecionadas.size === 0 ? 'not-allowed' : 'pointer'}; opacity: ${this.selecionadas.size === 0 ? '0.5' : '1'};" 
                                     ${this.selecionadas.size === 0 ? 'disabled' : ''}
                                     ${this.selecionadas.size > 0 ? 'onmouseover="this.style.backgroundColor=\'var(--color-slate-900)\'" onmouseout="this.style.backgroundColor=\'var(--color-slate-800)\'"' : ''}>
-                                <i class="fas fa-print"></i> Gerar Prova
+                                <i class="fas fa-print"></i> Gerar Prova (PDF)
+                            </button>
+                            <button type="button" data-action="exportar-word-provas" 
+                                    style="width: 100%; padding: 0.65rem 0; background-color: #2b579a; color: var(--color-white); border-radius: var(--radius-xl); font-weight: 700; transition: all var(--transition-fast); display: flex; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: var(--shadow-sm); border: none; cursor: ${this.selecionadas.size === 0 ? 'not-allowed' : 'pointer'}; opacity: ${this.selecionadas.size === 0 ? '0.5' : '1'};" 
+                                    ${this.selecionadas.size === 0 ? 'disabled' : ''}
+                                    ${this.selecionadas.size > 0 ? 'onmouseover="this.style.backgroundColor=\'#1e3e6f\'" onmouseout="this.style.backgroundColor=\'#2b579a\'"' : ''}
+                                    title="Copiar questões formatadas para o Microsoft Word com fórmulas matemáticas">
+                                <i class="fas fa-file-word"></i> Copiar para Word (.docx)
                             </button>
                             ${this.selecionadas.size > 0 ? `
                                 <button type="button" data-action="limpar-selecao" style="width: 100%; padding: 0.5rem 0; color: #ef4444; font-size: 0.75rem; font-weight: 700; border-radius: var(--radius-lg); transition: background-color var(--transition-fast); background-color: transparent; border: none; cursor: pointer;" onmouseover="this.style.backgroundColor='#fef2f2'" onmouseout="this.style.backgroundColor='transparent'">
@@ -360,6 +367,7 @@ export const provasView = {
             'pagina-anterior': () => this.paginaAnterior(),
             'proxima-pagina': () => this.proximaPagina(),
             'abrir-opcoes-impressao': () => this.abrirOpcoesImpressao(),
+            'exportar-word-provas': () => this.exportarWordQuestoesSelecionadas(),
             'limpar-selecao': () => this.limparSelecao(),
             'remover-comunidade': (e, target) => {
                 const id = target.getAttribute('data-id');
@@ -1087,6 +1095,66 @@ export const provasView = {
     estadoVazio() {
         return `<div class="p-10 text-center bg-slate-50 border-2 border-dashed border-slate-200 rounded-3xl text-slate-400">Nenhuma questão encontrada para este filtro.</div>`;
     },
+    async exportarWordQuestoesSelecionadas() {
+        if (this.selecionadas.size === 0) {
+            Toast.show("Selecione ao menos uma questão para exportar.", "warning");
+            return;
+        }
+
+        const todas = [
+            ...(model.state.questoes || []),
+            ...(model.state.questoesSistema || []),
+            ...(model.state.questoesEnem || [])
+        ];
+
+        const selecionadasLista = todas.filter(q => this.selecionadas.has(String(q.id)) || this.selecionadas.has(q.id));
+
+        if (selecionadasLista.length === 0) {
+            Toast.show("Nenhuma questão correspondente encontrada.", "error");
+            return;
+        }
+
+        let htmlQuestoes = `<div style="font-family: Calibri, Arial, sans-serif; line-height: 1.5; color: #1e293b;">`;
+        htmlQuestoes += `<h2 style="font-size: 16pt; margin-bottom: 12pt; text-align: center; border-bottom: 2px solid #334155; padding-bottom: 6pt;">Avaliação Escolar</h2>`;
+
+        selecionadasLista.forEach((q, idx) => {
+            const numero = idx + 1;
+            htmlQuestoes += `<div style="margin-bottom: 18pt;">`;
+            htmlQuestoes += `<p style="font-weight: bold; font-size: 11pt; margin-bottom: 6pt;">Questão ${numero}:</p>`;
+            htmlQuestoes += `<div style="font-size: 11pt; margin-bottom: 8pt;">${q.enunciado || ''}</div>`;
+
+            if (q.tipo === 'multipla' && Array.isArray(q.alternativas) && q.alternativas.length > 0) {
+                const letras = ['A', 'B', 'C', 'D', 'E'];
+                q.alternativas.forEach((alt, aIdx) => {
+                    const letra = letras[aIdx] || String(aIdx + 1);
+                    htmlQuestoes += `<p style="margin: 3pt 0 3pt 18pt; font-size: 11pt;">(${letra}) ${alt}</p>`;
+                });
+            } else {
+                htmlQuestoes += `<p style="margin-top: 24pt; border-bottom: 1px dashed #cbd5e1; height: 18pt;"></p>`;
+                htmlQuestoes += `<p style="border-bottom: 1px dashed #cbd5e1; height: 18pt;"></p>`;
+                htmlQuestoes += `<p style="border-bottom: 1px dashed #cbd5e1; height: 18pt;"></p>`;
+            }
+            htmlQuestoes += `</div>`;
+        });
+
+        htmlQuestoes += `</div>`;
+
+        if (window.copiarParaWordComEquacoes) {
+            const sucesso = await window.copiarParaWordComEquacoes(htmlQuestoes);
+            if (sucesso) {
+                Toast.show("Prova copiada com equações nativas! Abra o Word e pressione Ctrl+V.", "success");
+            }
+        } else {
+            try {
+                const blob = new Blob([htmlQuestoes], { type: 'text/html' });
+                const item = new ClipboardItem({ 'text/html': blob });
+                await navigator.clipboard.write([item]);
+                Toast.show("Prova copiada com sucesso! Abra o Word e pressione Ctrl+V.", "success");
+            } catch (err) {
+                Toast.show("Erro ao copiar para a área de transferência.", "error");
+            }
+        }
+    },
     abrirOpcoesImpressao() {
         const html = `
             <div style="display: flex; flex-direction: column; gap: 1.25rem;">
@@ -1148,6 +1216,16 @@ export const provasView = {
                         </div>
 
                         <div>
+                            <label class="form-label" style="font-size: 0.75rem; font-weight: 700;">Estilo das Alternativas</label>
+                            <select id="prova-print-formato-alt" class="form-select" style="font-size: 0.8125rem;">
+                                <option value="min_direto" selected>a) b) c) d) e) (Minúsculas)</option>
+                                <option value="mai_direto">A) B) C) D) E) (Maiúsculas)</option>
+                                <option value="mai_parenteses">(A) (B) (C) (D) (E) (Parênteses Maiúsculo)</option>
+                                <option value="min_parenteses">(a) (b) (c) (d) (e) (Parênteses Minúsculo)</option>
+                            </select>
+                        </div>
+
+                        <div>
                             <label class="form-label" style="font-size: 0.75rem; font-weight: 700;">Espaçamento & Entrelinhas</label>
                             <select id="prova-print-espacamento" class="form-select" style="font-size: 0.8125rem;">
                                 <option value="padrao_4_2" selected>Simples (4pt antes / 2pt depois - Padrão)</option>
@@ -1163,6 +1241,16 @@ export const provasView = {
                                 <option value="junto" selected>Ao final da prova</option>
                                 <option value="separado">Em folha separada (Destacar)</option>
                             </select>
+                        </div>
+
+                        <div>
+                            <label class="form-label" style="font-size: 0.75rem; font-weight: 700;">Disciplina (Cabeçalho)</label>
+                            <input type="text" id="prova-print-disciplina" class="form-input" value="${(this.filtroDisciplina && this.filtroDisciplina !== 'todas') ? window.escapeHTML(this.filtroDisciplina) : 'Geral'}" style="font-size: 0.8125rem;">
+                        </div>
+
+                        <div>
+                            <label class="form-label" style="font-size: 0.75rem; font-weight: 700;">Série / Ano (Cabeçalho)</label>
+                            <input type="text" id="prova-print-serie" class="form-input" value="${(this.filtroAno && this.filtroAno !== 'todos') ? window.escapeHTML(this.filtroAno) : 'Ensino Fundamental / Médio'}" style="font-size: 0.8125rem;">
                         </div>
                     </div>
                 </div>
@@ -1222,15 +1310,21 @@ export const provasView = {
         const tipo = document.querySelector('input[name="prova-print-tipo"]:checked')?.value || 'aluno';
         const colunas = parseInt(document.getElementById('prova-print-colunas')?.value || '2', 10);
         const tamanhoFonte = document.getElementById('prova-print-fonte')?.value || 'normal';
+        const formatoAlt = document.getElementById('prova-print-formato-alt')?.value || 'min_direto';
         const espacamento = document.getElementById('prova-print-espacamento')?.value || 'padrao_4_2';
         const gabaritoSeparado = document.getElementById('prova-print-gabarito-posicao')?.value === 'separado';
+        const disciplina = document.getElementById('prova-print-disciplina')?.value?.trim() || 'Geral';
+        const serie = document.getElementById('prova-print-serie')?.value?.trim() || 'Ensino Fundamental / Médio';
 
         return {
             tipo,
             colunas,
             tamanhoFonte,
+            formatoAlt,
             espacamento,
-            gabaritoSeparado
+            gabaritoSeparado,
+            disciplina,
+            serie
         };
     },
 
@@ -1348,9 +1442,14 @@ export const provasView = {
         } else if (espacamento === 'confortavel_6_4' || isAcessivel) {
             lineHeight = isAcessivel ? '1.75' : '1.5';
             marginAntes = isAcessivel ? '8pt' : '6pt';
-            marginDepois = isAcessivel ? '6pt' : '4pt';
+        marginDepois = isAcessivel ? '6pt' : '4pt';
             altMarginDepois = isAcessivel ? '6pt' : '4pt';
         }
+
+        const formatoAlt = opts.formatoAlt || 'min_direto';
+        const disciplina = opts.disciplina || ((this.filtroDisciplina && this.filtroDisciplina !== 'todas') ? this.filtroDisciplina : 'Geral');
+        const serie = opts.serie || ((this.filtroAno && this.filtroAno !== 'todos') ? this.filtroAno : 'Ensino Fundamental / Médio');
+        const anoLetivo = model.state.userConfig?.anoLetivo || new Date().getFullYear();
 
         let nomeProf = model.state.userConfig.profName || '__________________________';
         if ((!model.state.userConfig.profName || model.state.userConfig.profName.trim() === "") && model.currentUser) {
@@ -1365,17 +1464,23 @@ export const provasView = {
                 conteudoResposta = `
                     <div style="margin-top: ${marginAntes};">
                         ${q.alternativas.map((alt, idx) => {
-                    const styleCorrect = (isProf && q.correta == idx)
-                        ? 'font-weight: bold; color: #059669; background-color: #ecfdf5; border-radius: 4px;'
-                        : '';
-                    const iconCheck = (isProf && q.correta == idx) ? ' ✓' : '';
-                    return `
+                            const styleCorrect = (isProf && q.correta == idx)
+                                ? 'font-weight: bold; color: #059669; background-color: #ecfdf5; border-radius: 4px;'
+                                : '';
+                            const iconCheck = (isProf && q.correta == idx) ? ' ✓' : '';
+                            
+                            let letraFmt = `${letras[idx]})`;
+                            if (formatoAlt === 'mai_direto') letraFmt = `${letras[idx].toUpperCase()})`;
+                            else if (formatoAlt === 'mai_parenteses') letraFmt = `(${letras[idx].toUpperCase()})`;
+                            else if (formatoAlt === 'min_parenteses') letraFmt = `(${letras[idx]})`;
+
+                            return `
                                 <div class="alternativa" style="${styleCorrect}">
-                                    <span class="alt-letra">( &nbsp; ) <strong>${letras[idx]}</strong></span> 
-                                    <span>${this.formatarHTMLQuestao(alt)} ${iconCheck}</span>
+                                    <span class="alt-letra"><strong>${letraFmt}</strong></span> 
+                                    <span style="flex: 1;">${this.formatarHTMLQuestao(alt)} ${iconCheck}</span>
                                 </div>
                             `;
-                }).join('')}
+                        }).join('')}
                     </div>
                 `;
             } else {
@@ -1434,7 +1539,7 @@ export const provasView = {
                 .header-info p { margin: 2pt 0; font-size: ${isAcessivel ? '14px' : '12px'}; font-weight: 500; line-height: 1.2; }
                 .header-logo { max-width: 75px; max-height: 75px; object-fit: contain; margin-left: 16px; flex-shrink: 0; }
                 
-                .titulo-prova { text-align: center; text-transform: uppercase; font-weight: 800; font-size: ${isAcessivel ? '18px' : '15px'}; margin-bottom: 12px; border-bottom: 2px solid #000; padding-bottom: 4px; }
+                .titulo-prova { text-align: center; text-transform: uppercase; font-weight: 800; font-size: ${isAcessivel ? '17px' : '14px'}; margin-bottom: 12px; border-bottom: 2px solid #000; padding-bottom: 4px; }
                 
                 .container-questoes-prova {
                     font-size: ${fontSizeStr};
@@ -1461,14 +1566,13 @@ export const provasView = {
                     border-radius: 8px; 
                     margin-top: ${marginAntes};
                     margin-bottom: ${marginDepois}; 
+                    break-inside: avoid !important; 
+                    page-break-inside: avoid !important; 
                 }
                 
-                .questao-info { font-size: 9.5px; color: #666; margin-bottom: 2pt; text-transform: uppercase; font-weight: bold; }
-                .questao-numero { font-weight: 800; font-size: ${numSize}; margin-right: 4px; color: ${isAcessivel ? '#1d4ed8' : '#000'}; }
+                .questao-info { font-size: 10px; color: #64748b; margin-bottom: 2px; }
+                .questao-numero { font-weight: bold; }
                 .questao-texto { 
-                    font-size: ${fontSizeStr}; 
-                    line-height: ${lineHeight}; 
-                    text-align: left; 
                     margin-top: 0; 
                     margin-bottom: ${marginDepois}; 
                 }
@@ -1533,7 +1637,7 @@ export const provasView = {
                     font-size: inherit;
                     line-height: inherit;
                 }
-                .alt-letra { font-family: monospace; font-size: ${fontSizeStr}; font-weight: bold; }
+                .alt-letra { font-family: monospace; font-size: ${fontSizeStr}; font-weight: bold; min-width: 24px; }
 
                 .btn-voltar {
                     position: fixed; top: 20px; right: 20px;
@@ -1574,19 +1678,21 @@ export const provasView = {
                         <p style="margin: 0 0 6px 0;"><strong>ESCOLA:</strong> ${window.escapeHTML(model.state.userConfig.schoolName || '________________________________________________')}</p>
                         <div style="display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 6px; font-size: ${isAcessivel ? '13.5px' : '12px'};">
                             <span><strong>PROFESSOR(A):</strong> ${window.escapeHTML(nomeProf)}</span>
-                            <span style="white-space: nowrap;"><strong>DATA:</strong> ____/____/2026</span>
+                            <span><strong>DISCIPLINA:</strong> ${window.escapeHTML(disciplina)}</span>
+                            <span><strong>SÉRIE/ANO:</strong> ${window.escapeHTML(serie)}</span>
                             <span style="white-space: nowrap;"><strong>TURMA:</strong> <span style="display: inline-block; width: 50px; border-bottom: 1px solid #000; margin-left: 4px;"></span></span>
-                            <span style="white-space: nowrap;"><strong>NOTA:</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
                         </div>
-                        ${!isProf ? `
-                            <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px; font-size: ${isAcessivel ? '13.5px' : '12px'};">
-                                <span style="flex: 1; display: flex; align-items: baseline;"><strong>ALUNO(A):</strong> <span style="flex: 1; border-bottom: 1px solid #000; margin-left: 6px;"></span></span>
-                            </div>
-                        ` : ''}
+                        <div style="display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 8px 12px; margin-bottom: 6px; font-size: ${isAcessivel ? '13.5px' : '12px'};">
+                            <span style="white-space: nowrap;"><strong>DATA:</strong> ____/____/${anoLetivo}</span>
+                            <span style="white-space: nowrap;"><strong>NOTA:</strong> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</span>
+                            ${!isProf ? `
+                                <span style="flex: 1; min-width: 200px; display: flex; align-items: baseline;"><strong>ALUNO(A):</strong> <span style="flex: 1; border-bottom: 1px solid #000; margin-left: 6px;"></span></span>
+                            ` : ''}
+                        </div>
                     </div>
                     ${logoUrl ? `<img src="${logoUrl}" class="header-logo" alt="Logo da Instituição" />` : ''}
                 </div>
-                <div class="titulo-prova">${tituloDoc}</div>
+                <div class="titulo-prova">${window.escapeHTML(disciplina).toUpperCase()} - ${window.escapeHTML(tituloDoc).toUpperCase()} - ${window.escapeHTML(serie).toUpperCase()}</div>
                 <div id="conteudo-prova" class="container-questoes-prova">${questoesHtml}</div>
                 <script>
                     document.getElementById('btn-voltar-janela')?.addEventListener('click', () => window.close());
@@ -1628,10 +1734,11 @@ export const provasView = {
 
         const win = window.open('', '_blank');
         if (win) {
-            const safeHtml = window.sanitizeComLatex ? window.sanitizeComLatex(conteudoFinal) : conteudoFinal;
             win.document.open();
-            win.document.write(safeHtml);
+            win.document.write(conteudoFinal);
             win.document.close();
+        } else {
+            Toast.show("Permita pop-ups no navegador para abrir a impressão.", "warning");
         }
     },
 
