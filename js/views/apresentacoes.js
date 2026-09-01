@@ -33,15 +33,20 @@ export const apresentacoesView = {
 
     setTab(tab) {
         this.activeTab = tab;
-        this.render('view-container');
+        const target = this._lastContainer || document.getElementById('interatividades-tab-content') || document.getElementById('view-container');
+        if (target) this.render(target);
     },
 
     async render(container) {
         if (typeof container === 'string') {
             container = document.getElementById(container);
         }
+        if (!container) {
+            container = this._lastContainer || document.getElementById('interatividades-tab-content') || document.getElementById('view-container');
+        }
         if (!container) return;
 
+        this._lastContainer = container;
         this.destroy();
 
         if (this.selectedApresId) {
@@ -645,7 +650,7 @@ export const apresentacoesView = {
             if (nov) {
                 this.selectedApresId = nov.id;
                 this.editingSlideIndex = 0;
-                this.render('view-container');
+                this.render(this._lastContainer || document.getElementById('interatividades-tab-content') || 'view-container');
             }
         });
     },
@@ -653,17 +658,17 @@ export const apresentacoesView = {
     abrirEditor(id) {
         this.selectedApresId = id;
         this.editingSlideIndex = 0;
-        this.render('view-container');
+        this.render(this._lastContainer || document.getElementById('interatividades-tab-content') || 'view-container');
     },
 
     fecharEditor() {
         this.selectedApresId = null;
-        this.render('view-container');
+        this.render(this._lastContainer || document.getElementById('interatividades-tab-content') || 'view-container');
     },
 
     selecionarSlideEdicao(idx) {
         this.editingSlideIndex = idx;
-        this.render('view-container');
+        this.render(this._lastContainer || document.getElementById('interatividades-tab-content') || 'view-container');
     },
 
     adicionarNovoSlide() {
@@ -674,7 +679,7 @@ export const apresentacoesView = {
         });
         if (novo) {
             this.editingSlideIndex = (model.getApresentacaoById(this.selectedApresId)?.slides?.length || 1) - 1;
-            this.render('view-container');
+            this.render(this._lastContainer || document.getElementById('interatividades-tab-content') || 'view-container');
         }
     },
 
@@ -697,13 +702,13 @@ export const apresentacoesView = {
                     model.deleteSlide(this.selectedApresId, slideId);
                     this.editingSlideIndex = Math.max(0, this.editingSlideIndex - 1);
                     if (Toast) Toast.show("Slide excluído com sucesso.", "info");
-                    this.render('view-container');
+                    this.render(this._lastContainer || document.getElementById('interatividades-tab-content') || 'view-container');
                 }
             );
         } else {
             model.deleteSlide(this.selectedApresId, slideId);
             this.editingSlideIndex = Math.max(0, this.editingSlideIndex - 1);
-            this.render('view-container');
+            this.render(this._lastContainer || document.getElementById('interatividades-tab-content') || 'view-container');
         }
     },
 
@@ -730,7 +735,7 @@ export const apresentacoesView = {
         const cop = model.duplicarApresentacao(id);
         if (cop) {
             if (Toast) Toast.show("Apresentação duplicada com sucesso!", "success");
-            this.render('view-container');
+            this.render(this._lastContainer || document.getElementById('interatividades-tab-content') || 'view-container');
         }
     },
 
@@ -742,13 +747,13 @@ export const apresentacoesView = {
                 () => {
                     model.deleteApresentacao(id);
                     if (Toast) Toast.show("Apresentação excluída.", "info");
-                    this.render('view-container');
+                    this.render(this._lastContainer || document.getElementById('interatividades-tab-content') || 'view-container');
                 }
             );
         } else {
             model.deleteApresentacao(id);
             if (Toast) Toast.show("Apresentação excluída.", "info");
-            this.render('view-container');
+            this.render(this._lastContainer || document.getElementById('interatividades-tab-content') || 'view-container');
         }
     }
 };

@@ -14,9 +14,10 @@ export const routeRegistry = {
     biblioteca: { label: 'Meus materiais', navId: 'nav-materiais-comunidade', requiresAuth: false, offlineSupported: true },
     'criar-material': { label: 'Criar Material', navId: 'nav-materiais-comunidade', requiresAuth: false, offlineSupported: true },
     turmas: { label: 'Turmas', navId: 'nav-turmas', requiresAuth: false, offlineSupported: true },
-    'quiz-gestor': { label: 'Quiz ao vivo', navId: 'nav-quiz-gestor', requiresAuth: true, offlineSupported: false, authMessage: 'Para gerenciar sessões de Quiz ao vivo em tempo real, conecte sua conta Google.' },
+    interatividades: { label: 'Interatividades Pedagógicas', navId: 'nav-interatividades', requiresAuth: false, offlineSupported: true },
+    'quiz-gestor': { label: 'Quiz ao vivo', navId: 'nav-interatividades', requiresAuth: true, offlineSupported: false, authMessage: 'Para gerenciar sessões de Quiz ao vivo em tempo real, conecte sua conta Google.' },
     correcao: { label: 'Correção IA', navId: 'nav-correcao', requiresAuth: false, offlineSupported: true },
-    simuladores: { label: 'Simulações', navId: 'nav-simuladores', requiresAuth: false, offlineSupported: true },
+    simuladores: { label: 'Simulações', navId: 'nav-interatividades', requiresAuth: false, offlineSupported: true },
     periodo: { label: 'Planejamento / Por Período', navId: 'nav-periodo', requiresAuth: false, offlineSupported: true },
     mensal: { label: 'Planejamento / Mensal', navId: 'nav-mensal', requiresAuth: false, offlineSupported: true },
     dia: { label: 'Planejamento / Diário', navId: 'nav-dia', requiresAuth: false, offlineSupported: true },
@@ -27,21 +28,28 @@ export const routeRegistry = {
     comunidade: { label: 'Comunidade / Banco de Questões', navId: 'nav-materiais-comunidade', requiresAuth: false, offlineSupported: true },
     frequencia: { label: 'Acadêmico / Frequência', navId: 'nav-frequencia', requiresAuth: false, offlineSupported: true },
     horario: { label: 'Grade Horária', navId: 'nav-horario', requiresAuth: false, offlineSupported: true },
-    mapa: { label: 'Acadêmico / Mapa de Sala', navId: 'nav-mapa', requiresAuth: false, offlineSupported: true },
+    mapa: { label: 'Acadêmico / Mapa de Sala', navId: 'nav-turmas', requiresAuth: false, offlineSupported: true },
     'notas-anuais': { label: 'Notas Anuais', navId: 'nav-notas-anuais', requiresAuth: false, offlineSupported: true },
     'ata-conselho': { label: 'Ata do Conselho de Classe', navId: 'nav-ata-conselho', requiresAuth: false, offlineSupported: true },
     'conteudo-gerado': { label: 'Material Pedagógico', navId: 'nav-materiais-comunidade', requiresAuth: false, offlineSupported: true },
-    'quiz-player': { label: 'Apresentação de Quiz', navId: 'nav-quiz-gestor', requiresAuth: false, offlineSupported: true },
-    'quiz-aluno': { label: 'Participar de Quiz', navId: 'nav-quiz-gestor', requiresAuth: false, offlineSupported: true },
+    'quiz-player': { label: 'Apresentação de Quiz', navId: 'nav-interatividades', requiresAuth: false, offlineSupported: true },
+    'quiz-aluno': { label: 'Participar de Quiz', navId: 'nav-interatividades', requiresAuth: false, offlineSupported: true },
     'estudos-visuais': { label: 'Flashcards & Mapas Mentais', navId: 'nav-estudos-visuais', requiresAuth: false, offlineSupported: true },
-    apresentacoes: { label: 'Apresentações Animadas', navId: 'nav-apresentacoes', requiresAuth: false, offlineSupported: true },
-    'apresentador-player': { label: 'Player de Apresentação', navId: 'nav-apresentacoes', requiresAuth: false, offlineSupported: true },
+    apresentacoes: { label: 'Apresentações Animadas', navId: 'nav-interatividades', requiresAuth: false, offlineSupported: true },
+    'apresentador-player': { label: 'Player de Apresentação', navId: 'nav-interatividades', requiresAuth: false, offlineSupported: true },
     coordenacao: { label: 'Coordenação Pedagógica', navId: 'nav-coordenacao', requiresAuth: false, offlineSupported: true },
     pdi: { label: 'Plano de Desenvolvimento Individual (PDI/PEI)', navId: 'nav-pdi', requiresAuth: false, offlineSupported: true },
     config: { label: 'Configurações', navId: 'nav-config', requiresAuth: false, offlineSupported: true }
 };
 
 export const routeAliases = {
+    interatividade: 'interatividades',
+    'quiz-gestor': 'interatividades',
+    apresentacoes: 'interatividades',
+    simuladores: 'interatividades',
+    slides: 'interatividades',
+    powerpoint: 'interatividades',
+    pptx: 'interatividades',
     planejamento: 'periodo',
     diario: 'dia',
     sala: 'mapa',
@@ -60,10 +68,7 @@ export const routeAliases = {
     'quiz-participar': 'quiz-aluno',
     flashcards: 'estudos-visuais',
     mindmaps: 'estudos-visuais',
-    'mapas-mentais': 'estudos-visuais',
-    slides: 'apresentacoes',
-    powerpoint: 'apresentacoes',
-    pptx: 'apresentacoes'
+    'mapas-mentais': 'estudos-visuais'
 };
 
 export const viewModuleMap = {
@@ -72,6 +77,7 @@ export const viewModuleMap = {
     biblioteca: () => import('./views/criarMaterial.js'),
     'criar-material': () => import('./views/criarMaterial.js'),
     turmas: () => import('./views/turmas.js'),
+    interatividades: () => import('./views/interatividades.js'),
     provas: () => import('./views/provas.js'),
     'stats-provas': () => import('./views/estatisticasProva.js'),
     correcao: () => import('./views/correcaoAutomatica.js'),

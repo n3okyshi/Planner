@@ -3,16 +3,24 @@ import { controller } from '../controller.js';
 import { uiController } from '../controllers/uiController.js';
 import { turmaController } from '../controllers/turmaController.js';
 import { EventDelegator } from '../utils/eventDelegator.js';
+import { salaView } from './sala.js';
 
 export const turmasView = {
     confirmandoExclusao: null,
     periodoAtivo: 1,
+    subAbaAtiva: 'notas',
     criterioOrdenacao: 'chamada_asc',
     _cleanupDelegators: null,
+    _lastContainer: null,
+
+    mudarPeriodo(turmaId, periodo) {
+        this.periodoAtivo = Number(periodo) || 1;
+        this.renderDetalhesTurma(this._lastContainer || 'view-container', turmaId);
+    },
 
     mudarOrdenacao(criterio, turmaId) {
         this.criterioOrdenacao = criterio;
-        this.renderDetalhesTurma('view-container', turmaId);
+        this.renderDetalhesTurma(this._lastContainer || 'view-container', turmaId);
     },
 
     toggleOrdenacaoColuna(coluna, turmaId) {
@@ -25,7 +33,7 @@ export const turmasView = {
         } else if (coluna === 'status') {
             this.criterioOrdenacao = 'status_nome';
         }
-        this.renderDetalhesTurma('view-container', turmaId);
+        this.renderDetalhesTurma(this._lastContainer || 'view-container', turmaId);
     },
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
@@ -144,6 +152,8 @@ export const turmasView = {
     renderDetalhesTurma(container, turmaId) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+        this._lastContainer = container;
+
         const turmas = model.state.turmas || [];
         const turma = turmas.find(t => String(t.id) === String(turmaId));
         if (!turma) return controller.navigate('turmas');
@@ -163,7 +173,8 @@ export const turmasView = {
 
         const html = `
             <div class="fade-in" style="padding-bottom: 5rem;">
-                <div style="display: flex; flex-direction: row; gap: var(--spacing-4); justify-content: space-between; align-items: center; margin-bottom: var(--spacing-8); flex-wrap: wrap;">
+                <!-- CABEÇALHO SUPERIOR DA TURMA -->
+                <div style="display: flex; flex-direction: row; gap: var(--spacing-4); justify-content: space-between; align-items: center; margin-bottom: var(--spacing-6); flex-wrap: wrap;">
                     <div style="display: flex; align-items: center; gap: var(--spacing-3);">
                         <button type="button" data-action="nav-turmas" style="color: var(--color-slate-400); font-weight: 700; display: flex; align-items: center; gap: var(--spacing-2); font-size: 0.875rem; background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='var(--color-slate-700)'" onmouseout="this.style.color='var(--color-slate-400)'">
                             <i class="fas fa-arrow-left"></i> Voltar
@@ -191,9 +202,6 @@ export const turmasView = {
                          <button type="button" data-action="nav-notas-anuais" class="btn-outline" style="height: 2.5rem; color: #4f46e5; background-color: #eef2ff; border-color: #e0e7ff;" onmouseover="this.style.backgroundColor='#e0e7ff'" onmouseout="this.style.backgroundColor='#eef2ff'">
                             <i class="fas fa-award" style="margin-right: 0.5rem;"></i> Notas Anuais
                         </button>
-                        <button type="button" data-action="ver-mapa-turma" data-id="${turmaId}" class="btn-outline" style="height: 2.5rem; color: #0284c7; background-color: #f0f9ff; border-color: #bae6fd;" title="Ver e gerenciar mapa de sala e disposição das carteiras">
-                            <i class="fas fa-chair" style="margin-right: 0.5rem;"></i> Mapa de Sala
-                        </button>
                         <button type="button" data-action="exportar-turma-tsv" data-id="${turmaId}" class="btn-outline" style="height: 2.5rem;" title="Exportar dados e notas da turma em TSV para importar em outros sistemas">
                             <i class="fas fa-file-export" style="margin-right: 0.5rem;"></i> Exportar Notas (TSV)
                         </button>
@@ -212,229 +220,41 @@ export const turmasView = {
                         ${this.gerarBotaoExcluir(turmaId)}
                     </div>
                 </div>
-                <div style="display: flex; align-items: center; gap: var(--spacing-2); margin-bottom: var(--spacing-6); padding: var(--spacing-1); background-color: var(--color-slate-100); border-radius: var(--radius-2xl); width: fit-content; border: 1px solid var(--color-slate-200); overflow-x: auto;">
-                    ${Array.from({ length: numPeriodos }, (_, i) => `
-                        <button type="button" data-action="mudar-periodo-turma" data-id="${turmaId}" data-periodo="${i + 1}"
-                                 style="padding: 0.5rem 1.5rem; border-radius: var(--radius-xl); font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; transition: all var(--transition-fast); cursor: pointer; border: none; white-space: nowrap; ${this.periodoAtivo === (i + 1) ? 'background-color: var(--color-white); color: var(--color-primary); box-shadow: var(--shadow-sm);' : 'background-color: transparent; color: var(--color-slate-500);'}"
-                                 onmouseover="if(${this.periodoAtivo !== (i + 1)}) this.style.color='var(--color-slate-700)'"
-                                 onmouseout="if(${this.periodoAtivo !== (i + 1)}) this.style.color='var(--color-slate-500)'">
-                            ${i + 1}º ${tipoConfig.slice(0, 3)}
-                        </button>
-                    `).join('')}
+
+                <!-- SUBMENU PERMANENTE NO TOPO: NOTAS POR PERÍODO / MAPA DE SALA -->
+                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem; padding: 0.35rem; background-color: var(--color-slate-100); border-radius: var(--radius-2xl); width: fit-content; border: 1px solid var(--color-slate-200); overflow-x: auto;">
+                    <button type="button" data-action="mudar-subaba-turma" data-subaba="notas" data-id="${turmaId}"
+                            class="interactive-element"
+                            style="padding: 0.6rem 1.35rem; border-radius: var(--radius-xl); font-size: 0.8125rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s ease; cursor: pointer; border: none; white-space: nowrap; ${this.subAbaAtiva === 'notas' ? 'background-color: var(--color-white); color: #4f46e5; box-shadow: var(--shadow-sm);' : 'background-color: transparent; color: var(--color-slate-600);'}">
+                        <i class="fas fa-chart-bar"></i> Notas por Período
+                    </button>
+
+                    <button type="button" data-action="mudar-subaba-turma" data-subaba="mapa" data-id="${turmaId}"
+                            class="interactive-element"
+                            style="padding: 0.6rem 1.35rem; border-radius: var(--radius-xl); font-size: 0.8125rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.5rem; transition: all 0.2s ease; cursor: pointer; border: none; white-space: nowrap; ${this.subAbaAtiva === 'mapa' ? 'background-color: var(--color-white); color: #0284c7; box-shadow: var(--shadow-sm);' : 'background-color: transparent; color: var(--color-slate-600);'}">
+                        <i class="fas fa-chair"></i> Mapa de Sala
+                    </button>
                 </div>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--spacing-6); margin-bottom: var(--spacing-8);">
-                    <!-- ESTATÍSTICA DO PERÍODO -->
-                    <div class="card" style="padding: var(--spacing-6); position: relative; overflow: hidden;">
-                        <h3 style="font-size: 0.875rem; font-weight: 800; color: var(--color-primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--spacing-4); border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.1); padding-bottom: var(--spacing-2);">
-                            <i class="fas fa-chart-pie" style="margin-right: 0.5rem;"></i> Desempenho: ${this.periodoAtivo}º Período
-                        </h3>
-                        <div style="display: flex; flex-direction: row; align-items: center; gap: var(--spacing-6); flex-wrap: wrap;">
-                            <div style="position: relative; flex-shrink: 0;">
-                                <div id="grafico-rosca" class="chart-donut" style="${gradientPeriodo}"></div>
-                                <div class="chart-center-text">
-                                    <span id="media-rosca" style="font-size: 1.75rem; font-weight: 900; color: var(--color-slate-800); line-height: 1;">${statsPeriodo.mediaGeral}</span>
-                                    <span style="font-size: 0.625rem; font-weight: 800; color: var(--color-slate-400); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.125rem;">Média</span>
-                                </div>
-                            </div>
-                            <div style="flex: 1; width: 100%;">
-                                <div id="legenda-rosca" style="display: grid; grid-template-columns: 1fr 1fr; row-gap: var(--spacing-3); column-gap: var(--spacing-4);">
-                                    ${this._renderLegenda(statsPeriodo)}
-                                </div>
-                                ${statsPeriodo.distribuicao.vermelho > 0 || statsPeriodo.distribuicao.laranja > 0 ? `
-                                    <div style="margin-top: var(--spacing-4); background-color: #fff7ed; border: 1px solid #ffedd5; padding: var(--spacing-3); border-radius: var(--radius-xl); display: flex; align-items: flex-start; gap: var(--spacing-3);">
-                                        <i class="fas fa-exclamation-triangle" style="color: #f97316; margin-top: 0.125rem;"></i>
-                                        <div>
-                                            <p style="font-size: 0.75rem; font-weight: 700; color: #c2410c;">Atenção no Período</p>
-                                            <p style="font-size: 0.625rem; color: #ea580c; line-height: 1.625;">
-                                                Há <strong>${statsPeriodo.distribuicao.vermelho + statsPeriodo.distribuicao.laranja} alunos</strong> abaixo de 5,0.
-                                            </p>
-                                        </div>
-                                    </div>
-                                ` : ''}
-                            </div>
-                        </div>
-                    </div>
-                    <!-- ESTATÍSTICA GERAL -->
-                    <div class="card" style="padding: var(--spacing-6); position: relative; overflow: hidden;">
-                        <h3 style="font-size: 0.875rem; font-weight: 800; color: var(--color-slate-500); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--spacing-4); border-bottom: 1px solid var(--color-slate-100); padding-bottom: var(--spacing-2);">
-                            <i class="fas fa-globe" style="margin-right: 0.5rem;"></i> Desempenho Geral (Ano Letivo)
-                        </h3>
-                        <div style="display: flex; flex-direction: row; align-items: center; gap: var(--spacing-6); flex-wrap: wrap;">
-                            <div style="position: relative; flex-shrink: 0;">
-                                <div id="grafico-rosca-geral" class="chart-donut" style="${gradientGeral}"></div>
-                                <div class="chart-center-text">
-                                    <span id="media-rosca-geral" style="font-size: 1.75rem; font-weight: 900; color: var(--color-slate-800); line-height: 1;">${statsGeral.mediaGeral}</span>
-                                    <span style="font-size: 0.625rem; font-weight: 800; color: var(--color-slate-400); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.125rem;">Média</span>
-                                </div>
-                            </div>
-                            <div style="flex: 1; width: 100%;">
-                                <div id="legenda-rosca-geral" style="display: grid; grid-template-columns: 1fr 1fr; row-gap: var(--spacing-3); column-gap: var(--spacing-4);">
-                                    ${this._renderLegenda(statsGeral)}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div style="background-color: var(--color-white); border-radius: var(--radius-2xl); box-shadow: var(--shadow-sm); border: 1px solid var(--color-slate-200); overflow: hidden;">
-                    <div style="padding: var(--spacing-4); background-color: var(--color-slate-50); border-bottom: 1px solid var(--color-slate-200); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
-                        <div>
-                            <h3 style="font-weight: 700; color: var(--color-slate-700); font-size: 0.875rem; margin: 0;">Diário de Notas - ${this.periodoAtivo}º Período</h3>
-                            <span style="font-size: 0.6875rem; color: var(--color-slate-400); text-transform: uppercase; font-weight: 700; letter-spacing: -0.05em;">Calculado base 10</span>
-                        </div>
-                        
-                        <!-- SELETOR DE ORDENAÇÃO (SORTER) -->
-                        <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 0.25rem;">
-                                <i class="fas fa-sort-amount-down"></i> Ordenar:
-                            </label>
-                            <select data-action="mudar-ordenacao-select" data-id="${turmaId}" class="form-input" style="padding: 0.35rem 0.625rem; font-size: 0.75rem; width: auto; border-radius: var(--radius-lg); background: var(--bg-surface); font-weight: 600;">
-                                <option value="chamada_asc" ${this.criterioOrdenacao === 'chamada_asc' ? 'selected' : ''}>Nº Chamada (1, 2, 3...)</option>
-                                <option value="chamada_desc" ${this.criterioOrdenacao === 'chamada_desc' ? 'selected' : ''}>Nº Chamada Inverso</option>
-                                <option value="nome_asc" ${this.criterioOrdenacao === 'nome_asc' ? 'selected' : ''}>Nome (A - Z)</option>
-                                <option value="nome_desc" ${this.criterioOrdenacao === 'nome_desc' ? 'selected' : ''}>Nome (Z - A)</option>
-                                <option value="matricula_asc" ${this.criterioOrdenacao === 'matricula_asc' ? 'selected' : ''}>Matrícula / ID</option>
-                                <option value="status_nome" ${this.criterioOrdenacao === 'status_nome' ? 'selected' : ''}>Situação + Nome (Ativos 1º)</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div style="overflow-x: auto;">
-                        <table style="width: 100%; text-align: left; border-collapse: collapse;">
-                            <thead>
-                                <tr style="background-color: rgba(248, 250, 252, 0.5);">
-                                    <th data-action="toggle-ordenacao-chamada" data-id="${turmaId}" style="padding: var(--spacing-4); font-size: 0.75rem; font-weight: 700; color: var(--color-slate-500); text-transform: uppercase; width: 3.5rem; cursor: pointer;" title="Clique para inverter ordem da chamada">
-                                        # <i class="fas fa-sort" style="font-size: 0.625rem; opacity: 0.5;"></i>
-                                    </th>
-                                    <th data-action="toggle-ordenacao-nome" data-id="${turmaId}" style="padding: var(--spacing-4); font-size: 0.75rem; font-weight: 700; color: var(--color-slate-500); text-transform: uppercase; min-width: 200px; cursor: pointer;" title="Clique para ordenar alfabeticamente">
-                                        Nome do Aluno <i class="fas fa-sort" style="font-size: 0.625rem; opacity: 0.5;"></i>
-                                    </th>
-                                    ${avaliacoesFiltradas.map(av => `
-                                        <th style="padding: var(--spacing-2); text-align: center; min-width: 110px; position: relative;" class="hover-group">
-                                            <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
-                                                <span style="font-size: 0.625rem; font-weight: 700; color: var(--color-slate-400); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 85px;" title="${window.escapeHTML(av.nome)}">${window.escapeHTML(av.nome)}</span>
-                                                <div style="display: flex; align-items: center; gap: 0.25rem; margin-top: 0.125rem;">
-                                                    <span style="font-size: 0.5625rem; color: var(--color-slate-400); background-color: var(--color-slate-100); padding: 0 0.375rem; border-radius: 0.25rem;">${av.periodo || 1}º Per.</span>
-                                                    <span style="font-size: 0.5625rem; color: var(--color-slate-300);">Max: ${av.max}</span>
-                                                </div>
-                                                <button type="button" data-action="batch-fill-avaliacao" data-turma="${turmaId}" data-av="${av.id}" data-max="${av.max}" data-nome="${window.escapeHTML(av.nome)}" style="font-size: 0.625rem; font-weight: 700; color: var(--color-primary); background: none; border: none; cursor: pointer; margin-top: 0.25rem; display: inline-flex; align-items: center; gap: 0.25rem; transition: color var(--transition-fast);" title="Preencher nota em lote para estudantes desta avaliação">
-                                                    <i class="fas fa-fill-drip"></i> Lote
-                                                </button>
-                                            </div>
-                                            <button type="button" data-action="delete-avaliacao" data-turma="${turmaId}" data-av="${av.id}" style="position: absolute; top: 0.25rem; right: 0.25rem; color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" class="hover-show" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--color-slate-300)'" title="Excluir Avaliação">
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                        </th>
-                                    `).join('')}
-                                    <th style="padding: var(--spacing-4); font-size: 0.75rem; font-weight: 700; color: var(--color-slate-500); text-transform: uppercase; text-align: center; width: 6rem; background-color: var(--color-slate-50); border-left: 1px solid var(--color-slate-100);">Soma Per.</th>
-                                    <th style="padding: var(--spacing-4); width: 6rem; text-align: center;">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody style="border-top: 1px solid var(--color-slate-100);">
-                                ${turma.alunos.length === 0
-                ? '<tr><td colspan="100%" style="padding: 2rem; text-align: center; color: var(--color-slate-400); font-size: 0.875rem;">Nenhum aluno cadastrado.</td></tr>'
-                : (window.ordenarEstudantes ? window.ordenarEstudantes(turma.alunos, this.criterioOrdenacao) : turma.alunos).map((aluno, idx) => {
 
-                    const status = aluno.status || 'cursando';
-                    const chamada = aluno.chamada || (idx + 1);
-                    const matricula = aluno.matricula || '';
-                    let statusBadge = '';
-                    let opacityInputs = '';
-                    let rowClass = 'hover-row-default';
-                    if (status === 'transferido') {
-                        statusBadge = `<span style="background-color: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; font-size: 0.5625rem; padding: 0 0.5rem; border-radius: 0.25rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.1em; margin-left: 0.5rem;">Transferido</span>`;
-                        rowClass = 'hover-row-red';
-                        opacityInputs = 'opacity: 0.5; filter: grayscale(1); cursor: not-allowed;';
-                    } else if (status === 'realocado') {
-                        statusBadge = `<span style="background-color: #fffbeb; color: #d97706; border: 1px solid #fef3c7; font-size: 0.5625rem; padding: 0 0.5rem; border-radius: 0.25rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.1em; margin-left: 0.5rem;">Realocado</span>`;
-                        rowClass = 'hover-row-amber';
-                        opacityInputs = 'opacity: 0.5; filter: grayscale(1); cursor: not-allowed;';
+                <!-- ÁREA DE CONTEÚDO DA SUB-ABA -->
+                <div id="turma-aba-content" class="fade-in">
+                    ${this.subAbaAtiva === 'notas' 
+                        ? this._renderConteudoNotas(turma, turmaId, numPeriodos, tipoConfig, statsPeriodo, statsGeral, gradientPeriodo, gradientGeral, avaliacoesFiltradas)
+                        : '<div id="turma-mapa-embutido-slot"></div>'
                     }
-                    const somaPeriodo = avaliacoesFiltradas.reduce((acc, av) => acc + (Number(aluno.notas?.[av.id]) || 0), 0);
-                    const freq = this._calcularFrequencia(aluno);
-                    const totalDistribuido = avaliacoesFiltradas.reduce((acc, av) => acc + Number(av.max), 0);
-                    const mediaPerc = totalDistribuido > 0 ? (somaPeriodo / totalDistribuido) * 100 : 100;
-
-                    const riscoFrequencia = freq < 75;
-                    const riscoNota = totalDistribuido > 0 && mediaPerc < 60;
-
-                    let alertaHtml = '';
-                    if ((riscoFrequencia || riscoNota) && status === 'cursando') {
-                        const motivos = [];
-                        if (riscoFrequencia) motivos.push(`Freq: ${freq.toFixed(0)}%`);
-                        if (riscoNota) motivos.push('Nota Baixa');
-                        alertaHtml = `<div style="font-size: 0.625rem; font-weight: 700; color: #ef4444; background-color: #fef2f2; padding: 0.25rem 0.5rem; border-radius: 0.25rem; border: 1px solid #fee2e2; margin-top: 0.5rem; width: fit-content; display: flex; align-items: center; gap: 0.25rem;" title="Alerta de Risco Preventivo"><i class="fas fa-exclamation-circle"></i> ${motivos.join(', ')}</div>`;
-                    }
-                    return `
-                                            <tr class="${rowClass}" style="border-bottom: 1px solid var(--color-slate-100);">
-                                                <td style="padding: var(--spacing-4); font-size: 0.75rem; font-weight: 700; color: var(--color-slate-400); text-align: center;">${window.escapeHTML(String(chamada))}</td>
-                                                <td style="padding: var(--spacing-4);">
-                                                    <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 0.25rem;">
-                                                        <div style="font-weight: 700; font-size: 0.875rem; ${status === 'cursando' ? 'color: var(--color-slate-700);' : 'color: var(--color-slate-500); text-decoration: line-through;'}">${window.escapeHTML((aluno.nome || '').toUpperCase())}</div>
-                                                        ${statusBadge}
-                                                    </div>
-                                                    ${matricula ? `<div style="font-size: 0.625rem; color: var(--color-slate-400); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 0.25rem;">MAT: ${window.escapeHTML(matricula)}</div>` : ''}
-                                                    ${alertaHtml}
-                                                </td>
-                                                
-                                                ${avaliacoesFiltradas.map(av => {
-                        const nota = aluno.notas && aluno.notas[av.id] !== undefined ? aluno.notas[av.id] : '';
-                        return `
-                                                        <td style="padding: var(--spacing-2); text-align: center;">
-                                                            <input type="text" 
-                                                                    inputmode="decimal"
-                                                                    autocomplete="off"
-                                                                    spellcheck="false"
-                                                                    ${status !== 'cursando' ? 'disabled title="Aluno inativo"' : ''}
-                                                                    value="${nota !== '' && nota !== null && nota !== undefined ? String(nota).replace(',', '.') : ''}" 
-                                                                    placeholder="-"
-                                                                    data-action="update-nota-aluno"
-                                                                    data-turma="${turmaId}"
-                                                                    data-aluno="${aluno.id}"
-                                                                    data-av="${av.id}"
-                                                                    class="input-notas" style="width: 4rem; text-align: center; background-color: var(--color-white); border: 1px solid var(--color-slate-200); border-radius: var(--radius-lg); padding: 0.375rem 0; font-size: 0.8875rem; font-weight: 700; color: var(--color-slate-700); transition: all var(--transition-fast); outline: none; ${opacityInputs}">
-                                                        </td>
-                                                    `;
-                    }).join('')}
-                                                
-                                                <!-- SOMA DO PERÍODO FIXADA E DISPONÍVEL O TEMPO TODO -->
-                                                <td style="padding: var(--spacing-2); text-align: center; border-left: 1px solid var(--color-slate-100); background-color: rgba(248, 250, 252, 0.5);">
-                                                    <div id="soma-${aluno.id}" style="width: 3.5rem; margin: 0 auto; padding: 0.25rem 0; border-radius: var(--radius-lg); font-weight: 900; font-size: 0.875rem; transition: all 0.3s; ${status === 'cursando' ? 'color: var(--color-primary);' : 'color: var(--color-slate-400);'}">
-                                                        ${somaPeriodo.toFixed(1)}
-                                                    </div>
-                                                </td>
-
-                                                <!-- MENU DROPDOWN DE AÇÕES DO ALUNO -->
-                                                <td style="padding: var(--spacing-2); text-align: center;">
-                                                    <div class="planner-table-dropdown">
-                                                        <button type="button" data-action="toggle-aluno-menu" class="btn-secondary" style="padding: 0.25rem 0.55rem; font-size: 0.75rem; font-weight: 700; border-radius: 0.5rem; display: inline-flex; align-items: center; gap: 0.25rem;">
-                                                            <i class="fas fa-ellipsis-h"></i> Ações
-                                                        </button>
-                                                        <div class="planner-table-dropdown-menu">
-                                                            <button type="button" data-action="registrar-ocorrencia" data-turma="${turmaId}" data-aluno="${aluno.id}" class="planner-table-dropdown-item"><i class="fas fa-exclamation-triangle" style="color: #f59e0b; width: 1rem;"></i> Ocorrência</button>
-                                                            <button type="button" data-action="dossie-comportamental" data-turma="${turmaId}" data-aluno="${aluno.id}" class="planner-table-dropdown-item"><i class="fas fa-stream" style="color: #8b5cf6; width: 1rem;"></i> Dossiê</button>
-                                                            <button type="button" data-action="ficha-individual" data-turma="${turmaId}" data-aluno="${aluno.id}" class="planner-table-dropdown-item"><i class="fas fa-file-invoice" style="color: #10b981; width: 1rem;"></i> Ficha Individual</button>
-                                                            <div style="height: 1px; background: #e2e8f0; margin: 0.25rem 0;"></div>
-                                                            <button type="button" data-action="editar-aluno" data-turma="${turmaId}" data-aluno="${aluno.id}" class="planner-table-dropdown-item"><i class="fas fa-edit" style="color: #3b82f6; width: 1rem;"></i> Editar Aluno</button>
-                                                            <button type="button" data-action="delete-aluno" data-turma="${turmaId}" data-aluno="${aluno.id}" class="planner-table-dropdown-item text-danger"><i class="fas fa-trash-alt" style="color: #ef4444; width: 1rem;"></i> Excluir Aluno</button>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        `;
-                }).join('')
-            }
-                            </tbody>
-                        </table>
-                    </div>
-                    <div style="padding: var(--spacing-4); background-color: var(--color-slate-50); border-top: 1px solid var(--color-slate-200); display: flex; justify-content: flex-end;">
-                         <button type="button" data-action="open-add-aluno-lote" data-id="${turmaId}" style="font-size: 0.75rem; font-weight: 700; color: var(--color-primary); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='#1d4ed8'" onmouseout="this.style.color='var(--color-primary)'">
-                            <i class="fas fa-file-import" style="margin-right: 0.25rem;"></i> Importar Lista
-                         </button>
-                    </div>
                 </div>
             </div>
         `;
 
         container.innerHTML = html;
+        uiController.initAllDropdowns(container);
+
+        if (this.subAbaAtiva === 'mapa') {
+            const mapSlot = document.getElementById('turma-mapa-embutido-slot');
+            if (mapSlot && typeof salaView?.render === 'function') {
+                salaView.render(mapSlot, turmaId, { embutido: true });
+            }
+        }
 
         // Fecha menus de ações ao clicar em qualquer lugar da tela
         document.addEventListener('click', () => {
@@ -445,6 +265,14 @@ export const turmasView = {
             'nav-turmas': () => controller.navigate('turmas'),
             'nav-notas-anuais': () => controller.navigate('notas-anuais'),
             'open-add-turma': () => controller.openAddTurma(),
+            'mudar-subaba-turma': (e, target) => {
+                const subaba = target.getAttribute('data-subaba');
+                const id = target.getAttribute('data-id') || turmaId;
+                if (subaba && subaba !== this.subAbaAtiva) {
+                    this.subAbaAtiva = subaba;
+                    this.renderDetalhesTurma(container, id);
+                }
+            },
             'exportar-turma-tsv': (e, target) => {
                 const id = target.getAttribute('data-id');
                 if (id) this.exportarNotasTurmaTSV(id);
@@ -462,11 +290,9 @@ export const turmasView = {
                 if (id) this.iniciarExclusao(id);
             },
             'ver-mapa-turma': (e, target) => {
-                const id = target.getAttribute('data-id');
-                if (id) {
-                    if (window.salaView) window.salaView.currentTurmaId = id;
-                    controller.navigate('mapa');
-                }
+                const id = target.getAttribute('data-id') || turmaId;
+                this.subAbaAtiva = 'mapa';
+                this.renderDetalhesTurma(container, id);
             },
             'replicar-avaliacao': (e, target) => {
                 const id = target.getAttribute('data-id');
@@ -669,6 +495,230 @@ export const turmasView = {
         this.periodoAtivo = num;
         this.renderDetalhesTurma('view-container', turmaId);
     },
+    _renderConteudoNotas(turma, turmaId, numPeriodos, tipoConfig, statsPeriodo, statsGeral, gradientPeriodo, gradientGeral, avaliacoesFiltradas) {
+        return `
+            <div style="display: flex; align-items: center; gap: var(--spacing-2); margin-bottom: var(--spacing-6); padding: var(--spacing-1); background-color: var(--color-slate-100); border-radius: var(--radius-2xl); width: fit-content; border: 1px solid var(--color-slate-200); overflow-x: auto;">
+                ${Array.from({ length: numPeriodos }, (_, i) => `
+                    <button type="button" data-action="mudar-periodo-turma" data-id="${turmaId}" data-periodo="${i + 1}"
+                             style="padding: 0.5rem 1.5rem; border-radius: var(--radius-xl); font-size: 0.75rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.1em; transition: all var(--transition-fast); cursor: pointer; border: none; white-space: nowrap; ${this.periodoAtivo === (i + 1) ? 'background-color: var(--color-white); color: var(--color-primary); box-shadow: var(--shadow-sm);' : 'background-color: transparent; color: var(--color-slate-500);'}"
+                             onmouseover="if(${this.periodoAtivo !== (i + 1)}) this.style.color='var(--color-slate-700)'"
+                             onmouseout="if(${this.periodoAtivo !== (i + 1)}) this.style.color='var(--color-slate-500)'">
+                        ${i + 1}º ${tipoConfig.slice(0, 3)}
+                    </button>
+                `).join('')}
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--spacing-6); margin-bottom: var(--spacing-8);">
+                <!-- ESTATÍSTICA DO PERÍODO -->
+                <div class="card" style="padding: var(--spacing-6); position: relative; overflow: hidden;">
+                    <h3 style="font-size: 0.875rem; font-weight: 800; color: var(--color-primary); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--spacing-4); border-bottom: 1px solid rgba(var(--color-primary-rgb), 0.1); padding-bottom: var(--spacing-2);">
+                        <i class="fas fa-chart-pie" style="margin-right: 0.5rem;"></i> Desempenho: ${this.periodoAtivo}º Período
+                    </h3>
+                    <div style="display: flex; flex-direction: row; align-items: center; gap: var(--spacing-6); flex-wrap: wrap;">
+                        <div style="position: relative; flex-shrink: 0;">
+                            <div id="grafico-rosca" class="chart-donut" style="${gradientPeriodo}"></div>
+                            <div class="chart-center-text">
+                                <span id="media-rosca" style="font-size: 1.75rem; font-weight: 900; color: var(--color-slate-800); line-height: 1;">${statsPeriodo.mediaGeral}</span>
+                                <span style="font-size: 0.625rem; font-weight: 800; color: var(--color-slate-400); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.125rem;">Média</span>
+                            </div>
+                        </div>
+                        <div style="flex: 1; width: 100%;">
+                            <div id="legenda-rosca" style="display: grid; grid-template-columns: 1fr 1fr; row-gap: var(--spacing-3); column-gap: var(--spacing-4);">
+                                ${this._renderLegenda(statsPeriodo)}
+                            </div>
+                            ${statsPeriodo.distribuicao.vermelho > 0 || statsPeriodo.distribuicao.laranja > 0 ? `
+                                <div style="margin-top: var(--spacing-4); background-color: #fff7ed; border: 1px solid #ffedd5; padding: var(--spacing-3); border-radius: var(--radius-xl); display: flex; align-items: flex-start; gap: var(--spacing-3);">
+                                    <i class="fas fa-exclamation-triangle" style="color: #f97316; margin-top: 0.125rem;"></i>
+                                    <div>
+                                        <p style="font-size: 0.75rem; font-weight: 700; color: #c2410c;">Atenção no Período</p>
+                                        <p style="font-size: 0.625rem; color: #ea580c; line-height: 1.625;">
+                                            Há <strong>${statsPeriodo.distribuicao.vermelho + statsPeriodo.distribuicao.laranja} alunos</strong> abaixo de 5,0.
+                                        </p>
+                                    </div>
+                                </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+                <!-- ESTATÍSTICA GERAL -->
+                <div class="card" style="padding: var(--spacing-6); position: relative; overflow: hidden;">
+                    <h3 style="font-size: 0.875rem; font-weight: 800; color: var(--color-slate-500); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: var(--spacing-4); border-bottom: 1px solid var(--color-slate-100); padding-bottom: var(--spacing-2);">
+                        <i class="fas fa-globe" style="margin-right: 0.5rem;"></i> Desempenho Geral (Ano Letivo)
+                    </h3>
+                    <div style="display: flex; flex-direction: row; align-items: center; gap: var(--spacing-6); flex-wrap: wrap;">
+                        <div style="position: relative; flex-shrink: 0;">
+                            <div id="grafico-rosca-geral" class="chart-donut" style="${gradientGeral}"></div>
+                            <div class="chart-center-text">
+                                <span id="media-rosca-geral" style="font-size: 1.75rem; font-weight: 900; color: var(--color-slate-800); line-height: 1;">${statsGeral.mediaGeral}</span>
+                                <span style="font-size: 0.625rem; font-weight: 800; color: var(--color-slate-400); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.125rem;">Média</span>
+                            </div>
+                        </div>
+                        <div style="flex: 1; width: 100%;">
+                            <div id="legenda-rosca-geral" style="display: grid; grid-template-columns: 1fr 1fr; row-gap: var(--spacing-3); column-gap: var(--spacing-4);">
+                                ${this._renderLegenda(statsGeral)}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div style="background-color: var(--color-white); border-radius: var(--radius-2xl); box-shadow: var(--shadow-sm); border: 1px solid var(--color-slate-200); overflow: hidden;">
+                <div style="padding: var(--spacing-4); background-color: var(--color-slate-50); border-bottom: 1px solid var(--color-slate-200); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                    <div>
+                        <h3 style="font-weight: 700; color: var(--color-slate-700); font-size: 0.875rem; margin: 0;">Diário de Notas - ${this.periodoAtivo}º Período</h3>
+                        <span style="font-size: 0.6875rem; color: var(--color-slate-400); text-transform: uppercase; font-weight: 700; letter-spacing: -0.05em;">Calculado base 10</span>
+                    </div>
+                    
+                    <!-- SELETOR DE ORDENAÇÃO (SORTER) -->
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted); display: flex; align-items: center; gap: 0.25rem;">
+                            <i class="fas fa-sort-amount-down"></i> Ordenar:
+                        </label>
+                        <select data-action="mudar-ordenacao-select" data-id="${turmaId}" class="form-input" style="padding: 0.35rem 0.625rem; font-size: 0.75rem; width: auto; border-radius: var(--radius-lg); background: var(--bg-surface); font-weight: 600;">
+                            <option value="chamada_asc" ${this.criterioOrdenacao === 'chamada_asc' ? 'selected' : ''}>Nº Chamada (1, 2, 3...)</option>
+                            <option value="chamada_desc" ${this.criterioOrdenacao === 'chamada_desc' ? 'selected' : ''}>Nº Chamada Inverso</option>
+                            <option value="nome_asc" ${this.criterioOrdenacao === 'nome_asc' ? 'selected' : ''}>Nome (A - Z)</option>
+                            <option value="nome_desc" ${this.criterioOrdenacao === 'nome_desc' ? 'selected' : ''}>Nome (Z - A)</option>
+                            <option value="matricula_asc" ${this.criterioOrdenacao === 'matricula_asc' ? 'selected' : ''}>Matrícula / ID</option>
+                            <option value="status_nome" ${this.criterioOrdenacao === 'status_nome' ? 'selected' : ''}>Situação + Nome (Ativos 1º)</option>
+                        </select>
+                    </div>
+                </div>
+                <div style="overflow-x: auto;">
+                    <table style="width: 100%; text-align: left; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background-color: rgba(248, 250, 252, 0.5);">
+                                <th data-action="toggle-ordenacao-chamada" data-id="${turmaId}" style="padding: var(--spacing-4); font-size: 0.75rem; font-weight: 700; color: var(--color-slate-500); text-transform: uppercase; width: 3.5rem; cursor: pointer;" title="Clique para inverter ordem da chamada">
+                                    # <i class="fas fa-sort" style="font-size: 0.625rem; opacity: 0.5;"></i>
+                                </th>
+                                <th data-action="toggle-ordenacao-nome" data-id="${turmaId}" style="padding: var(--spacing-4); font-size: 0.75rem; font-weight: 700; color: var(--color-slate-500); text-transform: uppercase; min-width: 200px; cursor: pointer;" title="Clique para ordenar alfabeticamente">
+                                    Nome do Aluno <i class="fas fa-sort" style="font-size: 0.625rem; opacity: 0.5;"></i>
+                                </th>
+                                ${avaliacoesFiltradas.map(av => `
+                                    <th style="padding: var(--spacing-2); text-align: center; min-width: 110px; position: relative;" class="hover-group">
+                                        <div style="display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                            <span style="font-size: 0.625rem; font-weight: 700; color: var(--color-slate-400); text-transform: uppercase; letter-spacing: 0.05em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 85px;" title="${window.escapeHTML(av.nome)}">${window.escapeHTML(av.nome)}</span>
+                                            <div style="display: flex; align-items: center; gap: 0.25rem; margin-top: 0.125rem;">
+                                                <span style="font-size: 0.5625rem; color: var(--color-slate-400); background-color: var(--color-slate-100); padding: 0 0.375rem; border-radius: 0.25rem;">${av.periodo || 1}º Per.</span>
+                                                <span style="font-size: 0.5625rem; color: var(--color-slate-300);">Max: ${av.max}</span>
+                                            </div>
+                                            <button type="button" data-action="batch-fill-avaliacao" data-turma="${turmaId}" data-av="${av.id}" data-max="${av.max}" data-nome="${window.escapeHTML(av.nome)}" style="font-size: 0.625rem; font-weight: 700; color: var(--color-primary); background: none; border: none; cursor: pointer; margin-top: 0.25rem; display: inline-flex; align-items: center; gap: 0.25rem; transition: color var(--transition-fast);" title="Preencher nota em lote para estudantes desta avaliação">
+                                                <i class="fas fa-fill-drip"></i> Lote
+                                            </button>
+                                        </div>
+                                        <button type="button" data-action="delete-avaliacao" data-turma="${turmaId}" data-av="${av.id}" style="position: absolute; top: 0.25rem; right: 0.25rem; color: var(--color-slate-300); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" class="hover-show" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--color-slate-300)'" title="Excluir Avaliação">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </th>
+                                `).join('')}
+                                <th style="padding: var(--spacing-4); font-size: 0.75rem; font-weight: 700; color: var(--color-slate-500); text-transform: uppercase; text-align: center; width: 6rem; background-color: var(--color-slate-50); border-left: 1px solid var(--color-slate-100);">Soma Per.</th>
+                                <th style="padding: var(--spacing-4); width: 6rem; text-align: center;">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody style="border-top: 1px solid var(--color-slate-100);">
+                            ${turma.alunos.length === 0
+            ? '<tr><td colspan="100%" style="padding: 2rem; text-align: center; color: var(--color-slate-400); font-size: 0.875rem;">Nenhum aluno cadastrado.</td></tr>'
+            : (window.ordenarEstudantes ? window.ordenarEstudantes(turma.alunos, this.criterioOrdenacao) : turma.alunos).map((aluno, idx) => {
+
+                const status = aluno.status || 'cursando';
+                const chamada = aluno.chamada || (idx + 1);
+                const matricula = aluno.matricula || '';
+                let statusBadge = '';
+                let opacityInputs = '';
+                let rowClass = 'hover-row-default';
+                if (status === 'transferido') {
+                    statusBadge = `<span style="background-color: #fef2f2; color: #dc2626; border: 1px solid #fee2e2; font-size: 0.5625rem; padding: 0 0.5rem; border-radius: 0.25rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.1em; margin-left: 0.5rem;">Transferido</span>`;
+                    rowClass = 'hover-row-red';
+                    opacityInputs = 'opacity: 0.5; filter: grayscale(1); cursor: not-allowed;';
+                } else if (status === 'realocado') {
+                    statusBadge = `<span style="background-color: #fffbeb; color: #d97706; border: 1px solid #fef3c7; font-size: 0.5625rem; padding: 0 0.5rem; border-radius: 0.25rem; text-transform: uppercase; font-weight: 700; letter-spacing: 0.1em; margin-left: 0.5rem;">Realocado</span>`;
+                    rowClass = 'hover-row-amber';
+                    opacityInputs = 'opacity: 0.5; filter: grayscale(1); cursor: not-allowed;';
+                }
+                const somaPeriodo = avaliacoesFiltradas.reduce((acc, av) => acc + (Number(aluno.notas?.[av.id]) || 0), 0);
+                const freq = this._calcularFrequencia(aluno);
+                const totalDistribuido = avaliacoesFiltradas.reduce((acc, av) => acc + Number(av.max), 0);
+                const mediaPerc = totalDistribuido > 0 ? (somaPeriodo / totalDistribuido) * 100 : 100;
+
+                const riscoFrequencia = freq < 75;
+                const riscoNota = totalDistribuido > 0 && mediaPerc < 60;
+
+                let alertaHtml = '';
+                if ((riscoFrequencia || riscoNota) && status === 'cursando') {
+                    const motivos = [];
+                    if (riscoFrequencia) motivos.push(`Freq: ${freq.toFixed(0)}%`);
+                    if (riscoNota) motivos.push('Nota Baixa');
+                    alertaHtml = `<div style="font-size: 0.625rem; font-weight: 700; color: #ef4444; background-color: #fef2f2; padding: 0.25rem 0.5rem; border-radius: 0.25rem; border: 1px solid #fee2e2; margin-top: 0.5rem; width: fit-content; display: flex; align-items: center; gap: 0.25rem;" title="Alerta de Risco Preventivo"><i class="fas fa-exclamation-circle"></i> ${motivos.join(', ')}</div>`;
+                }
+                return `
+                    <tr class="${rowClass}" style="border-bottom: 1px solid var(--color-slate-100);">
+                        <td style="padding: var(--spacing-4); font-size: 0.75rem; font-weight: 700; color: var(--color-slate-400); text-align: center;">${window.escapeHTML(String(chamada))}</td>
+                        <td style="padding: var(--spacing-4);">
+                            <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 0.25rem;">
+                                <div style="font-weight: 700; font-size: 0.875rem; ${status === 'cursando' ? 'color: var(--color-slate-700);' : 'color: var(--color-slate-500); text-decoration: line-through;'}">${window.escapeHTML((aluno.nome || '').toUpperCase())}</div>
+                                ${statusBadge}
+                            </div>
+                            ${matricula ? `<div style="font-size: 0.625rem; color: var(--color-slate-400); font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; margin-top: 0.25rem;">MAT: ${window.escapeHTML(matricula)}</div>` : ''}
+                            ${alertaHtml}
+                        </td>
+                        
+                        ${avaliacoesFiltradas.map(av => {
+                            const nota = aluno.notas && aluno.notas[av.id] !== undefined ? aluno.notas[av.id] : '';
+                            return `
+                                <td style="padding: var(--spacing-2); text-align: center;">
+                                    <input type="text" 
+                                            inputmode="decimal"
+                                            autocomplete="off"
+                                            spellcheck="false"
+                                            ${status !== 'cursando' ? 'disabled title="Aluno inativo"' : ''}
+                                            value="${nota !== '' && nota !== null && nota !== undefined ? String(nota).replace(',', '.') : ''}" 
+                                            placeholder="-"
+                                            data-action="update-nota-aluno"
+                                            data-turma="${turmaId}"
+                                            data-aluno="${aluno.id}"
+                                            data-av="${av.id}"
+                                            class="input-notas" style="width: 4rem; text-align: center; background-color: var(--color-white); border: 1px solid var(--color-slate-200); border-radius: var(--radius-lg); padding: 0.375rem 0; font-size: 0.8875rem; font-weight: 700; color: var(--color-slate-700); transition: all var(--transition-fast); outline: none; ${opacityInputs}">
+                                </td>
+                            `;
+                        }).join('')}
+                        
+                        <!-- SOMA DO PERÍODO FIXADA E DISPONÍVEL O TEMPO TODO -->
+                        <td style="padding: var(--spacing-2); text-align: center; border-left: 1px solid var(--color-slate-100); background-color: rgba(248, 250, 252, 0.5);">
+                            <div id="soma-${aluno.id}" style="width: 3.5rem; margin: 0 auto; padding: 0.25rem 0; border-radius: var(--radius-lg); font-weight: 900; font-size: 0.875rem; transition: all 0.3s; ${status === 'cursando' ? 'color: var(--color-primary);' : 'color: var(--color-slate-400);'}">
+                                ${somaPeriodo.toFixed(1)}
+                            </div>
+                        </td>
+
+                        <!-- MENU DROPDOWN DE AÇÕES DO ALUNO -->
+                        <td style="padding: var(--spacing-2); text-align: center;">
+                            <div class="planner-table-dropdown">
+                                <button type="button" data-action="toggle-aluno-menu" class="btn-secondary" style="padding: 0.25rem 0.55rem; font-size: 0.75rem; font-weight: 700; border-radius: 0.5rem; display: inline-flex; align-items: center; gap: 0.25rem;">
+                                    <i class="fas fa-ellipsis-h"></i> Ações
+                                </button>
+                                <div class="planner-table-dropdown-menu">
+                                    <button type="button" data-action="registrar-ocorrencia" data-turma="${turmaId}" data-aluno="${aluno.id}" class="planner-table-dropdown-item"><i class="fas fa-exclamation-triangle" style="color: #f59e0b; width: 1rem;"></i> Ocorrência</button>
+                                    <button type="button" data-action="dossie-comportamental" data-turma="${turmaId}" data-aluno="${aluno.id}" class="planner-table-dropdown-item"><i class="fas fa-stream" style="color: #8b5cf6; width: 1rem;"></i> Dossiê</button>
+                                    <button type="button" data-action="ficha-individual" data-turma="${turmaId}" data-aluno="${aluno.id}" class="planner-table-dropdown-item"><i class="fas fa-file-invoice" style="color: #10b981; width: 1rem;"></i> Ficha Individual</button>
+                                    <div style="height: 1px; background: #e2e8f0; margin: 0.25rem 0;"></div>
+                                    <button type="button" data-action="editar-aluno" data-turma="${turmaId}" data-aluno="${aluno.id}" class="planner-table-dropdown-item"><i class="fas fa-edit" style="color: #3b82f6; width: 1rem;"></i> Editar Aluno</button>
+                                    <button type="button" data-action="delete-aluno" data-turma="${turmaId}" data-aluno="${aluno.id}" class="planner-table-dropdown-item text-danger"><i class="fas fa-trash-alt" style="color: #ef4444; width: 1rem;"></i> Excluir Aluno</button>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('')
+        }
+                        </tbody>
+                    </table>
+                </div>
+                <div style="padding: var(--spacing-4); background-color: var(--color-slate-50); border-top: 1px solid var(--color-slate-200); display: flex; justify-content: flex-end;">
+                     <button type="button" data-action="open-add-aluno-lote" data-id="${turmaId}" style="font-size: 0.75rem; font-weight: 700; color: var(--color-primary); background: none; border: none; cursor: pointer; transition: color var(--transition-fast);" onmouseover="this.style.color='#1d4ed8'" onmouseout="this.style.color='var(--color-primary)'">
+                        <i class="fas fa-file-import" style="margin-right: 0.25rem;"></i> Importar Lista
+                     </button>
+                </div>
+            </div>
+        `;
+    },
+
     _calcularMediaAluno(aluno, avaliacoes) {
         if (!aluno.notas || avaliacoes.length === 0) return null;
         let totalPontos = 0;

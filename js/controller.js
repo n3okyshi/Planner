@@ -105,8 +105,17 @@ const controllerCore = {
                 const wrapper = document.createElement('div');
                 wrapper.className = 'animate-enter w-full h-full';
                 if (view && view.render) {
-                    if (target === 'config') await view.render(wrapper, model.state.userConfig);
-                    else await view.render(wrapper);
+                    if (target === 'config') {
+                        await view.render(wrapper, model.state.userConfig);
+                    } else if (target === 'interatividades') {
+                        let aba = null;
+                        if (viewName === 'quiz-gestor' || viewName === 'quiz') aba = 'quiz';
+                        else if (viewName === 'simuladores' || viewName === 'simulacao') aba = 'simuladores';
+                        else if (['apresentacoes', 'slides', 'powerpoint', 'pptx'].includes(viewName)) aba = 'apresentacoes';
+                        await view.render(wrapper, aba);
+                    } else {
+                        await view.render(wrapper);
+                    }
                 }
                 container.appendChild(wrapper);
                 

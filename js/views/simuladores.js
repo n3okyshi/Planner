@@ -74,7 +74,12 @@ export const simuladoresView = {
 
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
+        if (!container) {
+            container = this._lastContainer || document.getElementById('interatividades-tab-content') || document.getElementById('view-container');
+        }
         if (!container) return;
+
+        this._lastContainer = container;
 
         if (typeof this._cleanupDelegators === 'function') {
             this._cleanupDelegators();

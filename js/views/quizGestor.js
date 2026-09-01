@@ -24,8 +24,12 @@ export const quizGestorView = {
 
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
+        if (!container) {
+            container = this._lastContainer || document.getElementById('interatividades-tab-content') || document.getElementById('view-container');
+        }
         if (!container) return;
 
+        this._lastContainer = container;
         this.destroy();
 
         const quizzes = model.state.quizzes || [];
@@ -96,7 +100,7 @@ export const quizGestorView = {
                     setTimeout(() => window.quizPlayerView?.start(id), 100);
                 }
             },
-            'voltar-render': () => this.render('view-container'),
+            'voltar-render': () => this.render(this._lastContainer || document.getElementById('interatividades-tab-content') || 'view-container'),
             'add-pergunta-multipla': () => this.adicionarPerguntaVazia('multipla'),
             'add-pergunta-lacuna': () => this.adicionarPerguntaVazia('lacuna'),
             'add-pergunta-identificacao': () => this.adicionarPerguntaVazia('identificacao'),
@@ -453,7 +457,7 @@ export const quizGestorView = {
             await model.saveQuiz(novoQuiz);
             controller.closeModal();
             Toast.show("Quiz gerado com sucesso!", "success");
-            this.render('view-container');
+            this.render(this._lastContainer || document.getElementById('interatividades-tab-content') || 'view-container');
         } catch (error) {
             console.error(error);
             Toast.show(error.message || "Erro ao gerar Quiz via IA.", "error");
@@ -471,7 +475,7 @@ export const quizGestorView = {
             perguntas: []
         };
         await model.saveQuiz(novoQuiz);
-        this.render('view-container');
+        this.render(this._lastContainer || document.getElementById('interatividades-tab-content') || 'view-container');
         this.editarQuiz(novoQuiz.id);
     },
 
@@ -479,7 +483,7 @@ export const quizGestorView = {
         const acao = async () => {
             await model.deleteQuiz(quizId);
             Toast.show("Quiz removido.", "info");
-            this.render('view-container');
+            this.render(this._lastContainer || document.getElementById('interatividades-tab-content') || 'view-container');
         };
         if (window.controller && typeof window.controller.confirmarAcao === 'function') {
             window.controller.confirmarAcao(
@@ -500,7 +504,7 @@ export const quizGestorView = {
     },
 
     renderEditor() {
-        const container = document.getElementById('view-container');
+        const container = this._lastContainer || document.getElementById('interatividades-tab-content') || document.getElementById('view-container');
         if (!container) return;
 
         const tiposLabels = {

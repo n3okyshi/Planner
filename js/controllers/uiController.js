@@ -136,11 +136,16 @@ export const uiController = {
         const mapId = {
             'periodo': 'planejamento',
             'dia': 'diario',
-            'mapa': 'sala',
+            'mapa': 'turmas',
             'frequencia': 'frequencia',
             'config': 'settings',
             'mensal': 'mensal',
-            'bimestralizacoes': 'bimestralizacao'
+            'bimestralizacoes': 'bimestralizacao',
+            'apresentacoes': 'interatividades',
+            'quiz-gestor': 'interatividades',
+            'quiz-player': 'interatividades',
+            'quiz-aluno': 'interatividades',
+            'simuladores': 'interatividades'
         };
         let activeBtn = document.getElementById(`nav-${viewName}`);
         if (!activeBtn && mapId[viewName]) {
@@ -159,10 +164,12 @@ export const uiController = {
             'periodo': 'Planejamento / Por Período',
             'dia': 'Planejamento / Diário',
             'turmas': 'Acadêmico / Turmas',
+            'interatividades': 'Interatividades Pedagógicas',
+            'apresentacoes': 'Interatividades / Apresentações Animadas',
             'bncc': 'Acadêmico / BNCC',
             'bimestralizacao': 'Acadêmico / Bimestralizações (Formosa)',
             'bimestralizacoes': 'Acadêmico / Bimestralizações (Formosa)',
-            'mapa': 'Acadêmico / Mapa de Sala',
+            'mapa': 'Acadêmico / Turmas / Mapa de Sala',
             'provas': 'Acadêmico / Gerador de Provas',
             'stats-provas': 'Acadêmico / Estatísticas de Avaliações',
             'frequencia': 'Acadêmico / Frequência',
@@ -170,10 +177,10 @@ export const uiController = {
             'biblioteca': 'Biblioteca de Materiais',
             'criar-material': 'Criador de Materiais IA',
             'conteudo-gerado': 'Material Pedagógico',
-            'quiz-gestor': 'Gestor de Quizzes',
+            'quiz-gestor': 'Interatividades / Gestor de Quizzes',
             'quiz-player': 'Apresentação de Quiz',
             'correcao': 'Correção Automática',
-            'simuladores': 'Simulações Interativas',
+            'simuladores': 'Interatividades / Simulações',
             'notas-anuais': 'Notas Anuais & Médias',
             'estatisticas': 'Analytics / Desempenho',
             'config': 'Configurações'
