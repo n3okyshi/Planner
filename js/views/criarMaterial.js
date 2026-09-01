@@ -920,22 +920,27 @@ export const criarMaterialView = {
         return `
             <div class="animate-enter">
                 <!-- BARRA DE GERENCIAMENTO DE PASTAS & BREADCRUMB -->
-                <div class="card" style="padding: 1rem 1.25rem; margin-bottom: 1.25rem; background: #ffffff; border-radius: var(--radius-xl); border: 1px solid var(--color-slate-200); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
-                    <!-- BREADCRUMB -->
-                    <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; font-size: 0.9375rem; font-weight: 700; color: #334155;">
-                        <button type="button" data-action="set-pasta-raiz" class="btn-secondary interactive-element" style="padding: 0.35rem 0.75rem; font-size: 0.8125rem; font-weight: 800; background-color: #f1f5f9; color: #475569;" title="Ir para a Raiz">
-                            <i class="fas fa-folder"></i> Meus Materiais (Raiz)
+                <div class="card" style="padding: 0.875rem 1rem; margin-bottom: 1.25rem; background: #ffffff; border-radius: var(--radius-xl); border: 1px solid var(--color-slate-200); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
+                    <!-- BREADCRUMB E NAVEGAÇÃO -->
+                    <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; font-size: 0.875rem; font-weight: 700; color: #334155; max-width: 100%; overflow-x: auto; padding-bottom: 0.2rem;">
+                        ${this.pastaAtualId ? `
+                            <button type="button" data-action="voltar-pasta-anterior" class="btn-secondary interactive-element" style="padding: 0.4rem 0.75rem; font-size: 0.8125rem; font-weight: 800; background-color: #f8fafc; color: #334155; border: 1px solid #cbd5e1; display: inline-flex; align-items: center; gap: 0.35rem;" title="Voltar nível">
+                                <i class="fas fa-arrow-left"></i> Voltar
+                            </button>
+                        ` : ''}
+                        <button type="button" data-action="set-pasta-raiz" class="btn-secondary interactive-element" style="padding: 0.4rem 0.75rem; font-size: 0.8125rem; font-weight: 800; background-color: ${!this.pastaAtualId ? '#eef2ff' : '#f8fafc'}; color: ${!this.pastaAtualId ? '#4f46e5' : '#475569'}; border: 1px solid ${!this.pastaAtualId ? '#c7d2fe' : '#e2e8f0'}; display: inline-flex; align-items: center; gap: 0.35rem;" title="Ir para a Raiz">
+                            <i class="fas fa-folder"></i> Raiz
                         </button>
                         ${cadeiaHierarquica.map((p, idx) => {
             const isUltimo = idx === cadeiaHierarquica.length - 1;
             return `
-                                <i class="fas fa-chevron-right" style="font-size: 0.75rem; color: #94a3b8;"></i>
+                                <i class="fas fa-chevron-right" style="font-size: 0.7rem; color: #94a3b8; flex-shrink: 0;"></i>
                                 ${isUltimo ? `
-                                    <span style="color: #4f46e5; font-weight: 800; background: #eef2ff; padding: 0.35rem 0.75rem; border-radius: var(--radius-lg); border: 1px solid #c7d2fe; display: inline-flex; align-items: center; gap: 0.35rem;">
+                                    <span style="color: #4f46e5; font-weight: 800; background: #eef2ff; padding: 0.4rem 0.75rem; border-radius: var(--radius-lg); border: 1px solid #c7d2fe; display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap;">
                                         <i class="fas fa-folder-open"></i> ${window.escapeHTML(p.nome)}
                                     </span>
                                 ` : `
-                                    <button type="button" data-action="set-pasta" data-pasta-id="${p.id}" class="btn-secondary interactive-element" style="padding: 0.35rem 0.75rem; font-size: 0.8125rem; font-weight: 800; background-color: #ffffff; color: #334155; border: 1px solid #cbd5e1; display: inline-flex; align-items: center; gap: 0.35rem;" title="Ir para ${window.escapeHTML(p.nome)}">
+                                    <button type="button" data-action="set-pasta" data-pasta-id="${p.id}" class="btn-secondary interactive-element" style="padding: 0.4rem 0.75rem; font-size: 0.8125rem; font-weight: 800; background-color: #ffffff; color: #334155; border: 1px solid #cbd5e1; display: inline-flex; align-items: center; gap: 0.35rem; white-space: nowrap;" title="Ir para ${window.escapeHTML(p.nome)}">
                                         <i class="fas fa-folder" style="color: #d97706;"></i> ${window.escapeHTML(p.nome)}
                                     </button>
                                 `}
@@ -944,11 +949,11 @@ export const criarMaterialView = {
                     </div>
 
                     <!-- AÇÕES DO TOPO: IMPORTAR ARQUIVO E NOVA PASTA -->
-                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                        <button type="button" data-action="modal-importar-material" class="btn-secondary interactive-element" style="padding: 0.45rem 1rem; font-size: 0.8125rem; background: #ffffff; border: 1.5px solid #c7d2fe; color: #4f46e5; font-weight: 800; display: inline-flex; align-items: center; gap: 0.4rem; box-shadow: var(--shadow-sm);" title="Importar arquivos Word (.docx, .doc), PDF ou TXT">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; width: auto;">
+                        <button type="button" data-action="modal-importar-material" class="btn-secondary interactive-element" style="padding: 0.45rem 0.875rem; font-size: 0.8125rem; background: #ffffff; border: 1.5px solid #c7d2fe; color: #4f46e5; font-weight: 800; display: inline-flex; align-items: center; gap: 0.4rem; box-shadow: var(--shadow-sm); min-height: 38px;" title="Importar arquivos Word (.docx, .doc), PDF ou TXT">
                             <i class="fas fa-file-import"></i> Importar Arquivo
                         </button>
-                        <button type="button" data-action="modal-criar-pasta" class="btn-primary interactive-element" style="padding: 0.45rem 1rem; font-size: 0.8125rem; background: linear-gradient(135deg, #059669, #047857); box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);">
+                        <button type="button" data-action="modal-criar-pasta" class="btn-primary interactive-element" style="padding: 0.45rem 1rem; font-size: 0.8125rem; background: linear-gradient(135deg, #059669, #047857); box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2); min-height: 38px; display: inline-flex; align-items: center; gap: 0.4rem;">
                             <i class="fas fa-folder-plus"></i> + Nova Pasta
                         </button>
                     </div>
@@ -956,22 +961,22 @@ export const criarMaterialView = {
 
                 <!-- GRID DE PASTAS LOCAIS -->
                 ${pastasNoNivel.length > 0 ? `
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem;">
                         ${pastasNoNivel.map(p => {
             const qtdItens = model.contarMateriaisPastaRecursivo ? model.contarMateriaisPastaRecursivo(p.id) : (model.state.materiaisGerados || []).filter(m => String(m.pastaId) === String(p.id) && !m.naLixeira).length;
             return `
-                                <div class="interactive-element" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius-xl); padding: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; transition: all 0.2s; cursor: pointer;"
+                                <div class="interactive-element" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius-xl); padding: 0.75rem 0.875rem; display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; transition: all 0.2s; cursor: pointer; min-height: 54px;"
                                      data-action="set-pasta" data-pasta-id="${p.id}">
-                                    <div style="display: flex; align-items: center; gap: 0.75rem; overflow: hidden;">
-                                        <div style="width: 2.5rem; height: 2.5rem; border-radius: 0.75rem; background-color: #fef3c7; color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 1.125rem; flex-shrink: 0;">
+                                    <div style="display: flex; align-items: center; gap: 0.625rem; overflow: hidden; flex: 1; min-width: 0;">
+                                        <div style="width: 2.25rem; height: 2.25rem; border-radius: 0.625rem; background-color: #fef3c7; color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0;">
                                             <i class="fas fa-folder"></i>
                                         </div>
-                                        <div style="overflow: hidden;">
-                                            <h5 style="font-size: 0.875rem; font-weight: 800; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0;">${window.escapeHTML(p.nome)}</h5>
-                                            <span style="font-size: 0.75rem; color: #64748b; font-weight: 600;">${qtdItens} itens</span>
+                                        <div style="overflow: hidden; flex: 1; min-width: 0;">
+                                            <h5 style="font-size: 0.8125rem; font-weight: 800; color: #1e293b; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 0;" title="${window.escapeHTML(p.nome)}">${window.escapeHTML(p.nome)}</h5>
+                                            <span style="font-size: 0.6875rem; color: #64748b; font-weight: 600;">${qtdItens} ${qtdItens === 1 ? 'item' : 'itens'}</span>
                                         </div>
                                     </div>
-                                    <button type="button" data-action="excluir-pasta" data-pasta-id="${p.id}" class="interactive-element" style="border: none; background: transparent; color: #94a3b8; padding: 0.25rem; cursor: pointer;" title="Excluir Pasta">
+                                    <button type="button" data-action="excluir-pasta" data-pasta-id="${p.id}" class="interactive-element" style="border: none; background: transparent; color: #94a3b8; padding: 0.35rem; cursor: pointer; border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center;" title="Excluir Pasta">
                                         <i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>
                                     </button>
                                 </div>
@@ -2342,6 +2347,11 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
             },
             'abrir-modal-criar-material': () => this.abrirModalCriarMaterial(),
             'set-pasta-raiz': () => this.setPastaAtual(null),
+            'voltar-pasta-anterior': () => {
+                const todasPastas = model.state.pastasMateriais || [];
+                const curr = todasPastas.find(p => String(p.id) === String(this.pastaAtualId));
+                this.setPastaAtual(curr ? curr.parentId : null);
+            },
             'set-pasta': (e, target) => {
                 const pId = target.getAttribute('data-pasta-id');
                 this.setPastaAtual(pId);

@@ -2028,7 +2028,7 @@ export const estudosVisuaisView = {
                 </div>
 
                 ${pastasNoNivel.length > 0 ? `
-                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 0.75rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--color-slate-200);">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 0.75rem; margin-top: 1rem; padding-top: 1rem; border-top: 1px dashed var(--color-slate-200);">
                         ${pastasNoNivel.map(p => {
                             const qtd = (model.state[colecaoNome] || []).filter(i => String(i.pastaId) === String(p.id) && !i.naLixeira).length;
                             return `

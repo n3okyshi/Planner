@@ -231,7 +231,7 @@ export const model = {
             return Array.from(map.values());
         };
 
-        const COLECOES_ARRAY = ['questoes', 'materiaisGerados', 'quizzes', 'flashcards', 'mindmaps', 'apresentacoes', 'pdis', 'pastasEstudos'];
+        const COLECOES_ARRAY = ['questoes', 'materiaisGerados', 'quizzes', 'flashcards', 'mindmaps', 'apresentacoes', 'pdis', 'pastasEstudos', 'pastasMateriais'];
         COLECOES_ARRAY.forEach(key => {
             merged[key] = mergeColecaoPorId(local[key] || [], cloud[key] || []);
         });
