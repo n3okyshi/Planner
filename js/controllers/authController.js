@@ -2,8 +2,11 @@
 import { firebaseService } from '../firebase-service.js';
 import { model } from '../model.js';
 import { Toast } from '../components/toast.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 
 export const authController = {
+    _cleanupAuthDelegator: null,
+
     monitorAuth() {
         if (!firebaseService) {
             console.error("❌ AuthController: Firebase Service não disponível.");
@@ -93,6 +96,11 @@ export const authController = {
         const container = document.getElementById('auth-container');
         if (!container) return;
 
+        if (typeof this._cleanupAuthDelegator === 'function') {
+            this._cleanupAuthDelegator();
+            this._cleanupAuthDelegator = null;
+        }
+
         const activeUser = user || model.currentUser || firebaseService?.auth?.currentUser;
 
         if (isLoggedIn && activeUser) {
@@ -101,8 +109,8 @@ export const authController = {
             const urlFoto = activeUser.photoURL || `https://ui-avatars.com/api/?name=${nomeEncodado}&background=0D8ABC&color=fff`;
 
             container.innerHTML = `
-                <div class="auth-card" onclick="controller.handleLogout()" title="Clique para encerrar a sessão">
-                    <img src="${window.escapeHTML(urlFoto)}" 
+                <div class="auth-card" data-action="auth-logout" title="Clique para encerrar a sessão" style="cursor: pointer;">
+                    <img src="${window.escapeHTML ? window.escapeHTML(urlFoto) : urlFoto}" 
                          class="auth-card__avatar"
                          referrerpolicy="no-referrer"
                          onerror="this.onerror=null;this.src='assets/icons/icon-192.png';"
@@ -113,7 +121,7 @@ export const authController = {
                             <i class="fas fa-circle"></i> Online
                         </p>
                         <p class="auth-card__name">
-                            ${window.escapeHTML(nomeSafe)}
+                            ${window.escapeHTML ? window.escapeHTML(nomeSafe) : nomeSafe}
                         </p>
                     </div>
                     
@@ -122,7 +130,7 @@ export const authController = {
             `;
         } else {
             container.innerHTML = `
-                <button onclick="controller.handleLogin()" class="btn-login" title="Conectar com sua conta Google">
+                <button type="button" data-action="auth-login" class="btn-login" title="Conectar com sua conta Google">
                     <div class="btn-login__icon-wrap">
                         <i class="fab fa-google btn-login__icon"></i>
                     </div>
@@ -130,6 +138,11 @@ export const authController = {
                 </button>
             `;
         }
+
+        this._cleanupAuthDelegator = EventDelegator.bind(container, {
+            'auth-login': () => this.handleLogin(),
+            'auth-logout': () => this.handleLogout()
+        }, 'click');
     },
 
     updateSidebarUserArea() {

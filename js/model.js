@@ -18,6 +18,36 @@ export const model = {
     state: initialState,
     _isHydrating: false,
     _isRemoteSyncing: false,
+    _bus: new EventTarget(),
+
+    /**
+     * Inscreve um ouvinte para um evento de estado/domínio
+     * @param {string} evento - Ex: 'turmas:changed', 'state:changed'
+     * @param {Function} callback - Recebe o detalhe do evento
+     * @param {Object} [options] - Opções de addEventListener (ex: { once: true, signal })
+     * @returns {Function} Função de cancelamento (unsubscribe)
+     */
+    on(evento, callback, options = {}) {
+        const handler = (e) => callback(e.detail);
+        this._bus.addEventListener(evento, handler, options);
+        return () => this._bus.removeEventListener(evento, handler, options);
+    },
+
+    /**
+     * Remove um ouvinte previamente registrado
+     */
+    off(evento, handler, options = {}) {
+        this._bus.removeEventListener(evento, handler, options);
+    },
+
+    /**
+     * Dispara um evento de domínio através do barramento nativo
+     * @param {string} evento 
+     * @param {any} [detalhe] 
+     */
+    emit(evento, detalhe = {}) {
+        this._bus.dispatchEvent(new CustomEvent(evento, { detail: detalhe }));
+    },
 
     init() {
         this._isHydrating = true;
@@ -42,6 +72,24 @@ export const model = {
             if (this._debouncedCloudSave) {
                 this._debouncedCloudSave();
             }
+
+            // Emite evento global de alteração de estado
+            this.emit('state:changed', { caminho, novoValor, valorAntigo });
+
+            // Emite eventos de domínio especializados baseados na raiz da mutação
+            if (caminho.startsWith('turmas')) {
+                this.emit('turmas:changed', { caminho, novoValor, valorAntigo });
+            } else if (caminho.startsWith('materiaisGerados')) {
+                this.emit('materiais:changed', { caminho, novoValor, valorAntigo });
+            } else if (caminho.startsWith('userConfig')) {
+                this.emit('config:changed', { caminho, novoValor, valorAntigo });
+            } else if (caminho.startsWith('planejamentos')) {
+                this.emit('planejamento:changed', { caminho, novoValor, valorAntigo });
+            } else if (caminho.startsWith('bancoQuestoes')) {
+                this.emit('questoes:changed', { caminho, novoValor, valorAntigo });
+            } else if (caminho.startsWith('apresentacoes')) {
+                this.emit('apresentacoes:changed', { caminho, novoValor, valorAntigo });
+            }
         });
 
         // Hidratação assíncrona profunda via IndexedDB (sem limite de 5MB)
@@ -55,6 +103,7 @@ export const model = {
                         }
                     });
                     console.log("⚡ IndexedDB totalmente sincronizado na memória.");
+                    this.emit('state:hydrated', { source: 'indexedDB' });
                 }
             }).catch(err => console.warn("Aviso IndexedDB hydration:", err))
                 .finally(() => {
@@ -72,7 +121,7 @@ export const model = {
         // 1. Configurações de Usuário
         merged.userConfig = { ...(local.userConfig || {}), ...(cloud.userConfig || {}) };
 
-        // 2. Turmas (Merge por ID e timestamp granular)
+        // 2. Turmas (Merge por ID e timestamp granular com subcoleções de alunos e avaliações)
         const turmasMap = new Map();
         (local.turmas || []).forEach(t => turmasMap.set(String(t.id), t));
         (cloud.turmas || []).forEach(ct => {
@@ -83,10 +132,47 @@ export const model = {
             } else {
                 const timeCloud = new Date(ct.updatedAt || ct.createdAt || 0).getTime();
                 const timeLocal = new Date(lt.updatedAt || lt.createdAt || 0).getTime();
-                if (timeCloud >= timeLocal) {
-                    // Mescla alunos e avaliações se existirem
-                    turmasMap.set(id, { ...lt, ...ct });
-                }
+                
+                // Mesclagem granular de alunos da turma por ID/número
+                const alunosMap = new Map();
+                (lt.alunos || []).forEach(a => alunosMap.set(String(a.id || a.numero), a));
+                (ct.alunos || []).forEach(ca => {
+                    const aid = String(ca.id || ca.numero);
+                    const la = alunosMap.get(aid);
+                    if (!la) {
+                        alunosMap.set(aid, ca);
+                    } else {
+                        const tC = new Date(ca.updatedAt || 0).getTime();
+                        const tL = new Date(la.updatedAt || 0).getTime();
+                        const mergedAluno = tC >= tL ? { ...la, ...ca } : { ...ca, ...la };
+                        // Deep merge das frequências diárias para blindar contra perda de presenças/faltas/justificativas
+                        mergedAluno.frequencia = {
+                            ...(la.frequencia || {}),
+                            ...(ca.frequencia || {})
+                        };
+                        alunosMap.set(aid, mergedAluno);
+                    }
+                });
+
+                // Mesclagem granular de avaliações da turma por ID
+                const avMap = new Map();
+                (lt.avaliacoes || []).forEach(av => avMap.set(String(av.id), av));
+                (ct.avaliacoes || []).forEach(cav => {
+                    const avid = String(cav.id);
+                    const lav = avMap.get(avid);
+                    if (!lav) {
+                        avMap.set(avid, cav);
+                    } else {
+                        const tC = new Date(cav.updatedAt || 0).getTime();
+                        const tL = new Date(lav.updatedAt || 0).getTime();
+                        avMap.set(avid, tC >= tL ? { ...lav, ...cav } : { ...cav, ...lav });
+                    }
+                });
+
+                const mergedTurma = timeCloud >= timeLocal ? { ...lt, ...ct } : { ...ct, ...lt };
+                mergedTurma.alunos = Array.from(alunosMap.values());
+                mergedTurma.avaliacoes = Array.from(avMap.values());
+                turmasMap.set(id, mergedTurma);
             }
         });
         merged.turmas = Array.from(turmasMap.values());
@@ -897,12 +983,8 @@ export const model = {
     },
 
     _atualizarViewsMaterial() {
-        const currView = window.controller?.currentView;
-        if (window.criarMaterialView && (currView === 'criar-material' || currView === 'materiais-comunidade' || currView === 'biblioteca')) {
-            window.criarMaterialView.render('view-container');
-        }
-        if (window.conteudoGeradoView && currView === 'conteudo-gerado') {
-            window.conteudoGeradoView.render('view-container');
+        if (typeof this.emit === 'function') {
+            this.emit('materiais:changed', { timestamp: Date.now() });
         }
     },
     ...turmaMethods,

@@ -7,14 +7,22 @@ import { Toast } from '../components/toast.js';
 export const coordenacaoView = {
     _cleanupDelegators: null,
 
-    render(container) {
-        if (typeof container === 'string') container = document.getElementById(container);
-        if (!container) return;
-
+    destroy() {
         if (typeof this._cleanupDelegators === 'function') {
             this._cleanupDelegators();
             this._cleanupDelegators = null;
         }
+    },
+
+    onLeave() {
+        this.destroy();
+    },
+
+    render(container) {
+        if (typeof container === 'string') container = document.getElementById(container);
+        if (!container) return;
+
+        this.destroy();
 
         const turmas = model.state.turmas || [];
         const planosDiarios = model.state.planosDiarios || {};
@@ -248,7 +256,7 @@ export const coordenacaoView = {
         }
 
         this._cleanupDelegators = EventDelegator.bind(container, {
-            'aprovar-plano': (el) => {
+            'aprovar-plano': (e, el) => {
                 const dataIso = el.dataset.data;
                 const turmaId = el.dataset.turma;
                 const parecerInput = document.getElementById(`parecer-${dataIso}-${turmaId}`);
@@ -258,7 +266,7 @@ export const coordenacaoView = {
                 Toast.show("Plano de aula APROVADO com sucesso!", "success");
                 this.render(container);
             },
-            'ressalva-plano': (el) => {
+            'ressalva-plano': (e, el) => {
                 const dataIso = el.dataset.data;
                 const turmaId = el.dataset.turma;
                 const parecerInput = document.getElementById(`parecer-${dataIso}-${turmaId}`);
@@ -296,16 +304,16 @@ export const coordenacaoView = {
         ];
 
         const modalHtml = `
-            <div style="display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0;">
+            <div id="modal-comunicados-root" style="display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0;">
                 <p style="font-size: 0.875rem; color: #475569; margin: 0;">
                     Selecione um modelo de comunicado oficial ou carta de recomendação para copiar para a área de transferência:
                 </p>
                 <div style="display: flex; flex-direction: column; gap: 0.875rem;">
-                    ${modelos.map(m => `
+                    ${modelos.map((m, idx) => `
                         <div style="background: #f8fafc; border: 1px solid #cbd5e1; padding: 1rem; border-radius: var(--radius-lg); display: flex; flex-direction: column; gap: 0.5rem;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <strong style="font-size: 0.875rem; color: #1e293b;">${window.escapeHTML(m.titulo)}</strong>
-                                <button type="button" onclick="navigator.clipboard.writeText('${m.texto.replace(/\n/g, '\\n').replace(/'/g, "\\'")}'); Toast.show('Comunicado copiado com sucesso!', 'success');" class="btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; font-weight: 700; background: #ffffff;">
+                                <button type="button" data-action="copiar-comunicado" data-index="${idx}" class="btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; font-weight: 700; background: #ffffff;">
                                     <i class="fas fa-copy"></i> Copiar Texto
                                 </button>
                             </div>
@@ -317,5 +325,21 @@ export const coordenacaoView = {
         `;
 
         controller.openModal('Central de Comunicados & Recomendação', modalHtml, 'large');
+
+        const modalEl = document.getElementById('modal-comunicados-root');
+        if (modalEl) {
+            modalEl.querySelectorAll('[data-action="copiar-comunicado"]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const idx = parseInt(e.currentTarget.getAttribute('data-index'), 10);
+                    const item = modelos[idx];
+                    if (item && navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(item.texto)
+                            .then(() => Toast.show('Comunicado copiado com sucesso!', 'success'))
+                            .catch(() => Toast.show('Falha ao copiar comunicado.', 'error'));
+                    }
+                });
+            });
+        }
     }
 };
+

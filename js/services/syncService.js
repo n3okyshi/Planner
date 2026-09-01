@@ -133,6 +133,9 @@ export const syncService = {
                     } else if (op.tipo === 'salvar_aluno' && op.turmaId && op.aluno) {
                         await firebaseService.saveAluno(uid, op.turmaId, op.aluno);
                         ok = true;
+                    } else if (op.tipo === 'salvar_frequencia' && op.turmaId && op.alunoId && op.frequenciaMap) {
+                        await firebaseService.saveFrequenciaAluno(uid, op.turmaId, op.alunoId, op.frequenciaMap);
+                        ok = true;
                     } else if (op.tipo === 'salvar_root' && op.dados) {
                         await firebaseService.saveRoot(uid, op.dados);
                         ok = true;
@@ -212,6 +215,9 @@ export const syncService = {
     },
     async persistAluno(uid, turmaId, aluno) {
         return this._executarComFallback('salvar_aluno', (u) => firebaseService.saveAluno(u, turmaId, aluno), { uid, turmaId, aluno });
+    },
+    async persistFrequenciaAluno(uid, turmaId, alunoId, frequenciaMap) {
+        return this._executarComFallback('salvar_frequencia', (u) => firebaseService.saveFrequenciaAluno(u, turmaId, alunoId, frequenciaMap), { uid, turmaId, alunoId, frequenciaMap });
     },
     async persistMaterialDoc(uid, material) {
         if (!uid || !firebaseService || !firebaseService.saveMaterialDoc) return;

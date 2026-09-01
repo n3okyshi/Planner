@@ -220,5 +220,16 @@ export const calendarioView = {
             const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
             el.innerHTML = `<i class="far fa-clock mr-2"></i>` + hoje.toLocaleDateString('pt-BR', options);
         }
+    },
+
+    destroy() {
+        if (typeof this._cleanupDelegator === 'function') {
+            this._cleanupDelegator();
+            this._cleanupDelegator = null;
+        }
+    },
+
+    onLeave() {
+        this.destroy();
     }
 };

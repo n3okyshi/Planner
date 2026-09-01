@@ -2,6 +2,7 @@ import { firebaseService } from '../firebase-service.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
 import { generateId } from '../utils.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 
 export const quizAlunoView = {
     pin: '',
@@ -13,11 +14,36 @@ export const quizAlunoView = {
     broadcastChannel: null,
     lastAnswerQuestionIndex: -1,
     tempoInicioQuestao: 0,
+    _cleanupDelegators: null,
     avataresDisponiveis: ['🦊', '🦁', '🚀', '🐼', '⚡', '🌟', '🦄', '🎯', '🐯', '🦉', '🎓', '🐲', '🐬', '🎨', '⚽', '🎸'],
+
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+        if (this.unsubscribe) {
+            this.unsubscribe();
+            this.unsubscribe = null;
+        }
+        if (this.broadcastChannel) {
+            this.broadcastChannel.close();
+            this.broadcastChannel = null;
+        }
+    },
+
+    onLeave() {
+        this.destroy();
+    },
 
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
 
         // Auto-preenchimento de PIN caso venha pela URL (#quiz-entrar?pin=123456)
         const hash = window.location.hash || '';
@@ -32,11 +58,12 @@ export const quizAlunoView = {
 
         // Se já está em uma sessão conectada, renderiza o estado atual do jogo
         if (this.sessaoData && this.pin) {
-            return this.renderEstadoJogo(container);
+            this.renderEstadoJogo(container);
+        } else {
+            this.renderTelaEntrada(container);
         }
 
-        // Caso contrário, tela de Entrada com PIN
-        this.renderTelaEntrada(container);
+        this._bindEventos(container);
     },
 
     renderTelaEntrada(container) {
@@ -56,7 +83,7 @@ export const quizAlunoView = {
                         </p>
                     </div>
 
-                    <form onsubmit="event.preventDefault(); quizAlunoView.conectarSessao();" style="display: flex; flex-direction: column; gap: var(--spacing-4);">
+                    <form id="form-conectar-aluno" style="display: flex; flex-direction: column; gap: var(--spacing-4);">
                         <div>
                             <label class="form-label" style="font-weight: 800; font-size: 0.8125rem;">PIN DO JOGO (6 DÍGITOS)</label>
                             <input type="text" id="aluno-pin-input" class="form-input" 
@@ -77,7 +104,7 @@ export const quizAlunoView = {
                             <label class="form-label" style="font-weight: 800; font-size: 0.8125rem;">ESCOLHA SEU AVATAR</label>
                             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; padding: 0.5rem; background-color: var(--color-slate-50); border-radius: var(--radius-xl); border: 1px solid var(--color-slate-200);">
                                 ${this.avataresDisponiveis.map(av => `
-                                    <button type="button" onclick="quizAlunoView.selecionarAvatar('${av}')" 
+                                    <button type="button" data-action="selecionar-avatar"
                                             class="avatar-select-btn interactive-element"
                                             data-avatar="${av}"
                                             style="width: 2.5rem; height: 2.5rem; border-radius: var(--radius-lg); font-size: 1.25rem; display: flex; align-items: center; justify-content: center; cursor: pointer; border: 2px solid ${this.avatar === av ? 'var(--color-primary)' : 'transparent'}; background-color: ${this.avatar === av ? '#eef2ff' : '#fff'}; transition: all 0.2s;">
@@ -96,6 +123,14 @@ export const quizAlunoView = {
         `;
 
         container.innerHTML = html;
+
+        const form = container.querySelector('#form-conectar-aluno');
+        if (form) {
+            form.addEventListener('submit', (e) => {
+                e.preventDefault();
+                this.conectarSessao();
+            });
+        }
     },
 
     selecionarAvatar(av) {
@@ -294,7 +329,7 @@ export const quizAlunoView = {
                             <span style="font-size: 0.6875rem; font-weight: 800; text-transform: uppercase; color: var(--color-slate-400);">Pontos</span>
                             <h4 style="font-size: 1rem; font-weight: 900; color: var(--color-primary);">${this.obterScoreAtual()}</h4>
                         </div>
-                        <button onclick="quizAlunoView.sairSessao()" class="btn-icon" style="color: var(--color-slate-400);" title="Sair da sala">
+                        <button type="button" data-action="sair-sessao" class="btn-icon" style="color: var(--color-slate-400);" title="Sair da sala">
                             <i class="fas fa-sign-out-alt"></i>
                         </button>
                     </div>
@@ -381,12 +416,12 @@ export const quizAlunoView = {
         if (tipo === 'verdadeiro_falso') {
             return `
                 <div style="display: grid; grid-template-columns: 1fr; gap: 1rem; width: 100%;">
-                    <button onclick="quizAlunoView.enviarResposta(0, true)" class="interactive-element"
+                    <button type="button" data-action="enviar-resposta-vf" data-index="0" data-vf="true" class="interactive-element"
                             style="background: linear-gradient(135deg, #059669, #10b981); border: none; border-radius: 1.5rem; padding: 2.5rem 1.5rem; color: white; font-size: 1.75rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 1rem; box-shadow: 0 10px 25px -5px rgba(16,185,129,0.5);">
                         <i class="fas fa-check-circle" style="font-size: 2.5rem;"></i>
                         <span>VERDADEIRO</span>
                     </button>
-                    <button onclick="quizAlunoView.enviarResposta(1, false)" class="interactive-element"
+                    <button type="button" data-action="enviar-resposta-vf" data-index="1" data-vf="false" class="interactive-element"
                             style="background: linear-gradient(135deg, #dc2626, #ef4444); border: none; border-radius: 1.5rem; padding: 2.5rem 1.5rem; color: white; font-size: 1.75rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 1rem; box-shadow: 0 10px 25px -5px rgba(239,68,68,0.5);">
                         <i class="fas fa-times-circle" style="font-size: 2.5rem;"></i>
                         <span>FALSO</span>
@@ -410,7 +445,7 @@ export const quizAlunoView = {
         return `
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; width: 100%;">
                 ${altsExibidas.map((btn) => `
-                    <button onclick="quizAlunoView.enviarResposta(${btn.index})" class="interactive-element"
+                    <button type="button" data-action="enviar-resposta-alt" data-index="${btn.index}" class="interactive-element"
                             style="background-color: ${btn.bg}; border: none; border-radius: 1.5rem; min-height: 140px; color: white; font-size: 2.5rem; font-weight: 900; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; box-shadow: 0 8px 20px rgba(0,0,0,0.15);">
                         <span>${btn.icon}</span>
                         <span style="font-size: 0.875rem; font-weight: 800; opacity: 0.85;">${btn.label}</span>
@@ -542,7 +577,7 @@ export const quizAlunoView = {
                     </div>
                 </div>
 
-                <button onclick="quizAlunoView.sairSessao()" class="btn-primary" style="padding: 0.875rem 2rem; border-radius: var(--radius-xl);">
+                <button type="button" data-action="sair-sessao" class="btn-primary" style="padding: 0.875rem 2rem; border-radius: var(--radius-xl);">
                     Voltar ao Início
                 </button>
             </div>
@@ -563,6 +598,31 @@ export const quizAlunoView = {
         this.lastAnswerQuestionIndex = -1;
         window.location.hash = '';
         controller.navigate('dashboard');
+    },
+
+    _bindEventos(container) {
+        if (!container) return;
+
+        const unbindClick = EventDelegator.bind(container, {
+            'selecionar-avatar': (e, target) => {
+                const av = target.getAttribute('data-avatar');
+                this.selecionarAvatar(av);
+            },
+            'sair-sessao': () => this.sairSessao(),
+            'enviar-resposta-vf': (e, target) => {
+                const idx = parseInt(target.getAttribute('data-index'), 10);
+                const vf = target.getAttribute('data-vf') === 'true';
+                this.enviarResposta(idx, vf);
+            },
+            'enviar-resposta-alt': (e, target) => {
+                const idx = parseInt(target.getAttribute('data-index'), 10);
+                this.enviarResposta(idx);
+            }
+        }, 'click');
+
+        this._cleanupDelegators = () => {
+            if (typeof unbindClick === 'function') unbindClick();
+        };
     }
 };
 

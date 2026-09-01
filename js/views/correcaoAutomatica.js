@@ -3,6 +3,7 @@ import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
 import { aiService } from '../ai-service.js';
 import { comprimirERedimensionarImagem, processarFiltroDocumentScanner, escapeHTML } from '../utils.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 
 export const correcaoAutomaticaView = {
     abaAtiva: 'redacao',
@@ -14,10 +15,16 @@ export const correcaoAutomaticaView = {
     filtroScanner: 'scan_otimizado', // 'scan_otimizado' | 'scan_pb' | 'scan_binario' | 'original'
     canvasOriginal: null, // Canvas de backup da imagem original capturada/carregada
     imagemOtimizadaOriginal: null,
+    _cleanupDelegators: null,
 
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
 
         const html = `
             <div class="animate-enter" style="display: flex; flex-direction: column; gap: var(--spacing-6); padding-bottom: var(--spacing-8);">
@@ -32,10 +39,10 @@ export const correcaoAutomaticaView = {
                     </div>
 
                     <div class="mode-toggle-group">
-                        <button type="button" onclick="correcaoAutomaticaView.mudarAba('redacao')" class="mode-toggle-btn interactive-element ${this.abaAtiva === 'redacao' ? 'mode-toggle-btn--active' : ''}">
+                        <button type="button" data-action="mudar-aba" data-aba="redacao" class="mode-toggle-btn interactive-element ${this.abaAtiva === 'redacao' ? 'mode-toggle-btn--active' : ''}">
                             <i class="fas fa-pen-nib"></i> <span>Redação ENEM</span>
                         </button>
-                        <button type="button" onclick="correcaoAutomaticaView.mudarAba('camera')" class="mode-toggle-btn interactive-element ${this.abaAtiva === 'camera' ? 'mode-toggle-btn--active' : ''}">
+                        <button type="button" data-action="mudar-aba" data-aba="camera" class="mode-toggle-btn interactive-element ${this.abaAtiva === 'camera' ? 'mode-toggle-btn--active' : ''}">
                             <i class="fas fa-camera"></i> <span>Leitor de Gabarito (OMR)</span>
                         </button>
                     </div>
@@ -47,9 +54,88 @@ export const correcaoAutomaticaView = {
         `;
 
         container.innerHTML = html;
+        this._setupListeners(container);
+
         if (this.abaAtiva === 'camera' && this.resultadoScanner) {
             this.exibirResultadoOMR();
         }
+    },
+
+    _setupListeners(container) {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+
+        const unbindClick = EventDelegator.bind(container, {
+            'mudar-aba': (e, target) => {
+                const aba = target.getAttribute('data-aba');
+                if (aba) this.mudarAba(aba);
+            },
+            'corrigir-redacao': () => this.corrigirRedacao(),
+            'imprimir-cartao-resposta': () => this.imprimirCartaoResposta(),
+            'testar-gabarito-exemplo': () => this.testarGabaritoExemplo(),
+            'alterar-qtd-questoes': (e, target) => {
+                const q = target.getAttribute('data-qtd');
+                if (q) this.alterarQuantidadeQuestoes(Number(q));
+            },
+            'alterar-qtd-alternativas': (e, target) => {
+                const alt = target.getAttribute('data-alt');
+                if (alt) this.alterarQuantidadeAlternativas(Number(alt));
+            },
+            'copiar-prompt-chatgpt': () => this.copiarPromptParaChatGPT(),
+            'preencher-gabarito-rapido': () => this.preencherGabaritoRapido(),
+            'iniciar-camera': () => this.iniciarCamera(),
+            'capturar-e-analisar': () => this.capturarEAnalisar(),
+            'trocar-filtro-scanner': (e, target) => {
+                const filtro = target.getAttribute('data-filtro');
+                if (filtro) this.trocarFiltroScanner(filtro);
+            },
+            'reanalisar-filtro': () => this.reanalisarComFiltroAtual(),
+            'definir-gabarito-item': (e, target) => {
+                const idx = target.getAttribute('data-idx');
+                const letra = target.getAttribute('data-letra');
+                if (idx !== null && letra) this.definirGabaritoItem(Number(idx), letra);
+            },
+            'alterar-resposta-questao': (e, target) => {
+                const questao = parseInt(target.getAttribute('data-questao'), 10);
+                const letra = target.getAttribute('data-letra');
+                if (!isNaN(questao) && letra) this.alterarRespostaQuestao(questao, letra);
+            },
+            'salvar-nota-turma': () => this.salvarNotaNaTurma()
+        }, 'click');
+
+        const unbindChange = EventDelegator.bind(container, {
+            'alterar-qtd-questoes-input': (e, target) => {
+                this.alterarQuantidadeQuestoes(target.value);
+            },
+            'toggle-usar-ia': (e, target) => {
+                this.alternarUsarIA(target.checked);
+            },
+            'carregar-foto-arquivo': (e, target) => {
+                this.carregarFotoArquivo(target);
+            },
+            'selecionar-turma-omr': (e, target) => {
+                this.atualizarAlunosTurma(target.value);
+            }
+        }, 'change');
+
+        this._cleanupDelegators = () => {
+            if (typeof unbindClick === 'function') unbindClick();
+            if (typeof unbindChange === 'function') unbindChange();
+        };
+    },
+
+    destroy() {
+        this.limparRecursosMemoria();
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+    },
+
+    onLeave() {
+        this.destroy();
     },
 
     mudarAba(aba) {
@@ -89,7 +175,7 @@ export const correcaoAutomaticaView = {
                         <textarea id="texto-redacao" rows="14" class="form-input custom-scrollbar" style="resize: vertical; font-size: 0.9375rem; line-height: 1.6;" placeholder="Cole ou digite a redação completa do aluno aqui..."></textarea>
                     </div>
 
-                    <button type="button" onclick="correcaoAutomaticaView.corrigirRedacao()" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.875rem; font-size: 1rem;">
+                    <button type="button" data-action="corrigir-redacao" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.875rem; font-size: 1rem;">
                         <i class="fas fa-magic"></i> <span>Avaliar 5 Competências</span>
                     </button>
                 </div>
@@ -195,10 +281,10 @@ export const correcaoAutomaticaView = {
                 </div>
 
                 <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                    <button type="button" onclick="correcaoAutomaticaView.imprimirCartaoResposta()" class="btn-secondary" style="padding: 0.625rem 1.25rem; font-size: 0.8125rem; font-weight: 800; background: white; border: 1px solid #c7d2fe; color: #4338ca; display: inline-flex; align-items: center; gap: 0.5rem;" title="Gerar e Imprimir Folhas de Cartão-Resposta A4 para os alunos">
+                    <button type="button" data-action="imprimir-cartao-resposta" class="btn-secondary" style="padding: 0.625rem 1.25rem; font-size: 0.8125rem; font-weight: 800; background: white; border: 1px solid #c7d2fe; color: #4338ca; display: inline-flex; align-items: center; gap: 0.5rem;" title="Gerar e Imprimir Folhas de Cartão-Resposta A4 para os alunos">
                         <i class="fas fa-print" style="color: #4f46e5;"></i> <span id="omr-print-btn-text">Imprimir Cartões-Resposta (${totalQ}Q)</span>
                     </button>
-                    <button type="button" onclick="correcaoAutomaticaView.testarGabaritoExemplo()" class="btn-primary" style="padding: 0.625rem 1.25rem; font-size: 0.8125rem; font-weight: 800; background: linear-gradient(135deg, #059669, #047857); border: none; display: inline-flex; align-items: center; gap: 0.5rem;" title="Executar teste rápido com folha simulada">
+                    <button type="button" data-action="testar-gabarito-exemplo" class="btn-primary" style="padding: 0.625rem 1.25rem; font-size: 0.8125rem; font-weight: 800; background: linear-gradient(135deg, #059669, #047857); border: none; display: inline-flex; align-items: center; gap: 0.5rem;" title="Executar teste rápido com folha simulada">
                         <i class="fas fa-vial"></i> <span id="omr-test-btn-text">Testar Exemplo (${totalQ}Q)</span>
                     </button>
                 </div>
@@ -217,7 +303,7 @@ export const correcaoAutomaticaView = {
                             </label>
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
                                 <input type="number" id="omr-qtd-questoes" min="1" max="100" value="${totalQ}" 
-                                       onchange="correcaoAutomaticaView.alterarQuantidadeQuestoes(this.value)" 
+                                       data-action="alterar-qtd-questoes-input" 
                                        class="form-input" 
                                        style="width: 5.5rem; text-align: center; font-size: 1rem; font-weight: 800; color: var(--color-primary); padding: 0.35rem 0.5rem; border-radius: var(--radius-lg); background: white;">
                                 <span style="font-size: 0.75rem; color: #64748b; font-weight: 600;">(1 a 100)</span>
@@ -228,7 +314,7 @@ export const correcaoAutomaticaView = {
                         <div id="omr-atalhos-container" style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
                             <span style="font-size: 0.6875rem; font-weight: 700; color: #64748b; text-transform: uppercase; margin-right: 0.25rem;">Atalhos:</span>
                             ${[5, 10, 15, 20, 30, 45, 50, 90, 100].map(q => `
-                                <button type="button" data-qtd="${q}" onclick="correcaoAutomaticaView.alterarQuantidadeQuestoes(${q})" 
+                                <button type="button" data-action="alterar-qtd-questoes" data-qtd="${q}" 
                                         style="padding: 0.2rem 0.5rem; font-size: 0.6875rem; font-weight: 800; border-radius: 0.375rem; cursor: pointer; border: 1px solid ${totalQ === q ? '#4f46e5' : '#cbd5e1'}; background: ${totalQ === q ? '#4f46e5' : 'white'}; color: ${totalQ === q ? 'white' : '#475569'}; transition: all 120ms ease;">
                                     ${q}Q ${q === 90 ? '(ENEM)' : ''}
                                 </button>
@@ -242,7 +328,7 @@ export const correcaoAutomaticaView = {
                             </label>
                             <div id="omr-alt-container" style="display: flex; align-items: center; gap: 0.3rem;">
                                 ${[3, 4, 5, 6].map(alt => `
-                                    <button type="button" data-alt="${alt}" onclick="correcaoAutomaticaView.alterarQuantidadeAlternativas(${alt})" 
+                                    <button type="button" data-action="alterar-qtd-alternativas" data-alt="${alt}" 
                                             style="padding: 0.25rem 0.55rem; font-size: 0.6875rem; font-weight: 800; border-radius: 0.375rem; cursor: pointer; border: 1px solid ${this.qtdAlternativas === alt ? '#4f46e5' : '#cbd5e1'}; background: ${this.qtdAlternativas === alt ? '#4f46e5' : 'white'}; color: ${this.qtdAlternativas === alt ? 'white' : '#475569'}; transition: all 120ms ease;"
                                             title="${alt} alternativas por questão">
                                         ${alt} Ops (${['A-C','A-D','A-E','A-F'][alt-3]})
@@ -263,11 +349,11 @@ export const correcaoAutomaticaView = {
                                     </span>
                                 </div>
                                 <label style="position: relative; display: inline-flex; align-items: center; cursor: pointer;">
-                                    <input type="checkbox" id="omr-toggle-ia" onchange="correcaoAutomaticaView.alternarUsarIA(this.checked)" ${this.usarIA ? 'checked' : ''} style="width: 1.15rem; height: 1.15rem; cursor: pointer; accent-color: #4f46e5;">
+                                    <input type="checkbox" id="omr-toggle-ia" data-action="toggle-usar-ia" ${this.usarIA ? 'checked' : ''} style="width: 1.15rem; height: 1.15rem; cursor: pointer; accent-color: #4f46e5;">
                                 </label>
                             </div>
 
-                            <button type="button" onclick="correcaoAutomaticaView.copiarPromptParaChatGPT()" class="btn-secondary" style="font-size: 0.75rem; padding: 0.35rem 0.65rem; justify-content: center; width: 100%; border: 1px dashed #6366f1; color: #4338ca; background: #eeef2ff;" title="Copiar Imagem OMR e Prompt para colar no ChatGPT ou Claude gratuito">
+                            <button type="button" data-action="copiar-prompt-chatgpt" class="btn-secondary" style="font-size: 0.75rem; padding: 0.35rem 0.65rem; justify-content: center; width: 100%; border: 1px dashed #6366f1; color: #4338ca; background: #eeef2ff;" title="Copiar Imagem OMR e Prompt para colar no ChatGPT ou Claude gratuito">
                                 <i class="fas fa-copy text-indigo-600"></i> Copiar Imagem + Prompt para ChatGPT/Claude
                             </button>
                         </div>
@@ -282,7 +368,7 @@ export const correcaoAutomaticaView = {
                                 Clique nas alternativas corretas da chave:
                             </p>
                         </div>
-                        <button type="button" onclick="correcaoAutomaticaView.preencherGabaritoRapido()" class="btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.6875rem;" title="Preencher aleatoriamente para testes">
+                        <button type="button" data-action="preencher-gabarito-rapido" class="btn-secondary" style="padding: 0.25rem 0.5rem; font-size: 0.6875rem;" title="Preencher aleatoriamente para testes">
                             <i class="fas fa-random"></i> Aleatório
                         </button>
                     </div>
@@ -294,12 +380,12 @@ export const correcaoAutomaticaView = {
 
                     <!-- MÉTODOS DE CAPTURA -->
                     <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                        <button type="button" onclick="correcaoAutomaticaView.iniciarCamera()" class="btn-primary" style="flex: 1; justify-content: center; padding: 0.75rem;">
+                        <button type="button" data-action="iniciar-camera" class="btn-primary" style="flex: 1; justify-content: center; padding: 0.75rem;">
                             <i class="fas fa-video"></i> <span>Abrir Câmera</span>
                         </button>
                         <label class="btn-secondary" style="flex: 1; justify-content: center; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem;">
                             <i class="fas fa-file-image"></i> <span>Enviar Foto do Aluno</span>
-                            <input type="file" accept="image/*" style="display: none;" onchange="correcaoAutomaticaView.carregarFotoArquivo(this)">
+                            <input type="file" accept="image/*" style="display: none;" data-action="carregar-foto-arquivo">
                         </label>
                     </div>
                 </div>
@@ -335,7 +421,7 @@ export const correcaoAutomaticaView = {
                     </div>
 
                     <div id="omr-camera-controls" style="display: none; margin-top: 1.25rem; width: 100%; justify-content: center; gap: 0.875rem;">
-                        <button type="button" onclick="correcaoAutomaticaView.capturarEAnalisar()" class="btn-primary" style="background: #10b981; border-color: #10b981; font-weight: 800; padding: 0.75rem 1.5rem;">
+                        <button type="button" data-action="capturar-e-analisar" class="btn-primary" style="background: #10b981; border-color: #10b981; font-weight: 800; padding: 0.75rem 1.5rem;">
                             <i class="fas fa-camera"></i> Capturar & Corrigir Agora
                         </button>
                     </div>
@@ -345,19 +431,19 @@ export const correcaoAutomaticaView = {
                         <span style="font-size: 0.75rem; font-weight: 800; color: #94a3b8; margin-right: 0.25rem;">
                             <i class="fas fa-sliders-h text-indigo-400"></i> Filtro:
                         </span>
-                        <button type="button" onclick="correcaoAutomaticaView.trocarFiltroScanner('scan_otimizado')" id="omr-btn-filtro-scan_otimizado" class="omr-filter-btn ${this.filtroScanner === 'scan_otimizado' ? 'active' : ''}" title="Scanner Inteligente (Remove sombras e limpa fundo)">
+                        <button type="button" data-action="trocar-filtro-scanner" data-filtro="scan_otimizado" id="omr-btn-filtro-scan_otimizado" class="omr-filter-btn ${this.filtroScanner === 'scan_otimizado' ? 'active' : ''}" title="Scanner Inteligente (Remove sombras e limpa fundo)">
                             ✨ Inteligente
                         </button>
-                        <button type="button" onclick="correcaoAutomaticaView.trocarFiltroScanner('scan_pb')" id="omr-btn-filtro-scan_pb" class="omr-filter-btn ${this.filtroScanner === 'scan_pb' ? 'active' : ''}" title="Scanner P&B (Alto contraste documental)">
+                        <button type="button" data-action="trocar-filtro-scanner" data-filtro="scan_pb" id="omr-btn-filtro-scan_pb" class="omr-filter-btn ${this.filtroScanner === 'scan_pb' ? 'active' : ''}" title="Scanner P&B (Alto contraste documental)">
                             📄 Scanner P&B
                         </button>
-                        <button type="button" onclick="correcaoAutomaticaView.trocarFiltroScanner('scan_binario')" id="omr-btn-filtro-scan_binario" class="omr-filter-btn ${this.filtroScanner === 'scan_binario' ? 'active' : ''}" title="Binarizado OMR (Preto no branco estrito)">
+                        <button type="button" data-action="trocar-filtro-scanner" data-filtro="scan_binario" id="omr-btn-filtro-scan_binario" class="omr-filter-btn ${this.filtroScanner === 'scan_binario' ? 'active' : ''}" title="Binarizado OMR (Preto no branco estrito)">
                             🔲 Binarizado
                         </button>
-                        <button type="button" onclick="correcaoAutomaticaView.trocarFiltroScanner('original')" id="omr-btn-filtro-original" class="omr-filter-btn ${this.filtroScanner === 'original' ? 'active' : ''}" title="Foto Original sem filtro">
+                        <button type="button" data-action="trocar-filtro-scanner" data-filtro="original" id="omr-btn-filtro-original" class="omr-filter-btn ${this.filtroScanner === 'original' ? 'active' : ''}" title="Foto Original sem filtro">
                             📷 Original
                         </button>
-                        <button type="button" onclick="correcaoAutomaticaView.reanalisarComFiltroAtual()" class="omr-filter-btn" style="background: rgba(16, 185, 129, 0.25); color: #34d399; border-color: rgba(16, 185, 129, 0.5); margin-left: 0.25rem;" title="Reprocessar e reanalisar com o filtro selecionado">
+                        <button type="button" data-action="reanalisar-filtro" class="omr-filter-btn" style="background: rgba(16, 185, 129, 0.25); color: #34d399; border-color: rgba(16, 185, 129, 0.5); margin-left: 0.25rem;" title="Reprocessar e reanalisar com o filtro selecionado">
                             <i class="fas fa-sync-alt"></i> Reanalisar
                         </button>
                     </div>
@@ -581,7 +667,7 @@ Analise o cartão-resposta da imagem em anexo e retorne exclusivamente um objeto
                 <span style="font-size: 0.75rem; font-weight: 800; color: #475569;">Q${(idx + 1).toString().padStart(2, '0')}</span>
                 <div style="display: flex; gap: 0.18rem;">
                     ${letras.map(l => `
-                        <button type="button" onclick="correcaoAutomaticaView.definirGabaritoItem(${idx}, '${l}')" 
+                        <button type="button" data-action="definir-gabarito-item" data-idx="${idx}" data-letra="${l}" 
                                 style="width: 1.4rem; height: 1.4rem; border-radius: 0.25rem; font-size: 0.6875rem; font-weight: 800; cursor: pointer; border: 1px solid ${gab === l ? '#4f46e5' : '#cbd5e1'}; background: ${gab === l ? '#4f46e5' : '#f8fafc'}; color: ${gab === l ? '#ffffff' : '#64748b'}; transition: all 100ms ease;">
                             ${l}
                         </button>
@@ -1272,10 +1358,10 @@ Analise o cartão-resposta da imagem em anexo e retorne exclusivamente um objeto
                             ${window.escapeHTML(error.message || "Não foi possível processar a imagem do cartão. Verifique a iluminação, enquadramento ou sua conexão.")}
                         </p>
                         <div style="display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap;">
-                            <button type="button" onclick="correcaoAutomaticaView.iniciarCamera()" class="btn-primary" style="background: #dc2626; border-color: #dc2626; font-size: 0.8125rem;">
+                            <button type="button" data-action="iniciar-camera" class="btn-primary" style="background: #dc2626; border-color: #dc2626; font-size: 0.8125rem;">
                                 <i class="fas fa-redo"></i> Tentar Novamente
                             </button>
-                            <button type="button" onclick="correcaoAutomaticaView.testarGabaritoExemplo()" class="btn-secondary" style="font-size: 0.8125rem;">
+                            <button type="button" data-action="testar-gabarito-exemplo" class="btn-secondary" style="font-size: 0.8125rem;">
                                 <i class="fas fa-vial"></i> Testar Exemplo Simulado
                             </button>
                         </div>
@@ -1543,22 +1629,22 @@ Analise o cartão-resposta da imagem em anexo e retorne exclusivamente um objeto
                                     ${opcoesLetras.map(l => `
                                         <button type="button" 
                                                 class="omr-btn-opt-${l}"
-                                                onclick="correcaoAutomaticaView.alterarRespostaQuestao(${d.questao}, '${l}')"
+                                                data-action="alterar-resposta-questao" data-questao="${d.questao}" data-letra="${l}"
                                                 style="width: 1.35rem; height: 1.35rem; border-radius: 0.25rem; font-size: 0.625rem; font-weight: 800; cursor: pointer; border: 1px solid ${d.resposta === l ? '#4f46e5' : '#cbd5e1'}; background: ${d.resposta === l ? '#4f46e5' : 'white'}; color: ${d.resposta === l ? 'white' : '#475569'}; padding: 0; transition: all 100ms ease;"
                                                 title="Definir Q${d.questao} como ${l}">
-                                            ${l}
+                                             ${l}
                                         </button>
                                     `).join('')}
                                     <button type="button" 
                                             class="omr-btn-opt-branco"
-                                            onclick="correcaoAutomaticaView.alterarRespostaQuestao(${d.questao}, 'EM_BRANCO')"
+                                            data-action="alterar-resposta-questao" data-questao="${d.questao}" data-letra="EM_BRANCO"
                                             style="padding: 0 0.3rem; height: 1.35rem; border-radius: 0.25rem; font-size: 0.5625rem; font-weight: 800; cursor: pointer; border: 1px solid ${d.isEmBranco ? '#d97706' : '#cbd5e1'}; background: ${d.isEmBranco ? '#d97706' : 'white'}; color: ${d.isEmBranco ? 'white' : '#64748b'}; transition: all 100ms ease;"
                                             title="Definir como Em Branco">
                                         ⚪
                                     </button>
                                     <button type="button" 
                                             class="omr-btn-opt-anulada"
-                                            onclick="correcaoAutomaticaView.alterarRespostaQuestao(${d.questao}, 'ANULADA')"
+                                            data-action="alterar-resposta-questao" data-questao="${d.questao}" data-letra="ANULADA"
                                             style="padding: 0 0.3rem; height: 1.35rem; border-radius: 0.25rem; font-size: 0.5625rem; font-weight: 800; cursor: pointer; border: 1px solid ${d.isAnulada ? '#7c3aed' : '#cbd5e1'}; background: ${d.isAnulada ? '#7c3aed' : 'white'}; color: ${d.isAnulada ? 'white' : '#64748b'}; transition: all 100ms ease;"
                                             title="Definir como Anulada/Dupla">
                                         ⚠️
@@ -1574,7 +1660,7 @@ Analise o cartão-resposta da imagem em anexo e retorne exclusivamente um objeto
                     <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
                         <div>
                             <label class="form-label" style="font-size: 0.75rem; font-weight: 800; color: #64748b; text-transform: uppercase;">Turma</label>
-                            <select id="omr-target-turma" class="form-input" style="padding: 0.5rem 0.75rem; border-radius: 0.5rem;" onchange="correcaoAutomaticaView.atualizarAlunosTurma(this.value)">
+                            <select id="omr-target-turma" class="form-input" style="padding: 0.5rem 0.75rem; border-radius: 0.5rem;" data-action="selecionar-turma-omr">
                                 ${turmas.map(t => `<option value="${t.id}">${window.escapeHTML(t.nome)}</option>`).join('')}
                             </select>
                         </div>
@@ -1586,7 +1672,10 @@ Analise o cartão-resposta da imagem em anexo e retorne exclusivamente um objeto
                         </div>
                     </div>
 
-                    <button type="button" onclick="correcaoAutomaticaView.salvarNotaNaTurma()" class="btn-primary" style="background: #059669; border-color: #059669; font-weight: 800; padding: 0.75rem 1.75rem; font-size: 0.9375rem; box-shadow: 0 4px 10px rgba(5, 150, 105, 0.25);">
+                    <button type="button" data-action="salvar-nota-turma" class="btn-primary" style="background: #059669; border-color: #059669; font-weight: 800; padding: 0.75rem 1.75rem; font-size: 0.9375rem; box-shadow: 0 4px 10px rgba(5, 150, 105, 0.25);">
+                        <i class="fas fa-save"></i> Gravar Nota no Diário
+                    </button>
+                </div>ss="btn-primary" style="background: #059669; border-color: #059669; font-weight: 800; padding: 0.75rem 1.75rem; font-size: 0.9375rem; box-shadow: 0 4px 10px rgba(5, 150, 105, 0.25);">
                         <i class="fas fa-save"></i> Gravar Nota no Diário
                     </button>
                 </div>
@@ -1925,7 +2014,7 @@ Analise o cartão-resposta da imagem em anexo e retorne exclusivamente um objeto
                         <i class="fas fa-print" style="color: var(--color-primary); font-size: 1.25rem;"></i>
                         <h3 class="modal__title" style="margin: 0; font-size: 1.125rem; font-weight: 800;">Folha de Cartão-Resposta OMR com Ancoragem (${totalQuestoes} Questões)</h3>
                     </div>
-                    <button type="button" onclick="controller.closeModal()" class="btn-icon" style="border: none; background: none; cursor: pointer; font-size: 1.125rem;">
+                    <button type="button" data-action="fechar-modal-cartao" class="btn-icon" style="border: none; background: none; cursor: pointer; font-size: 1.125rem;">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -1955,13 +2044,21 @@ Analise o cartão-resposta da imagem em anexo e retorne exclusivamente um objeto
                 </div>
 
                 <div class="modal__footer" style="display: flex; justify-content: flex-end; gap: 0.75rem; padding: 1rem 1.5rem; border-top: 1px solid var(--border-color); background: white;">
-                    <button type="button" onclick="controller.closeModal()" class="btn-secondary">Fechar</button>
-                    <button type="button" onclick="correcaoAutomaticaView.executarImpressaoCartao(${totalQuestoes})" class="btn-primary" style="background: #4f46e5; font-weight: 800; padding: 0.625rem 1.5rem;">
+                    <button type="button" data-action="fechar-modal-cartao" class="btn-secondary">Fechar</button>
+                    <button type="button" data-action="executar-impressao-cartao" data-total="${totalQuestoes}" class="btn-primary" style="background: #4f46e5; font-weight: 800; padding: 0.625rem 1.5rem;">
                         <i class="fas fa-print"></i> Imprimir Folha A4
                     </button>
                 </div>
             </div>
         `;
+
+        EventDelegator.bind(modal, {
+            'fechar-modal-cartao': () => controller.closeModal(),
+            'executar-impressao-cartao': (e, target) => {
+                const total = parseInt(target.getAttribute('data-total'), 10) || totalQuestoes;
+                this.executarImpressaoCartao(total);
+            }
+        }, 'click');
 
         modal.classList.remove('hidden');
     }

@@ -3,8 +3,6 @@ import { controller } from '../controller.js';
 import { aiService } from '../ai-service.js';
 import { Toast } from '../components/toast.js';
 import { ModalComponent } from '../components/modal.js';
-import { PaginatorComponent } from '../components/paginator.js';
-import { FilterBarComponent } from '../components/filterBar.js';
 import { EventDelegator } from '../utils/eventDelegator.js';
 import { lerArquivoTexto, renderKatex, formatarTextoComLatex, sanitizeComLatex } from '../utils.js';
 import { tableHelper } from '../utils/tableHelper.js';
@@ -513,9 +511,7 @@ export const criarMaterialView = {
                                 renderMathInElement(document.body, {
                                     delimiters: [
                                         { left: '\\\\[', right: '\\\\]', display: true },
-                                        { left: '\\\\(', right: '\\\\)', display: false },
-                                        { left: '$$', right: '$$', display: true },
-                                        { left: '$', right: '$', display: false }
+                                        { left: '\\\\(', right: '\\\\)', display: false }
                                     ],
                                     throwOnError: false
                                 });
@@ -763,7 +759,7 @@ export const criarMaterialView = {
                 <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem;">
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
                         <input type="checkbox" ${isSelected ? 'checked' : ''} 
-                               onchange="criarMaterialView.toggleSelecao('${m.id}')"
+                               data-action="toggle-selecao-material" data-id="${m.id}"
                                style="width: 1.25rem; height: 1.25rem; accent-color: #4f46e5; cursor: pointer; border-radius: 0.375rem;">
                         <div style="width: 2.25rem; height: 2.25rem; border-radius: 0.75rem; background-color: ${style.bg}; color: ${style.c}; display: flex; align-items: center; justify-content: center; font-size: 1rem;">
                             <i class="${style.i}"></i>
@@ -807,14 +803,14 @@ export const criarMaterialView = {
                     
                     <div style="display: flex; align-items: center; gap: 0.375rem;">
                         ${naLixeira ? `
-                            <button type="button" onclick="model.restaurarMaterialDaLixeira('${m.id}')" 
+                            <button type="button" data-action="restaurar-material" data-id="${m.id}" 
                                     class="interactive-element" 
                                     style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #bbf7d0; background: #f0fdf4; color: #16a34a; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
                                     title="Restaurar Material">
                                 <i class="fas fa-undo" style="font-size: 0.75rem;"></i>
                             </button>
 
-                            <button type="button" onclick="criarMaterialView.excluirMaterialDefinitivo('${m.id}')" 
+                            <button type="button" data-action="excluir-permanente" data-id="${m.id}" 
                                     class="interactive-element" 
                                     style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #fee2e2; background: #fef2f2; color: #ef4444; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
                                     title="Excluir Definitivamente">
@@ -828,21 +824,21 @@ export const criarMaterialView = {
                                 <i class="fas fa-eye" style="font-size: 0.75rem;"></i>
                             </button>
 
-                            <button type="button" onclick="criarMaterialView.editarMaterialManual('${m.id}')" 
+                            <button type="button" data-action="editar-material-manual" data-id="${m.id}" 
                                     class="interactive-element" 
                                     style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #c7d2fe; background: #eef2ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
                                     title="Editar Material Manualmente">
                                 <i class="fas fa-pen-to-square" style="font-size: 0.75rem;"></i>
                             </button>
 
-                            <button type="button" onclick="criarMaterialView.moverMaterialModal('${m.id}')" 
+                            <button type="button" data-action="mover-material-modal" data-id="${m.id}" 
                                     class="interactive-element" 
                                     style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #fed7aa; background: #fff7ed; color: #ea580c; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
                                     title="Mover / Organizar em Pasta">
                                 <i class="fas fa-folder-open" style="font-size: 0.75rem;"></i>
                             </button>
 
-                            <button type="button" onclick="model.duplicarMaterial('${m.id}')" 
+                            <button type="button" data-action="duplicar-material" data-id="${m.id}" 
                                     class="interactive-element" 
                                     style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; background: #fff; color: #64748b; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
                                     title="Duplicar Material">
@@ -850,14 +846,14 @@ export const criarMaterialView = {
                             </button>
 
                             ${m.compartilhado ? `
-                                <button type="button" onclick="model.removerMaterialDaComunidade('${m.id}')" 
+                                <button type="button" data-action="remover-comunidade" data-id="${m.id}" 
                                         class="interactive-element" 
                                         style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #ddd6fe; background: #f3e8ff; color: #7c3aed; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
                                         title="Público (Clique para retirar da comunidade)">
                                     <i class="fas fa-globe" style="font-size: 0.75rem;"></i>
                                 </button>
                             ` : `
-                                <button type="button" onclick="model.compartilharMaterial('${m.id}')" 
+                                <button type="button" data-action="compartilhar-comunidade" data-id="${m.id}" 
                                         class="interactive-element" 
                                         style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #e2e8f0; background: #fff; color: #94a3b8; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
                                         title="Compartilhar com a Comunidade">
@@ -865,7 +861,7 @@ export const criarMaterialView = {
                                 </button>
                             `}
 
-                            <button type="button" onclick="criarMaterialView.excluirMaterial('${m.id}')" 
+                            <button type="button" data-action="excluir-material" data-id="${m.id}" 
                                     class="interactive-element" 
                                     style="width: 2rem; height: 2rem; border-radius: 0.5rem; border: 1px solid #fee2e2; background: #fef2f2; color: #ef4444; display: flex; align-items: center; justify-content: center; cursor: pointer;" 
                                     title="Mover para a Lixeira">
@@ -886,27 +882,27 @@ export const criarMaterialView = {
                     <span>selecionados</span>
                 </div>
 
-                <button type="button" onclick="criarMaterialView.compilarPacoteSelecionados()" class="floating-action-bar__btn floating-action-bar__btn--primary" title="Compilar materiais selecionados em um único arquivo integrado com capa e sumário">
+                <button type="button" data-action="compilar-pacote-selecionados" class="floating-action-bar__btn floating-action-bar__btn--primary" title="Compilar materiais selecionados em um único arquivo integrado com capa e sumário">
                     <i class="fas fa-layer-group"></i> Compilar em Pacote
                 </button>
 
-                <button type="button" onclick="criarMaterialView.baixarWordSelecionados()" class="floating-action-bar__btn floating-action-bar__btn--secondary" title="Exportar materiais selecionados em arquivo Word (.doc)">
+                <button type="button" data-action="baixar-word-selecionados" class="floating-action-bar__btn floating-action-bar__btn--secondary" title="Exportar materiais selecionados em arquivo Word (.doc)">
                     <i class="far fa-file-word"></i> Baixar Word
                 </button>
 
-                <button type="button" onclick="criarMaterialView.imprimirPDFSelecionados()" class="floating-action-bar__btn floating-action-bar__btn--secondary" title="Imprimir / Gerar PDF dos materiais selecionados">
+                <button type="button" data-action="imprimir-pdf-selecionados" class="floating-action-bar__btn floating-action-bar__btn--secondary" title="Imprimir / Gerar PDF dos materiais selecionados">
                     <i class="fas fa-print"></i> PDF / Imprimir
                 </button>
 
-                <button type="button" onclick="criarMaterialView.compartilharSelecionados()" class="floating-action-bar__btn floating-action-bar__btn--secondary" title="Publicar selecionados na Comunidade">
+                <button type="button" data-action="compartilhar-selecionados" class="floating-action-bar__btn floating-action-bar__btn--secondary" title="Publicar selecionados na Comunidade">
                     <i class="fas fa-globe"></i> Compartilhar
                 </button>
 
-                <button type="button" onclick="criarMaterialView.excluirSelecionados()" class="floating-action-bar__btn floating-action-bar__btn--danger" title="Excluir selecionados">
+                <button type="button" data-action="excluir-selecionados" class="floating-action-bar__btn floating-action-bar__btn--danger" title="Excluir selecionados">
                     <i class="fas fa-trash-alt"></i> Excluir
                 </button>
 
-                <button type="button" onclick="criarMaterialView.limparSelecao()" class="floating-action-bar__btn floating-action-bar__btn--secondary" style="margin-left: auto;" title="Cancelar seleção">
+                <button type="button" data-action="limpar-selecao" class="floating-action-bar__btn floating-action-bar__btn--secondary" style="margin-left: auto;" title="Cancelar seleção">
                     <i class="fas fa-times"></i> Limpar
                 </button>
             </div>
@@ -927,7 +923,7 @@ export const criarMaterialView = {
                 <div class="card" style="padding: 1rem 1.25rem; margin-bottom: 1.25rem; background: #ffffff; border-radius: var(--radius-xl); border: 1px solid var(--color-slate-200); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
                     <!-- BREADCRUMB -->
                     <div style="display: flex; align-items: center; gap: 0.4rem; flex-wrap: wrap; font-size: 0.9375rem; font-weight: 700; color: #334155;">
-                        <button type="button" onclick="criarMaterialView.setPastaAtual(null)" class="btn-secondary interactive-element" style="padding: 0.35rem 0.75rem; font-size: 0.8125rem; font-weight: 800; background-color: #f1f5f9; color: #475569;" title="Ir para a Raiz">
+                        <button type="button" data-action="set-pasta-raiz" class="btn-secondary interactive-element" style="padding: 0.35rem 0.75rem; font-size: 0.8125rem; font-weight: 800; background-color: #f1f5f9; color: #475569;" title="Ir para a Raiz">
                             <i class="fas fa-folder"></i> Meus Materiais (Raiz)
                         </button>
                         ${cadeiaHierarquica.map((p, idx) => {
@@ -939,7 +935,7 @@ export const criarMaterialView = {
                                         <i class="fas fa-folder-open"></i> ${window.escapeHTML(p.nome)}
                                     </span>
                                 ` : `
-                                    <button type="button" onclick="criarMaterialView.setPastaAtual('${p.id}')" class="btn-secondary interactive-element" style="padding: 0.35rem 0.75rem; font-size: 0.8125rem; font-weight: 800; background-color: #ffffff; color: #334155; border: 1px solid #cbd5e1; display: inline-flex; align-items: center; gap: 0.35rem;" title="Ir para ${window.escapeHTML(p.nome)}">
+                                    <button type="button" data-action="set-pasta" data-pasta-id="${p.id}" class="btn-secondary interactive-element" style="padding: 0.35rem 0.75rem; font-size: 0.8125rem; font-weight: 800; background-color: #ffffff; color: #334155; border: 1px solid #cbd5e1; display: inline-flex; align-items: center; gap: 0.35rem;" title="Ir para ${window.escapeHTML(p.nome)}">
                                         <i class="fas fa-folder" style="color: #d97706;"></i> ${window.escapeHTML(p.nome)}
                                     </button>
                                 `}
@@ -949,10 +945,10 @@ export const criarMaterialView = {
 
                     <!-- AÇÕES DO TOPO: IMPORTAR ARQUIVO E NOVA PASTA -->
                     <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                        <button type="button" onclick="criarMaterialView.modalImportarMaterial()" class="btn-secondary interactive-element" style="padding: 0.45rem 1rem; font-size: 0.8125rem; background: #ffffff; border: 1.5px solid #c7d2fe; color: #4f46e5; font-weight: 800; display: inline-flex; align-items: center; gap: 0.4rem; box-shadow: var(--shadow-sm);" title="Importar arquivos Word (.docx, .doc), PDF ou TXT">
+                        <button type="button" data-action="modal-importar-material" class="btn-secondary interactive-element" style="padding: 0.45rem 1rem; font-size: 0.8125rem; background: #ffffff; border: 1.5px solid #c7d2fe; color: #4f46e5; font-weight: 800; display: inline-flex; align-items: center; gap: 0.4rem; box-shadow: var(--shadow-sm);" title="Importar arquivos Word (.docx, .doc), PDF ou TXT">
                             <i class="fas fa-file-import"></i> Importar Arquivo
                         </button>
-                        <button type="button" onclick="criarMaterialView.modalCriarPasta()" class="btn-primary interactive-element" style="padding: 0.45rem 1rem; font-size: 0.8125rem; background: linear-gradient(135deg, #059669, #047857); box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);">
+                        <button type="button" data-action="modal-criar-pasta" class="btn-primary interactive-element" style="padding: 0.45rem 1rem; font-size: 0.8125rem; background: linear-gradient(135deg, #059669, #047857); box-shadow: 0 2px 4px rgba(5, 150, 105, 0.2);">
                             <i class="fas fa-folder-plus"></i> + Nova Pasta
                         </button>
                     </div>
@@ -964,8 +960,8 @@ export const criarMaterialView = {
                         ${pastasNoNivel.map(p => {
             const qtdItens = model.contarMateriaisPastaRecursivo ? model.contarMateriaisPastaRecursivo(p.id) : (model.state.materiaisGerados || []).filter(m => String(m.pastaId) === String(p.id) && !m.naLixeira).length;
             return `
-                                <div class="interactive-element" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius-xl); padding: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; transition: all 0.2s;"
-                                     onclick="criarMaterialView.setPastaAtual('${p.id}')">
+                                <div class="interactive-element" style="background: #ffffff; border: 1.5px solid #e2e8f0; border-radius: var(--radius-xl); padding: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; transition: all 0.2s; cursor: pointer;"
+                                     data-action="set-pasta" data-pasta-id="${p.id}">
                                     <div style="display: flex; align-items: center; gap: 0.75rem; overflow: hidden;">
                                         <div style="width: 2.5rem; height: 2.5rem; border-radius: 0.75rem; background-color: #fef3c7; color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 1.125rem; flex-shrink: 0;">
                                             <i class="fas fa-folder"></i>
@@ -975,7 +971,7 @@ export const criarMaterialView = {
                                             <span style="font-size: 0.75rem; color: #64748b; font-weight: 600;">${qtdItens} itens</span>
                                         </div>
                                     </div>
-                                    <button type="button" onclick="event.stopPropagation(); model.excluirPastaMaterial('${p.id}'); criarMaterialView.render('view-container');" class="interactive-element" style="border: none; background: transparent; color: #94a3b8; padding: 0.25rem; cursor: pointer;" title="Excluir Pasta">
+                                    <button type="button" data-action="excluir-pasta" data-pasta-id="${p.id}" class="interactive-element" style="border: none; background: transparent; color: #94a3b8; padding: 0.25rem; cursor: pointer;" title="Excluir Pasta">
                                         <i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>
                                     </button>
                                 </div>
@@ -989,21 +985,21 @@ export const criarMaterialView = {
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem;">
                         <div>
                             <label class="form-label">Disciplina</label>
-                            <select onchange="criarMaterialView.atualizarFiltro('disciplina', this.value)" class="form-select">
+                            <select data-action="filtro-disciplina" class="form-select">
                                 <option value="">Todas as Disciplinas</option>
                                 ${this.disciplinas.map(d => `<option value="${d}" ${this.filtros.disciplina === d ? 'selected' : ''}>${d}</option>`).join('')}
                             </select>
                         </div>
                         <div>
                             <label class="form-label">Série / Ano</label>
-                            <select onchange="criarMaterialView.atualizarFiltro('serie', this.value)" class="form-select">
+                            <select data-action="filtro-serie" class="form-select">
                                 <option value="">Todas as Séries</option>
                                 ${this.seriesDisponiveis.map(s => `<option value="${s}" ${this.filtros.serie === s ? 'selected' : ''}>${s}</option>`).join('')}
                             </select>
                         </div>
                         <div>
                             <label class="form-label">Tipo de Material</label>
-                            <select onchange="criarMaterialView.atualizarFiltro('tipo', this.value)" class="form-select">
+                            <select data-action="filtro-tipo" class="form-select">
                                 <option value="">Todos os Tipos</option>
                                 <option value="planejamento" ${this.filtros.tipo === 'planejamento' ? 'selected' : ''}>Planejamento</option>
                                 <option value="dinamica-jogo" ${this.filtros.tipo === 'dinamica-jogo' ? 'selected' : ''}>Dinâmica e Jogo</option>
@@ -1021,14 +1017,14 @@ export const criarMaterialView = {
                         <i class="fas fa-search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--color-slate-400);"></i>
                         <input type="text" placeholder="Pesquisar por título, assunto, palavra-chave ou código BNCC..." 
                                class="form-input" style="padding-left: 2.75rem; width: 100%;"
-                               oninput="criarMaterialView.atualizarBusca(this.value)" value="${this.termoBusca}">
+                               data-action="busca-material" value="${this.termoBusca}">
                     </div>
                 </div>
 
                 <!-- CONTROLES SUPERIORES DE SELEÇÃO E PAGINAÇÃO -->
                 <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; margin-bottom: 1.25rem; gap: 1rem;">
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
-                        <button type="button" onclick="criarMaterialView.selecionarTodos(criarMaterialView.filtrarMateriais(model.state.materiaisGerados || []))"
+                        <button type="button" data-action="selecionar-todos-materiais"
                                 class="btn-secondary interactive-element" style="padding: 0.4rem 0.875rem; font-size: 0.75rem; font-weight: 700;">
                             <i class="${todosMarcados ? 'fas fa-check-square' : 'far fa-square'}"></i>
                             ${todosMarcados ? 'Desmarcar Todos' : 'Marcar Todos'}
@@ -1038,7 +1034,7 @@ export const criarMaterialView = {
 
                     <div style="display: flex; align-items: center; background-color: #ffffff; border-radius: 0.75rem; border: 1px solid #e2e8f0; padding: 0.25rem 0.75rem; box-shadow: var(--shadow-sm);">
                         <label class="form-label" style="margin-bottom: 0; margin-right: 0.5rem; font-size: 0.75rem;">Exibir por pág:</label>
-                        <select onchange="criarMaterialView.mudarQtdPagina(this.value)" class="form-select" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; width: 5.5rem; border: none; background: transparent;">
+                        <select data-action="mudar-qtd-pagina" class="form-select" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; width: 5.5rem; border: none; background: transparent;">
                             <option value="25" ${this.itensPorPagina === 25 ? 'selected' : ''}>25</option>
                             <option value="50" ${this.itensPorPagina === 50 ? 'selected' : ''}>50</option>
                             <option value="100" ${this.itensPorPagina === 100 ? 'selected' : ''}>100</option>
@@ -1057,7 +1053,7 @@ export const criarMaterialView = {
                 <!-- PAGINAÇÃO INFERIOR -->
                 ${totalPaginas > 1 ? `
                     <div style="display: flex; margin-top: 2rem; justify-content: space-between; align-items: center; background-color: var(--color-white); padding: 1rem; border-radius: var(--radius-2xl); border: 1px solid var(--color-slate-200); box-shadow: var(--shadow-sm);">
-                        <button onclick="criarMaterialView.paginaAnterior()" ${this.paginaAtual === 1 ? 'disabled' : ''}
+                        <button type="button" data-action="pagina-anterior-material" ${this.paginaAtual === 1 ? 'disabled' : ''}
                                 class="btn-secondary interactive-element" style="padding: 0.5rem 1rem; font-size: 0.8125rem;">
                             <i class="fas fa-chevron-left"></i> Anterior
                         </button>
@@ -1066,7 +1062,7 @@ export const criarMaterialView = {
                             Página <span style="color: #4f46e5; font-size: 0.875rem; font-weight: 900;">${this.paginaAtual}</span> de ${totalPaginas}
                         </span>
                         
-                        <button onclick="criarMaterialView.proximaPagina()" ${this.paginaAtual === totalPaginas ? 'disabled' : ''}
+                        <button type="button" data-action="proxima-pagina-material" ${this.paginaAtual === totalPaginas ? 'disabled' : ''}
                                 class="btn-primary interactive-element" style="padding: 0.5rem 1rem; font-size: 0.8125rem; background-color: #4f46e5;">
                             Próxima <i class="fas fa-chevron-right"></i>
                         </button>
@@ -1084,7 +1080,7 @@ export const criarMaterialView = {
                 </div>
                 <h3 class="text-xl font-bold text-slate-800 mb-2">Nenhum material encontrado</h3>
                 <p class="text-slate-500 text-sm mb-6">Tente ajustar seus filtros de busca ou crie um novo conteúdo pedagógico com IA.</p>
-                <button type="button" onclick="criarMaterialView.mudarAba('templates')" class="btn-primary interactive-element" style="padding: 0.75rem 1.5rem; background-color: #4f46e5; display: inline-flex; align-items: center; gap: 0.5rem;">
+                <button type="button" data-action="mudar-aba" data-aba="templates" class="btn-primary interactive-element" style="padding: 0.75rem 1.5rem; background-color: #4f46e5; display: inline-flex; align-items: center; gap: 0.5rem;">
                     <i class="fas fa-magic"></i> + Criar com IA agora
                 </button>
             </div>
@@ -1134,13 +1130,13 @@ export const criarMaterialView = {
                     <i class="fas fa-magic" style="color: #4f46e5;"></i> Como você deseja criar este material?
                 </span>
                 <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                    <button type="button" onclick="controller.closeModal(); criarMaterialView.modalImportarMaterial()" class="btn-secondary interactive-element" style="padding: 0.3rem 0.75rem; font-size: 0.75rem; font-weight: 800; background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe;">
+                    <button type="button" data-action="modal-importar-material" class="btn-secondary interactive-element" style="padding: 0.3rem 0.75rem; font-size: 0.75rem; font-weight: 800; background: #eef2ff; color: #4f46e5; border: 1px solid #c7d2fe;">
                         <i class="fas fa-file-import"></i> Importar Arquivo (.docx / .doc / .pdf)
                     </button>
-                    <button type="button" onclick="criarMaterialView.setModoGeracao('ia')" class="btn-secondary interactive-element" style="padding: 0.3rem 0.75rem; font-size: 0.75rem; font-weight: 800; ${this.modoGeracaoForm === 'ia' ? 'background: #4f46e5; color: #fff;' : ''}">
+                    <button type="button" data-action="set-modo-ia" class="btn-secondary interactive-element" style="padding: 0.3rem 0.75rem; font-size: 0.75rem; font-weight: 800; ${this.modoGeracaoForm === 'ia' ? 'background: #4f46e5; color: #fff;' : ''}">
                         <i class="fas fa-robot"></i> Gerar com IA
                     </button>
-                    <button type="button" onclick="criarMaterialView.setModoGeracao('manual')" class="btn-secondary interactive-element" style="padding: 0.3rem 0.75rem; font-size: 0.75rem; font-weight: 800; ${this.modoGeracaoForm === 'manual' ? 'background: #10b981; color: #fff;' : ''}">
+                    <button type="button" data-action="set-modo-manual" class="btn-secondary interactive-element" style="padding: 0.3rem 0.75rem; font-size: 0.75rem; font-weight: 800; ${this.modoGeracaoForm === 'manual' ? 'background: #10b981; color: #fff;' : ''}">
                         <i class="fas fa-pen"></i> Escrever Manualmente
                     </button>
                 </div>
@@ -1163,14 +1159,14 @@ export const criarMaterialView = {
                             </div>
                             <div style="display: flex; gap: 0.375rem; margin-top: 0.25rem;">
                                 <button type="button" 
-                                        onclick="controller.closeModal(); criarMaterialView.setModoGeracao('ia'); criarMaterialView.mudarAba('templates'); criarMaterialView.selecionarFerramenta('${item.id}', null);"
+                                        data-action="selecionar-ferramenta-ia" data-ferramenta="${item.id}"
                                         class="interactive-element" 
                                         ${item.disabled ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}
                                         style="flex: 1; padding: 0.35rem 0.5rem; font-size: 0.75rem; font-weight: 700; background: #ffffff; border: 1px solid #c7d2fe; color: #4f46e5; border-radius: 0.5rem; cursor: pointer; text-align: center;">
                                     <i class="fas fa-robot"></i> Com IA
                                 </button>
                                 <button type="button" 
-                                        onclick="controller.closeModal(); criarMaterialView.setModoGeracao('manual'); criarMaterialView.mudarAba('templates'); criarMaterialView.selecionarFerramenta('${item.id}', null);"
+                                        data-action="selecionar-ferramenta-manual" data-ferramenta="${item.id}"
                                         class="interactive-element" 
                                         ${item.disabled ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}
                                         style="flex: 1; padding: 0.35rem 0.5rem; font-size: 0.75rem; font-weight: 700; background: #ffffff; border: 1px solid #a7f3d0; color: #059669; border-radius: 0.5rem; cursor: pointer; text-align: center;">
@@ -1183,6 +1179,32 @@ export const criarMaterialView = {
             </div>
         `;
         controller.openModal('Selecionar Ferramenta de Criação de Material', modalContent, 'xl');
+
+        const modal = document.getElementById('global-modal');
+        if (modal) {
+            EventDelegator.bind(modal, {
+                'modal-importar-material': () => {
+                    controller.closeModal();
+                    this.modalImportarMaterial();
+                },
+                'set-modo-ia': () => this.setModoGeracao('ia'),
+                'set-modo-manual': () => this.setModoGeracao('manual'),
+                'selecionar-ferramenta-ia': (e, target) => {
+                    const fId = target.getAttribute('data-ferramenta');
+                    controller.closeModal();
+                    this.setModoGeracao('ia');
+                    this.mudarAba('templates');
+                    this.selecionarFerramenta(fId, null);
+                },
+                'selecionar-ferramenta-manual': (e, target) => {
+                    const fId = target.getAttribute('data-ferramenta');
+                    controller.closeModal();
+                    this.setModoGeracao('manual');
+                    this.mudarAba('templates');
+                    this.selecionarFerramenta(fId, null);
+                }
+            }, 'click');
+        }
     },
 
     cardFlashcardLixeira(deck) {
@@ -1199,10 +1221,10 @@ export const criarMaterialView = {
                     <p style="font-size: 0.75rem; color: var(--color-slate-500); font-weight: 600;">${window.escapeHTML(deck.disciplina || 'Geral')} ${deck.serie ? `• ${window.escapeHTML(deck.serie)}` : ''}</p>
                 </div>
                 <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                    <button type="button" onclick="model.restaurarFlashcardDaLixeira('${deck.id}')" class="btn-secondary interactive-element" style="flex: 1; padding: 0.4rem; font-size: 0.75rem; font-weight: 700; color: #15803d; border-color: #bbf7d0; background: #f0fdf4;">
+                    <button type="button" data-action="restaurar-flashcard" data-id="${deck.id}" class="btn-secondary interactive-element" style="flex: 1; padding: 0.4rem; font-size: 0.75rem; font-weight: 700; color: #15803d; border-color: #bbf7d0; background: #f0fdf4;">
                         <i class="fas fa-undo"></i> Restaurar
                     </button>
-                    <button type="button" onclick="criarMaterialView.excluirFlashcardPermanente('${deck.id}')" class="btn-danger interactive-element" style="padding: 0.4rem 0.75rem; font-size: 0.75rem; font-weight: 700; background: #e11d48; color: #fff; border: none; border-radius: 0.5rem;">
+                    <button type="button" data-action="excluir-flashcard-permanente" data-id="${deck.id}" class="btn-danger interactive-element" style="padding: 0.4rem 0.75rem; font-size: 0.75rem; font-weight: 700; background: #e11d48; color: #fff; border: none; border-radius: 0.5rem;">
                         <i class="fas fa-times"></i> Excluir
                     </button>
                 </div>
@@ -1224,10 +1246,10 @@ export const criarMaterialView = {
                     <p style="font-size: 0.75rem; color: var(--color-slate-500); font-weight: 600;">${window.escapeHTML(mapa.disciplina || 'Geral')} ${mapa.serie ? `• ${window.escapeHTML(mapa.serie)}` : ''}</p>
                 </div>
                 <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                    <button type="button" onclick="model.restaurarMindmapDaLixeira('${mapa.id}')" class="btn-secondary interactive-element" style="flex: 1; padding: 0.4rem; font-size: 0.75rem; font-weight: 700; color: #15803d; border-color: #bbf7d0; background: #f0fdf4;">
+                    <button type="button" data-action="restaurar-mindmap" data-id="${mapa.id}" class="btn-secondary interactive-element" style="flex: 1; padding: 0.4rem; font-size: 0.75rem; font-weight: 700; color: #15803d; border-color: #bbf7d0; background: #f0fdf4;">
                         <i class="fas fa-undo"></i> Restaurar
                     </button>
-                    <button type="button" onclick="criarMaterialView.excluirMindmapPermanente('${mapa.id}')" class="btn-danger interactive-element" style="padding: 0.4rem 0.75rem; font-size: 0.75rem; font-weight: 700; background: #e11d48; color: #fff; border: none; border-radius: 0.5rem;">
+                    <button type="button" data-action="excluir-mindmap-permanente" data-id="${mapa.id}" class="btn-danger interactive-element" style="padding: 0.4rem 0.75rem; font-size: 0.75rem; font-weight: 700; background: #e11d48; color: #fff; border: none; border-radius: 0.5rem;">
                         <i class="fas fa-times"></i> Excluir
                     </button>
                 </div>
@@ -1286,7 +1308,7 @@ export const criarMaterialView = {
                         </div>
                     </div>
                     ${temAlgumItem ? `
-                        <button type="button" onclick="criarMaterialView.esvaziarLixeira()" 
+                        <button type="button" data-action="esvaziar-lixeira" 
                                 class="btn-danger interactive-element" style="padding: 0.5rem 1rem; font-size: 0.75rem; font-weight: 800; border-radius: 0.75rem; background-color: #e11d48; color: #fff; border: none; cursor: pointer;">
                             <i class="fas fa-dumpster"></i> Esvaziar Lixeira
                         </button>
@@ -1311,7 +1333,7 @@ export const criarMaterialView = {
 
                 ${totalPaginas > 1 ? `
                     <div style="display: flex; margin-top: 2rem; justify-content: space-between; align-items: center; background-color: var(--color-white); padding: 1rem; border-radius: var(--radius-2xl); border: 1px solid var(--color-slate-200); box-shadow: var(--shadow-sm);">
-                        <button onclick="criarMaterialView.paginaAnterior()" ${this.paginaAtual === 1 ? 'disabled' : ''}
+                        <button type="button" data-action="pagina-anterior-material" ${this.paginaAtual === 1 ? 'disabled' : ''}
                                 class="btn-secondary interactive-element" style="padding: 0.5rem 1rem; font-size: 0.8125rem;">
                             <i class="fas fa-chevron-left"></i> Anterior
                         </button>
@@ -1320,7 +1342,7 @@ export const criarMaterialView = {
                             Página <span style="color: #4f46e5; font-size: 0.875rem; font-weight: 900;">${this.paginaAtual}</span> de ${totalPaginas}
                         </span>
                         
-                        <button onclick="criarMaterialView.proximaPagina()" ${this.paginaAtual === totalPaginas ? 'disabled' : ''}
+                        <button type="button" data-action="proxima-pagina-material" ${this.paginaAtual === totalPaginas ? 'disabled' : ''}
                                 class="btn-primary interactive-element" style="padding: 0.5rem 1rem; font-size: 0.8125rem; background-color: #4f46e5;">
                             Próxima <i class="fas fa-chevron-right"></i>
                         </button>
@@ -2294,15 +2316,23 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
         if (typeof this._cleanupDelegators === 'function') {
             this._cleanupDelegators();
         }
-        this._cleanupDelegators = EventDelegator.bind(container, {
+
+        const cleanupClicks = EventDelegator.bind(container, {
             'mudar-aba': (e, target) => {
                 const aba = target.getAttribute('data-aba');
                 if (aba) this.mudarAba(aba);
             },
             'abrir-modal-criar-material': () => this.abrirModalCriarMaterial(),
+            'set-pasta-raiz': () => this.setPastaAtual(null),
+            'set-pasta': (e, target) => {
+                const pId = target.getAttribute('data-pasta-id');
+                this.setPastaAtual(pId);
+            },
+            'modal-importar-material': () => this.modalImportarMaterial(),
+            'modal-criar-pasta': () => this.modalCriarPasta(),
             'excluir-pasta': (e, target) => {
                 e.stopPropagation();
-                const id = target.getAttribute('data-id');
+                const id = target.getAttribute('data-pasta-id') || target.getAttribute('data-id');
                 if (id) {
                     model.excluirPastaMaterial(id);
                     this.render('view-container');
@@ -2315,6 +2345,30 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                     controller.navigate('conteudo-gerado');
                 }
             },
+            'editar-material-manual': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) this.editarMaterialManual(id);
+            },
+            'mover-material-modal': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) this.moverMaterialModal(id);
+            },
+            'duplicar-material': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) model.duplicarMaterial(id);
+            },
+            'remover-comunidade': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) model.removerMaterialDaComunidade(id);
+            },
+            'compartilhar-comunidade': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) model.compartilharMaterial(id);
+            },
+            'excluir-material': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) this.excluirMaterial(id);
+            },
             'restaurar-material': (e, target) => {
                 const id = target.getAttribute('data-id');
                 if (id) this.restaurarMaterial(id);
@@ -2323,6 +2377,38 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                 const id = target.getAttribute('data-id');
                 if (id) this.excluirPermanente(id);
             },
+            'compilar-pacote-selecionados': () => this.compilarPacoteSelecionados(),
+            'baixar-word-selecionados': () => this.baixarWordSelecionados(),
+            'imprimir-pdf-selecionados': () => this.imprimirPDFSelecionados(),
+            'compartilhar-selecionados': () => this.compartilharSelecionados(),
+            'excluir-selecionados': () => this.excluirSelecionados(),
+            'limpar-selecao': () => this.limparSelecao(),
+            'selecionar-todos-materiais': () => this.selecionarTodos(this.filtrarMateriais(model.state.materiaisGerados || [])),
+            'pagina-anterior-material': () => this.paginaAnterior(),
+            'proxima-pagina-material': () => this.proximaPagina(),
+            'esvaziar-lixeira': () => this.esvaziarLixeira(),
+            'restaurar-flashcard': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) {
+                    model.restaurarFlashcardDaLixeira(id);
+                    this.render('view-container');
+                }
+            },
+            'excluir-flashcard-permanente': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) this.excluirFlashcardPermanente(id);
+            },
+            'restaurar-mindmap': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) {
+                    model.restaurarMindmapDaLixeira(id);
+                    this.render('view-container');
+                }
+            },
+            'excluir-mindmap-permanente': (e, target) => {
+                const id = target.getAttribute('data-id');
+                if (id) this.excluirMindmapPermanente(id);
+            },
             'mover-para-pasta-modal': (e, target) => {
                 const materialId = target.getAttribute('data-id');
                 const pId = document.getElementById('select-dest-pasta')?.value;
@@ -2330,8 +2416,70 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                 controller.closeModal();
                 this.render('view-container');
             },
-            'fechar-modal': () => controller.closeModal()
+            'fechar-modal': () => controller.closeModal(),
+            'selecionar-ferramenta': (e, target) => {
+                const id = target.getAttribute('data-id');
+                this.selecionarFerramenta(id, target);
+            },
+            'set-modo-geracao': (e, target) => {
+                const modo = target.getAttribute('data-modo');
+                this.setModoGeracao(modo);
+            },
+            'carregar-modelo-manual': () => this.carregarModeloEstruturadoManual(),
+            'previsualizar-manual': () => this.abrirPrevisualizacaoManual(),
+            'submeter-formulario': (e, target) => this.submeterFormulario(target),
+            'voltar-e-criar-outro': (e, target) => {
+                const tipo = target.getAttribute('data-tipo');
+                this.selecionarFerramenta(tipo, document.querySelector('.tool-nav-btn--active'));
+            },
+            'salvar-na-biblioteca': () => this.salvarNaBiblioteca(),
+            'abrir-seletor-bncc': (e, target) => {
+                const label = target.getAttribute('data-label');
+                this.abrirSeletorBNCC(label);
+            },
+            'select-pill': (e, target) => {
+                const campoId = target.getAttribute('data-campo');
+                const val = target.getAttribute('data-val');
+                this.selectPill(campoId, val, target);
+            },
+            'select-card': (e, target) => {
+                const campoId = target.getAttribute('data-campo');
+                const optId = target.getAttribute('data-opt-id');
+                const titulo = target.getAttribute('data-titulo');
+                this.selectCard(campoId, optId, titulo, target);
+            },
+            'set-modo-toggle-ia': (e, target) => {
+                const modo = target.getAttribute('data-modo');
+                this.setModoToggleIAField(modo);
+            },
+            'add-palavra': () => this.addPalavra(),
+            'remover-palavra': (e, target) => {
+                const wrap = target.closest('.word-item-wrap') || target.parentElement;
+                if (wrap) wrap.remove();
+            },
+            'acionar-input-import': () => document.getElementById('input-arquivo-import')?.click(),
+            'salvar-material-importado': () => this.salvarMaterialImportado(),
+            'salvar-material-manual-btn': () => this.salvarMaterialManual()
         }, 'click');
+
+        const cleanupChanges = EventDelegator.bind(container, {
+            'filtro-disciplina': (e, target) => this.atualizarFiltro('disciplina', target.value),
+            'filtro-serie': (e, target) => this.atualizarFiltro('serie', target.value),
+            'filtro-tipo': (e, target) => this.atualizarFiltro('tipo', target.value),
+            'mudar-qtd-pagina': (e, target) => this.mudarQtdPagina(target.value),
+            'toggle-selecao-material': (e, target) => this.toggleSelecao(target.dataset.id),
+            'upload-arquivo-contexto-material': (e, target) => this.carregarArquivoContexto(target)
+        }, 'change');
+
+        const cleanupInputs = EventDelegator.bind(container, {
+            'busca-material': (e, target) => this.atualizarBusca(target.value)
+        }, 'input');
+
+        this._cleanupDelegators = () => {
+            if (typeof cleanupClicks === 'function') cleanupClicks();
+            if (typeof cleanupChanges === 'function') cleanupChanges();
+            if (typeof cleanupInputs === 'function') cleanupInputs();
+        };
     },
 
     destroy() {
@@ -2353,7 +2501,7 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
             const isAtivo = this.ferramentaAtiva === item.id;
             const activeClass = isAtivo ? 'tool-nav-btn--active' : '';
             return `
-                        <button type="button" onclick="criarMaterialView.selecionarFerramenta('${item.id}', this)" class="tool-nav-btn interactive-element ${activeClass}" ${item.disabled ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
+                        <button type="button" data-action="selecionar-ferramenta" data-id="${item.id}" class="tool-nav-btn interactive-element ${activeClass}" ${item.disabled ? 'disabled style="opacity: 0.5; cursor: not-allowed;"' : ''}>
                             <div class="tool-nav-btn__left">
                                 <div class="tool-nav-btn__icon ${item.cor}"><i class="${item.icone}"></i></div>
                                 <span>${item.label}</span>
@@ -2439,12 +2587,12 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                     <i class="fas fa-sliders" style="color: #4f46e5;"></i> Modo de Criação:
                 </span>
                 <div style="display: flex; gap: 0.375rem; background-color: #e2e8f0; padding: 0.25rem; border-radius: 0.75rem;">
-                    <button type="button" onclick="criarMaterialView.setModoGeracao('ia')" 
+                    <button type="button" data-action="set-modo-geracao" data-modo="ia" 
                             class="interactive-element" 
                             style="padding: 0.35rem 0.875rem; font-size: 0.75rem; font-weight: 800; border-radius: 0.625rem; border: none; cursor: pointer; transition: all 0.2s; ${this.modoGeracaoForm === 'ia' ? 'background-color: #4f46e5; color: #ffffff; box-shadow: 0 2px 4px rgba(79, 70, 229, 0.3);' : 'background-color: transparent; color: #64748b;'}">
                         <i class="fas fa-robot"></i> Gerar com IA
                     </button>
-                    <button type="button" onclick="criarMaterialView.setModoGeracao('manual')" 
+                    <button type="button" data-action="set-modo-geracao" data-modo="manual" 
                             class="interactive-element" 
                             style="padding: 0.35rem 0.875rem; font-size: 0.75rem; font-weight: 800; border-radius: 0.625rem; border: none; cursor: pointer; transition: all 0.2s; ${this.modoGeracaoForm === 'manual' ? 'background-color: #10b981; color: #ffffff; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);' : 'background-color: transparent; color: #64748b;'}">
                         <i class="fas fa-pen-to-square"></i> Escrever Meu Material
@@ -2461,7 +2609,7 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                     <p class="tool-main-panel__subtitle">Escreva ou cole seu próprio material pedagógico para salvá-lo diretamente na sua biblioteca.</p>
                 </div>
 
-                <form id="manual-material-form" class="space-y-4 animate-enter flex-1" onsubmit="event.preventDefault(); criarMaterialView.salvarMaterialManual();">
+                <form id="manual-material-form" class="space-y-4 animate-enter flex-1">
                     <div class="form-group">
                         <label class="form-label" style="font-weight: 700;">Título do Material *</label>
                         <input type="text" id="manual-titulo" class="form-input" placeholder="Ex: ${config.titulo} de Língua Portuguesa..." required>
@@ -2488,13 +2636,13 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                     </div>
 
                     <div class="form-group">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: gap; gap: 0.5rem;">
                             <label class="form-label" style="font-weight: 700; margin: 0;">Conteúdo do Material (Texto, Questões ou Gabarito) *</label>
                             <div style="display: flex; gap: 0.375rem; flex-wrap: wrap;">
-                                <button type="button" onclick="criarMaterialView.carregarModeloEstruturadoManual()" class="btn-secondary interactive-element" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; background: #eef2ff; color: #4338ca; border-color: #c7d2fe; font-weight: 700;" title="Carregar modelo de estrutura recomendado para esta ferramenta">
+                                <button type="button" data-action="carregar-modelo-manual" class="btn-secondary interactive-element" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; background: #eef2ff; color: #4338ca; border-color: #c7d2fe; font-weight: 700;" title="Carregar modelo de estrutura recomendado para esta ferramenta">
                                     <i class="fas fa-wand-magic-sparkles"></i> Modelo Pronto
                                 </button>
-                                <button type="button" onclick="criarMaterialView.abrirPrevisualizacaoManual()" class="btn-secondary interactive-element" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; background: #f0fdf4; color: #15803d; border-color: #bbf7d0; font-weight: 700;" title="Pré-visualizar folha impressa A4">
+                                <button type="button" data-action="previsualizar-manual" class="btn-secondary interactive-element" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; background: #f0fdf4; color: #15803d; border-color: #bbf7d0; font-weight: 700;" title="Pré-visualizar folha impressa A4">
                                     <i class="fas fa-eye"></i> Pré-visualizar A4
                                 </button>
                             </div>
@@ -2508,11 +2656,11 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                     </div>
 
                     <div class="mt-6 pt-4 border-t border-slate-100 flex items-center justify-between flex-wrap gap-3">
-                        <button type="button" onclick="criarMaterialView.abrirPrevisualizacaoManual()" class="btn-secondary interactive-element py-3 px-5 rounded-xl font-bold flex items-center gap-2" style="background-color: #f8fafc; color: #475569; border-color: #cbd5e1;">
+                        <button type="button" data-action="previsualizar-manual" class="btn-secondary interactive-element py-3 px-5 rounded-xl font-bold flex items-center gap-2" style="background-color: #f8fafc; color: #475569; border-color: #cbd5e1;">
                             <i class="fas fa-eye"></i> Pré-visualizar A4
                         </button>
 
-                        <button type="submit" class="btn-primary interactive-element py-3.5 px-6 rounded-xl font-bold text-white flex items-center gap-2" style="background-color: #10b981; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.25);">
+                        <button type="button" data-action="salvar-material-manual-btn" class="btn-primary interactive-element py-3.5 px-6 rounded-xl font-bold text-white flex items-center gap-2" style="background-color: #10b981; box-shadow: 0 4px 6px rgba(16, 185, 129, 0.25);">
                             <i class="fas fa-save"></i> Salvar Material na Biblioteca
                         </button>
                     </div>
@@ -2542,7 +2690,7 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                     <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
                         <label class="btn-outline interactive-element" style="cursor: pointer; padding: 0.5rem 0.875rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.375rem; background-color: #fff;">
                             <i class="fas fa-paperclip"></i> <span>Anexar Arquivo (PDF / TXT / MD)</span>
-                            <input type="file" id="mat-file-input" accept=".txt,.md,.pdf,.csv,.json" style="display: none;" onchange="criarMaterialView.carregarArquivoContexto(this)">
+                            <input type="file" id="mat-file-input" accept=".txt,.md,.pdf,.csv,.json" style="display: none;" data-action="upload-arquivo-contexto-material">
                         </label>
                         <span id="mat-nome-arquivo" style="font-size: 0.75rem; color: var(--color-slate-500); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 260px;"></span>
                     </div>
@@ -2554,7 +2702,7 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                 </div>
             </form>
             <div class="mt-8 pt-6 border-t border-slate-100 flex items-center gap-4 sticky bottom-0 bg-white z-10 pb-2">
-                <button type="button" onclick="criarMaterialView.submeterFormulario(this)" class="btn-primary interactive-element w-full flex-1 py-3.5 px-6 rounded-xl font-bold text-white flex items-center justify-center gap-2" style="background-color: #4f46e5; box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.25);">
+                <button type="button" data-action="submeter-formulario" class="btn-primary interactive-element w-full flex-1 py-3.5 px-6 rounded-xl font-bold text-white flex items-center justify-center gap-2" style="background-color: #4f46e5; box-shadow: 0 10px 15px -3px rgba(79, 70, 229, 0.25);">
                     <i class="fas fa-layer-group"></i> Gerar conteúdo com IA
                 </button>
             </div>
@@ -2565,11 +2713,11 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
         if (!formArea) return;
         formArea.innerHTML = `
             <div class="flex justify-between items-center mb-6 border-b border-slate-100 pb-4 animate-enter flex-wrap gap-4">
-                <button onclick="criarMaterialView.selecionarFerramenta('${material.tipo}', document.querySelector('.tool-nav-btn--active'))" class="btn-outline interactive-element text-sm">
+                <button type="button" data-action="voltar-e-criar-outro" data-tipo="${material.tipo}" class="btn-outline interactive-element text-sm">
                     <i class="fas fa-arrow-left"></i> Voltar e criar outro
                 </button>
                 <div class="flex gap-3">
-                    <button onclick="criarMaterialView.salvarNaBiblioteca()" class="btn-secondary interactive-element text-sm flex items-center gap-2">
+                    <button type="button" data-action="salvar-na-biblioteca" class="btn-secondary interactive-element text-sm flex items-center gap-2">
                         <i class="far fa-save"></i> Salvar na Biblioteca
                     </button>
                     <!-- O Botão Mágico de Imprimir -->
@@ -2854,7 +3002,7 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                             <label class="form-label">${campo.label}</label>
                             <div style="display: flex; gap: 0.5rem; align-items: center;">
                                 <input type="text" data-field="${campo.label}" placeholder="${campo.placeholder || 'Ex: EF06CI05'}" class="form-input" style="flex: 1;">
-                                <button type="button" onclick="criarMaterialView.abrirSeletorBNCC('${window.escapeHTML(campo.label)}')" class="btn-primary interactive-element" style="white-space: nowrap; padding: 0.625rem 1rem; font-size: 0.8125rem; display: flex; align-items: center; gap: 0.375rem; box-shadow: var(--shadow-sm);" title="Consultar e selecionar habilidade na BNCC">
+                                <button type="button" data-action="abrir-seletor-bncc" data-label="${window.escapeHTML(campo.label)}" class="btn-primary interactive-element" style="white-space: nowrap; padding: 0.625rem 1rem; font-size: 0.8125rem; display: flex; align-items: center; gap: 0.375rem; box-shadow: var(--shadow-sm);" title="Consultar e selecionar habilidade na BNCC">
                                     <i class="fas fa-search"></i> <span>Buscar na BNCC</span>
                                 </button>
                             </div>
@@ -2888,7 +3036,7 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                 const val = typeof opt === 'string' ? opt : opt.label;
                 const isSelected = val === campo.default;
                 const activeClass = isSelected ? 'pill-item--active' : '';
-                return `<button type="button" onclick="criarMaterialView.selectPill('${campo.id}', '${val}', this)" class="pill-item interactive-element ${activeClass}">${typeof opt !== 'string' ? `<i class="${opt.icon}"></i>` : ''} ${val}</button>`;
+                return `<button type="button" data-action="select-pill" data-campo="${campo.id}" data-val="${val}" class="pill-item interactive-element ${activeClass}">${typeof opt !== 'string' ? `<i class="${opt.icon}"></i>` : ''} ${val}</button>`;
             }).join('')}
                         </div>
                     </div>`; break;
@@ -2901,7 +3049,7 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                 const isSelected = opt.id === campo.default;
                 const activeClass = isSelected ? 'tool-card-item--active' : '';
                 return `
-                                <button type="button" onclick="criarMaterialView.selectCard('${campo.id}', '${opt.id}', '${opt.titulo}', this)" class="tool-card-item interactive-element ${activeClass}">
+                                <button type="button" data-action="select-card" data-campo="${campo.id}" data-opt-id="${opt.id}" data-titulo="${opt.titulo}" class="tool-card-item interactive-element ${activeClass}">
                                     <div class="tool-card-item__check ${isSelected ? '' : 'hidden'}"><i class="fas fa-check"></i></div>
                                     <div class="tool-card-item__icon-wrap ${opt.bg} ${opt.cor}"><i class="${opt.icone}"></i></div>
                                     <div><h4 style="font-weight: 700; color: #1e293b; font-size: 0.875rem; line-height: 1.25;">${opt.titulo}</h4></div>
@@ -2914,25 +3062,23 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                         <label class="form-label" style="font-size: 0.75rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem;">${campo.label}</label>
                         <input type="hidden" data-field="${campo.label}" id="hidden-modo-geracao" value="${campo.default}" class="toggle-control">
                         <div class="mode-toggle-group">
-                            <button type="button" id="btn-modo-ia" onclick="criarMaterialView.setModoToggleIAField('ia')" class="mode-toggle-btn interactive-element ${campo.default === 'ia' ? 'mode-toggle-btn--active' : ''}">
+                            <button type="button" id="btn-modo-ia" data-action="set-modo-toggle-ia" data-modo="ia" class="mode-toggle-btn interactive-element ${campo.default === 'ia' ? 'mode-toggle-btn--active' : ''}">
                                 <i class="fas fa-magic"></i> Gerar com IA
                                 <span style="font-size: 0.5625rem; color: #94a3b8; font-weight: 400; text-transform: uppercase; letter-spacing: 0.05em; margin-left: 0.25rem;">(A partir do tema)</span>
                             </button>
-                            <button type="button" id="btn-modo-manual" onclick="criarMaterialView.setModoToggleIAField('manual')" class="mode-toggle-btn interactive-element ${campo.default === 'manual' ? 'mode-toggle-btn--active' : ''}">
+                            <button type="button" id="btn-modo-manual" data-action="set-modo-toggle-ia" data-modo="manual" class="mode-toggle-btn interactive-element ${campo.default === 'manual' ? 'mode-toggle-btn--active' : ''}">
                                 <i class="fas fa-pencil-alt"></i> Personalizar
                                 <span style="font-size: 0.5625rem; color: #94a3b8; font-weight: 400; text-transform: uppercase; letter-spacing: 0.05em; margin-left: 0.25rem;">(Escrever eu mesmo)</span>
                             </button>
                         </div>
-                    </div>
-                    <!-- Aciona a verificação inicial logo após a injeção no DOM -->
-                    <img src onerror="criarMaterialView.processarCondicionais()" style="display:none;">`; break;
+                    </div>`; break;
             case 'dynamic-words': htmlComponente = `
                     <div class="dynamic-box">
                         <label class="form-label" style="font-size: 0.875rem; font-weight: 700; color: #1e293b; margin-bottom: 1rem;">${campo.label}</label>
                         <div class="dynamic-words-grid" id="dynamic-words-list">
                             <input type="text" placeholder="Palavra 1" class="word-val form-input">
                             <input type="text" placeholder="Palavra 2" class="word-val form-input">
-                            <button type="button" onclick="criarMaterialView.addPalavra()" class="btn-outline interactive-element" style="width: 100%; border-style: dashed; justify-content: center;">
+                            <button type="button" data-action="add-palavra" class="btn-outline interactive-element" style="width: 100%; border-style: dashed; justify-content: center;">
                                 <i class="fas fa-plus"></i> Adicionar
                             </button>
                         </div>
@@ -2945,30 +3091,39 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
         return htmlComponente;
     },
     selectPill(campoId, valor, btnElement) {
-        document.getElementById(`hidden-${campoId}`).value = valor;
+        const hiddenEl = document.getElementById(`hidden-${campoId}`);
+        if (hiddenEl) hiddenEl.value = valor;
         const container = document.getElementById(`group-${campoId}`);
-        container.querySelectorAll('.pill-item').forEach(b => {
-            b.classList.remove('pill-item--active');
-        });
-        btnElement.classList.add('pill-item--active');
+        if (container) {
+            container.querySelectorAll('.pill-item').forEach(b => {
+                b.classList.remove('pill-item--active');
+            });
+        }
+        if (btnElement) btnElement.classList.add('pill-item--active');
     },
     selectCard(campoId, idValor, titulo, btnElement) {
-        document.getElementById(`hidden-${campoId}`).value = titulo;
+        const hiddenEl = document.getElementById(`hidden-${campoId}`);
+        if (hiddenEl) hiddenEl.value = titulo;
         const container = document.getElementById(`group-${campoId}`);
-        container.querySelectorAll('.tool-card-item').forEach(c => {
-            c.classList.remove('tool-card-item--active');
-            c.querySelector('.tool-card-item__check')?.classList.add('hidden');
-        });
-        btnElement.classList.add('tool-card-item--active');
-        btnElement.querySelector('.tool-card-item__check')?.classList.remove('hidden');
+        if (container) {
+            container.querySelectorAll('.tool-card-item').forEach(c => {
+                c.classList.remove('tool-card-item--active');
+                c.querySelector('.tool-card-item__check')?.classList.add('hidden');
+            });
+        }
+        if (btnElement) {
+            btnElement.classList.add('tool-card-item--active');
+            btnElement.querySelector('.tool-card-item__check')?.classList.remove('hidden');
+        }
     },
     addPalavra() {
         const container = document.getElementById('dynamic-words-list');
+        if (!container) return;
         const addBtn = container.lastElementChild;
         const count = container.querySelectorAll('input').length + 1;
         const wrap = document.createElement('div');
-        wrap.className = "relative animate-enter";
-        wrap.innerHTML = `<input type="text" placeholder="Palavra ${count}" class="word-val form-input pr-8"><i class="fas fa-times absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-500 cursor-pointer" onclick="this.parentElement.remove()"></i>`;
+        wrap.className = "relative animate-enter word-item-wrap";
+        wrap.innerHTML = `<input type="text" placeholder="Palavra ${count}" class="word-val form-input pr-8"><i class="fas fa-times absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-red-500 cursor-pointer" data-action="remover-palavra"></i>`;
         container.insertBefore(wrap, addBtn);
     },
     setModoToggleIAField(modo) {
@@ -3109,7 +3264,7 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
     },
     modalImportarMaterial() {
         const todasPastas = model.state.pastasMateriais || [];
-        const optionsPastas = `
+        const opcoesPastasHtml = `
             <option value="">Raiz (Sem pasta)</option>
             ${todasPastas.map(p => `<option value="${p.id}" ${String(p.id) === String(this.pastaAtualId) ? 'selected' : ''}>📁 ${window.escapeHTML(p.nome)}</option>`).join('')}
         `;
@@ -3118,11 +3273,8 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
             <div style="display: flex; flex-direction: column; gap: 1.25rem;">
                 <div style="background-color: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-xl); padding: 1.25rem; text-align: center;">
                     <div id="dropzone-import" style="border: 2px dashed #cbd5e1; border-radius: var(--radius-lg); padding: 2rem 1rem; background-color: #ffffff; cursor: pointer; transition: all 0.2s;"
-                         onclick="document.getElementById('input-arquivo-import').click()"
-                         ondragover="event.preventDefault(); this.style.borderColor='#4f46e5'; this.style.backgroundColor='#eef2ff';"
-                         ondragleave="this.style.borderColor='#cbd5e1'; this.style.backgroundColor='#ffffff';"
-                         ondrop="event.preventDefault(); this.style.borderColor='#cbd5e1'; this.style.backgroundColor='#ffffff'; if (event.dataTransfer.files.length) criarMaterialView.processarArquivoUpload(event.dataTransfer.files[0]);">
-                        <input type="file" id="input-arquivo-import" accept=".doc,.docx,.pdf,.txt,.md" style="display: none;" onchange="if (this.files.length) criarMaterialView.processarArquivoUpload(this.files[0])">
+                         data-action="acionar-input-import">
+                        <input type="file" id="input-arquivo-import" accept=".doc,.docx,.pdf,.txt,.md" style="display: none;">
                         <i class="fas fa-cloud-arrow-up" style="font-size: 2.5rem; color: #4f46e5; margin-bottom: 0.75rem;"></i>
                         <h4 style="font-size: 1rem; font-weight: 800; color: #1e293b; margin: 0 0 0.25rem 0;">Clique ou arraste seu arquivo aqui</h4>
                         <p style="font-size: 0.8125rem; color: #64748b; margin: 0;">Formatos suportados: <strong>Word (.docx, .doc)</strong>, <strong>PDF (.pdf)</strong>, <strong>Texto (.txt, .md)</strong></p>
@@ -3134,34 +3286,7 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                     <span style="font-size: 0.8125rem; font-weight: 700; color: #4f46e5;">Extraindo conteúdo do documento...</span>
                 </div>
 
-                <div id="import-aviso-scanned" class="hidden" style="background-color: #fefce8; border: 1px solid #fef08a; padding: 0.875rem; border-radius: var(--radius-lg); font-size: 0.8125rem; color: #854d0e; display: flex; align-items: flex-start; gap: 0.5rem;">
-                    <i class="fas fa-info-circle" style="color: #ca8a04; margin-top: 0.125rem; flex-shrink: 0;"></i>
-                    <span id="import-aviso-texto"></span>
-                </div>
-
                 <div id="form-detalhes-import" class="hidden" style="display: flex; flex-direction: column; gap: 1rem;">
-                    <!-- ESCOLHA DO MODO DE IMPORTAÇÃO -->
-                    <div>
-                        <label class="form-label" style="font-weight: 800; color: #334155; margin-bottom: 0.5rem;">Como você deseja salvar este material?</label>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 0.75rem;">
-                            <label id="label-modo-editavel" style="border: 2px solid #4f46e5; background-color: #eef2ff; border-radius: var(--radius-lg); padding: 0.75rem; cursor: pointer; display: flex; flex-direction: column; gap: 0.25rem;">
-                                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <input type="radio" name="modo-importacao" value="editavel" checked onchange="criarMaterialView.alternarModoImport(this.value)">
-                                    <strong style="font-size: 0.8125rem; color: #4f46e5;"><i class="fas fa-file-pen"></i> Material Editável</strong>
-                                </div>
-                                <span style="font-size: 0.6875rem; color: #64748b; margin-left: 1.5rem;">Converte o texto para edição, formatação LaTeX, IA e impressão.</span>
-                            </label>
-
-                            <label id="label-modo-documento" style="border: 2px solid #e2e8f0; background-color: #ffffff; border-radius: var(--radius-lg); padding: 0.75rem; cursor: pointer; display: flex; flex-direction: column; gap: 0.25rem;">
-                                <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                    <input type="radio" name="modo-importacao" value="documento" onchange="criarMaterialView.alternarModoImport(this.value)">
-                                    <strong style="font-size: 0.8125rem; color: #334155;"><i class="fas fa-folder-tree"></i> Documento / Acervo</strong>
-                                </div>
-                                <span style="font-size: 0.6875rem; color: #64748b; margin-left: 1.5rem;">Arquiva o arquivo para organização e consulta do professor.</span>
-                            </label>
-                        </div>
-                    </div>
-
                     <div>
                         <label class="form-label">Título do Material</label>
                         <input type="text" id="import-titulo" class="form-input" placeholder="Ex: Avaliação Bimestral de Matemática">
@@ -3174,39 +3299,45 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                                 ${(this.disciplinas || []).map(d => `<option value="${d}">${d}</option>`).join('')}
                             </select>
                         </div>
+
                         <div>
-                            <label class="form-label">Série / Ano</label>
+                            <label class="form-label">Série / Segmento</label>
                             <select id="import-serie" class="form-select">
                                 ${(this.seriesDisponiveis || []).map(s => `<option value="${s}">${s}</option>`).join('')}
                             </select>
                         </div>
+
                         <div>
-                            <label class="form-label">Bimestre</label>
-                            <select id="import-bimestre" class="form-select">
-                                <option value="">Sem Bimestre</option>
-                                ${(this.bimestresDisponiveis || []).map(b => `<option value="${b}">${b}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div>
-                            <label class="form-label">Organizar na Pasta</label>
-                            <select id="import-pasta" class="form-select">
-                                ${optionsPastas}
+                            <label class="form-label">Tipo Pedagógico</label>
+                            <select id="import-tipo" class="form-select">
+                                <option value="prova">Avaliação / Prova</option>
+                                <option value="exercicio">Lista de Exercícios</option>
+                                <option value="resumo">Resumo / Apostila</option>
+                                <option value="plano_aula">Plano de Aula</option>
+                                <option value="estudo_caso">Estudo de Caso</option>
+                                <option value="outro" selected>Material Geral</option>
                             </select>
                         </div>
                     </div>
 
-                    <!-- PRÉVIA DO TEXTO EXTRAÍDO -->
                     <div>
-                        <label class="form-label" style="display: flex; justify-content: space-between;">
-                            <span>Conteúdo Extraído (Prévia)</span>
-                            <span id="import-tamanho-caracteres" style="font-size: 0.6875rem; color: #94a3b8;"></span>
-                        </label>
-                        <textarea id="import-preview-texto" class="form-input custom-scrollbar" rows="5" style="font-size: 0.8125rem; line-height: 1.5; font-family: monospace;"></textarea>
+                        <label class="form-label">Salvar na Pasta (Opcional)</label>
+                        <select id="import-pasta-id" class="form-select">
+                            ${opcoesPastasHtml}
+                        </select>
+                    </div>
+
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+                            <label class="form-label" style="margin: 0;">Prévia do Conteúdo Extraído</label>
+                            <span id="import-tamanho-caracteres" style="font-size: 0.6875rem; color: #64748b; font-weight: 700;"></span>
+                        </div>
+                        <textarea id="import-preview-texto" rows="6" class="form-input custom-scrollbar" style="font-size: 0.8125rem; font-family: monospace; resize: vertical;" placeholder="O texto extraído do documento aparecerá aqui..."></textarea>
                     </div>
 
                     <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
-                        <button type="button" onclick="controller.closeModal()" class="btn-secondary">Cancelar</button>
-                        <button type="button" id="btn-confirmar-import" onclick="criarMaterialView.salvarMaterialImportado()" class="btn-primary" style="background-color: #4f46e5;">
+                        <button type="button" data-action="fechar-modal" class="btn-secondary">Cancelar</button>
+                        <button type="button" id="btn-confirmar-import" data-action="salvar-material-importado" class="btn-primary" style="background-color: #4f46e5;">
                             <i class="fas fa-check"></i> Concluir Importação
                         </button>
                     </div>
@@ -3215,6 +3346,45 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
         `;
 
         controller.openModal('Importar Material (.docx, .doc, .pdf, .txt)', modalHtml);
+
+        const modalEl = document.getElementById('global-modal') || document.getElementById('modal-container');
+        if (modalEl) {
+            modalEl.querySelector('[data-action="acionar-input-import"]')?.addEventListener('click', () => {
+                document.getElementById('input-arquivo-import')?.click();
+            });
+            modalEl.querySelector('[data-action="fechar-modal"]')?.addEventListener('click', () => {
+                controller.closeModal();
+            });
+            modalEl.querySelector('[data-action="salvar-material-importado"]')?.addEventListener('click', () => {
+                this.salvarMaterialImportado();
+            });
+            const inputArq = modalEl.querySelector('#input-arquivo-import');
+            if (inputArq) {
+                inputArq.addEventListener('change', (e) => {
+                    if (e.target.files && e.target.files.length) this.processarArquivoUpload(e.target.files[0]);
+                });
+            }
+            const dropzone = modalEl.querySelector('#dropzone-import');
+            if (dropzone) {
+                dropzone.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    dropzone.style.borderColor = '#4f46e5';
+                    dropzone.style.backgroundColor = '#eef2ff';
+                });
+                dropzone.addEventListener('dragleave', () => {
+                    dropzone.style.borderColor = '#cbd5e1';
+                    dropzone.style.backgroundColor = '#ffffff';
+                });
+                dropzone.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropzone.style.borderColor = '#cbd5e1';
+                    dropzone.style.backgroundColor = '#ffffff';
+                    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) {
+                        this.processarArquivoUpload(e.dataTransfer.files[0]);
+                    }
+                });
+            }
+        }
     },
 
     async processarArquivoUpload(file) {

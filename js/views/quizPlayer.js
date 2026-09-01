@@ -863,7 +863,7 @@ export const quizPlayerView = {
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                     <div>
                         <label class="form-label" style="font-size: 0.75rem; font-weight: 800; color: #475569; text-transform: uppercase;">Turma de Destino</label>
-                        <select id="modal-quiz-turma" class="form-input" style="width: 100%; padding: 0.625rem 0.875rem; border-radius: 0.75rem; border: 1.5px solid #cbd5e1; font-weight: 700;" onchange="quizPlayerView.atualizarPreviewTurma(this.value)">
+                        <select id="modal-quiz-turma" class="form-input" style="width: 100%; padding: 0.625rem 0.875rem; border-radius: 0.75rem; border: 1.5px solid #cbd5e1; font-weight: 700;" data-action="mudar-turma-preview">
                             ${turmas.map(t => `<option value="${t.id}">${window.escapeHTML(t.nome)} (${t.alunos?.length || 0} alunos)</option>`).join('')}
                         </select>
                     </div>
@@ -908,6 +908,18 @@ export const quizPlayerView = {
         `;
 
         controller.openModal('Lançamento no Diário', html);
+        const modalEl = document.getElementById('global-modal');
+        if (modalEl) {
+            EventDelegator.bind(modalEl, {
+                'mudar-turma-preview': (e, target) => {
+                    this.atualizarPreviewTurma(target.value);
+                }
+            }, 'change');
+            EventDelegator.bind(modalEl, {
+                'fechar-modal': () => controller.closeModal(),
+                'salvar-notas': () => this.confirmarLancamentoNotas()
+            }, 'click');
+        }
         this.atualizarPreviewTurma(defaultTurma.id);
     },
 
@@ -1048,10 +1060,8 @@ export const quizPlayerView = {
 
         if (this.pin) {
             try {
-                // Atualiza Firestore para CLOSED
-                await firebaseService.db?.collection('quiz_sessions').doc(String(this.pin)).update({
-                    status: 'CLOSED'
-                });
+                // Atualiza Firestore para CLOSED via serviço encapsulado
+                await firebaseService.encerrarSessaoQuiz(this.pin);
             } catch (e) {
                 console.warn("Aviso ao encerrar sessão:", e.message);
             }
@@ -1062,6 +1072,26 @@ export const quizPlayerView = {
         window.location.hash = '';
         controller.navigate('quiz-gestor');
         Toast.show("Partida de Quiz encerrada com sucesso.", "info");
+    },
+
+    destroy() {
+        if (this.intervaloTimer) clearInterval(this.intervaloTimer);
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+        if (this.unsubscribe) {
+            this.unsubscribe();
+            this.unsubscribe = null;
+        }
+        if (this.broadcastChannel) {
+            this.broadcastChannel.close();
+            this.broadcastChannel = null;
+        }
+    },
+
+    onLeave() {
+        this.destroy();
     }
 };
 

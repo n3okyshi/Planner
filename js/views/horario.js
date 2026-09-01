@@ -1,16 +1,31 @@
+// js/views/horario.js
+/**
+ * ==========================================================================
+ * GRADE HORÁRIA SEMANAL (HORÁRIO VIEW)
+ * Padrão: Vanilla MVC, ES Modules, Event Delegation (data-action), Design System.
+ * ==========================================================================
+ */
+
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 
 export const horarioView = {
     turnoAtual: 'matutino',
     modoEdicao: false,
     tempState: null,
     hasUnsavedChanges: false,
+    _cleanupDelegators: null,
 
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
 
         if (!this.tempState) {
             this.carregarDoModel();
@@ -30,9 +45,9 @@ export const horarioView = {
 
                     <div style="display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap;">
                         <div class="mode-toggle-group">
-                            <button type="button" onclick="horarioView.mudarTurno('matutino')" class="mode-toggle-btn interactive-element ${this.turnoAtual === 'matutino' ? 'mode-toggle-btn--active' : ''}">Manhã</button>
-                            <button type="button" onclick="horarioView.mudarTurno('vespertino')" class="mode-toggle-btn interactive-element ${this.turnoAtual === 'vespertino' ? 'mode-toggle-btn--active' : ''}">Tarde</button>
-                            <button type="button" onclick="horarioView.mudarTurno('noturno')" class="mode-toggle-btn interactive-element ${this.turnoAtual === 'noturno' ? 'mode-toggle-btn--active' : ''}">Noite</button>
+                            <button type="button" data-action="mudar-turno" data-turno="matutino" class="mode-toggle-btn interactive-element ${this.turnoAtual === 'matutino' ? 'mode-toggle-btn--active' : ''}">Manhã</button>
+                            <button type="button" data-action="mudar-turno" data-turno="vespertino" class="mode-toggle-btn interactive-element ${this.turnoAtual === 'vespertino' ? 'mode-toggle-btn--active' : ''}">Tarde</button>
+                            <button type="button" data-action="mudar-turno" data-turno="noturno" class="mode-toggle-btn interactive-element ${this.turnoAtual === 'noturno' ? 'mode-toggle-btn--active' : ''}">Noite</button>
                         </div>
                     </div>
                 </div>
@@ -40,11 +55,11 @@ export const horarioView = {
                 <!-- CONTROLS & ACTIONS TOOLBAR -->
                 <div class="card" style="padding: var(--spacing-3) var(--spacing-6); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-3); background-color: var(--color-slate-50);">
                     <div style="display: flex; gap: var(--spacing-3);">
-                        <button type="button" onclick="horarioView.toggleModoEdicao()" class="btn-secondary" style="padding: 0.5rem 1rem;">
+                        <button type="button" data-action="toggle-modo-edicao" class="btn-secondary" style="padding: 0.5rem 1rem;">
                             <i class="fas ${this.modoEdicao ? 'fa-table' : 'fa-cog'}"></i>
                             <span>${this.modoEdicao ? 'Voltar para Grade' : 'Configurar Horários'}</span>
                         </button>
-                        <button type="button" onclick="horarioView.imprimir()" class="btn-secondary" style="padding: 0.5rem 1rem;" title="Imprimir Grade Horária (Encaixa em 1 Folha A4)">
+                        <button type="button" data-action="imprimir-horario" class="btn-secondary" style="padding: 0.5rem 1rem;" title="Imprimir Grade Horária (Encaixa em 1 Folha A4)">
                             <i class="fas fa-print"></i> <span>Imprimir Horário (A4)</span>
                         </button>
                     </div>
@@ -55,7 +70,7 @@ export const horarioView = {
                                 <i class="fas fa-circle" style="font-size: 0.5rem;"></i> Alterações não salvas
                             </span>
                         ` : ''}
-                        <button type="button" onclick="horarioView.salvarTudo()" class="btn-primary" style="padding: 0.5rem 1.25rem;">
+                        <button type="button" data-action="salvar-tudo" class="btn-primary" style="padding: 0.5rem 1.25rem;">
                             <i class="fas fa-save"></i> <span>Salvar Alterações</span>
                         </button>
                     </div>
@@ -71,49 +86,73 @@ export const horarioView = {
                     </div>
                 </div>
 
+                <!-- LEGENDA DAS DISCIPLINAS -->
                 ${!this.modoEdicao ? this.renderLegenda() : ''}
             </div>
         `;
 
         container.innerHTML = html;
+
+        const unbindClick = EventDelegator.bind(container, {
+            'mudar-turno': (e, target) => {
+                const turno = target.getAttribute('data-turno');
+                if (turno) this.mudarTurno(turno);
+            },
+            'toggle-modo-edicao': () => this.toggleModoEdicao(),
+            'imprimir-horario': () => this.imprimir(),
+            'salvar-tudo': () => this.salvarTudo(),
+            'criar-padrao': () => this.criarPadrao(),
+            'adicionar-slot': () => this.adicionarSlot(),
+            'remover-slot': (e, target) => {
+                const idx = Number(target.getAttribute('data-index'));
+                if (!isNaN(idx)) this.removerSlotLocal(idx);
+            },
+            'abrir-editor-aula': (e, target) => {
+                const dia = target.getAttribute('data-dia');
+                const slotIdx = Number(target.getAttribute('data-slot'));
+                if (dia && !isNaN(slotIdx)) this.abrirEditorAula(dia, slotIdx);
+            }
+        }, 'click');
+
+        const unbindChange = EventDelegator.bind(container, {
+            'atualizar-slot': (e, target) => {
+                const idx = Number(target.getAttribute('data-index'));
+                const campo = target.getAttribute('data-campo');
+                if (!isNaN(idx) && campo) {
+                    this.atualizarSlotLocal(idx, campo, target.value);
+                }
+            }
+        }, 'change');
+
+        this._cleanupDelegators = () => {
+            if (typeof unbindClick === 'function') unbindClick();
+            if (typeof unbindChange === 'function') unbindChange();
+        };
+    },
+
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+    },
+
+    onLeave() {
+        this.destroy();
     },
 
     carregarDoModel() {
-        const modelData = model.state.horario || { config: {}, grade: {} };
-        this.tempState = JSON.parse(JSON.stringify(modelData));
+        const modelHorario = model.state.horario || {};
+        this.tempState = JSON.parse(JSON.stringify(modelHorario));
 
         if (!this.tempState.config) this.tempState.config = {};
         if (!this.tempState.grade) this.tempState.grade = {};
 
+        ['matutino', 'vespertino', 'noturno'].forEach(t => {
+            if (!this.tempState.config[t]) this.tempState.config[t] = [];
+            if (!this.tempState.grade[t]) this.tempState.grade[t] = {};
+        });
         this.hasUnsavedChanges = false;
-    },
-
-    async salvarTudo() {
-        const overlay = document.getElementById('saving-overlay');
-        if (overlay) overlay.style.display = 'flex';
-
-        try {
-            const sucesso = await model.saveHorarioCompleto(this.tempState);
-
-            if (sucesso) {
-                this.hasUnsavedChanges = false;
-                Toast.show("Horário salvo e sincronizado com sucesso!", "success");
-
-                if (this.modoEdicao) {
-                    this.modoEdicao = false;
-                    controller.navigate('horario');
-                } else {
-                    this.render('view-container');
-                }
-            } else {
-                Toast.show("Salvo localmente. Verifique a conexão com a nuvem.", "warning");
-                if (overlay) overlay.style.display = 'none';
-            }
-        } catch (error) {
-            console.error(error);
-            Toast.show("Erro inesperado ao salvar.", "error");
-            if (overlay) overlay.style.display = 'none';
-        }
     },
 
     marcarAlteracao() {
@@ -122,18 +161,13 @@ export const horarioView = {
     },
 
     mudarTurno(turno) {
-        if (this.hasUnsavedChanges) {
-            if (!confirm("Você tem alterações não salvas. Deseja descartá-las e mudar de turno?")) return;
-            this.carregarDoModel();
-        }
         this.turnoAtual = turno;
-        this.modoEdicao = false;
-        controller.navigate('horario');
+        this.render('view-container');
     },
 
     toggleModoEdicao() {
         this.modoEdicao = !this.modoEdicao;
-        controller.navigate('horario');
+        this.render('view-container');
     },
 
     renderConfiguracao() {
@@ -147,7 +181,7 @@ export const horarioView = {
                     </div>
                     <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); margin-bottom: 0.5rem;">Turno Vazio</h3>
                     <p style="color: var(--color-slate-500); font-size: 0.875rem; margin-bottom: 1.5rem;">Defina os intervalos e horários de aula deste turno.</p>
-                    <button onclick="horarioView.criarPadrao()" class="btn-primary" style="margin: 0 auto;">
+                    <button type="button" data-action="criar-padrao" class="btn-primary" style="margin: 0 auto;">
                         <i class="fas fa-magic"></i> <span>Criar Padrão (5 Aulas)</span>
                     </button>
                 </div>
@@ -158,7 +192,7 @@ export const horarioView = {
             <div style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4);">
                 <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: var(--spacing-3); border-bottom: 1px solid var(--color-slate-100);">
                     <h3 style="font-size: 1rem; font-weight: 800; color: var(--color-slate-800);">Configuração dos Horários (${this.turnoAtual.toUpperCase()})</h3>
-                    <button onclick="horarioView.adicionarSlot()" class="btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;">
+                    <button type="button" data-action="adicionar-slot" class="btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;">
                         <i class="fas fa-plus"></i> <span>Adicionar Aula</span>
                     </button>
                 </div>
@@ -174,18 +208,18 @@ export const horarioView = {
                                 <div>
                                     <label class="form-label" style="font-size: 0.625rem; margin-bottom: 0.25rem;">Horário Inicial</label>
                                     <input type="time" value="${slot.inicio}" 
-                                           onchange="horarioView.atualizarSlotLocal(${index}, 'inicio', this.value)" 
+                                           data-action="atualizar-slot" data-index="${index}" data-campo="inicio"
                                            class="form-input" style="padding: 0.375rem 0.625rem; font-weight: 800;">
                                 </div>
                                 <div>
                                     <label class="form-label" style="font-size: 0.625rem; margin-bottom: 0.25rem;">Horário Final</label>
                                     <input type="time" value="${slot.fim}" 
-                                           onchange="horarioView.atualizarSlotLocal(${index}, 'fim', this.value)" 
+                                           data-action="atualizar-slot" data-index="${index}" data-campo="fim"
                                            class="form-input" style="padding: 0.375rem 0.625rem; font-weight: 800;">
                                 </div>
                             </div>
 
-                            <button onclick="horarioView.removerSlotLocal(${index})" class="btn-icon" style="color: var(--color-slate-400);" title="Remover horário">
+                            <button type="button" data-action="remover-slot" data-index="${index}" class="btn-icon" style="color: var(--color-slate-400);" title="Remover horário">
                                 <i class="fas fa-trash-alt" style="font-size: 0.875rem;"></i>
                             </button>
                         </div>
@@ -260,7 +294,7 @@ export const horarioView = {
                 <div style="padding: 4rem 2rem; text-align: center; color: var(--color-slate-400);">
                     <i class="far fa-clock" style="font-size: 2.5rem; margin-bottom: 0.5rem; opacity: 0.5;"></i>
                     <p style="font-weight: 600;">Nenhum horário configurado para este turno.</p>
-                    <button onclick="horarioView.criarPadrao()" class="btn-primary" style="margin: 1rem auto 0;">
+                    <button type="button" data-action="criar-padrao" class="btn-primary" style="margin: 1rem auto 0;">
                         <i class="fas fa-magic"></i> <span>Criar Horários Padrão</span>
                     </button>
                 </div>
@@ -295,7 +329,7 @@ export const horarioView = {
 
             return `
                                         <td style="padding: 0.375rem;">
-                                            <div onclick="horarioView.abrirEditorAula('${diaKey}', ${slotIdx})" 
+                                            <div data-action="abrir-editor-aula" data-dia="${diaKey}" data-slot="${slotIdx}"
                                                  class="interactive-element"
                                                  style="min-height: 52px; padding: 0.375rem 0.5rem; border-radius: var(--radius-lg); cursor: pointer; display: flex; flex-direction: column; justify-content: center; text-align: center; transition: all var(--transition-fast); ${cardStyle}">
                                                 ${turmaId ? `
@@ -325,7 +359,7 @@ export const horarioView = {
         const aulaAtual = (grade[dia] && grade[dia][slotIdx]) || { turmaId: '', disciplina: '' };
 
         const html = `
-            <div style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4);">
+            <div id="modal-editor-aula-wrap" style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4);">
                 <div>
                     <label class="form-label">Selecione a Turma</label>
                     <select id="editor-turma" class="form-select">
@@ -346,36 +380,62 @@ export const horarioView = {
                 </div>
 
                 <div style="display: flex; gap: var(--spacing-3); margin-top: var(--spacing-2); padding-top: var(--spacing-4); border-top: 1px solid var(--color-slate-100);">
-                    <button onclick="controller.closeModal()" class="btn-secondary" style="flex: 1; justify-content: center; padding: 0.75rem;">Cancelar</button>
-                    <button onclick="horarioView.confirmarAula('${dia}', ${slotIdx})" class="btn-primary" style="flex: 1; justify-content: center; padding: 0.75rem;">
+                    <button type="button" data-action="cancelar-editor-aula" class="btn-secondary" style="flex: 1; justify-content: center; padding: 0.75rem;">Cancelar</button>
+                    <button type="button" data-action="confirmar-aula-btn" data-dia="${dia}" data-slot="${slotIdx}" class="btn-primary" style="flex: 1; justify-content: center; padding: 0.75rem;">
                         <i class="fas fa-check"></i> <span>Confirmar</span>
                     </button>
                 </div>
             </div>
         `;
         controller.openModal('Definir Aula da Grade', html);
+
+        const modalWrap = document.getElementById('modal-editor-aula-wrap');
+        if (modalWrap) {
+            EventDelegator.bind(modalWrap, {
+                'cancelar-editor-aula': () => controller.closeModal(),
+                'confirmar-aula-btn': (e, target) => {
+                    const d = target.getAttribute('data-dia');
+                    const s = Number(target.getAttribute('data-slot'));
+                    this.confirmarAula(d, s);
+                }
+            }, 'click');
+        }
     },
 
     confirmarAula(dia, slotIdx) {
         const turmaId = document.getElementById('editor-turma').value;
         const disciplina = document.getElementById('editor-disciplina').value;
 
-        this.atualizarGradeLocal(dia, slotIdx, { turmaId, disciplina });
-        controller.closeModal();
-    },
-
-    atualizarGradeLocal(dia, slotIdx, aulaObj) {
         if (!this.tempState.grade) this.tempState.grade = {};
         if (!this.tempState.grade[this.turnoAtual]) this.tempState.grade[this.turnoAtual] = {};
-        if (!this.tempState.grade[this.turnoAtual][dia]) this.tempState.grade[this.turnoAtual][dia] = [];
+        if (!this.tempState.grade[this.turnoAtual][dia]) this.tempState.grade[this.turnoAtual][dia] = {};
 
-        while (this.tempState.grade[this.turnoAtual][dia].length <= slotIdx) {
-            this.tempState.grade[this.turnoAtual][dia].push(null);
+        if (turmaId) {
+            this.tempState.grade[this.turnoAtual][dia][slotIdx] = { turmaId, disciplina };
+        } else {
+            delete this.tempState.grade[this.turnoAtual][dia][slotIdx];
         }
 
-        this.tempState.grade[this.turnoAtual][dia][slotIdx] = aulaObj.turmaId ? aulaObj : null;
-        this.hasUnsavedChanges = true;
-        this.render('view-container');
+        controller.closeModal();
+        this.marcarAlteracao();
+    },
+
+    async salvarTudo() {
+        const overlay = document.getElementById('saving-overlay');
+        if (overlay) overlay.style.display = 'flex';
+
+        try {
+            model.state.horario = JSON.parse(JSON.stringify(this.tempState));
+            await model.saveHorario();
+
+            this.hasUnsavedChanges = false;
+            Toast.show("Grade horária sincronizada com sucesso!", "success");
+            this.render('view-container');
+        } catch (error) {
+            console.error("Erro ao salvar horário:", error);
+            Toast.show("Erro ao salvar horário. Tente novamente.", "error");
+            if (overlay) overlay.style.display = 'none';
+        }
     },
 
     renderLegenda() {
@@ -383,20 +443,16 @@ export const horarioView = {
         const disciplinasUsadas = new Set();
 
         Object.values(grade).forEach(dia => {
-            if (Array.isArray(dia)) {
-                dia.forEach(aula => {
-                    if (aula && aula.disciplina) disciplinasUsadas.add(aula.disciplina);
-                });
-            }
+            Object.values(dia).forEach(aula => {
+                if (aula && aula.disciplina) disciplinasUsadas.add(aula.disciplina);
+            });
         });
 
         if (disciplinasUsadas.size === 0) return '';
 
         return `
-            <div class="card" style="padding: var(--spacing-4) var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-3);">
-                <h4 style="font-size: 0.6875rem; font-weight: 900; color: var(--color-slate-400); text-transform: uppercase; letter-spacing: 0.1em; display: flex; align-items: center; gap: 0.5rem;">
-                    <i class="fas fa-palette" style="color: var(--color-primary);"></i> Componentes Utilizados na Grade
-                </h4>
+            <div class="card" style="padding: var(--spacing-4) var(--spacing-6);">
+                <h4 style="font-size: 0.75rem; font-weight: 800; color: var(--color-slate-400); text-transform: uppercase; margin-bottom: var(--spacing-3);">Componentes em Destaque</h4>
                 <div style="display: flex; flex-wrap: wrap; gap: 1rem 1.5rem;">
                     ${Array.from(disciplinasUsadas).map(disc => `
                         <div style="display: flex; align-items: center; gap: 0.375rem;">
@@ -421,7 +477,7 @@ export const horarioView = {
                         <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); display: flex; align-items: center; gap: 0.5rem;">
                             <i class="fas fa-print" style="color: var(--color-primary);"></i> Imprimir Grade Horária
                         </h3>
-                        <button type="button" onclick="document.getElementById('modal-imprimir-horario').remove()" class="btn-icon" style="border: none; background: none; cursor: pointer; color: var(--color-slate-400);">
+                        <button type="button" data-action="fechar-modal-imprimir" class="btn-icon" style="border: none; background: none; cursor: pointer; color: var(--color-slate-400);">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -431,10 +487,10 @@ export const horarioView = {
                     </p>
 
                     <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                        <button type="button" onclick="document.getElementById('modal-imprimir-horario').remove(); horarioView.gerarImpressaoHorario('atual');" class="btn-primary" style="padding: 0.875rem; justify-content: center; font-weight: 700; font-size: 0.9375rem;">
+                        <button type="button" data-action="emitir-impressao-atual" class="btn-primary" style="padding: 0.875rem; justify-content: center; font-weight: 700; font-size: 0.9375rem;">
                             <i class="fas fa-clock" style="margin-right: 0.5rem;"></i> Imprimir Apenas Turno Atual (${this.turnoAtual.toUpperCase()})
                         </button>
-                        <button type="button" onclick="document.getElementById('modal-imprimir-horario').remove(); horarioView.gerarImpressaoHorario('todos');" class="btn-secondary" style="padding: 0.875rem; justify-content: center; font-weight: 700; font-size: 0.9375rem;">
+                        <button type="button" data-action="emitir-impressao-todos" class="btn-secondary" style="padding: 0.875rem; justify-content: center; font-weight: 700; font-size: 0.9375rem;">
                             <i class="fas fa-layer-group" style="margin-right: 0.5rem;"></i> Imprimir Todos os Turnos em 1 Folha A4
                         </button>
                     </div>
@@ -442,6 +498,21 @@ export const horarioView = {
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        const modalEl = document.getElementById('modal-imprimir-horario');
+        if (modalEl) {
+            EventDelegator.bind(modalEl, {
+                'fechar-modal-imprimir': () => modalEl.remove(),
+                'emitir-impressao-atual': () => {
+                    modalEl.remove();
+                    this.gerarImpressaoHorario('atual');
+                },
+                'emitir-impressao-todos': () => {
+                    modalEl.remove();
+                    this.gerarImpressaoHorario('todos');
+                }
+            }, 'click');
+        }
     },
 
     gerarImpressaoHorario(modo) {

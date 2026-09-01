@@ -1,17 +1,33 @@
+// js/views/sala.js
+/**
+ * ==========================================================================
+ * MAPA DE SALA INTERATIVO (SALA VIEW)
+ * Padrão: Vanilla MVC, ES Modules, Event Delegation (data-action), DocumentFragment.
+ * ==========================================================================
+ */
+
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
 import { uiController } from '../controllers/uiController.js';
+import { turmaController } from '../controllers/turmaController.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 import { secureShuffle } from '../utils.js';
 
 export const salaView = {
     alunoSelecionadoParaMover: null,
     currentTurmaId: null,
     arrastandoPosicao: null,
+    _cleanupDelegators: null,
 
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
 
         const turmas = (model.state && model.state.turmas) ? model.state.turmas : [];
 
@@ -43,38 +59,38 @@ export const salaView = {
                         <!-- Controles de Grid (Linhas e Colunas) -->
                         <div style="display: flex; align-items: center; gap: 0.25rem; background: var(--color-slate-100); padding: 0.25rem 0.5rem; border-radius: var(--radius-xl); border: 1px solid var(--color-slate-200);">
                             <span style="font-size: 0.6875rem; font-weight: 800; color: var(--color-slate-500); text-transform: uppercase; margin-right: 0.25rem;">Grid (${linhas}x${colunas}):</span>
-                            <button type="button" onclick="salaView.ajustarGrid(0, 1)" class="btn-icon" style="width: 1.75rem; height: 1.75rem; font-size: 0.75rem;" title="Adicionar Coluna">
+                            <button type="button" data-action="ajustar-grid" data-linhas="0" data-colunas="1" class="btn-icon" style="width: 1.75rem; height: 1.75rem; font-size: 0.75rem;" title="Adicionar Coluna">
                                 <i class="fas fa-plus"></i> <span style="font-size: 0.625rem; margin-left: 2px;">Col</span>
                             </button>
-                            <button type="button" onclick="salaView.ajustarGrid(0, -1)" class="btn-icon" style="width: 1.75rem; height: 1.75rem; font-size: 0.75rem;" title="Remover Coluna">
+                            <button type="button" data-action="ajustar-grid" data-linhas="0" data-colunas="-1" class="btn-icon" style="width: 1.75rem; height: 1.75rem; font-size: 0.75rem;" title="Remover Coluna">
                                 <i class="fas fa-minus"></i> <span style="font-size: 0.625rem; margin-left: 2px;">Col</span>
                             </button>
                             <div style="width: 1px; height: 1.25rem; background-color: var(--color-slate-300); margin: 0 0.25rem;"></div>
-                            <button type="button" onclick="salaView.ajustarGrid(1, 0)" class="btn-icon" style="width: 1.75rem; height: 1.75rem; font-size: 0.75rem;" title="Adicionar Linha">
+                            <button type="button" data-action="ajustar-grid" data-linhas="1" data-colunas="0" class="btn-icon" style="width: 1.75rem; height: 1.75rem; font-size: 0.75rem;" title="Adicionar Linha">
                                 <i class="fas fa-plus"></i> <span style="font-size: 0.625rem; margin-left: 2px;">Lin</span>
                             </button>
-                            <button type="button" onclick="salaView.ajustarGrid(-1, 0)" class="btn-icon" style="width: 1.75rem; height: 1.75rem; font-size: 0.75rem;" title="Remover Linha">
+                            <button type="button" data-action="ajustar-grid" data-linhas="-1" data-colunas="0" class="btn-icon" style="width: 1.75rem; height: 1.75rem; font-size: 0.75rem;" title="Remover Linha">
                                 <i class="fas fa-minus"></i> <span style="font-size: 0.625rem; margin-left: 2px;">Lin</span>
                             </button>
                         </div>
 
                         <!-- Botão Visão de Calor (Heatmap) -->
-                        <button type="button" onclick="salaView.toggleVisaoCalor()" class="btn-secondary interactive-element ${isVisaoCalor ? 'btn-primary' : ''}" 
+                        <button type="button" data-action="toggle-visao-calor" class="btn-secondary interactive-element ${isVisaoCalor ? 'btn-primary' : ''}" 
                                 style="${isVisaoCalor ? 'background: linear-gradient(135deg, #ef4444, #f59e0b); border: none; color: white;' : ''}" 
                                 title="Alternar Mapa de Calor Comportamental">
                             <i class="fas fa-fire"></i> <span>Visão de Calor ${isVisaoCalor ? '(Ativa)' : ''}</span>
                         </button>
 
-                        <button type="button" onclick="salaView.embaralhar()" class="btn-secondary interactive-element" title="Sortear assentos aleatoriamente">
+                        <button type="button" data-action="embaralhar-mapa" class="btn-secondary interactive-element" title="Sortear assentos aleatoriamente">
                             <i class="fas fa-random"></i> <span>Embaralhar</span>
                         </button>
                         
-                        <button type="button" onclick="salaView.imprimir()" class="btn-secondary interactive-element" title="Imprimir Mapa">
+                        <button type="button" data-action="imprimir-mapa" class="btn-secondary interactive-element" title="Imprimir Mapa">
                             <i class="fas fa-print"></i> <span>Imprimir</span>
                         </button>
 
                         <div class="custom-dropdown" style="min-width: 220px;">
-                            <input type="hidden" id="map-select-turma" onchange="salaView.carregarMapa(this.value)" value="${this.currentTurmaId || ''}">
+                            <input type="hidden" id="map-select-turma" data-action="carregar-mapa-change" value="${this.currentTurmaId || ''}">
                             <button type="button" class="dropdown-button">
                                 <i class="fas fa-users" style="color: var(--color-slate-400); margin-right: var(--spacing-2);"></i>
                                 <span class="dropdown-label">${turmaAtual?.nome || 'Selecionar Turma...'}</span>
@@ -130,6 +146,40 @@ export const salaView = {
         `;
 
         container.innerHTML = html;
+
+        const unbindClick = EventDelegator.bind(container, {
+            'ajustar-grid': (e, target) => {
+                const lin = Number(target.getAttribute('data-linhas') || 0);
+                const col = Number(target.getAttribute('data-colunas') || 0);
+                this.ajustarGrid(lin, col);
+            },
+            'toggle-visao-calor': () => this.toggleVisaoCalor(),
+            'embaralhar-mapa': () => this.embaralhar(),
+            'imprimir-mapa': () => this.imprimir(),
+            'clicar-assento': (e, target) => {
+                const pos = Number(target.getAttribute('data-posicao'));
+                if (!isNaN(pos)) this.clicarAssento(pos);
+            },
+            'ajustar-xp': (e, target) => {
+                e.stopPropagation();
+                const tId = target.getAttribute('data-turma');
+                const aId = target.getAttribute('data-aluno');
+                const delta = Number(target.getAttribute('data-delta') || 10);
+                if (tId && aId) this.ajustarXP(tId, aId, delta);
+            }
+        }, 'click');
+
+        const unbindChange = EventDelegator.bind(container, {
+            'carregar-mapa-change': (e, target) => {
+                this.carregarMapa(target.value);
+            }
+        }, 'change');
+
+        this._cleanupDelegators = () => {
+            if (typeof unbindClick === 'function') unbindClick();
+            if (typeof unbindChange === 'function') unbindChange();
+        };
+
         uiController.initAllDropdowns(container);
 
         if (this.currentTurmaId) {
@@ -145,6 +195,17 @@ export const salaView = {
                 `;
             }
         }
+    },
+
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+    },
+
+    onLeave() {
+        this.destroy();
     },
 
     carregarMapa(turmaId) {
@@ -163,7 +224,8 @@ export const salaView = {
         grid.style.gridTemplateColumns = `repeat(${colunas}, minmax(0, 1fr))`;
         grid.style.maxWidth = `${Math.max(700, colunas * 130)}px`;
 
-        let assentosHtml = '';
+        const fragment = document.createDocumentFragment();
+
         for (let i = 1; i <= totalAssentos; i++) {
             const aluno = (turma.alunos || []).find(a => a.posicao === i);
             const isSelecionado = this.alunoSelecionadoParaMover === i;
@@ -216,33 +278,39 @@ export const salaView = {
                 `;
             }
 
-            assentosHtml += `
-                <div class="interactive-element seat-drop-zone"
-                     id="seat-zone-${i}"
-                     draggable="${aluno ? 'true' : 'false'}"
-                     ondragstart="salaView.handleDragStart(event, ${i})"
-                     ondragover="salaView.handleDragOver(event)"
-                     ondragleave="salaView.handleDragLeave(event)"
-                     ondrop="salaView.handleDrop(event, ${i})"
-                     ondragend="salaView.handleDragEnd(event)"
-                     style="height: 5.5rem; border-radius: var(--radius-xl); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; padding: 0.25rem; cursor: pointer; transition: all var(--transition-fast); ${borderStyle}"
-                     onclick="salaView.clicarAssento(${i})"
-                     title="${aluno ? window.escapeHTML(aluno.nome) + ' (Clique para gerenciar ou arraste para mover)' : 'Carteira ' + i + ' vazia (Clique para alocar aluno)'}">
-                    ${calorBadge}
-                    ${content}
-                    ${aluno ? `
-                        <div style="position: absolute; top: 2px; right: 2px; display: flex; gap: 2px;">
-                            <button onclick="event.stopPropagation(); salaView.ajustarXP('${turma.id}', '${aluno.id}', 10)" 
-                                    style="width: 1.125rem; height: 1.125rem; border-radius: 50%; background-color: #d1fae5; color: #059669; border: none; font-size: 0.5rem; font-weight: 900; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="+10 XP">
-                                +
-                            </button>
-                        </div>
-                    ` : ''}
-                </div>
+            const seatDiv = document.createElement('div');
+            seatDiv.className = 'interactive-element seat-drop-zone';
+            seatDiv.id = `seat-zone-${i}`;
+            seatDiv.setAttribute('data-action', 'clicar-assento');
+            seatDiv.setAttribute('data-posicao', String(i));
+            seatDiv.setAttribute('draggable', aluno ? 'true' : 'false');
+            seatDiv.setAttribute('style', `height: 5.5rem; border-radius: var(--radius-xl); display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; padding: 0.25rem; cursor: pointer; transition: all var(--transition-fast); ${borderStyle}`);
+            seatDiv.title = aluno ? `${window.escapeHTML(aluno.nome)} (Clique para gerenciar ou arraste para mover)` : `Carteira ${i} vazia (Clique para alocar aluno)`;
+
+            seatDiv.innerHTML = `
+                ${calorBadge}
+                ${content}
+                ${aluno ? `
+                    <div style="position: absolute; top: 2px; right: 2px; display: flex; gap: 2px;">
+                        <button type="button" data-action="ajustar-xp" data-turma="${turma.id}" data-aluno="${aluno.id}" data-delta="10"
+                                style="width: 1.125rem; height: 1.125rem; border-radius: 50%; background-color: #d1fae5; color: #059669; border: none; font-size: 0.5rem; font-weight: 900; display: flex; align-items: center; justify-content: center; cursor: pointer;" title="+10 XP">
+                            +
+                        </button>
+                    </div>
+                ` : ''}
             `;
+
+            // Vincula eventos nativos de Drag and Drop
+            seatDiv.addEventListener('dragstart', (e) => this.handleDragStart(e, i));
+            seatDiv.addEventListener('dragover', (e) => this.handleDragOver(e));
+            seatDiv.addEventListener('dragleave', (e) => this.handleDragLeave(e));
+            seatDiv.addEventListener('drop', (e) => this.handleDrop(e, i));
+            seatDiv.addEventListener('dragend', (e) => this.handleDragEnd(e));
+
+            fragment.appendChild(seatDiv);
         }
 
-        grid.innerHTML = assentosHtml;
+        grid.replaceChildren(fragment);
     },
 
     obterNomeExibicaoMapa(aluno, todosAlunos = []) {
@@ -256,7 +324,6 @@ export const salaView = {
             return outroPrimeiro === primeiroNome;
         });
 
-        // Se houver mais de um aluno com o mesmo primeiro nome, adiciona o segundo nome / sobrenome
         if (homonimos.length > 1) {
             return `${partes[0]} ${partes[1] || ''}`.trim();
         }
@@ -282,7 +349,7 @@ export const salaView = {
         }).join('');
 
         const htmlConteudo = `
-            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; max-width: 500px;">
+            <div id="modal-editar-assento-wrap" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; max-width: 500px;">
                 <div style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 0.75rem; border-bottom: 1px solid var(--color-slate-100);">
                     <div style="display: flex; align-items: center; gap: 0.75rem;">
                         <div style="width: 2.75rem; height: 2.75rem; border-radius: var(--radius-xl); background: var(--color-primary-light); color: var(--color-primary); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; font-weight: 900;">
@@ -294,7 +361,7 @@ export const salaView = {
                         </div>
                     </div>
                     ${alunoNaPosicao ? `
-                        <button type="button" onclick="turmaController.abrirModalDossieComportamental('${turma.id}', '${alunoNaPosicao.id}')" class="btn-secondary" style="font-size: 0.75rem; padding: 0.375rem 0.625rem;" title="Ver Dossiê">
+                        <button type="button" data-action="ver-dossie-modal" data-turma="${turma.id}" data-aluno="${alunoNaPosicao.id}" class="btn-secondary" style="font-size: 0.75rem; padding: 0.375rem 0.625rem;" title="Ver Dossiê">
                             <i class="fas fa-stream mr-1"></i> Dossiê
                         </button>
                     ` : ''}
@@ -319,13 +386,13 @@ export const salaView = {
                 <!-- AÇÕES DISPONÍVEIS -->
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px solid var(--color-slate-100);">
                     ${alunoNaPosicao ? `
-                        <button type="button" onclick="salaView.desalocarAssento(${posicao})" class="btn-secondary" style="color: #ef4444; border-color: #fecaca; font-size: 0.8125rem;" title="Deixar esta carteira vazia e manter estudante na turma">
+                        <button type="button" data-action="desalocar-assento" data-posicao="${posicao}" class="btn-secondary" style="color: #ef4444; border-color: #fecaca; font-size: 0.8125rem;" title="Deixar esta carteira vazia e manter estudante na turma">
                             <i class="fas fa-user-slash mr-1"></i> Desalocar (Deixar Vazia)
                         </button>
                     ` : '<div></div>'}
                     <div style="display: flex; gap: 0.5rem;">
-                        <button type="button" onclick="window.controller.closeModal()" class="btn-secondary">Cancelar</button>
-                        <button type="button" onclick="salaView.confirmarAlocacaoAssento(${posicao})" class="btn-primary">
+                        <button type="button" data-action="cancelar-assento" class="btn-secondary">Cancelar</button>
+                        <button type="button" data-action="confirmar-assento" data-posicao="${posicao}" class="btn-primary">
                             <i class="fas fa-check mr-1"></i> ${alunoNaPosicao ? 'Atualizar Assento' : 'Alocar na Carteira'}
                         </button>
                     </div>
@@ -333,7 +400,27 @@ export const salaView = {
             </div>
         `;
 
-        window.controller.openModal(`Gerenciar Carteira #${posicao}`, htmlConteudo, 'medium');
+        controller.openModal(`Gerenciar Carteira #${posicao}`, htmlConteudo, 'medium');
+
+        const modalWrap = document.getElementById('modal-editar-assento-wrap');
+        if (modalWrap) {
+            EventDelegator.bind(modalWrap, {
+                'ver-dossie-modal': (e, target) => {
+                    const tId = target.getAttribute('data-turma');
+                    const aId = target.getAttribute('data-aluno');
+                    if (tId && aId) turmaController.abrirModalDossieComportamental(tId, aId);
+                },
+                'desalocar-assento': (e, target) => {
+                    const p = Number(target.getAttribute('data-posicao'));
+                    this.desalocarAssento(p);
+                },
+                'cancelar-assento': () => controller.closeModal(),
+                'confirmar-assento': (e, target) => {
+                    const p = Number(target.getAttribute('data-posicao'));
+                    this.confirmarAlocacaoAssento(p);
+                }
+            }, 'click');
+        }
     },
 
     confirmarAlocacaoAssento(posicao) {
@@ -344,7 +431,7 @@ export const salaView = {
 
         const sucesso = model.alocarAlunoAssento(this.currentTurmaId, alunoId, posicao);
         if (sucesso) {
-            window.controller.closeModal();
+            controller.closeModal();
             this.carregarMapa(this.currentTurmaId);
             Toast.show(`Carteira #${posicao} atualizada com sucesso!`, "success");
         }
@@ -353,7 +440,7 @@ export const salaView = {
     desalocarAssento(posicao) {
         const sucesso = model.desalocarAlunoAssento(this.currentTurmaId, posicao);
         if (sucesso) {
-            window.controller.closeModal();
+            controller.closeModal();
             this.carregarMapa(this.currentTurmaId);
             Toast.show(`Carteira #${posicao} desocupada com sucesso.`, "info");
         }
@@ -465,9 +552,6 @@ export const salaView = {
         const posicoes = secureShuffle(Array.from({ length: total }, (_, i) => i + 1));
         turma.alunos.forEach((aluno, index) => {
             aluno.posicao = posicoes[index] || (index + 1);
-            if (model.currentUser && firebaseService?.saveAluno) {
-                dataProxy.saveAluno(model.currentUser.uid, turma.id, aluno);
-            }
         });
 
         if (model.saveTurma) {
@@ -494,7 +578,7 @@ export const salaView = {
                         <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); display: flex; align-items: center; gap: 0.5rem;">
                             <i class="fas fa-print" style="color: var(--color-primary);"></i> Imprimir Mapa de Sala
                         </h3>
-                        <button type="button" onclick="document.getElementById('modal-imprimir-sala').remove()" class="btn-icon" style="border: none; background: none; cursor: pointer; color: var(--color-slate-400);">
+                        <button type="button" data-action="fechar-modal-imprimir-sala" class="btn-icon" style="border: none; background: none; cursor: pointer; color: var(--color-slate-400);">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -504,10 +588,10 @@ export const salaView = {
                     </p>
 
                     <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                        <button type="button" onclick="document.getElementById('modal-imprimir-sala').remove(); salaView.gerarImpressaoMapa('preenchido');" class="btn-primary" style="padding: 0.875rem; justify-content: center; font-weight: 700; font-size: 0.9375rem;">
+                        <button type="button" data-action="emitir-impressao-preenchido" class="btn-primary" style="padding: 0.875rem; justify-content: center; font-weight: 700; font-size: 0.9375rem;">
                             <i class="fas fa-users" style="margin-right: 0.5rem;"></i> Imprimir Mapa Preenchido (com Alunos)
                         </button>
-                        <button type="button" onclick="document.getElementById('modal-imprimir-sala').remove(); salaView.gerarImpressaoMapa('branco');" class="btn-secondary" style="padding: 0.875rem; justify-content: center; font-weight: 700; font-size: 0.9375rem;">
+                        <button type="button" data-action="emitir-impressao-branco" class="btn-secondary" style="padding: 0.875rem; justify-content: center; font-weight: 700; font-size: 0.9375rem;">
                             <i class="far fa-square" style="margin-right: 0.5rem;"></i> Imprimir Mapa em Branco (em Papel)
                         </button>
                     </div>
@@ -515,6 +599,21 @@ export const salaView = {
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        const modalEl = document.getElementById('modal-imprimir-sala');
+        if (modalEl) {
+            EventDelegator.bind(modalEl, {
+                'fechar-modal-imprimir-sala': () => modalEl.remove(),
+                'emitir-impressao-preenchido': () => {
+                    modalEl.remove();
+                    this.gerarImpressaoMapa('preenchido');
+                },
+                'emitir-impressao-branco': () => {
+                    modalEl.remove();
+                    this.gerarImpressaoMapa('branco');
+                }
+            }, 'click');
+        }
     },
 
     gerarImpressaoMapa(modo) {
@@ -601,3 +700,6 @@ export const salaView = {
     }
 };
 
+if (typeof window !== 'undefined') {
+    window.salaView = salaView;
+}

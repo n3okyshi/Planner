@@ -87,6 +87,9 @@ export const firebaseService = {
     onAuthStateChanged(callback) {
         if (this.auth) this.auth.onAuthStateChanged(callback);
     },
+    getCurrentUser() {
+        return this.auth ? this.auth.currentUser : null;
+    },
     async loginGoogle() {
         if (!this.auth) this.init();
         const provider = new firebase.auth.GoogleAuthProvider();

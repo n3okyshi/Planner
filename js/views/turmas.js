@@ -78,6 +78,19 @@ export const turmasView = {
             }
         }, 'click');
 
+        const unbindModel = model.on('turmas:changed', () => {
+            const c = document.getElementById('view-container');
+            if (c && c.querySelector('.stat-grid')) {
+                this.render(c);
+            }
+        });
+
+        const prevCleanup = this._cleanupDelegators;
+        this._cleanupDelegators = () => {
+            if (typeof prevCleanup === 'function') prevCleanup();
+            if (typeof unbindModel === 'function') unbindModel();
+        };
+
         uiController.initAllDropdowns(container);
     },
     _renderCardTurma(turma) {
@@ -186,6 +199,9 @@ export const turmasView = {
                         </button>
                          <button type="button" data-action="open-add-avaliacao" data-id="${turmaId}" class="btn-outline" style="height: 2.5rem;">
                             <i class="fas fa-file-alt" style="margin-right: 0.5rem;"></i> Nova Avaliação
+                        </button>
+                        <button type="button" data-action="open-add-aluno-lote" data-id="${turmaId}" class="btn-outline" style="height: 2.5rem;" title="Importar múltiplos estudantes em lote">
+                            <i class="fas fa-file-import" style="margin-right: 0.5rem;"></i> Importar em Lote
                         </button>
                         <button type="button" data-action="open-add-aluno" data-id="${turmaId}" class="btn-primary" style="height: 2.5rem;">
                             <i class="fas fa-user-plus" style="margin-right: 0.5rem;"></i> Novo Aluno
@@ -380,7 +396,7 @@ export const turmasView = {
                                                 <!-- MENU DROPDOWN DE AÇÕES DO ALUNO -->
                                                 <td style="padding: var(--spacing-2); text-align: center;">
                                                     <div class="planner-table-dropdown">
-                                                        <button type="button" class="btn-secondary" style="padding: 0.25rem 0.55rem; font-size: 0.75rem; font-weight: 700; border-radius: 0.5rem; display: inline-flex; align-items: center; gap: 0.25rem;" onclick="this.nextElementSibling.classList.toggle('active'); event.stopPropagation();">
+                                                        <button type="button" data-action="toggle-aluno-menu" class="btn-secondary" style="padding: 0.25rem 0.55rem; font-size: 0.75rem; font-weight: 700; border-radius: 0.5rem; display: inline-flex; align-items: center; gap: 0.25rem;">
                                                             <i class="fas fa-ellipsis-h"></i> Ações
                                                         </button>
                                                         <div class="planner-table-dropdown-menu">
@@ -447,6 +463,11 @@ export const turmasView = {
             'open-add-aluno': (e, target) => {
                 const id = target.getAttribute('data-id');
                 if (id) controller.openAddAluno(id);
+            },
+            'toggle-aluno-menu': (e, target) => {
+                e.stopPropagation();
+                const menu = target.nextElementSibling;
+                if (menu) menu.classList.toggle('active');
             },
             'mudar-periodo-turma': (e, target) => {
                 const id = target.getAttribute('data-id');
@@ -689,13 +710,13 @@ export const turmasView = {
         if (!aluno) return;
 
         const modalHtml = `
-            <div id="modal-ocorrencia" class="modal-overlay modal-enter" style="display: flex; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); align-items: center; justify-content: center; z-index: 9999;">
-                <div class="card p-6" style="max-width: 520px; width: 90%; background: var(--color-white); border-radius: var(--radius-2xl); box-shadow: var(--shadow-2xl); border: 1px solid var(--color-slate-200);">
+            <div id="modal-ocorrencia" class="modal-overlay modal-enter" style="display: flex; position: fixed; inset: 0; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); align-items: center; justify-content: space-between; z-index: 9999;">
+                <div class="card p-6" style="max-width: 520px; width: 90%; margin: auto; background: var(--color-white); border-radius: var(--radius-2xl); box-shadow: var(--shadow-2xl); border: 1px solid var(--color-slate-200);">
                     <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem;">
                         <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); display: flex; align-items: center; gap: 0.5rem;">
                             <i class="fas fa-exclamation-triangle" style="color: #f59e0b;"></i> Registro de Ocorrência Escolar
                         </h3>
-                        <button type="button" onclick="document.getElementById('modal-ocorrencia').remove()" class="btn-icon" style="border: none; background: none; cursor: pointer; color: var(--color-slate-400);">
+                        <button type="button" data-action="fechar-modal-ocorrencia" class="btn-icon" style="border: none; background: none; cursor: pointer; color: var(--color-slate-400);">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -704,7 +725,7 @@ export const turmasView = {
                         Estudante: <strong>${window.escapeHTML(aluno.nome)}</strong> — Turma <strong>${window.escapeHTML(turma.nome)}</strong>
                     </p>
 
-                    <form id="form-ocorrencia" onsubmit="event.preventDefault(); turmasView.salvarOcorrencia('${turmaId}', '${alunoId}');">
+                    <form id="form-ocorrencia">
                         <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
                             <div>
                                 <label class="form-label" style="font-weight: 700;">Tipo de Ocorrência</label>
@@ -729,8 +750,8 @@ export const turmasView = {
                         </div>
 
                         <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
-                            <button type="button" onclick="document.getElementById('modal-ocorrencia').remove()" class="btn-secondary">Cancelar</button>
-                            <button type="submit" class="btn-primary">
+                            <button type="button" data-action="fechar-modal-ocorrencia" class="btn-secondary">Cancelar</button>
+                            <button type="button" data-action="submeter-ocorrencia" class="btn-primary">
                                 <i class="fas fa-save"></i> Salvar & Imprimir Termo A4
                             </button>
                         </div>
@@ -739,6 +760,17 @@ export const turmasView = {
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        const modalEl = document.getElementById('modal-ocorrencia');
+        if (modalEl) {
+            EventDelegator.bind(modalEl, {
+                'fechar-modal-ocorrencia': () => modalEl.remove(),
+                'submeter-ocorrencia': () => {
+                    this.salvarOcorrencia(turmaId, alunoId);
+                    modalEl.remove();
+                }
+            }, 'click');
+        }
     },
 
     salvarOcorrencia(turmaId, alunoId) {
@@ -768,15 +800,7 @@ export const turmasView = {
         };
 
         aluno.dossie.push(novaOcorrencia);
-
-        if (model.currentUser && firebaseService?.saveAluno) {
-            dataProxy.saveAluno(model.currentUser.uid, turma.id, aluno);
-        }
-        if (model.saveTurma) {
-            model.saveTurma(turma);
-        } else {
-            model.saveLocal();
-        }
+        model.saveTurma(turma);
 
         const modal = document.getElementById('modal-ocorrencia');
         if (modal) modal.remove();
@@ -939,6 +963,17 @@ export const turmasView = {
         }
 
         Toast.show("Planilha exportada e copiada para a área de transferência!", "success");
+    },
+
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+    },
+
+    onLeave() {
+        this.destroy();
     }
 };
 if (typeof window !== 'undefined') {

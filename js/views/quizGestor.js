@@ -2,7 +2,7 @@ import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
 import { aiService } from '../ai-service.js';
-import { renderKatex, formatarTextoComLatex, sanitizeComLatex, alternarModoEdicaoPreview, lerArquivoTexto } from '../utils.js';
+import { renderKatex, sanitizeComLatex, alternarModoEdicaoPreview, lerArquivoTexto } from '../utils.js';
 import { uiController } from '../controllers/uiController.js';
 import { EventDelegator } from '../utils/eventDelegator.js';
 
@@ -11,14 +11,22 @@ export const quizGestorView = {
     contextoDocumentoTemp: '',
     _cleanupDelegators: null,
 
-    render(container) {
-        if (typeof container === 'string') container = document.getElementById(container);
-        if (!container) return;
-
+    destroy() {
         if (typeof this._cleanupDelegators === 'function') {
             this._cleanupDelegators();
             this._cleanupDelegators = null;
         }
+    },
+
+    onLeave() {
+        this.destroy();
+    },
+
+    render(container) {
+        if (typeof container === 'string') container = document.getElementById(container);
+        if (!container) return;
+
+        this.destroy();
 
         const quizzes = model.state.quizzes || [];
 
@@ -60,7 +68,12 @@ export const quizGestorView = {
     },
 
     _setupListeners(container) {
-        this._cleanupDelegators = EventDelegator.bind(container, {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+
+        const unbindClick = EventDelegator.bind(container, {
             'portal-aluno': () => window.open('aluno.html', '_blank'),
             'abrir-gerador-ia': () => this.abrirGeradorIA(),
             'criar-novo-quiz': () => this.criarNovoQuiz(),
@@ -97,11 +110,28 @@ export const quizGestorView = {
                 const idx = parseInt(target.getAttribute('data-index'), 10);
                 if (!isNaN(idx)) this.excluirPergunta(idx);
             },
+            'toggle-preview-quiz-enunciado': () => {
+                alternarModoEdicaoPreview('quiz-enunciado', 'preview-quiz-enunciado', 'btn-prev-quiz-enunciado');
+            },
             'salvar-edicao-pergunta': (e, target) => {
                 const idx = parseInt(target.getAttribute('data-index'), 10);
                 if (!isNaN(idx)) this.salvarEdicaoPergunta(idx);
             }
         }, 'click');
+
+        const unbindChange = EventDelegator.bind(container, {
+            'alterar-tipo-pergunta': (e, target) => {
+                const idx = parseInt(target.getAttribute('data-index'), 10);
+                if (!isNaN(idx)) this.alterarTipoPergunta(idx, target.value);
+            },
+            'salvar-titulo-quiz': (e, target) => this.salvarTitulo(target.value),
+            'mudar-quiz-vf': (e, target) => this.mudarVF(target.value === 'true')
+        }, 'change');
+
+        this._cleanupDelegators = () => {
+            if (typeof unbindClick === 'function') unbindClick();
+            if (typeof unbindChange === 'function') unbindChange();
+        };
     },
 
     destroy() {
@@ -199,7 +229,7 @@ export const quizGestorView = {
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-4);">
                     <div>
                         <label class="form-label">Disciplina</label>
-                        <select id="ai-disciplina" class="form-select" onchange="if(this.value==='__OUTRA__'){ document.getElementById('ai-disciplina-custom-wrap').style.display='block'; document.getElementById('ai-disciplina-custom').focus(); } else { document.getElementById('ai-disciplina-custom-wrap').style.display='none'; }">
+                        <select id="ai-disciplina" class="form-select" data-action="mudar-ai-disciplina">
                             <option value="Matemática">Matemática</option>
                             <option value="Língua Portuguesa">Língua Portuguesa</option>
                             <option value="Ciências" selected>Ciências</option>
@@ -227,7 +257,7 @@ export const quizGestorView = {
                     </div>
                     <div>
                         <label class="form-label">Série / Segmento</label>
-                        <select id="ai-serie" class="form-select" onchange="if(this.value==='__OUTRA__'){ document.getElementById('ai-serie-custom-wrap').style.display='block'; document.getElementById('ai-serie-custom').focus(); } else { document.getElementById('ai-serie-custom-wrap').style.display='none'; }">
+                        <select id="ai-serie" class="form-select" data-action="mudar-ai-serie">
                             <option value="Educação Infantil">Educação Infantil</option>
                             <option value="1º Ano — Fundamental I">1º Ano — Fundamental I</option>
                             <option value="2º Ano — Fundamental I">2º Ano — Fundamental I</option>
@@ -291,7 +321,7 @@ export const quizGestorView = {
                     <div style="display: flex; gap: 0.5rem; align-items: center;">
                         <label class="btn-outline interactive-element" style="cursor: pointer; padding: 0.5rem 0.875rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.375rem; background-color: #fff;">
                             <i class="fas fa-paperclip"></i> <span>Anexar Arquivo (PDF / TXT / MD)</span>
-                            <input type="file" id="ai-file-input" accept=".txt,.md,.pdf,.csv,.json" style="display: none;" onchange="quizGestorView.carregarArquivo(this)">
+                            <input type="file" id="ai-file-input" accept=".txt,.md,.pdf,.csv,.json" style="display: none;" data-action="upload-arquivo-quiz-ia">
                         </label>
                         <span id="ai-nome-arquivo" style="font-size: 0.75rem; color: var(--color-slate-500); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;"></span>
                     </div>
@@ -307,15 +337,54 @@ export const quizGestorView = {
                     <p style="font-size: 0.875rem; font-weight: 800; color: var(--color-primary);">A IA está elaborando o Quiz com base no contexto...</p>
                 </div>
 
-                <div style="display: flex; gap: var(--spacing-3); margin-top: var(--spacing-2); padding-top: var(--spacing-4); border-top: 1px solid var(--color-slate-100);">
-                    <button type="button" onclick="controller.closeModal()" class="btn-secondary" style="flex: 1; justify-content: center; padding: 0.75rem;">Cancelar</button>
-                    <button type="button" onclick="quizGestorView.gerarComIA()" class="btn-primary" style="flex: 1; justify-content: center; padding: 0.75rem;">
+                <div id="modal-quiz-ia-botoes" style="display: flex; gap: var(--spacing-3); margin-top: var(--spacing-2); padding-top: var(--spacing-4); border-top: 1px solid var(--color-slate-100);">
+                    <button type="button" data-action="fechar-modal-quiz-ia" class="btn-secondary" style="flex: 1; justify-content: center; padding: 0.75rem;">Cancelar</button>
+                    <button type="button" data-action="submeter-quiz-ia" class="btn-primary" style="flex: 1; justify-content: center; padding: 0.75rem;">
                         <i class="fas fa-magic"></i> <span>Gerar Quiz</span>
                     </button>
                 </div>
             </div>
         `;
         controller.openModal('Gerar Quiz Pedagógico com IA', html, 'large');
+
+        const modalBotoes = document.getElementById('modal-quiz-ia-botoes');
+        if (modalBotoes) {
+            EventDelegator.bind(modalBotoes, {
+                'fechar-modal-quiz-ia': () => controller.closeModal(),
+                'submeter-quiz-ia': () => this.gerarComIA()
+            }, 'click');
+        }
+
+        const modalWrap = document.getElementById('global-modal');
+        if (modalWrap) {
+            EventDelegator.bind(modalWrap, {
+                'mudar-ai-disciplina': (e, target) => {
+                    const customWrap = document.getElementById('ai-disciplina-custom-wrap');
+                    if (customWrap) {
+                        if (target.value === '__OUTRA__') {
+                            customWrap.style.display = 'block';
+                            document.getElementById('ai-disciplina-custom')?.focus();
+                        } else {
+                            customWrap.style.display = 'none';
+                        }
+                    }
+                },
+                'mudar-ai-serie': (e, target) => {
+                    const customWrap = document.getElementById('ai-serie-custom-wrap');
+                    if (customWrap) {
+                        if (target.value === '__OUTRA__') {
+                            customWrap.style.display = 'block';
+                            document.getElementById('ai-serie-custom')?.focus();
+                        } else {
+                            customWrap.style.display = 'none';
+                        }
+                    }
+                },
+                'upload-arquivo-quiz-ia': (e, target) => {
+                    this.carregarArquivo(target);
+                }
+            }, 'change');
+        }
     },
 
     async carregarArquivo(input) {
@@ -442,7 +511,7 @@ export const quizGestorView = {
         };
 
         let htmlPerguntas = this.currentQuiz.perguntas.map((p, i) => `
-            <div class="card interactive-element" style="padding: var(--spacing-3); margin-bottom: 0.5rem; background-color: var(--color-slate-50); cursor: pointer; display: flex; justify-content: space-between; align-items: center;" onclick="quizGestorView.editarPergunta(${i})">
+            <div data-action="editar-pergunta" data-index="${i}" class="card interactive-element" style="padding: var(--spacing-3); margin-bottom: 0.5rem; background-color: var(--color-slate-50); cursor: pointer; display: flex; justify-content: space-between; align-items: center;">
                 <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 75%;">
                     <span style="font-size: 0.625rem; font-weight: 800; text-transform: uppercase; background-color: var(--color-primary-light); color: var(--color-primary); padding: 0.1rem 0.375rem; border-radius: var(--radius-sm); margin-right: 0.375rem;">
                         ${tiposLabels[p.tipo] || 'Alt'}
@@ -451,7 +520,7 @@ export const quizGestorView = {
                         ${i + 1}. ${window.escapeHTML(p.enunciado || 'Nova Pergunta')}
                     </span>
                 </div>
-                <button onclick="event.stopPropagation(); quizGestorView.excluirPergunta(${i})" class="btn-icon" style="color: var(--color-slate-400);" title="Excluir pergunta">
+                <button type="button" data-action="excluir-pergunta" data-index="${i}" class="btn-icon" style="color: var(--color-slate-400);" title="Excluir pergunta">
                     <i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>
                 </button>
             </div>
@@ -463,25 +532,25 @@ export const quizGestorView = {
                 <!-- TOP TOOLBAR -->
                 <div class="card" style="padding: var(--spacing-4) var(--spacing-6); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-4);">
                     <div style="display: flex; align-items: center; gap: var(--spacing-4); flex: 1;">
-                        <button onclick="quizGestorView.render('view-container')" class="btn-secondary" style="padding: 0.5rem 0.875rem;">
+                        <button type="button" data-action="voltar-render" class="btn-secondary" style="padding: 0.5rem 0.875rem;">
                             <i class="fas fa-arrow-left"></i> <span>Voltar</span>
                         </button>
                         <input type="text" id="quiz-titulo-edit" value="${window.escapeHTML(this.currentQuiz.titulo)}" 
                                class="form-input" style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); max-width: 480px;"
-                               onchange="quizGestorView.salvarTitulo(this.value)">
+                               data-action="salvar-titulo-quiz">
                     </div>
 
                     <div style="display: flex; gap: 0.5rem;">
-                        <button onclick="quizGestorView.adicionarPerguntaVazia('multipla')" class="btn-secondary" style="padding: 0.5rem 0.875rem; font-size: 0.8125rem;" title="Adicionar questão de alternativas">
+                        <button type="button" data-action="add-pergunta-multipla" class="btn-secondary" style="padding: 0.5rem 0.875rem; font-size: 0.8125rem;" title="Adicionar questão de alternativas">
                             <i class="fas fa-list-ol"></i> <span>+ Alternativas</span>
                         </button>
-                        <button onclick="quizGestorView.adicionarPerguntaVazia('lacuna')" class="btn-secondary" style="padding: 0.5rem 0.875rem; font-size: 0.8125rem;" title="Adicionar questão complete a frase">
+                        <button type="button" data-action="add-pergunta-lacuna" class="btn-secondary" style="padding: 0.5rem 0.875rem; font-size: 0.8125rem;" title="Adicionar questão complete a frase">
                             <i class="fas fa-pen-nib"></i> <span>+ Lacunas</span>
                         </button>
-                        <button onclick="quizGestorView.adicionarPerguntaVazia('identificacao')" class="btn-secondary" style="padding: 0.5rem 0.875rem; font-size: 0.8125rem;" title="Adicionar questão 'Qual o nome do conceito?'">
+                        <button type="button" data-action="add-pergunta-identificacao" class="btn-secondary" style="padding: 0.5rem 0.875rem; font-size: 0.8125rem;" title="Adicionar questão 'Qual o nome do conceito?'">
                             <i class="fas fa-search"></i> <span>+ Conceito</span>
                         </button>
-                        <button onclick="quizGestorView.adicionarPerguntaVazia('verdadeiro_falso')" class="btn-secondary" style="padding: 0.5rem 0.875rem; font-size: 0.8125rem;" title="Adicionar questão Verdadeiro ou Falso">
+                        <button type="button" data-action="add-pergunta-vf" class="btn-secondary" style="padding: 0.5rem 0.875rem; font-size: 0.8125rem;" title="Adicionar questão Verdadeiro ou Falso">
                             <i class="fas fa-check-double"></i> <span>+ V / F</span>
                         </button>
                     </div>
@@ -513,6 +582,7 @@ export const quizGestorView = {
 
         container.innerHTML = html;
         uiController.initAllDropdowns(container);
+        this._setupListeners(container);
     },
 
     async salvarTitulo(novoTitulo) {
@@ -586,11 +656,11 @@ export const quizGestorView = {
                     <label class="form-label">Classificação da Afirmativa</label>
                     <div style="display: flex; gap: 1rem; margin-bottom: var(--spacing-4);">
                         <label style="flex: 1; padding: 1rem; border: 2px solid ${isV ? '#10b981' : 'var(--color-slate-200)'}; background-color: ${isV ? '#ecfdf5' : '#fff'}; border-radius: var(--radius-xl); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: 800; font-size: 1rem; color: #059669;">
-                            <input type="radio" name="quiz-vf" value="true" ${isV ? 'checked' : ''} onchange="quizGestorView.mudarVF(true)" style="accent-color: #10b981;">
+                            <input type="radio" name="quiz-vf" value="true" ${isV ? 'checked' : ''} data-action="mudar-quiz-vf" style="accent-color: #10b981;">
                             <i class="fas fa-check-circle"></i> VERDADEIRO
                         </label>
                         <label style="flex: 1; padding: 1rem; border: 2px solid ${!isV ? '#ef4444' : 'var(--color-slate-200)'}; background-color: ${!isV ? '#fef2f2' : '#fff'}; border-radius: var(--radius-xl); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; font-weight: 800; font-size: 1rem; color: #dc2626;">
-                            <input type="radio" name="quiz-vf" value="false" ${!isV ? 'checked' : ''} onchange="quizGestorView.mudarVF(false)" style="accent-color: #ef4444;">
+                            <input type="radio" name="quiz-vf" value="false" ${!isV ? 'checked' : ''} data-action="mudar-quiz-vf" style="accent-color: #ef4444;">
                             <i class="fas fa-times-circle"></i> FALSO
                         </label>
                     </div>
@@ -635,7 +705,7 @@ export const quizGestorView = {
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--spacing-4); padding-bottom: var(--spacing-3); border-bottom: 1px solid var(--color-slate-100); flex-wrap: wrap; gap: 0.5rem;">
                 <div style="display: flex; align-items: center; gap: 0.75rem;">
                     <h3 style="font-size: 1rem; font-weight: 800; color: var(--color-slate-800);">Questão ${index + 1}</h3>
-                    <select id="quiz-tipo-select" class="form-select" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; font-weight: 700;" onchange="quizGestorView.alterarTipoPergunta(${index}, this.value)">
+                    <select id="quiz-tipo-select" class="form-select" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; font-weight: 700;" data-action="alterar-tipo-pergunta" data-index="${index}">
                         <option value="multipla" ${tipoAtual === 'multipla' ? 'selected' : ''}>🔘 Alternativas (Múltipla Escolha)</option>
                         <option value="lacuna" ${tipoAtual === 'lacuna' ? 'selected' : ''}>✍️ Complete a Frase / Lacunas</option>
                         <option value="identificacao" ${tipoAtual === 'identificacao' ? 'selected' : ''}>🔍 Qual o Nome do Conceito/Evento</option>
@@ -658,7 +728,7 @@ export const quizGestorView = {
                 <div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
                         <label class="form-label" style="margin-bottom: 0;">${tipoAtual === 'lacuna' ? 'Frase com Lacuna (Use ___)' : tipoAtual === 'identificacao' ? 'Pistas e Contexto' : 'Enunciado da Questão'}</label>
-                        <button type="button" onclick="alternarModoEdicaoPreview('quiz-enunciado', 'preview-quiz-enunciado', 'btn-prev-quiz-enunciado')" id="btn-prev-quiz-enunciado" class="btn-secondary" style="padding: 0.25rem 0.625rem; font-size: 0.6875rem;">
+                        <button type="button" data-action="toggle-preview-quiz-enunciado" id="btn-prev-quiz-enunciado" class="btn-secondary" style="padding: 0.25rem 0.625rem; font-size: 0.6875rem;">
                             <i class="fas fa-eye"></i> Visualizar Formatação (TeX)
                         </button>
                     </div>
@@ -669,7 +739,7 @@ export const quizGestorView = {
                 ${corpoFormatoHtml}
 
                 <div style="display: flex; justify-content: flex-end; padding-top: var(--spacing-4); border-top: 1px solid var(--color-slate-100);">
-                    <button onclick="quizGestorView.salvarEdicaoPergunta(${index})" class="btn-primary" style="background-color: #059669; padding: 0.625rem 1.5rem;">
+                    <button type="button" data-action="salvar-edicao-pergunta" data-index="${index}" class="btn-primary" style="background-color: #059669; padding: 0.625rem 1.5rem;">
                         <i class="fas fa-save"></i> <span>Salvar Questão</span>
                     </button>
                 </div>
@@ -831,7 +901,7 @@ export const quizGestorView = {
             </head>
             <body>
                 <div class="no-print" style="margin-bottom: 20px; display: flex; justify-content: flex-end;">
-                    <button onclick="window.print()" style="padding: 10px 24px; background-color: #4f46e5; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px;">
+                    <button type="button" id="btn-imprimir-quiz-janela" style="padding: 10px 24px; background-color: #4f46e5; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; font-size: 14px;">
                         🖨️ Imprimir / Salvar como PDF
                     </button>
                 </div>
@@ -864,6 +934,9 @@ export const quizGestorView = {
                         </tbody>
                     </table>
                 </div>
+                <script>
+                    document.getElementById('btn-imprimir-quiz-janela')?.addEventListener('click', () => window.print());
+                <\/script>
             </body>
             </html>
         `;
@@ -878,3 +951,4 @@ export const quizGestorView = {
 if (typeof window !== 'undefined') {
     window.quizGestorView = quizGestorView;
 }
+

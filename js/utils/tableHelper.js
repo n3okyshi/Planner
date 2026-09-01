@@ -5,6 +5,7 @@
 import { ModalComponent } from '../components/modal.js';
 import { Toast } from '../components/toast.js';
 import { escapeHTML } from '../utils.js';
+import { EventDelegator } from './eventDelegator.js';
 
 let _activeCell = null;
 let _activeTable = null;
@@ -88,9 +89,9 @@ export const tableHelper = {
                 </div>
 
                 <!-- BOTÕES DE AÇÃO -->
-                <div style="display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid var(--color-slate-100); padding-top: 1rem; margin-top: 0.25rem;">
-                    <button type="button" onclick="ModalComponent.close('modal-inserir-tabela-planner')" class="btn-secondary" style="padding: 0.6rem 1.25rem; font-weight: 700;">Cancelar</button>
-                    <button type="button" onclick="tableHelper.confirmarInsercaoTabela('${escapeHTML(targetIdStr)}')" class="btn-primary" style="background-color: #4f46e5; padding: 0.6rem 1.5rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.5rem;">
+                <div id="modal-inserir-tabela-actions" style="display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid var(--color-slate-100); padding-top: 1rem; margin-top: 0.25rem;">
+                    <button type="button" data-action="cancelar-tabela" class="btn-secondary" style="padding: 0.6rem 1.25rem; font-weight: 700;">Cancelar</button>
+                    <button type="button" data-action="confirmar-tabela" data-target="${escapeHTML(targetIdStr)}" class="btn-primary" style="background-color: #4f46e5; padding: 0.6rem 1.5rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.5rem;">
                         <i class="fas fa-check"></i> Inserir Tabela no Material
                     </button>
                 </div>
@@ -104,8 +105,18 @@ export const tableHelper = {
             size: 'md'
         });
 
-        // Configuração de clique nos cards de estilo visual
         setTimeout(() => {
+            const modalEl = document.getElementById('modal-inserir-tabela-planner');
+            if (modalEl) {
+                EventDelegator.bind(modalEl, {
+                    'cancelar-tabela': () => ModalComponent.close('modal-inserir-tabela-planner'),
+                    'confirmar-tabela': (e, target) => {
+                        const targetId = target.getAttribute('data-target');
+                        if (targetId) this.confirmarInsercaoTabela(targetId);
+                    }
+                }, 'click');
+            }
+
             const cards = document.querySelectorAll('.tbl-theme-card');
             cards.forEach(card => {
                 card.addEventListener('click', () => {

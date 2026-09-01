@@ -1,5 +1,3 @@
-import { escapeHTML, sanitizeComLatex } from '../utils.js';
-
 /**
  * Componente Reutilizável de Card (Vanilla JS ES6+)
  * Padroniza a exibição visual e ações de cartões de Materiais, Questões,
@@ -11,7 +9,7 @@ export class CardComponent {
      * @param {Object} options.item - Dados do material ou questão
      * @param {string} [options.tipo='material'] - 'material' | 'questao' | 'apresentacao'
      * @param {boolean} [options.selecionado=false] - Estado de seleção para ações em lote
-     * @param {Array<Object>} [options.acoes] - Lista de ações [{ id, label, icon, class, onClick }]
+     * @param {Array<Object>} [options.acoes] - Lista de ações [{ id, label, icon, class, handler, onClick }]
      */
     constructor(options = {}) {
         this.item = options.item || {};
@@ -138,12 +136,13 @@ export class CardComponent {
                 align-items: center;
                 gap: 0.25rem;
             `;
-            btn.onclick = (e) => {
+            btn.addEventListener('click', (e) => {
                 e.stopPropagation();
-                if (typeof acao.onClick === 'function') {
-                    acao.onClick(item, e);
+                const fn = acao.handler || acao.onClick;
+                if (typeof fn === 'function') {
+                    fn(item, e);
                 }
-            };
+            });
             footer.appendChild(btn);
         });
 

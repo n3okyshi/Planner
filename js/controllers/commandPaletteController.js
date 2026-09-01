@@ -4,6 +4,8 @@
  */
 import { controller } from '../controller.js';
 import { uiController } from './uiController.js';
+import { provasView } from '../views/provas.js';
+import { criarMaterialView } from '../views/criarMaterial.js';
 
 export const commandPaletteController = {
     isOpen: false,
@@ -12,7 +14,7 @@ export const commandPaletteController = {
 
     actions: [
         // Ações Rápidas
-        { id: 'nova-questao', title: 'Criar Nova Questão de Prova', icon: 'fas fa-plus-circle', category: 'Ações Rápidas', badge: 'Prova', action: () => { controller.navigate('provas'); setTimeout(() => window.provasView?.openAddQuestao(), 200); } },
+        { id: 'nova-questao', title: 'Criar Nova Questão de Prova', icon: 'fas fa-plus-circle', category: 'Ações Rápidas', badge: 'Prova', action: () => { controller.navigate('provas'); setTimeout(() => provasView?.abrirModalCriacaoManual?.(), 200); } },
         { id: 'novo-diario', title: 'Lançar Novo Diário de Classe', icon: 'fas fa-book-open', category: 'Ações Rápidas', badge: 'Diário', action: () => controller.navigate('dia') },
         { id: 'toggle-theme', title: 'Alternar Tema Claro / Escuro', icon: 'fas fa-moon', category: 'Ações Rápidas', badge: 'Aparência', action: () => uiController.toggleTema() },
         { id: 'toggle-zen', title: 'Modo Apresentação / Foco (Projetor)', icon: 'fas fa-tv', category: 'Ações Rápidas', badge: 'Sala de Aula', action: () => uiController.toggleZenMode() },
@@ -26,28 +28,35 @@ export const commandPaletteController = {
         { id: 'nav-turmas', title: 'Gestão de Turmas & Estudantes', icon: 'fas fa-users', category: 'Navegação', badge: 'Tela', action: () => controller.navigate('turmas') },
         { id: 'nav-notas-anuais', title: 'Matriz de Notas & Recuperação', icon: 'fas fa-award', category: 'Navegação', badge: 'Tela', action: () => controller.navigate('notas-anuais') },
         { id: 'nav-ata-conselho', title: 'Ata do Conselho de Classe', icon: 'fas fa-clipboard-check', category: 'Navegação', badge: 'Tela', action: () => controller.navigate('ata-conselho') },
-        { id: 'nav-criar-material', title: 'Criador de Conteúdo Pedagógico com IA', icon: 'fas fa-magic', category: 'Navegação', badge: 'Tela', action: () => controller.navigate('criar-material') },
-        { id: 'nav-bncc', title: 'Consulta à Tabela BNCC Oficial', icon: 'fas fa-graduation-cap', category: 'Navegação', badge: 'Tela', action: () => controller.navigate('bncc') },
-        { id: 'nav-quiz-gestor', title: 'Quiz Pedagógico ao Vivo', icon: 'fas fa-gamepad', category: 'Navegação', badge: 'Tela', action: () => controller.navigate('quiz-gestor') },
-        { id: 'nav-estudos-visuais', title: 'Flashcards & Mapas Mentais', icon: 'fas fa-brain', category: 'Navegação', badge: 'Tela', action: () => controller.navigate('estudos-visuais') },
-        { id: 'nav-simuladores', title: 'Simuladores Interativos PhET', icon: 'fas fa-atom', category: 'Navegação', badge: 'Tela', action: () => controller.navigate('simuladores') },
-        { id: 'nav-correcao', title: 'Correção Automática com IA', icon: 'fas fa-camera', category: 'Navegação', badge: 'Tela', action: () => controller.navigate('correcao') },
-        { id: 'nav-comunidade', title: 'Comunidade Global de Professores', icon: 'fas fa-globe-americas', category: 'Navegação', badge: 'Tela', action: () => controller.navigate('comunidade') },
-        { id: 'nav-horario', title: 'Grade Horária Semanal', icon: 'far fa-clock', category: 'Navegação', badge: 'Tela', action: () => controller.navigate('horario') },
-        { id: 'nav-mapa', title: 'Mapa de Sala & Carteiras', icon: 'fas fa-th', category: 'Navegação', badge: 'Tela', action: () => controller.navigate('mapa') },
-        { id: 'nav-config', title: 'Configurações & Perfil Docente', icon: 'far fa-user', category: 'Navegação', badge: 'Tela', action: () => controller.navigate('config') }
+        { id: 'dashboard', title: 'Visão Geral / Dashboard', icon: 'fas fa-home', category: 'Navegação', badge: 'Tela', execute: () => controller.navigate('dashboard') },
+        { id: 'planejamento', title: 'Planejamento de Aulas', icon: 'fas fa-calendar-alt', category: 'Navegação', badge: 'Tela', execute: () => controller.navigate('planejamento') },
+        { id: 'diario', title: 'Diário de Classe', icon: 'fas fa-book', category: 'Navegação', badge: 'Tela', execute: () => controller.navigate('dia') },
+        { id: 'mensal', title: 'Planejamento Mensal', icon: 'fas fa-calendar', category: 'Navegação', badge: 'Tela', execute: () => controller.navigate('mensal') },
+        { id: 'horario', title: 'Grade de Horários', icon: 'fas fa-clock', category: 'Navegação', badge: 'Tela', execute: () => controller.navigate('horario') },
+        { id: 'turmas', title: 'Gestão de Turmas e Alunos', icon: 'fas fa-users', category: 'Navegação', badge: 'Tela', execute: () => controller.navigate('turmas') },
+        { id: 'notas-anuais', title: 'Notas Anuais e Boletim', icon: 'fas fa-chart-line', category: 'Navegação', badge: 'Tela', execute: () => controller.navigate('notas-anuais') },
+        { id: 'bncc', title: 'Explorador da BNCC', icon: 'fas fa-graduation-cap', category: 'Navegação', badge: 'Tela', execute: () => controller.navigate('bncc') },
+        { id: 'provas', title: 'Banco de Questões e Avaliações', icon: 'fas fa-file-signature', category: 'Navegação', badge: 'Tela', execute: () => controller.navigate('provas') },
+        { id: 'criar-material', title: 'Estúdio de Criação de Materiais (IA)', icon: 'fas fa-magic', category: 'Navegação', badge: 'Tela', execute: () => controller.navigate('criar-material') },
+        { id: 'estudos-visuais', title: 'Flashcards e Mapas Mentais', icon: 'fas fa-brain', category: 'Navegação', badge: 'Tela', execute: () => controller.navigate('estudos-visuais') },
+        { id: 'simuladores', title: 'Laboratório e Simuladores Interativos', icon: 'fas fa-flask', category: 'Navegação', badge: 'Tela', execute: () => controller.navigate('simuladores') },
+        { id: 'rubricas', title: 'Rubricas Avaliativas', icon: 'fas fa-table-list', category: 'Navegação', badge: 'Tela', execute: () => controller.navigate('rubricas') },
+        { id: 'comunidade', title: 'Acervo da Comunidade Docente', icon: 'fas fa-globe', category: 'Navegação', badge: 'Tela', execute: () => controller.navigate('comunidade') },
+        { id: 'relatorios', title: 'Relatórios e Pareceres Pedagógicos', icon: 'fas fa-file-alt', category: 'Navegação', badge: 'Tela', execute: () => controller.navigate('relatorios') },
+        { id: 'correcao-automatica', title: 'Correção Automática de Redações e Textos', icon: 'fas fa-highlighter', category: 'Navegação', badge: 'Tela', execute: () => controller.navigate('correcao-automatica') },
+        { id: 'novo-material', title: 'Criar Novo Material com IA...', icon: 'fas fa-wand-magic-sparkles', category: 'Ações Rápidas', badge: 'Ação', execute: () => { controller.navigate('criar-material'); setTimeout(() => { if (criarMaterialView) criarMaterialView.abrirModalCriarMaterial(); }, 150); } },
+        { id: 'nova-questao', title: 'Criar Nova Questão...', icon: 'fas fa-plus-circle', category: 'Ações Rápidas', badge: 'Ação', execute: () => { controller.navigate('provas'); setTimeout(() => { if (provasView) provasView.abrirModalCriacaoManual(); }, 150); } },
+        { id: 'importar-arquivo', title: 'Importar Arquivo Word / PDF / TXT...', icon: 'fas fa-file-import', category: 'Ações Rápidas', badge: 'Ação', execute: () => { controller.navigate('criar-material'); setTimeout(() => { if (criarMaterialView) criarMaterialView.modalImportarMaterial(); }, 150); } },
+        { id: 'logout', title: 'Encerrar Sessão / Logout', icon: 'fas fa-sign-out-alt', category: 'Sistema', badge: 'Conta', execute: () => { if (controller && controller.handleLogout) controller.handleLogout(); } }
     ],
 
     init() {
-        if (typeof window === 'undefined') return;
-        window.commandPaletteController = this;
-
-        // Escuta atalhos globais (Ctrl+K, Cmd+K, Escape)
-        window.addEventListener('keydown', (e) => {
+        document.addEventListener('keydown', (e) => {
             if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
                 e.preventDefault();
                 this.toggle();
-            } else if (e.key === 'Escape' && this.isOpen) {
+            }
+            if (e.key === 'Escape' && this.isOpen) {
                 this.close();
             }
         });
@@ -72,7 +81,7 @@ export const commandPaletteController = {
         }
 
         container.innerHTML = `
-            <div class="cmd-palette-backdrop" onclick="commandPaletteController.handleBackdropClick(event)">
+            <div class="cmd-palette-backdrop" data-action="cmd-palette-backdrop">
                 <div class="cmd-palette-modal">
                     <div class="cmd-palette-header">
                         <i class="fas fa-search"></i>
@@ -99,20 +108,35 @@ export const commandPaletteController = {
             input.addEventListener('keydown', (e) => this.handleKeyDown(e));
         }
 
+        if (typeof this._cleanupDelegator === 'function') {
+            this._cleanupDelegator();
+            this._cleanupDelegator = null;
+        }
+
+        this._cleanupDelegator = EventDelegator.bind(container, {
+            'cmd-palette-backdrop': (e, target) => {
+                if (e.target.classList.contains('cmd-palette-backdrop')) {
+                    this.close();
+                }
+            },
+            'cmd-palette-select': (e, target) => {
+                const idx = parseInt(target.getAttribute('data-index'), 10);
+                if (!isNaN(idx)) this.selectAndExecute(idx);
+            }
+        }, 'click');
+
         this.filter('');
     },
 
     close() {
         this.isOpen = false;
+        if (typeof this._cleanupDelegator === 'function') {
+            this._cleanupDelegator();
+            this._cleanupDelegator = null;
+        }
         const container = document.getElementById('global-command-palette');
         if (container) {
             container.innerHTML = '';
-        }
-    },
-
-    handleBackdropClick(e) {
-        if (e.target.classList.contains('cmd-palette-backdrop')) {
-            this.close();
         }
     },
 
@@ -161,8 +185,7 @@ export const commandPaletteController = {
             const isSelected = index === this.selectedIndex;
             html += `
                 <div class="cmd-palette-item ${isSelected ? 'active' : ''}" 
-                     onclick="commandPaletteController.selectAndExecute(${index})"
-                     onmouseenter="commandPaletteController.setSelectedIndex(${index})">
+                     data-action="cmd-palette-select" data-index="${index}">
                     <div class="cmd-palette-item-left">
                         <div class="cmd-palette-item-icon">
                             <i class="${item.icon}"></i>

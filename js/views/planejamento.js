@@ -1,3 +1,11 @@
+// js/views/planejamento.js
+/**
+ * ==========================================================================
+ * PLANEJAMENTO PEDAGÓGICO UNIFICADO (PLANEJAMENTO VIEW)
+ * Padrão: Vanilla MVC, ES Modules, Event Delegation (data-action), Metodologia 5Es.
+ * ==========================================================================
+ */
+
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { planejamentoController } from '../controllers/planejamentoController.js';
@@ -6,6 +14,8 @@ import { renderKatex, formatarTextoComLatex } from '../utils.js';
 import { mensalView } from './mensal.js';
 import { diarioView } from './diario.js';
 import { EventDelegator } from '../utils/eventDelegator.js';
+import { aiService } from '../ai-service.js';
+import { Toast } from '../components/toast.js';
 
 export const planejamentoView = {
     currentTurmaId: null,
@@ -14,13 +24,13 @@ export const planejamentoView = {
 
     mudarAba(aba) {
         this.abaAtiva = aba;
-        if (window.controller) {
-            window.controller.currentView = aba === 'diario' ? 'dia' : aba;
-            if (window.uiController && typeof window.uiController.updateActiveNav === 'function') {
-                window.uiController.updateActiveNav(window.controller.currentView);
+        if (controller) {
+            controller.currentView = aba === 'diario' ? 'dia' : aba;
+            if (uiController && typeof uiController.updateActiveNav === 'function') {
+                uiController.updateActiveNav(controller.currentView);
             }
-            if (window.uiController && typeof window.uiController.updateBreadcrumb === 'function') {
-                window.uiController.updateBreadcrumb(window.controller.currentView);
+            if (uiController && typeof uiController.updateBreadcrumb === 'function') {
+                uiController.updateBreadcrumb(controller.currentView);
             }
         }
         this.render('view-container', aba);
@@ -38,8 +48,8 @@ export const planejamentoView = {
 
         if (forceAba) {
             this.abaAtiva = forceAba;
-        } else if (window.controller && window.controller.currentView) {
-            const v = window.controller.currentView;
+        } else if (controller && controller.currentView) {
+            const v = controller.currentView;
             if (v === 'mensal') this.abaAtiva = 'mensal';
             else if (v === 'dia' || v === 'diario') this.abaAtiva = 'diario';
             else if (v === 'periodo' || v === 'planejamento') this.abaAtiva = 'periodo';
@@ -58,8 +68,8 @@ export const planejamentoView = {
                     </div>
 
                     <!-- SUBTABS NAVIGATION & 5ES BUTTON -->
-                    <div style="display: flex; items-center; gap: 0.75rem; flex-wrap: wrap;">
-                        <button type="button" onclick="planejamentoView.abrirModal5Es()" class="btn-primary" style="padding: 0.45rem 1rem; font-size: 0.8125rem; font-weight: 800;">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+                        <button type="button" data-action="abrir-modal-5es-btn" class="btn-primary" style="padding: 0.45rem 1rem; font-size: 0.8125rem; font-weight: 800;">
                             <i class="fas fa-magic"></i> <span>Gerar Plano 5Es (IA)</span>
                         </button>
                         <div style="display: flex; gap: 0.375rem; background-color: var(--color-slate-100); padding: 0.35rem; border-radius: var(--radius-xl);">
@@ -86,6 +96,7 @@ export const planejamentoView = {
         container.innerHTML = html;
 
         this._cleanupDelegators = EventDelegator.bind(container, {
+            'abrir-modal-5es-btn': () => this.abrirModal5Es(),
             'mudar-aba-planejamento': (e, target) => {
                 const aba = target.getAttribute('data-aba');
                 if (aba) this.mudarAba(aba);
@@ -283,13 +294,13 @@ export const planejamentoView = {
                         <div style="display: flex; align-items: center; gap: 0.375rem;">
                             ${!isVazio ? `<span class="badge" style="background-color: var(--color-primary-light); color: var(--color-primary); font-weight: 800;">${habilidades.length} hab.</span>` : ''}
                             <button type="button" data-action="open-seletor-bncc" data-id="${turma.id}" data-periodo="${i}" data-nivel="${turma.nivel}" data-serie="${turma.serie}" 
-                                    class="btn-icon" style="background-color: var(--color-slate-100); color: var(--color-primary); width: 1.85rem; height: 1.85rem; font-size: 0.75rem;"
-                                    title="Adicionar Habilidade da BNCC">
+                                     class="btn-icon" style="background-color: var(--color-slate-100); color: var(--color-primary); width: 1.85rem; height: 1.85rem; font-size: 0.75rem;"
+                                     title="Adicionar Habilidade da BNCC">
                                 <i class="fas fa-search"></i>
                             </button>
                             <button type="button" data-action="criar-habilidade-personalizada" data-id="${turma.id}" data-periodo="${i}" 
-                                    class="btn-icon" style="background-color: #f3e8ff; color: #7c3aed; width: 1.85rem; height: 1.85rem; font-size: 0.75rem;"
-                                    title="Adicionar Habilidade Personalizada / Própria">
+                                     class="btn-icon" style="background-color: #f3e8ff; color: #7c3aed; width: 1.85rem; height: 1.85rem; font-size: 0.75rem;"
+                                     title="Adicionar Habilidade Personalizada / Própria">
                                 <i class="fas fa-plus"></i>
                             </button>
                         </div>
@@ -298,7 +309,7 @@ export const planejamentoView = {
                     <!-- HABILIDADES LIST -->
                     <div class="custom-scrollbar" style="padding: var(--spacing-3); flex: 1; display: flex; flex-direction: column; gap: var(--spacing-3); overflow-y: auto;">
                         ${!isVazio
-                            ? habilidades.map(h => this.gerarMiniCardHabilidade(h, turma.id, i)).join('')
+                            ? habilidades.map(h => this.gerarCardHabilidade(turma.id, i, h)).join('')
                             : btnAdicionarVazio
                         }
                     </div>
@@ -307,76 +318,47 @@ export const planejamentoView = {
         }
 
         return `
-            <div style="display: flex; flex-direction: column; gap: var(--spacing-4);">
-                <div style="display: flex; align-items: center; gap: var(--spacing-2); flex-wrap: wrap;">
-                    <span class="badge" style="background-color: var(--color-slate-200); color: var(--color-slate-700); font-weight: 700;">
-                        <i class="fas fa-layer-group" style="margin-right: 0.25rem;"></i> ${window.escapeHTML(turma.nivel)}
-                    </span>
-                    <span class="badge" style="background-color: var(--color-slate-200); color: var(--color-slate-700); font-weight: 700;">
-                        <i class="fas fa-graduation-cap" style="margin-right: 0.25rem;"></i> ${window.escapeHTML(turma.serie)}
-                    </span>
-                    <span style="font-size: 0.75rem; color: var(--color-slate-400); margin-left: auto;">
-                        <i class="fas fa-info-circle text-primary"></i> As habilidades configuradas aqui são sugeridas automaticamente no planejamento mensal e diário.
-                    </span>
-                </div>
-
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: var(--spacing-6);">
-                    ${colunasHtml}
-                </div>
+            <div style="display: grid; grid-template-columns: repeat(${config.qtd}, minmax(0, 1fr)); gap: var(--spacing-4);">
+                ${colunasHtml}
             </div>
         `;
     },
 
-    gerarMiniCardHabilidade(habilidade, turmaId, periodoIdx) {
-        const codigoSafe = window.escapeHTML ? window.escapeHTML(habilidade.codigo) : habilidade.codigo;
-        const descSafe = window.escapeHTML ? window.escapeHTML(habilidade.descricao) : habilidade.descricao;
-        const isPersonalizada = habilidade.tipo === 'personalizada';
-        const eixo = habilidade.objeto || habilidade.eixo || habilidade.unidadeTematica || habilidade.componente || (isPersonalizada ? "Matriz Própria" : "BNCC");
-        const subtitulo = window.escapeHTML ? window.escapeHTML(eixo) : "Habilidade";
-        const cor = isPersonalizada ? "#7c3aed" : (habilidade.cor || (model.coresComponentes ? model.coresComponentes[habilidade.componente] : "#2563eb") || "#2563eb");
+    gerarCardHabilidade(turmaId, periodo, hab) {
+        const isPersonalizada = !!hab.isPersonalizada;
+        const badgeColor = isPersonalizada ? '#7c3aed' : 'var(--color-primary)';
+        const badgeBg = isPersonalizada ? '#f3e8ff' : 'var(--color-primary-light)';
 
         return `
-            <div class="card" style="padding: var(--spacing-3); border-left: 4px solid ${cor}; display: flex; flex-direction: column; gap: 0.375rem; position: relative; transition: all var(--transition-fast);" 
-                 title="${descSafe}"
-                 onmouseover="this.style.boxShadow='var(--shadow-md)'; this.style.transform='translateY(-2px)'; this.querySelectorAll('.btn-action-hab').forEach(b => b.style.opacity='1');"
-                 onmouseout="this.style.boxShadow='var(--shadow-sm)'; this.style.transform='translateY(0)'; this.querySelectorAll('.btn-action-hab').forEach(b => b.style.opacity='0');">
-                
-                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem;">
+            <div class="card card-hover" style="padding: var(--spacing-3); background-color: var(--color-white); border-radius: var(--radius-lg); border: 1px solid var(--color-slate-200); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; gap: var(--spacing-2); position: relative;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: var(--spacing-2);">
                     <div style="display: flex; align-items: center; gap: 0.35rem; flex-wrap: wrap;">
-                        <span style="font-size: 0.625rem; font-weight: 900; color: white; padding: 0.125rem 0.375rem; border-radius: var(--radius-sm); text-transform: uppercase; letter-spacing: 0.05em; background-color: ${cor}; box-shadow: var(--shadow-sm);">
-                            ${codigoSafe}
+                        <span class="badge" style="background-color: ${badgeBg}; color: ${badgeColor}; font-weight: 800; font-size: 0.6875rem;">
+                            ${window.escapeHTML(hab.codigo || 'HAB')}
                         </span>
                         ${isPersonalizada ? `
-                            <span style="font-size: 0.5625rem; font-weight: 800; background-color: #f3e8ff; color: #7c3aed; border: 1px solid #e9d5ff; padding: 0.05rem 0.25rem; border-radius: var(--radius-sm);">
+                            <span class="badge" style="background-color: #ede9fe; color: #6d28d9; font-weight: 800; font-size: 0.6rem;">
                                 Própria
                             </span>
                         ` : ''}
                     </div>
-                    <div style="display: flex; align-items: center; gap: 0.25rem;">
+
+                    <div style="display: flex; gap: 0.25rem;">
                         ${isPersonalizada ? `
-                            <button type="button" data-action="editar-habilidade-personalizada" data-id="${turmaId}" data-periodo="${periodoIdx}" data-codigo="${codigoSafe}"
-                                    class="btn-action-hab"
-                                    style="color: var(--color-slate-400); background: none; border: none; padding: 0.125rem; opacity: 0; transition: opacity var(--transition-fast); cursor: pointer;"
-                                    onmouseover="this.style.color='#7c3aed'" onmouseout="this.style.color='var(--color-slate-400)'"
-                                    title="Editar Habilidade Personalizada">
-                                <i class="fas fa-pencil-alt" style="font-size: 0.75rem;"></i>
+                            <button type="button" data-action="editar-habilidade-personalizada" data-id="${turmaId}" data-periodo="${periodo}" data-codigo="${hab.codigo}"
+                                    class="btn-icon" style="color: var(--color-slate-400); width: 1.5rem; height: 1.5rem; font-size: 0.6875rem;" title="Editar Habilidade Personalizada">
+                                <i class="fas fa-edit"></i>
                             </button>
                         ` : ''}
-                        <button type="button" data-action="remove-habilidade" data-id="${turmaId}" data-periodo="${periodoIdx}" data-codigo="${codigoSafe}"
-                                class="btn-action-hab"
-                                style="color: var(--color-slate-300); background: none; border: none; padding: 0.125rem; opacity: 0; transition: opacity var(--transition-fast); cursor: pointer;"
-                                onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--color-slate-300)'"
-                                title="Remover Habilidade">
-                            <i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>
+                        <button type="button" data-action="remove-habilidade" data-id="${turmaId}" data-periodo="${periodo}" data-codigo="${hab.codigo}"
+                                class="btn-icon" style="color: var(--color-slate-400); width: 1.5rem; height: 1.5rem; font-size: 0.6875rem;" title="Remover Habilidade">
+                            <i class="fas fa-trash-alt"></i>
                         </button>
                     </div>
                 </div>
 
-                <p style="font-size: 0.625rem; font-weight: 700; color: var(--color-slate-400); text-transform: uppercase; letter-spacing: 0.025em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                    ${subtitulo}
-                </p>
-                <p style="font-size: 0.75rem; color: var(--color-slate-700); font-weight: 500; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;">
-                    ${formatarTextoComLatex(descSafe)}
+                <p class="katex-renderable" style="font-size: 0.75rem; color: var(--color-slate-600); line-height: 1.4; margin: 0;">
+                    ${formatarTextoComLatex(hab.descricao || hab.habilidade || '')}
                 </p>
             </div>
         `;
@@ -420,7 +402,7 @@ export const planejamentoView = {
                         <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); display: flex; align-items: center; gap: 0.5rem;">
                             <i class="fas fa-magic" style="color: var(--color-primary);"></i> Gerador IA de Plano de Aula (Modelo 5Es)
                         </h3>
-                        <button type="button" onclick="document.getElementById('modal-5es').remove()" class="btn-icon" style="border: none; background: none; cursor: pointer; color: var(--color-slate-400);">
+                        <button type="button" data-action="fechar-modal-5es" class="btn-icon" style="border: none; background: none; cursor: pointer; color: var(--color-slate-400);">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -429,7 +411,7 @@ export const planejamentoView = {
                         Crie um plano de aula completo em segundos utilizando a metodologia ativa internacional dos 5Es (Engajar, Explorar, Explicar, Elaborar, Avaliar).
                     </p>
 
-                    <form id="form-5es" onsubmit="event.preventDefault(); planejamentoView.gerarPlano5EsIA();">
+                    <form id="form-5es">
                         <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                                 <div>
@@ -454,8 +436,8 @@ export const planejamentoView = {
                         </div>
 
                         <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
-                            <button type="button" onclick="document.getElementById('modal-5es').remove()" class="btn-secondary">Cancelar</button>
-                            <button type="submit" id="btn-submit-5es" class="btn-primary">
+                            <button type="button" data-action="fechar-modal-5es" class="btn-secondary">Cancelar</button>
+                            <button type="button" data-action="submeter-gerar-5es" id="btn-submit-5es" class="btn-primary">
                                 <i class="fas fa-sparkles"></i> Gerar Plano com IA
                             </button>
                         </div>
@@ -466,6 +448,14 @@ export const planejamentoView = {
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        const modalEl = document.getElementById('modal-5es');
+        if (modalEl) {
+            EventDelegator.bind(modalEl, {
+                'fechar-modal-5es': () => modalEl.remove(),
+                'submeter-gerar-5es': () => this.gerarPlano5EsIA()
+            }, 'click');
+        }
     },
 
     async gerarPlano5EsIA() {
@@ -495,7 +485,7 @@ export const planejamentoView = {
             if (resContainer && plano) {
                 resContainer.style.display = 'block';
                 resContainer.innerHTML = `
-                    <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: var(--radius-xl); padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
+                    <div id="card-resultado-5es-wrap" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: var(--radius-xl); padding: 1rem; display: flex; flex-direction: column; gap: 0.75rem;">
                         <h4 style="font-size: 1rem; font-weight: 800; color: #1e1b4b; margin: 0;">${window.escapeHTML(plano.titulo || tema)}</h4>
                         <p style="font-size: 0.75rem; color: #4338ca; font-weight: 700; margin: 0;">BNCC: ${window.escapeHTML(plano.habilidade || hab || 'Geral')}</p>
                         
@@ -508,12 +498,19 @@ export const planejamentoView = {
                         </div>
 
                         <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
-                            <button type="button" onclick="planejamentoView.imprimirPlano5EsA4(${JSON.stringify(plano).replace(/"/g, '&quot;')})" class="btn-secondary" style="font-size: 0.75rem;">
+                            <button type="button" data-action="imprimir-5es-resultado" class="btn-secondary" style="font-size: 0.75rem;">
                                 <i class="fas fa-print"></i> Imprimir A4
                             </button>
                         </div>
                     </div>
                 `;
+
+                const wrap = document.getElementById('card-resultado-5es-wrap');
+                if (wrap) {
+                    EventDelegator.bind(wrap, {
+                        'imprimir-5es-resultado': () => this.imprimirPlano5EsA4(plano)
+                    }, 'click');
+                }
             }
         } catch (err) {
             Toast.show("Erro ao gerar plano com IA: " + err.message, "danger");
@@ -583,51 +580,18 @@ export const planejamentoView = {
         printWindow.document.close();
     },
 
-    abrirModal5Es() {
-        const modalHtml = `
-            <div style="display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0;">
-                <p style="font-size: 0.875rem; color: #475569; margin: 0;">
-                    Preencha o tema e a habilidade para gerar a estrutura de Plano de Aula no Modelo Investigativo 5E (Engajar, Explorar, Explicar, Elaborar, Avaliar):
-                </p>
-                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                    <div>
-                        <label style="display: block; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #334155; margin-bottom: 0.25rem;">Título / Tema da Aula</label>
-                        <input type="text" id="modal-5e-tema" placeholder="Ex: Fotossíntese e Produção de Oxigênio" class="form-input" style="width: 100%; font-weight: 700;">
-                    </div>
-                    <div>
-                        <label style="display: block; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; color: #334155; margin-bottom: 0.25rem;">Habilidade BNCC</label>
-                        <input type="text" id="modal-5e-habilidade" placeholder="Ex: EF06CI05 - Explicar a organização celular..." class="form-input" style="width: 100%;">
-                    </div>
-                </div>
-
-                <div style="display: flex; gap: 0.5rem; justify-content: flex-end; margin-top: 0.5rem;">
-                    <button type="button" data-action="fechar-modal" class="btn-secondary">Cancelar</button>
-                    <button type="button" onclick="planejamentoView.gerarPlano5EPronto()" class="btn-primary" style="background: #4f46e5;">
-                        <i class="fas fa-magic mr-1"></i> Gerar Estrutura 5E
-                    </button>
-                </div>
-            </div>
-        `;
-
-        controller.openModal('Gerador de Plano de Aula 5Es (Modelo Investigativo)', modalHtml, 'medium');
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
     },
 
-    gerarPlano5EPronto() {
-        const tema = document.getElementById('modal-5e-tema')?.value.trim() || 'Aula Investigativa';
-        const hab = document.getElementById('modal-5e-habilidade')?.value.trim() || 'BNCC Adaptada';
-
-        const plano5E = {
-            titulo: tema,
-            habilidade: hab,
-            engajar: "Pergunta disparadora e vídeo/experimento curto para despertar a curiosidade dos estudantes sobre o tema.",
-            explorar: "Atividade prática em grupo onde os estudantes manipulam dados, hipóteses e materiais sem explicação prévia do professor.",
-            explicar: "Momento de mediação docente: apresentação formal dos conceitos científicos e sistematização das descobertas.",
-            elaborar: "Aplicação do conhecimento em um novo problema ou situação do cotidiano para consolidação da aprendizagem.",
-            avaliar: "Avaliação formativa via rubrica simples, autoavaliação e verificação de dúvidas remanescentes."
-        };
-
-        controller.closeModal();
-        this.imprimirPlano5Es(plano5E);
-        Toast.show("Plano 5E gerado com sucesso!", "success");
+    onLeave() {
+        this.destroy();
     }
 };
+
+if (typeof window !== 'undefined') {
+    window.planejamentoView = planejamentoView;
+}

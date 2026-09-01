@@ -3,6 +3,7 @@ import { Toast } from '../components/toast.js';
 import { pptxParserService } from '../services/pptxParserService.js';
 import { generateId } from '../utils.js';
 import { aiService } from '../ai-service.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 
 /**
  * Controller responsável pela lógica de negócios das Apresentações Animadas
@@ -23,8 +24,13 @@ export const apresentacaoController = {
     criarApresentacao(dados) {
         try {
             const nova = model.addApresentacao(dados);
-            if (Toast) Toast.show("Apresentação criada com sucesso!", "success");
-            return nova;
+            if (nova) {
+                this.activeApresentacaoId = nova.id;
+                this.currentSlideIndex = 0;
+                this.currentStepIndex = 0;
+                if (Toast) Toast.show("Apresentação criada com sucesso!", "success");
+                return nova;
+            }
         } catch (e) {
             console.error("Erro ao criar apresentação:", e);
             if (Toast) Toast.show("Erro ao criar apresentação.", "error");
@@ -37,7 +43,7 @@ export const apresentacaoController = {
      */
     abrirModalNovaApresentacao(callbackSucesso) {
         const modalContent = `
-            <div style="padding: var(--spacing-2); display: flex; flex-direction: column; gap: var(--spacing-4);">
+            <div id="modal-nova-apres-wrap" style="padding: var(--spacing-2); display: flex; flex-direction: column; gap: var(--spacing-4);">
                 <div>
                     <label for="modal-nova-apres-titulo" class="form-label">Título da Apresentação *</label>
                     <input type="text" id="modal-nova-apres-titulo" placeholder="Ex: História da Trigonometria" class="form-input" style="width: 100%;">
@@ -51,8 +57,8 @@ export const apresentacaoController = {
                     <input type="text" id="modal-nova-apres-disciplina" placeholder="Ex: Matemática, História..." class="form-input" style="width: 100%;">
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: var(--spacing-3); margin-top: var(--spacing-2);">
-                    <button type="button" onclick="controller.closeModal()" class="btn-secondary">Cancelar</button>
-                    <button type="button" id="btn-salvar-nova-apres-modal" class="btn-primary">Criar Apresentação</button>
+                    <button type="button" data-action="fechar-modal" class="btn-secondary">Cancelar</button>
+                    <button type="button" data-action="salvar-nova-apresentacao" class="btn-primary">Criar Apresentação</button>
                 </div>
             </div>
         `;
@@ -60,10 +66,13 @@ export const apresentacaoController = {
         if (window.controller && typeof window.controller.openModal === 'function') {
             window.controller.openModal('Nova Apresentação Pedagógica', modalContent, 'md');
             
-            setTimeout(() => {
-                const btnSalvar = document.getElementById('btn-salvar-nova-apres-modal');
-                if (btnSalvar) {
-                    btnSalvar.addEventListener('click', () => {
+            const modalWrap = document.getElementById('modal-nova-apres-wrap');
+            if (modalWrap) {
+                EventDelegator.bind(modalWrap, {
+                    'fechar-modal': () => {
+                        if (window.controller?.closeModal) window.controller.closeModal();
+                    },
+                    'salvar-nova-apresentacao': () => {
                         const inputTitulo = document.getElementById('modal-nova-apres-titulo');
                         const inputSub = document.getElementById('modal-nova-apres-subtitulo');
                         const inputDisc = document.getElementById('modal-nova-apres-disciplina');
@@ -84,9 +93,9 @@ export const apresentacaoController = {
                         if (nov && typeof callbackSucesso === 'function') {
                             callbackSucesso(nov);
                         }
-                    });
-                }
-            }, 100);
+                    }
+                }, 'click');
+            }
         }
     },
 
@@ -375,9 +384,7 @@ export const apresentacaoController = {
      * Atualiza a renderização da View do Player se estiver ativa
      */
     _notificarAtualizacaoPlayer() {
-        if (window.apresentadorPlayerView && typeof window.apresentadorPlayerView.updateDOM === 'function') {
-            window.apresentadorPlayerView.updateDOM();
-        }
+        model.emit('player:updated');
     }
 };
 

@@ -1,4 +1,5 @@
 import { model } from '../model.js';
+import { controller } from '../controller.js';
 import { EventDelegator } from '../utils/eventDelegator.js';
 import { escapeHTML } from '../utils.js';
 import { Toast } from '../components/toast.js';
@@ -6,14 +7,22 @@ import { Toast } from '../components/toast.js';
 export const pdiView = {
     _cleanupDelegators: null,
 
-    render(container) {
-        if (typeof container === 'string') container = document.getElementById(container);
-        if (!container) return;
-
+    destroy() {
         if (typeof this._cleanupDelegators === 'function') {
             this._cleanupDelegators();
             this._cleanupDelegators = null;
         }
+    },
+
+    onLeave() {
+        this.destroy();
+    },
+
+    render(container) {
+        if (typeof container === 'string') container = document.getElementById(container);
+        if (!container) return;
+
+        this.destroy();
 
         const pdis = model.state.pdis || [];
         const turmas = model.state.turmas || [];
@@ -222,7 +231,7 @@ export const pdiView = {
             'cancelar-pdi': () => {
                 if (formCard) formCard.style.display = 'none';
             },
-            'editar-pdi': (el) => {
+            'editar-pdi': (e, el) => {
                 const id = el.dataset.id;
                 const pdi = model.getPdi(id);
                 if (!pdi) return;
@@ -240,13 +249,23 @@ export const pdiView = {
                     formCard.scrollIntoView({ behavior: 'smooth' });
                 }
             },
-            'modelo-pdi': (target) => {
+            'modelo-pdi': (e, target) => {
                 const tipo = target.getAttribute('data-tipo');
                 this.preencherModeloPdi(tipo);
             },
-            'excluir-pdi': (el) => {
+            'excluir-pdi': (e, el) => {
                 const id = el.dataset.id;
-                if (confirm("Tem certeza que deseja excluir este Plano PDI / PEI?")) {
+                if (window.controller && typeof window.controller.confirmarAcao === 'function') {
+                    window.controller.confirmarAcao(
+                        "Excluir Plano PDI / PEI",
+                        "Tem certeza que deseja excluir este Plano PDI / PEI?",
+                        () => {
+                            model.removePdi(id);
+                            Toast.show("PDI excluído com sucesso.", "info");
+                            this.render(container);
+                        }
+                    );
+                } else if (confirm("Tem certeza que deseja excluir este Plano PDI / PEI?")) {
                     model.removePdi(id);
                     Toast.show("PDI excluído com sucesso.", "info");
                     this.render(container);
@@ -298,3 +317,4 @@ export const pdiView = {
         }
     }
 };
+

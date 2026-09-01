@@ -1,5 +1,14 @@
+// js/views/simuladores.js
+/**
+ * ==========================================================================
+ * LABORATÓRIO VIRTUAL & SIMULAÇÕES (SIMULADORES VIEW)
+ * Padrão: Vanilla MVC, ES Modules, Event Delegation (data-action).
+ * ==========================================================================
+ */
+
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 
 const SIM_COLORS = {
     'Matemática': { bg: '#3b82f6', text: '#ffffff' },
@@ -60,10 +69,17 @@ export const simuladoresView = {
             desc: 'Estudo de frequência, amplitude, comprimento de onda e amortecimento.'
         }
     ],
+    _cleanupDelegators: null,
+    _simuladorAtivoIndex: null,
 
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
 
         const html = `
             <div class="fade-in animate-enter" style="display: flex; flex-direction: column; gap: var(--spacing-6); padding-bottom: var(--spacing-8); min-height: 100%;">
@@ -82,7 +98,7 @@ export const simuladoresView = {
                         </p>
                     </div>
 
-                    <button type="button" onclick="controller.navigate('criar-material')" class="btn-primary interactive-element" style="box-shadow: var(--shadow-sm);">
+                    <button type="button" data-action="nav-criar-material" class="btn-primary interactive-element" style="box-shadow: var(--shadow-sm);">
                         <i class="fas fa-magic"></i> <span>Criar Roteiro Personalizado</span>
                     </button>
                 </div>
@@ -109,11 +125,11 @@ export const simuladoresView = {
                             </div>
 
                             <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: var(--spacing-2); padding-top: var(--spacing-3); border-top: 1px solid var(--color-slate-100);">
-                                <button type="button" onclick="simuladoresView.abrirSimulador(${index})" class="btn-primary interactive-element" style="width: 100%; justify-content: center; font-size: 0.8125rem; padding: 0.5rem;">
+                                <button type="button" data-action="abrir-simulador" data-index="${index}" class="btn-primary interactive-element" style="width: 100%; justify-content: center; font-size: 0.8125rem; padding: 0.5rem;">
                                     <i class="fas fa-play"></i> <span>Abrir Simulação</span>
                                 </button>
                                 
-                                <button type="button" onclick="simuladoresView.gerarRoteiroParaSimulador(${index})" class="btn-secondary interactive-element" style="width: 100%; justify-content: center; font-size: 0.75rem; padding: 0.375rem; background-color: #f0fdf4; color: #166534; border-color: #bbf7d0;">
+                                <button type="button" data-action="gerar-roteiro-simulador" data-index="${index}" class="btn-secondary interactive-element" style="width: 100%; justify-content: center; font-size: 0.75rem; padding: 0.375rem; background-color: #f0fdf4; color: #166534; border-color: #bbf7d0;">
                                     <i class="fas fa-file-invoice"></i> <span>Gerar Roteiro Prático (IA)</span>
                                 </button>
                             </div>
@@ -132,12 +148,12 @@ export const simuladoresView = {
                             <span id="simulador-disc-ativa" class="badge" style="background-color: rgba(255,255,255,0.1); color: #94a3b8; font-weight: 700; font-size: 0.6875rem;"></span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <button type="button" id="btn-gerar-roteiro-iframe"
+                            <button type="button" data-action="gerar-roteiro-iframe-btn"
                                     class="interactive-element"
                                     style="padding: 0.375rem 0.75rem; border-radius: var(--radius-md); background-color: #059669; color: #ffffff; border: none; cursor: pointer; display: flex; align-items: center; gap: 0.375rem; font-size: 0.8125rem; font-weight: 700;">
                                 <i class="fas fa-file-invoice"></i> Gerar Roteiro
                             </button>
-                            <button type="button" onclick="simuladoresView.fecharSimulador()"
+                            <button type="button" data-action="fechar-simulador-btn"
                                     class="interactive-element"
                                     style="padding: 0.375rem 0.75rem; border-radius: var(--radius-md); background-color: rgba(239, 68, 68, 0.2); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.4); cursor: pointer; display: flex; align-items: center; gap: 0.375rem; font-size: 0.8125rem; font-weight: 700;"
                                     title="Fechar Simulação">
@@ -152,6 +168,35 @@ export const simuladoresView = {
             </div>
         `;
         container.innerHTML = html;
+
+        this._cleanupDelegators = EventDelegator.bind(container, {
+            'nav-criar-material': () => controller.navigate('criar-material'),
+            'abrir-simulador': (e, target) => {
+                const idx = Number(target.getAttribute('data-index'));
+                if (!isNaN(idx)) this.abrirSimulador(idx);
+            },
+            'gerar-roteiro-simulador': (e, target) => {
+                const idx = Number(target.getAttribute('data-index'));
+                if (!isNaN(idx)) this.gerarRoteiroParaSimulador(idx);
+            },
+            'gerar-roteiro-iframe-btn': () => {
+                if (this._simuladorAtivoIndex !== null) {
+                    this.gerarRoteiroParaSimulador(this._simuladorAtivoIndex);
+                }
+            },
+            'fechar-simulador-btn': () => this.fecharSimulador()
+        }, 'click');
+    },
+
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+    },
+
+    onLeave() {
+        this.destroy();
     },
 
     abrirSimulador(index) {
@@ -160,14 +205,11 @@ export const simuladoresView = {
         const iframe = document.getElementById('simulador-iframe');
         const tituloEl = document.getElementById('simulador-titulo-ativo');
         const discEl = document.getElementById('simulador-disc-ativa');
-        const btnRoteiro = document.getElementById('btn-gerar-roteiro-iframe');
-        if (!frameContainer || !iframe) return;
+        if (!frameContainer || !iframe || !sim) return;
 
+        this._simuladorAtivoIndex = index;
         if (tituloEl) tituloEl.innerText = sim.nome;
         if (discEl) discEl.innerText = sim.disc;
-        if (btnRoteiro) {
-            btnRoteiro.onclick = () => this.gerarRoteiroParaSimulador(index);
-        }
 
         iframe.src = sim.url;
         frameContainer.style.display = 'flex';
@@ -179,6 +221,7 @@ export const simuladoresView = {
         const iframe = document.getElementById('simulador-iframe');
         if (!frameContainer || !iframe) return;
 
+        this._simuladorAtivoIndex = null;
         iframe.src = '';
         frameContainer.style.display = 'none';
     },

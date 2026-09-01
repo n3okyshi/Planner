@@ -1,15 +1,30 @@
+// js/views/mensal.js
+/**
+ * ==========================================================================
+ * PLANEJAMENTO MENSAL (MENSAL VIEW)
+ * Padrão: Vanilla MVC, ES Modules, Event Delegation (data-action), Design System.
+ * ==========================================================================
+ */
+
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { uiController } from '../controllers/uiController.js';
 import { Toast } from '../components/toast.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 
 export const mensalView = {
     currentMes: null,
     currentTurmaId: null,
     meses: ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"],
+    _cleanupDelegators: null,
 
     render(container, turmaId = null) {
         if (typeof container === 'string') container = document.getElementById(container);
+
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
 
         // Se o contêiner de abas do planejamento (#subarea-planejamento-content) existir no DOM,
         // renderiza a view mensal dentro dele para não apagar o cabeçalho com as abas ("Por Período", "Mensal", "Diário").
@@ -49,18 +64,20 @@ export const mensalView = {
                     </div>
                     <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); margin-bottom: 0.5rem;">Nenhuma turma cadastrada</h3>
                     <p style="color: var(--color-slate-500); font-size: 0.875rem; margin-bottom: 1.5rem;">Cadastre uma turma para organizar o planejamento mensal.</p>
-                    <button onclick="controller.navigate('turmas')" class="btn-primary">
+                    <button type="button" data-action="navigate-turmas" class="btn-primary">
                         <i class="fas fa-plus"></i> <span>Cadastrar Turmas</span>
                     </button>
                 </div>
             `;
+
+            this._cleanupDelegators = EventDelegator.bind(container, {
+                'navigate-turmas': () => controller.navigate('turmas')
+            }, 'click');
             return;
         }
 
         const turmaAtual = turmas.find(t => String(t.id) === String(this.currentTurmaId));
         const periodoSugestao = this.identificarPeriodo(this.currentMes);
-
-        const habilidadesDoPeriodo = turmaAtual.planejamento && turmaAtual.planejamento[periodoSugestao]
         const periodosDoMes = (model.getPeriodosDoMes ? model.getPeriodosDoMes(this.currentMes) : [periodoSugestao]) || [periodoSugestao];
         const habilidadesDoMes = turmaAtual.planejamentoMensal && turmaAtual.planejamentoMensal[this.currentMes]
             ? [...turmaAtual.planejamentoMensal[this.currentMes]]
@@ -100,12 +117,12 @@ export const mensalView = {
                     </div>
 
                     <div style="display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap;">
-                        <button type="button" onclick="controller.abrirModalCopiarPlanejamento('${turmaAtual.id}')" class="btn-secondary interactive-element" title="Copiar planejamento para outra turma">
+                        <button type="button" data-action="copiar-planejamento" data-turma="${turmaAtual.id}" class="btn-secondary interactive-element" title="Copiar planejamento para outra turma">
                             <i class="fas fa-copy"></i> <span>Replicar</span>
                         </button>
 
                         <div class="custom-dropdown" style="min-width: 240px;">
-                            <input type="hidden" id="select-turma-global" onchange="mensalView.mudarTurma(this.value)" value="${this.currentTurmaId || ''}">
+                            <input type="hidden" id="select-turma-global" data-action="mudar-turma-select" value="${this.currentTurmaId || ''}">
                             <button type="button" class="dropdown-button">
                                 <i class="fas fa-users" style="color: var(--color-slate-400); margin-right: var(--spacing-2);"></i>
                                 <span class="dropdown-label">${turmas.find(t => String(t.id) === String(this.currentTurmaId))?.nome || 'Selecionar Turma...'}</span>
@@ -122,7 +139,7 @@ export const mensalView = {
                 <div class="card" style="padding: var(--spacing-3); overflow-x: auto;" class="custom-scrollbar">
                     <div style="display: flex; align-items: center; gap: var(--spacing-2); min-width: max-content;">
                         ${this.meses.map(mes => `
-                            <button type="button" onclick="mensalView.mudarMes('${mes}')" 
+                            <button type="button" data-action="mudar-mes" data-mes="${mes}"
                                     class="pill-item interactive-element ${this.currentMes === mes ? 'pill-item--active' : ''}" style="white-space: nowrap;">
                                 ${window.escapeHTML(mes)}
                             </button>
@@ -143,7 +160,9 @@ export const mensalView = {
                                 <span class="badge" style="background-color: var(--color-primary-light); color: var(--color-primary); font-weight: 800;">${habilidadesDoMes.length}</span>
                             </h3>
 
-                            <button type="button" onclick="controller.openSeletorBnccMensal('${turmaAtual.id}', '${this.currentMes}', '${turmaAtual.nivel}', '${turmaAtual.serie}')" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.8125rem;">
+                            <button type="button" data-action="seletor-bncc-mensal" 
+                                    data-turma="${turmaAtual.id}" data-mes="${this.currentMes}" data-nivel="${turmaAtual.nivel || ''}" data-serie="${turmaAtual.serie || ''}"
+                                    class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.8125rem;">
                                 <i class="fas fa-search"></i> <span>Buscar na BNCC</span>
                             </button>
                         </div>
@@ -190,7 +209,7 @@ export const mensalView = {
                                             <div style="display: flex; flex-direction: column; gap: 0.5rem;">
                                                 ${bloco.sugestoes.map(h => `
                                                     <div class="card interactive-element" style="padding: var(--spacing-3); background-color: var(--color-white); border: 1px solid #fde68a; cursor: pointer; display: flex; flex-direction: column; gap: 0.375rem;"
-                                                         onclick="mensalView.adicionarSugestao('${h.codigo}')"
+                                                         data-action="adicionar-sugestao" data-codigo="${h.codigo}"
                                                          title="Clique para adicionar a ${this.currentMes}">
                                                         <div style="display: flex; justify-content: space-between; align-items: center;">
                                                             <span style="font-size: 0.6875rem; font-weight: 800; color: #b45309; background-color: #fef3c7; padding: 0.125rem 0.375rem; border-radius: var(--radius-sm);">
@@ -215,7 +234,7 @@ export const mensalView = {
                                     <p style="font-size: 0.8125rem; color: var(--color-slate-500); margin-bottom: 0.75rem;">
                                         Nenhuma habilidade pendente do período para sugerir.
                                     </p>
-                                    <button onclick="controller.navigate('planejamento')" class="btn-secondary" style="padding: 0.375rem 0.875rem; font-size: 0.75rem;">
+                                    <button type="button" data-action="navigate-planejamento" class="btn-secondary" style="padding: 0.375rem 0.875rem; font-size: 0.75rem;">
                                         Gerenciar Período
                                     </button>
                                 </div>
@@ -228,7 +247,59 @@ export const mensalView = {
         `;
 
         container.innerHTML = html;
+
+        const unbindClick = EventDelegator.bind(container, {
+            'copiar-planejamento': (e, target) => {
+                const turmaId = target.getAttribute('data-turma');
+                if (turmaId) controller.abrirModalCopiarPlanejamento(turmaId);
+            },
+            'mudar-mes': (e, target) => {
+                const mes = target.getAttribute('data-mes');
+                if (mes) this.mudarMes(mes);
+            },
+            'seletor-bncc-mensal': (e, target) => {
+                const tId = target.getAttribute('data-turma');
+                const m = target.getAttribute('data-mes');
+                const n = target.getAttribute('data-nivel');
+                const s = target.getAttribute('data-serie');
+                controller.openSeletorBnccMensal(tId, m, n, s);
+            },
+            'adicionar-sugestao': (e, target) => {
+                const cod = target.getAttribute('data-codigo');
+                if (cod) this.adicionarSugestao(cod);
+            },
+            'remover-habilidade-mensal': (e, target) => {
+                const tId = target.getAttribute('data-turma');
+                const m = target.getAttribute('data-mes');
+                const cod = target.getAttribute('data-codigo');
+                if (tId && m && cod) controller.removeHabilidadeMensal(tId, m, cod);
+            },
+            'navigate-planejamento': () => controller.navigate('planejamento')
+        }, 'click');
+
+        const unbindChange = EventDelegator.bind(container, {
+            'mudar-turma-select': (e, target) => {
+                this.mudarTurma(target.value);
+            }
+        }, 'change');
+
+        this._cleanupDelegators = () => {
+            if (typeof unbindClick === 'function') unbindClick();
+            if (typeof unbindChange === 'function') unbindChange();
+        };
+
         uiController.initAllDropdowns(container);
+    },
+
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+    },
+
+    onLeave() {
+        this.destroy();
     },
 
     gerarCardHabilidade(habilidade, turmaId, mes) {
@@ -249,10 +320,8 @@ export const mensalView = {
                         </p>
                     </div>
 
-                    <button onclick="controller.removeHabilidadeMensal('${turmaId}', '${mes}', '${codigoSafe}')" 
+                    <button type="button" data-action="remover-habilidade-mensal" data-turma="${turmaId}" data-mes="${mes}" data-codigo="${codigoSafe}"
                             class="btn-icon" style="color: var(--color-slate-300); padding: 0.375rem;"
-                            onmouseover="this.style.color='#ef4444'; this.style.backgroundColor='#fee2e2';"
-                            onmouseout="this.style.color='var(--color-slate-300)'; this.style.backgroundColor='transparent';"
                             title="Remover do mês">
                         <i class="fas fa-trash-alt" style="font-size: 0.875rem;"></i>
                     </button>
@@ -278,27 +347,63 @@ export const mensalView = {
     identificarPeriodo(mesNome) {
         try {
             const mesIndex = this.meses.indexOf(mesNome);
-            const ano = new Date().getFullYear();
-            const dataTeste = `${ano}-${String(mesIndex + 1).padStart(2, '0')}-15`;
-            const periodo = model.getPeriodoPorData(dataTeste);
-            return periodo || "1";
+            if (mesIndex === -1) return 1;
+            const periodoType = model.state.userConfig?.periodType || 'bimestre';
+            const mesesPorPeriodo = periodoType === 'trimestre' ? 3 : (periodoType === 'semestre' ? 6 : 2);
+            let p = Math.floor(mesIndex / mesesPorPeriodo) + 1;
+            return Math.min(Math.max(p, 1), 4);
         } catch (e) {
-            console.error("Erro ao identificar período:", e);
-            return "1";
+            return 1;
         }
     },
 
     adicionarSugestao(codigoHabilidade) {
-        const turma = model.state.turmas.find(t => String(t.id) === String(this.currentTurmaId));
+        if (!this.currentTurmaId || !this.currentMes) return;
+        const turma = (model.state.turmas || []).find(t => String(t.id) === String(this.currentTurmaId));
         if (!turma) return;
 
-        const periodo = this.identificarPeriodo(this.currentMes);
-        const habilidade = turma.planejamento?.[periodo]?.find(h => h.codigo === codigoHabilidade);
-
-        if (habilidade) {
-            model.addHabilidadeMensal(turma.id, this.currentMes, habilidade);
-            Toast.show(`Habilidade ${codigoHabilidade} adicionada a ${this.currentMes}!`, 'success');
-            this.render('view-container');
+        let habilidadeObj = null;
+        if (turma.planejamento) {
+            Object.values(turma.planejamento).forEach(habs => {
+                if (Array.isArray(habs)) {
+                    const match = habs.find(h => h.codigo === codigoHabilidade);
+                    if (match) habilidadeObj = match;
+                }
+            });
         }
+
+        if (!habilidadeObj) {
+            Toast.show("Habilidade não encontrada no planejamento.", "error");
+            return;
+        }
+
+        if (!turma.planejamentoMensal) turma.planejamentoMensal = {};
+        if (!turma.planejamentoMensal[this.currentMes]) turma.planejamentoMensal[this.currentMes] = [];
+
+        const jaExiste = turma.planejamentoMensal[this.currentMes].some(h => h.codigo === codigoHabilidade);
+        if (jaExiste) {
+            Toast.show(`Habilidade já programada para ${this.currentMes}.`, "info");
+            return;
+        }
+
+        turma.planejamentoMensal[this.currentMes].push(habilidadeObj);
+        model.saveTurma(turma);
+        Toast.show(`Habilidade ${codigoHabilidade} adicionada a ${this.currentMes}!`, "success");
+        this.render('view-container');
+    },
+
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+    },
+
+    onLeave() {
+        this.destroy();
     }
 };
+
+if (typeof window !== 'undefined') {
+    window.mensalView = mensalView;
+}

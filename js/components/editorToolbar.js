@@ -6,6 +6,7 @@ import { escapeHTML } from '../utils.js';
 import { tableHelper } from '../utils/tableHelper.js';
 import { imageHelper } from '../utils/imageHelper.js';
 import { Toast } from './toast.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 
 let _savedSelection = null;
 
@@ -88,15 +89,15 @@ export const EditorToolbar = {
                         </select>
 
                         <button type="button" class="planner-toolbar-btn" 
+                                data-action="tb-ajustar-pt" data-target="${safeTargetId}" data-val="1"
                                 onmousedown="event.preventDefault(); EditorToolbar.salvarSelecao()"
-                                onclick="EditorToolbar.ajustarPtRelativo('${safeTargetId}', 1)" 
                                 title="Aumentar Fonte em 1pt (A^)">
                             <span style="font-weight: 800; font-size: 0.85rem;">A<sup>+1</sup></span>
                         </button>
 
                         <button type="button" class="planner-toolbar-btn" 
+                                data-action="tb-ajustar-pt" data-target="${safeTargetId}" data-val="-1"
                                 onmousedown="event.preventDefault(); EditorToolbar.salvarSelecao()"
-                                onclick="EditorToolbar.ajustarPtRelativo('${safeTargetId}', -1)" 
                                 title="Diminuir Fonte em 1pt (Av)">
                             <span style="font-weight: 800; font-size: 0.85rem;">A<sup>-1</sup></span>
                         </button>
@@ -109,8 +110,8 @@ export const EditorToolbar = {
                         <!-- COR DA FONTE (SPLIT BUTTON) -->
                         <div class="planner-toolbar-split-btn" id="wrap-forecolor-${safeTargetId}" title="Cor do Texto">
                             <button type="button" class="planner-toolbar-split-action"
+                                    data-action="tb-aplicar-cor-ativa" data-target="${safeTargetId}" data-tipo="foreColor"
                                     onmousedown="event.preventDefault(); EditorToolbar.salvarSelecao();"
-                                    onclick="EditorToolbar.aplicarCorAtiva('${safeTargetId}', 'foreColor')"
                                     title="Aplicar Cor do Texto (${this._corFonteAtiva})">
                                 <i class="fas fa-font" style="font-size: 0.75rem; color: #1e293b;"></i>
                                 <div id="bar-forecolor-${safeTargetId}" class="planner-toolbar-color-bar" style="background-color: ${this._corFonteAtiva};"></div>
@@ -127,8 +128,8 @@ export const EditorToolbar = {
                         <!-- COR DO MARCA-TEXTO (SPLIT BUTTON) -->
                         <div class="planner-toolbar-split-btn" id="wrap-hilitecolor-${safeTargetId}" title="Cor de Destaque (Marca-Texto)">
                             <button type="button" class="planner-toolbar-split-action"
+                                    data-action="tb-aplicar-cor-ativa" data-target="${safeTargetId}" data-tipo="hiliteColor"
                                     onmousedown="event.preventDefault(); EditorToolbar.salvarSelecao();"
-                                    onclick="EditorToolbar.aplicarCorAtiva('${safeTargetId}', 'hiliteColor')"
                                     title="Aplicar Destaque (${this._corDestaqueAtiva})">
                                 <i class="fas fa-highlighter" style="font-size: 0.75rem; color: #eab308;"></i>
                                 <div id="bar-hilitecolor-${safeTargetId}" class="planner-toolbar-color-bar" style="background-color: ${this._corDestaqueAtiva};"></div>
@@ -143,8 +144,8 @@ export const EditorToolbar = {
                         </div>
 
                         <button type="button" class="planner-toolbar-btn" 
+                                data-action="tb-exec-cmd" data-target="${safeTargetId}" data-cmd="removeFormat"
                                 onmousedown="event.preventDefault(); EditorToolbar.salvarSelecao()"
-                                onclick="EditorToolbar.executarComando('${safeTargetId}', 'removeFormat')" 
                                 title="Limpar Formatação do Texto Selecionado">
                             <i class="fas fa-eraser text-slate-500"></i>
                         </button>
@@ -155,38 +156,38 @@ export const EditorToolbar = {
                     <!-- GRUPO: ESTILOS DE CARACTERE (B, I, U, S, Sub, Super) -->
                     <div class="planner-toolbar-group">
                         <button type="button" class="planner-toolbar-btn" 
+                                data-action="tb-exec-cmd" data-target="${safeTargetId}" data-cmd="bold"
                                 onmousedown="EditorToolbar.salvarSelecao()"
-                                onclick="EditorToolbar.executarComando('${safeTargetId}', 'bold')" 
                                 title="Negrito (Ctrl+B)">
                             <i class="fas fa-bold"></i>
                         </button>
                         <button type="button" class="planner-toolbar-btn" 
+                                data-action="tb-exec-cmd" data-target="${safeTargetId}" data-cmd="italic"
                                 onmousedown="EditorToolbar.salvarSelecao()"
-                                onclick="EditorToolbar.executarComando('${safeTargetId}', 'italic')" 
                                 title="Itálico (Ctrl+I)">
                             <i class="fas fa-italic"></i>
                         </button>
                         <button type="button" class="planner-toolbar-btn" 
+                                data-action="tb-exec-cmd" data-target="${safeTargetId}" data-cmd="underline"
                                 onmousedown="EditorToolbar.salvarSelecao()"
-                                onclick="EditorToolbar.executarComando('${safeTargetId}', 'underline')" 
                                 title="Sublinhado (Ctrl+U)">
                             <i class="fas fa-underline"></i>
                         </button>
                         <button type="button" class="planner-toolbar-btn" 
+                                data-action="tb-exec-cmd" data-target="${safeTargetId}" data-cmd="strikeThrough"
                                 onmousedown="EditorToolbar.salvarSelecao()"
-                                onclick="EditorToolbar.executarComando('${safeTargetId}', 'strikeThrough')" 
                                 title="Tachado">
                             <i class="fas fa-strikethrough"></i>
                         </button>
                         <button type="button" class="planner-toolbar-btn" 
+                                data-action="tb-exec-cmd" data-target="${safeTargetId}" data-cmd="subscript"
                                 onmousedown="EditorToolbar.salvarSelecao()"
-                                onclick="EditorToolbar.executarComando('${safeTargetId}', 'subscript')" 
                                 title="Subscrito (Xᵢ)">
                             <span style="font-weight: 700;">X<sub>2</sub></span>
                         </button>
                         <button type="button" class="planner-toolbar-btn" 
+                                data-action="tb-exec-cmd" data-target="${safeTargetId}" data-cmd="superscript"
                                 onmousedown="EditorToolbar.salvarSelecao()"
-                                onclick="EditorToolbar.executarComando('${safeTargetId}', 'superscript')" 
                                 title="Sobrescrito (X²)">
                             <span style="font-weight: 700;">X<sup>2</sup></span>
                         </button>
@@ -197,50 +198,50 @@ export const EditorToolbar = {
                     <!-- GRUPO: ALINHAMENTO E LISTAS -->
                     <div class="planner-toolbar-group">
                         <button type="button" class="planner-toolbar-btn" 
+                                data-action="tb-exec-cmd" data-target="${safeTargetId}" data-cmd="justifyLeft"
                                 onmousedown="EditorToolbar.salvarSelecao()"
-                                onclick="EditorToolbar.executarComando('${safeTargetId}', 'justifyLeft')" 
                                 title="Alinhar à Esquerda">
                             <i class="fas fa-align-left"></i>
                         </button>
                         <button type="button" class="planner-toolbar-btn" 
+                                data-action="tb-exec-cmd" data-target="${safeTargetId}" data-cmd="justifyCenter"
                                 onmousedown="EditorToolbar.salvarSelecao()"
-                                onclick="EditorToolbar.executarComando('${safeTargetId}', 'justifyCenter')" 
                                 title="Centralizar">
                             <i class="fas fa-align-center"></i>
                         </button>
                         <button type="button" class="planner-toolbar-btn" 
+                                data-action="tb-exec-cmd" data-target="${safeTargetId}" data-cmd="justifyRight"
                                 onmousedown="EditorToolbar.salvarSelecao()"
-                                onclick="EditorToolbar.executarComando('${safeTargetId}', 'justifyRight')" 
                                 title="Alinhar à Direita">
                             <i class="fas fa-align-right"></i>
                         </button>
                         <button type="button" class="planner-toolbar-btn" 
+                                data-action="tb-exec-cmd" data-target="${safeTargetId}" data-cmd="justifyFull"
                                 onmousedown="EditorToolbar.salvarSelecao()"
-                                onclick="EditorToolbar.executarComando('${safeTargetId}', 'justifyFull')" 
                                 title="Justificar">
                             <i class="fas fa-align-justify"></i>
                         </button>
                         <button type="button" class="planner-toolbar-btn" 
+                                data-action="tb-exec-cmd" data-target="${safeTargetId}" data-cmd="insertUnorderedList"
                                 onmousedown="EditorToolbar.salvarSelecao()"
-                                onclick="EditorToolbar.executarComando('${safeTargetId}', 'insertUnorderedList')" 
                                 title="Lista com Marcadores">
                             <i class="fas fa-list-ul"></i>
                         </button>
                         <button type="button" class="planner-toolbar-btn" 
+                                data-action="tb-exec-cmd" data-target="${safeTargetId}" data-cmd="insertOrderedList"
                                 onmousedown="EditorToolbar.salvarSelecao()"
-                                onclick="EditorToolbar.executarComando('${safeTargetId}', 'insertOrderedList')" 
                                 title="Lista Numerada">
                             <i class="fas fa-list-ol"></i>
                         </button>
                         <button type="button" class="planner-toolbar-btn" 
+                                data-action="tb-exec-cmd" data-target="${safeTargetId}" data-cmd="outdent"
                                 onmousedown="EditorToolbar.salvarSelecao()"
-                                onclick="EditorToolbar.executarComando('${safeTargetId}', 'outdent')" 
                                 title="Diminuir Recuo / Desindentar (Shift+Tab)">
                             <i class="fas fa-outdent"></i>
                         </button>
                         <button type="button" class="planner-toolbar-btn" 
+                                data-action="tb-exec-cmd" data-target="${safeTargetId}" data-cmd="indent"
                                 onmousedown="EditorToolbar.salvarSelecao()"
-                                onclick="EditorToolbar.executarComando('${safeTargetId}', 'indent')" 
                                 title="Aumentar Recuo / Indentar Lista Aninhada (Tab)">
                             <i class="fas fa-indent"></i>
                         </button>
@@ -251,12 +252,12 @@ export const EditorToolbar = {
                     <!-- GRUPO: COLAR LIMPO E IMAGEM -->
                     <div class="planner-toolbar-group">
                         <button type="button" class="planner-toolbar-btn planner-toolbar-btn--highlight" 
-                                onclick="EditorToolbar.colarLimpo('${safeTargetId}')" 
+                                data-action="tb-colar-limpo" data-target="${safeTargetId}"
                                 title="Colar Texto Sem Formatação Parasita">
                             <i class="fas fa-paste"></i> <span>Colar Limpo</span>
                         </button>
                         <button type="button" class="planner-toolbar-btn planner-toolbar-btn--image" 
-                                onclick="EditorToolbar.inserirImagem('${safeTargetId}')" 
+                                data-action="tb-inserir-imagem" data-target="${safeTargetId}"
                                 title="Inserir Imagem no Material">
                             <i class="fas fa-image"></i> <span>+ Imagem</span>
                         </button>
@@ -270,8 +271,8 @@ export const EditorToolbar = {
                         <!-- POPUP: SÍMBOLOS MATEMÁTICOS BÁSICOS -->
                         <div class="planner-popover-wrapper">
                             <button type="button" class="planner-toolbar-btn planner-toolbar-btn--badge" 
+                                    data-action="tb-toggle-popover" data-popover-id="popover-simbolos-${safeTargetId}"
                                     onmousedown="EditorToolbar.salvarSelecao()"
-                                    onclick="EditorToolbar.togglePopover('popover-simbolos-${safeTargetId}')"
                                     title="Símbolos de Matemática Básica">
                                 <i class="fas fa-square-root-variable text-indigo-600"></i>
                                 <span>Símbolos</span>
@@ -280,7 +281,7 @@ export const EditorToolbar = {
                             <div id="popover-simbolos-${safeTargetId}" class="planner-popover-content hidden">
                                 <div class="planner-symbols-header">
                                     <span>Símbolos Matemáticos Básicos</span>
-                                    <button type="button" onclick="EditorToolbar.togglePopover('popover-simbolos-${safeTargetId}')" class="planner-popover-close">&times;</button>
+                                    <button type="button" data-action="tb-toggle-popover" data-popover-id="popover-simbolos-${safeTargetId}" class="planner-popover-close">&times;</button>
                                 </div>
                                 <div class="planner-symbols-grid">
                                     ${this._renderBotoesSimbolos(safeTargetId)}
@@ -291,8 +292,8 @@ export const EditorToolbar = {
                         <!-- POPUP: LETRAS GREGAS -->
                         <div class="planner-popover-wrapper">
                             <button type="button" class="planner-toolbar-btn planner-toolbar-btn--badge" 
+                                    data-action="tb-toggle-popover" data-popover-id="popover-gregas-${safeTargetId}"
                                     onmousedown="EditorToolbar.salvarSelecao()"
-                                    onclick="EditorToolbar.togglePopover('popover-gregas-${safeTargetId}')"
                                     title="Letras Gregas (Minúsculas e Maiúsculas)">
                                 <span style="font-family: serif; font-weight: bold; font-size: 0.95rem; color: #4338ca;">αβγ</span>
                                 <span>Gregas</span>
@@ -301,7 +302,7 @@ export const EditorToolbar = {
                             <div id="popover-gregas-${safeTargetId}" class="planner-popover-content hidden" style="min-width: 320px;">
                                 <div class="planner-symbols-header">
                                     <span>Alfabeto Grego & Variações</span>
-                                    <button type="button" onclick="EditorToolbar.togglePopover('popover-gregas-${safeTargetId}')" class="planner-popover-close">&times;</button>
+                                    <button type="button" data-action="tb-toggle-popover" data-popover-id="popover-gregas-${safeTargetId}" class="planner-popover-close">&times;</button>
                                 </div>
                                 <div style="padding: 0.5rem; max-height: 260px; overflow-y: auto;" class="custom-scrollbar">
                                     <div style="font-size: 0.6875rem; font-weight: 800; color: #64748b; margin-bottom: 0.25rem; text-transform: uppercase;">Minúsculas</div>
@@ -323,8 +324,8 @@ export const EditorToolbar = {
                         <!-- POPUP: EQUAÇÕES PRONTAS (WORD EQUATION RIBBON) -->
                         <div class="planner-popover-wrapper">
                             <button type="button" class="planner-toolbar-btn planner-toolbar-btn--badge" 
+                                    data-action="tb-toggle-popover" data-popover-id="popover-equacoes-${safeTargetId}"
                                     onmousedown="EditorToolbar.salvarSelecao()"
-                                    onclick="EditorToolbar.togglePopover('popover-equacoes-${safeTargetId}')"
                                     title="Fórmulas e Equações Clássicas">
                                 <i class="fas fa-calculator text-blue-600"></i>
                                 <span>Equações</span>
@@ -333,7 +334,7 @@ export const EditorToolbar = {
                             <div id="popover-equacoes-${safeTargetId}" class="planner-popover-content hidden" style="min-width: 320px; max-width: 420px;">
                                 <div class="planner-symbols-header">
                                     <span>Modelos de Equações Predefinidas</span>
-                                    <button type="button" onclick="EditorToolbar.togglePopover('popover-equacoes-${safeTargetId}')" class="planner-popover-close">&times;</button>
+                                    <button type="button" data-action="tb-toggle-popover" data-popover-id="popover-equacoes-${safeTargetId}" class="planner-popover-close">&times;</button>
                                 </div>
                                 <div style="padding: 0.5rem; max-height: 280px; overflow-y: auto;" class="custom-scrollbar">
                                     ${this._renderModelosEquacoes(safeTargetId)}
@@ -348,8 +349,8 @@ export const EditorToolbar = {
                     <div class="planner-toolbar-group">
                         <div class="planner-popover-wrapper">
                             <button type="button" class="planner-toolbar-btn planner-toolbar-btn--table" 
+                                    data-action="tb-toggle-popover" data-popover-id="popover-tabela-${safeTargetId}"
                                     onmousedown="EditorToolbar.salvarSelecao()"
-                                    onclick="EditorToolbar.togglePopover('popover-tabela-${safeTargetId}')"
                                     title="Inserir e Configurar Tabela">
                                 <i class="fas fa-table"></i>
                                 <span>Tabela</span>
@@ -366,8 +367,8 @@ export const EditorToolbar = {
                                 </div>
                                 <div style="margin-top: 0.75rem; border-top: 1px solid #e2e8f0; padding-top: 0.5rem;">
                                     <button type="button" class="btn-secondary" style="width: 100%; font-size: 0.75rem; padding: 0.35rem 0.5rem; font-weight: 700;"
-                                            onmousedown="EditorToolbar.salvarSelecao()"
-                                            onclick="EditorToolbar.abrirModalConfigTabela('${safeTargetId}')">
+                                            data-action="tb-abrir-modal-tabela" data-target="${safeTargetId}"
+                                            onmousedown="EditorToolbar.salvarSelecao()">
                                         <i class="fas fa-cog mr-1"></i> Mais Opções de Tabela...
                                     </button>
                                 </div>
@@ -380,42 +381,42 @@ export const EditorToolbar = {
                     <!-- GRUPO: ESTRUTURAS PEDAGÓGICAS PRONTAS -->
                     <div class="planner-toolbar-group" style="flex-wrap: wrap;">
                         <button type="button" class="planner-pedag-btn planner-pedag-btn--gabarito" 
-                                onclick="EditorToolbar.inserirBlocoPedagogico('${safeTargetId}', 'gabarito')"
+                                data-action="tb-bloco-pedagogico" data-target="${safeTargetId}" data-tipo="gabarito"
                                 title="Inserir Bloco de Gabarito (Oculto na Versão do Aluno)">
                             <i class="fas fa-check-circle"></i> + Gabarito
                         </button>
                         <button type="button" class="planner-pedag-btn planner-pedag-btn--comentario" 
-                                onclick="EditorToolbar.inserirBlocoPedagogico('${safeTargetId}', 'comentario')"
+                                data-action="tb-bloco-pedagogico" data-target="${safeTargetId}" data-tipo="comentario"
                                 title="Inserir Orientação / Comentário Pedagógico">
                             <i class="fas fa-comment-dots"></i> + Comentário
                         </button>
                         <button type="button" class="planner-pedag-btn planner-pedag-btn--rubrica" 
-                                onclick="EditorToolbar.inserirBlocoPedagogico('${safeTargetId}', 'rubrica')"
+                                data-action="tb-bloco-pedagogico" data-target="${safeTargetId}" data-tipo="rubrica"
                                 title="Inserir Rúbrica Avaliativa">
                             <i class="fas fa-tasks"></i> + Rúbrica
                         </button>
                         <button type="button" class="planner-pedag-btn planner-pedag-btn--pbl" 
-                                onclick="EditorToolbar.inserirBlocoPedagogico('${safeTargetId}', 'pbl')"
+                                data-action="tb-bloco-pedagogico" data-target="${safeTargetId}" data-tipo="pbl"
                                 title="Inserir Roteiro de Projeto PBL">
                             <i class="fas fa-project-diagram"></i> + Projeto PBL
                         </button>
                         <button type="button" class="planner-pedag-btn planner-pedag-btn--jeopardy" 
-                                onclick="EditorToolbar.inserirBlocoPedagogico('${safeTargetId}', 'jeopardy')"
+                                data-action="tb-bloco-pedagogico" data-target="${safeTargetId}" data-tipo="jeopardy"
                                 title="Inserir Jogo de Revisão Jeopardy">
                             <i class="fas fa-gamepad"></i> + Jogo Jeopardy
                         </button>
                         <button type="button" class="planner-pedag-btn planner-pedag-btn--dua" 
-                                onclick="EditorToolbar.inserirBlocoPedagogico('${safeTargetId}', 'dua')"
+                                data-action="tb-bloco-pedagogico" data-target="${safeTargetId}" data-tipo="dua"
                                 title="Inserir Quadro de Opções DUA">
                             <i class="fas fa-th-large"></i> + Quadro DUA
                         </button>
                         <button type="button" class="planner-pedag-btn planner-pedag-btn--lab" 
-                                onclick="EditorToolbar.inserirBlocoPedagogico('${safeTargetId}', 'lab')"
+                                data-action="tb-bloco-pedagogico" data-target="${safeTargetId}" data-tipo="lab"
                                 title="Inserir Roteiro de Laboratório">
                             <i class="fas fa-flask"></i> + Roteiro Lab
                         </button>
                         <button type="button" class="planner-pedag-btn planner-pedag-btn--linhas" 
-                                onclick="EditorToolbar.inserirBlocoPedagogico('${safeTargetId}', 'linhas')"
+                                data-action="tb-bloco-pedagogico" data-target="${safeTargetId}" data-tipo="linhas"
                                 title="Inserir Linhas Pautadas para Respostas Discursivas">
                             <i class="fas fa-align-justify"></i> + Linhas
                         </button>
@@ -809,10 +810,11 @@ export const EditorToolbar = {
         return simbolos.map(s => `
             <button type="button" class="planner-symbol-btn" 
                     title="Inserir ${s.char}"
+                    data-action="tb-inserir-simbolo"
+                    data-target="${targetId}"
                     data-latex="${escapeHTML(s.latex)}"
                     data-popover="popover-simbolos-${targetId}"
-                    onmousedown="event.preventDefault(); EditorToolbar.salvarSelecao();"
-                    onclick="EditorToolbar.inserirSimboloDoBotao(this, '${targetId}')">
+                    onmousedown="event.preventDefault(); EditorToolbar.salvarSelecao();">
                 ${s.char}
             </button>
         `).join('');
@@ -831,10 +833,11 @@ export const EditorToolbar = {
         return minusculas.map(g => `
             <button type="button" class="planner-symbol-btn" 
                     title="Inserir ${g.c}"
+                    data-action="tb-inserir-simbolo"
+                    data-target="${targetId}"
                     data-latex="${escapeHTML(g.l)}"
                     data-popover="popover-gregas-${targetId}"
-                    onmousedown="event.preventDefault(); EditorToolbar.salvarSelecao();"
-                    onclick="EditorToolbar.inserirSimboloDoBotao(this, '${targetId}')">
+                    onmousedown="event.preventDefault(); EditorToolbar.salvarSelecao();">
                 ${g.c}
             </button>
         `).join('');
@@ -853,10 +856,11 @@ export const EditorToolbar = {
         return maiusculas.map(g => `
             <button type="button" class="planner-symbol-btn" 
                     title="Inserir ${g.c}"
+                    data-action="tb-inserir-simbolo"
+                    data-target="${targetId}"
                     data-latex="${escapeHTML(g.l)}"
                     data-popover="popover-gregas-${targetId}"
-                    onmousedown="event.preventDefault(); EditorToolbar.salvarSelecao();"
-                    onclick="EditorToolbar.inserirSimboloDoBotao(this, '${targetId}')">
+                    onmousedown="event.preventDefault(); EditorToolbar.salvarSelecao();">
                 ${g.c}
             </button>
         `).join('');
@@ -872,10 +876,11 @@ export const EditorToolbar = {
         return variacoes.map(g => `
             <button type="button" class="planner-symbol-btn" 
                     title="Inserir ${g.c}"
+                    data-action="tb-inserir-simbolo"
+                    data-target="${targetId}"
                     data-latex="${escapeHTML(g.l)}"
                     data-popover="popover-gregas-${targetId}"
-                    onmousedown="event.preventDefault(); EditorToolbar.salvarSelecao();"
-                    onclick="EditorToolbar.inserirSimboloDoBotao(this, '${targetId}')">
+                    onmousedown="event.preventDefault(); EditorToolbar.salvarSelecao();">
                 ${g.c}
             </button>
         `).join('');
@@ -927,10 +932,11 @@ export const EditorToolbar = {
 
         return modelos.map(m => `
             <div class="planner-equation-item" 
+                 data-action="tb-inserir-equacao"
+                 data-target="${targetId}"
                  data-latex="${escapeHTML(m.latex)}"
                  data-popover="popover-equacoes-${targetId}"
-                 onmousedown="event.preventDefault(); EditorToolbar.salvarSelecao();"
-                 onclick="EditorToolbar.inserirEquacaoDoCard(this, '${targetId}')">
+                 onmousedown="event.preventDefault(); EditorToolbar.salvarSelecao();">
                 <div style="font-weight: 700; font-size: 0.8125rem; color: #1e293b;">${escapeHTML(m.nome)}</div>
                 <div style="font-family: monospace; font-size: 0.75rem; color: #4338ca; background: #eef2ff; padding: 0.25rem 0.5rem; border-radius: 4px; margin-top: 0.25rem;">
                     ${escapeHTML(m.desc)}
@@ -945,10 +951,11 @@ export const EditorToolbar = {
             for (let c = 1; c <= 8; c++) {
                 html += `
                     <div class="planner-table-picker-cell" 
+                         data-action="tb-selecionar-table-grid"
+                         data-target="${targetId}"
                          data-r="${r}" data-c="${c}"
                          onmouseenter="EditorToolbar.hoverTableGridPicker('${targetId}', ${r}, ${c})"
-                         onmousedown="event.preventDefault(); EditorToolbar.salvarSelecao();"
-                         onclick="EditorToolbar.selecionarTableGrid('${targetId}', ${r}, ${c})"></div>
+                         onmousedown="event.preventDefault(); EditorToolbar.salvarSelecao();"></div>
                 `;
             }
         }
@@ -956,8 +963,62 @@ export const EditorToolbar = {
     }
 };
 
-// Fechamento automático de popovers ao clicar fora
+// Vinculação de eventos através de EventDelegator
 if (typeof document !== 'undefined') {
+    EventDelegator.bind(document.body, {
+        'tb-ajustar-pt': (e, target) => {
+            const tid = target.getAttribute('data-target');
+            const val = parseInt(target.getAttribute('data-val') || '0', 10);
+            if (tid && val) EditorToolbar.ajustarPtRelativo(tid, val);
+        },
+        'tb-aplicar-cor-ativa': (e, target) => {
+            const tid = target.getAttribute('data-target');
+            const tipo = target.getAttribute('data-tipo');
+            if (tid && tipo) EditorToolbar.aplicarCorAtiva(tid, tipo);
+        },
+        'tb-exec-cmd': (e, target) => {
+            const tid = target.getAttribute('data-target');
+            const cmd = target.getAttribute('data-cmd');
+            if (tid && cmd) EditorToolbar.executarComando(tid, cmd);
+        },
+        'tb-colar-limpo': (e, target) => {
+            const tid = target.getAttribute('data-target');
+            if (tid) EditorToolbar.colarLimpo(tid);
+        },
+        'tb-inserir-imagem': (e, target) => {
+            const tid = target.getAttribute('data-target');
+            if (tid) EditorToolbar.inserirImagem(tid);
+        },
+        'tb-toggle-popover': (e, target) => {
+            const pid = target.getAttribute('data-popover-id');
+            if (pid) EditorToolbar.togglePopover(pid);
+        },
+        'tb-abrir-modal-tabela': (e, target) => {
+            const tid = target.getAttribute('data-target');
+            if (tid) EditorToolbar.abrirModalConfigTabela(tid);
+        },
+        'tb-bloco-pedagogico': (e, target) => {
+            const tid = target.getAttribute('data-target');
+            const tipo = target.getAttribute('data-tipo');
+            if (tid && tipo) EditorToolbar.inserirBlocoPedagogico(tid, tipo);
+        },
+        'tb-inserir-simbolo': (e, target) => {
+            const tid = target.getAttribute('data-target');
+            if (tid) EditorToolbar.inserirSimboloDoBotao(target, tid);
+        },
+        'tb-inserir-equacao': (e, target) => {
+            const tid = target.getAttribute('data-target');
+            if (tid) EditorToolbar.inserirEquacaoDoCard(target, tid);
+        },
+        'tb-selecionar-table-grid': (e, target) => {
+            const tid = target.getAttribute('data-target');
+            const r = parseInt(target.getAttribute('data-r'), 10);
+            const c = parseInt(target.getAttribute('data-c'), 10);
+            if (tid && r && c) EditorToolbar.selecionarTableGrid(tid, r, c);
+        }
+    }, 'click');
+
+    // Fechamento automático de popovers ao clicar fora
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.planner-popover-wrapper')) {
             document.querySelectorAll('.planner-popover-content').forEach(p => p.classList.add('hidden'));

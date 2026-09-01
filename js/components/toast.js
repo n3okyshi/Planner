@@ -100,11 +100,11 @@ export const Toast = {
         if (action && action.callback) {
             const btn = toast.querySelector('.toast-action-btn');
             if (btn) {
-                btn.onclick = (e) => {
+                btn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     action.callback();
                     this.dismiss(toast);
-                };
+                });
             }
         }
         this.container.appendChild(toast);
@@ -115,17 +115,17 @@ export const Toast = {
         const finalDuration = action ? Math.max(duration, 6000) : duration;
         let timer = setTimeout(() => this.dismiss(toast), finalDuration);
         if (toast) {
-            toast.onmouseenter = () => {
+            toast.addEventListener('mouseenter', () => {
                 try {
                     clearTimeout(timer);
                 } catch (err) {
                     console.error('Erro ao pausar timer do toast:', err);
                 }
-            };
+            });
+            toast.addEventListener('mouseleave', () => {
+                timer = setTimeout(() => this.dismiss(toast), finalDuration / 2);
+            });
         }
-        toast.onmouseleave = () => {
-            timer = setTimeout(() => this.dismiss(toast), finalDuration / 2);
-        };
     },
     dismiss(toast) {
         try {

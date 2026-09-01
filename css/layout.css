@@ -26,41 +26,43 @@
   transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Estado Sanfonado / Recolhido (Mini Sidebar com Ícones Acessíveis) */
-.l-sidebar.collapsed {
-  width: 4.5rem; /* 72px */
-  transform: translateX(0) !important;
-}
+/* Estado Sanfonado / Recolhido (Mini Sidebar com Ícones Acessíveis no Desktop) */
+@media (min-width: 768px) {
+  .l-sidebar.collapsed {
+    width: 4.5rem; /* 72px */
+    transform: translateX(0) !important;
+  }
 
-.l-sidebar.collapsed .logo-text,
-.l-sidebar.collapsed .nav-label,
-.l-sidebar.collapsed .sidebar__section-title,
-.l-sidebar.collapsed .sidebar-footer,
-.l-sidebar.collapsed .btn-login span {
-  display: none !important;
-}
+  .l-sidebar.collapsed .logo-text,
+  .l-sidebar.collapsed .nav-label,
+  .l-sidebar.collapsed .sidebar__section-title,
+  .l-sidebar.collapsed .sidebar-footer,
+  .l-sidebar.collapsed .btn-login span {
+    display: none !important;
+  }
 
-.l-sidebar.collapsed .sidebar__header {
-  justify-content: center;
-  padding: var(--spacing-3);
-}
+  .l-sidebar.collapsed .sidebar__header {
+    justify-content: center;
+    padding: var(--spacing-3);
+  }
 
-.l-sidebar.collapsed .sidebar__brand {
-  display: none !important;
-}
+  .l-sidebar.collapsed .sidebar__brand {
+    display: none !important;
+  }
 
-.l-sidebar.collapsed .nav-item {
-  justify-content: center;
-  padding: 0.5rem 0;
-}
+  .l-sidebar.collapsed .nav-item {
+    justify-content: center;
+    padding: 0.5rem 0;
+  }
 
-.l-sidebar.collapsed .nav-item__icon {
-  margin: 0 auto;
-}
+  .l-sidebar.collapsed .nav-item__icon {
+    margin: 0 auto;
+  }
 
-.l-sidebar.collapsed .sidebar__toggle {
-  margin: 0 auto;
-  display: flex;
+  .l-sidebar.collapsed .sidebar__toggle {
+    margin: 0 auto;
+    display: flex;
+  }
 }
 
 .l-sidebar nav,
@@ -88,10 +90,12 @@
   transition: margin-left 0.25s cubic-bezier(0.4, 0, 0.2, 1), width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.l-main.expanded-content,
-.l-sidebar.collapsed ~ .l-main {
-  margin-left: 4.5rem;
-  width: calc(100% - 4.5rem);
+@media (min-width: 768px) {
+  .l-main.expanded-content,
+  .l-sidebar.collapsed ~ .l-main {
+    margin-left: 4.5rem;
+    width: calc(100% - 4.5rem);
+  }
 }
 
 .l-header {

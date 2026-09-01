@@ -1,7 +1,6 @@
 import { criarMaterialView } from './criarMaterial.js';
+import { conteudoGeradoView } from './conteudoGerado.js';
 import { controller } from '../controller.js';
-import { CardComponent } from '../components/card.js';
-import { storageService } from '../services/storageService.js';
 
 export const bibliotecaView = {
     abaAtiva: 'criados',
@@ -11,24 +10,27 @@ export const bibliotecaView = {
             controller.navigate('comunidade');
             return;
         }
-        if (window.criarMaterialView) {
-            window.criarMaterialView.mudarAba('meus');
+        if (criarMaterialView) {
+            criarMaterialView.mudarAba('meus');
         }
     },
 
     render(container) {
-        if (window.criarMaterialView) {
-            window.criarMaterialView.abaAtiva = 'meus';
-            window.criarMaterialView.render(container);
+        if (criarMaterialView) {
+            criarMaterialView.abaAtiva = 'meus';
+            criarMaterialView.render(container);
         }
     },
 
     abrirMaterial(id) {
-        if (window.conteudoGeradoView) {
-            window.conteudoGeradoView.setMaterial(id);
+        if (conteudoGeradoView) {
+            conteudoGeradoView.setMaterial(id);
         }
         controller.navigate('conteudo-gerado');
-    }
+    },
+
+    destroy() {},
+    onLeave() {}
 };
 
 if (typeof window !== 'undefined') {

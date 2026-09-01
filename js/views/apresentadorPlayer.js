@@ -50,6 +50,11 @@ export const apresentadorPlayerView = {
         this._initListeners(targetContainer, apres);
         this._initCanvas(targetContainer);
 
+        if (!this._onPlayerUpdate) {
+            this._onPlayerUpdate = () => this.updateDOM();
+            model.on('player:updated', this._onPlayerUpdate);
+        }
+
         // Renderiza expressões KaTeX se houver
         setTimeout(() => renderMath(targetContainer), 100);
     },
@@ -375,6 +380,10 @@ export const apresentadorPlayerView = {
 
     destroy() {
         apresentacaoController.stopTimer();
+        if (this._onPlayerUpdate) {
+            model.off('player:updated', this._onPlayerUpdate);
+            this._onPlayerUpdate = null;
+        }
         if (typeof this._cleanupDelegators === 'function') {
             this._cleanupDelegators();
             this._cleanupDelegators = null;

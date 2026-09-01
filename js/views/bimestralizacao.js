@@ -1,6 +1,7 @@
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 
 export const bimestralizacaoView = {
     dataCache: null,
@@ -10,6 +11,8 @@ export const bimestralizacaoView = {
     bimestreSelecionado: '', // Vazio = Todos os Bimestres
     termoBusca: '',
     selecionarCallback: null,
+    _cleanupDelegators: null,
+    _itensAtuais: [],
 
     disciplinasDisponiveis: [
         'Língua Portuguesa',
@@ -52,6 +55,17 @@ export const bimestralizacaoView = {
         { valor: '4', label: '4º Bimestre' }
     ],
 
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+    },
+
+    onLeave() {
+        this.destroy();
+    },
+
     async carregarDados() {
         if (this.dataCache) return this.dataCache;
         this.isLoading = true;
@@ -72,6 +86,8 @@ export const bimestralizacaoView = {
     async render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+
+        this.destroy();
 
         const corAtual = model.coresComponentes[this.disciplinaSelecionada] || '#2563eb';
         await this.carregarDados();
@@ -115,7 +131,7 @@ export const bimestralizacaoView = {
                     </div>
 
                     <div style="display: flex; align-items: center; gap: var(--spacing-2);">
-                        <button type="button" onclick="controller.navigate('bncc')" class="btn-secondary interactive-element" title="Consultar BNCC Nacional">
+                        <button type="button" data-action="ver-bncc" class="btn-secondary interactive-element" title="Consultar BNCC Nacional">
                             <i class="fas fa-book-open"></i> <span>Ver BNCC Geral</span>
                         </button>
                     </div>
@@ -191,16 +207,17 @@ export const bimestralizacaoView = {
                     
                     <div class="mode-toggle-group" style="width: fit-content;">
                         ${this.bimestresDisponiveis.map(b => {
-            const isAtivo = b.valor === this.bimestreSelecionado;
-            return `
+                            const isAtivo = b.valor === this.bimestreSelecionado;
+                            return `
                                 <button type="button" 
-                                        onclick="bimestralizacaoView.setBimestre('${b.valor}')" 
+                                        data-action="set-bimestre"
+                                        data-bimestre="${b.valor}"
                                         class="mode-toggle-btn interactive-element ${isAtivo ? 'mode-toggle-btn--active' : ''}">
                                     ${b.valor ? `<i class="fas fa-bookmark" style="margin-right: 0.375rem;"></i>` : `<i class="fas fa-list" style="margin-right: 0.375rem;"></i>`}
                                     ${b.label}
                                 </button>
                             `;
-        }).join('')}
+                        }).join('')}
                     </div>
 
                     <!-- PAINEL DE FILTROS ELEGANTE (DYNAMIC-BOX / CARD) -->
@@ -211,7 +228,7 @@ export const bimestralizacaoView = {
                                 <label class="form-label" style="font-weight: 700; color: var(--color-slate-700); font-size: 0.8125rem;">
                                     <i class="fas fa-book" style="color: ${corAtual}; margin-right: 0.25rem;"></i> Disciplina / Componente
                                 </label>
-                                <select id="bimestralizacao-disciplina" onchange="bimestralizacaoView.onDisciplinaChange(this.value)" class="form-select" style="padding: 0.625rem 0.875rem;">
+                                <select id="bimestralizacao-disciplina" data-action="mudar-disciplina" class="form-select" style="padding: 0.625rem 0.875rem;">
                                     ${this.disciplinasDisponiveis.map(d => `
                                         <option value="${window.escapeHTML(d)}" ${d === this.disciplinaSelecionada ? 'selected' : ''}>
                                             ${window.escapeHTML(d)}
@@ -224,7 +241,7 @@ export const bimestralizacaoView = {
                                 <label class="form-label" style="font-weight: 700; color: var(--color-slate-700); font-size: 0.8125rem;">
                                     <i class="fas fa-graduation-cap" style="color: var(--color-primary); margin-right: 0.25rem;"></i> Ano / Série
                                 </label>
-                                <select id="bimestralizacao-ano" onchange="bimestralizacaoView.onAnoChange(this.value)" class="form-select" style="padding: 0.625rem 0.875rem;">
+                                <select id="bimestralizacao-ano" data-action="mudar-ano" class="form-select" style="padding: 0.625rem 0.875rem;">
                                     ${this.anosDisponiveis.map(a => `
                                         <option value="${window.escapeHTML(a)}" ${a === this.anoSelecionado ? 'selected' : ''}>
                                             ${window.escapeHTML(a)}
@@ -237,7 +254,7 @@ export const bimestralizacaoView = {
                                 <label class="form-label" style="font-weight: 700; color: var(--color-slate-700); font-size: 0.8125rem;">
                                     <i class="far fa-calendar-alt" style="color: var(--color-primary); margin-right: 0.25rem;"></i> Bimestre
                                 </label>
-                                <select id="bimestralizacao-bimestre" onchange="bimestralizacaoView.onBimestreChange(this.value)" class="form-select" style="padding: 0.625rem 0.875rem;">
+                                <select id="bimestralizacao-bimestre" data-action="mudar-bimestre" class="form-select" style="padding: 0.625rem 0.875rem;">
                                     ${this.bimestresDisponiveis.map(b => `
                                         <option value="${b.valor}" ${b.valor === this.bimestreSelecionado ? 'selected' : ''}>
                                             ${b.label}
@@ -254,7 +271,7 @@ export const bimestralizacaoView = {
                             <input type="text" 
                                    id="bimestralizacao-busca" 
                                    placeholder="Pesquisar por código (ex: EF06LP01), tema, conteúdo ou palavras-chave..." 
-                                   oninput="bimestralizacaoView.onBuscaInput(this.value)"
+                                   data-action="buscar-habilidades"
                                    value="${window.escapeHTML(this.termoBusca)}"
                                    class="form-input" 
                                    style="padding-left: 2.75rem; width: 100%;">
@@ -287,7 +304,47 @@ export const bimestralizacaoView = {
             </div>
         `;
 
+        this._bindEventos(container);
         this.filtrarEPesquisar();
+    },
+
+    _bindEventos(container) {
+        if (!container) return;
+
+        const unbindClick = EventDelegator.bind(container, {
+            'ver-bncc': () => controller.navigate('bncc'),
+            'set-bimestre': (e, target) => {
+                const b = target.getAttribute('data-bimestre') || '';
+                this.setBimestre(b);
+            },
+            'limpar-filtros': () => this.limparFiltros(),
+            'copiar-habilidade': (e, target) => {
+                const codigo = target.getAttribute('data-codigo') || '';
+                const descricao = target.getAttribute('data-descricao') || '';
+                this.copiarParaAreaTransferencia(codigo, descricao);
+            },
+            'vincular-habilidade': (e, target) => {
+                const index = parseInt(target.getAttribute('data-index'), 10);
+                const item = this._itensAtuais[index];
+                if (item) this.executarSelecao(item, target);
+            }
+        }, 'click');
+
+        const unbindChange = EventDelegator.bind(container, {
+            'mudar-disciplina': (e, target) => this.onDisciplinaChange(target.value),
+            'mudar-ano': (e, target) => this.onAnoChange(target.value),
+            'mudar-bimestre': (e, target) => this.onBimestreChange(target.value)
+        }, 'change');
+
+        const unbindInput = EventDelegator.bind(container, {
+            'buscar-habilidades': (e, target) => this.onBuscaInput(target.value)
+        }, 'input');
+
+        this._cleanupDelegators = () => {
+            if (typeof unbindClick === 'function') unbindClick();
+            if (typeof unbindChange === 'function') unbindChange();
+            if (typeof unbindInput === 'function') unbindInput();
+        };
     },
 
     onDisciplinaChange(novaDisciplina) {
@@ -423,6 +480,8 @@ export const bimestralizacaoView = {
             });
         });
 
+        this._itensAtuais = listaFinal;
+
         if (contadorEl) {
             contadorEl.innerHTML = `Mostrando <strong style="color: var(--color-slate-800);">${listaFinal.length}</strong> habilidade(s) cadastrada(s)`;
         }
@@ -449,7 +508,7 @@ export const bimestralizacaoView = {
                     <p style="color: var(--color-slate-500); font-size: 0.875rem; max-width: 440px; margin-bottom: 1.5rem;">
                         Tente alterar os termos da busca ou selecionar outro bimestre / ano.
                     </p>
-                    <button type="button" onclick="bimestralizacaoView.limparFiltros()" class="btn-secondary interactive-element">
+                    <button type="button" data-action="limpar-filtros" class="btn-secondary interactive-element">
                         <i class="fas fa-undo"></i> <span>Limpar Busca</span>
                     </button>
                 </div>
@@ -457,7 +516,13 @@ export const bimestralizacaoView = {
             return;
         }
 
-        container.innerHTML = lista.map(item => {
+        const fragment = document.createDocumentFragment();
+        const wrapper = document.createElement('div');
+        wrapper.style.display = 'flex';
+        wrapper.style.flexDirection = 'column';
+        wrapper.style.gap = 'var(--spacing-5)';
+
+        wrapper.innerHTML = lista.map((item, index) => {
             const cor = item.cor || '#2563eb';
             const codigoSafe = window.escapeHTML(item.codigo);
             const descricaoSafe = window.escapeHTML(item.descricao);
@@ -480,11 +545,11 @@ export const bimestralizacaoView = {
             ` : '';
 
             let btnAcao = this.selecionarCallback ?
-                `<button type="button" onclick='bimestralizacaoView.executarSelecao(${JSON.stringify(item).replace(/'/g, "&#39;").replace(/"/g, "&quot;")}, this)' 
+                `<button type="button" data-action="vincular-habilidade" data-index="${index}" 
                          class="btn-primary" style="background-color: #059669; padding: 0.625rem 1.25rem; font-size: 0.8125rem; border-radius: var(--radius-lg); white-space: nowrap;">
                     <i class="fas fa-plus"></i> <span>Vincular</span>
                 </button>` :
-                `<button type="button" onclick="bimestralizacaoView.copiarParaAreaTransferencia('${codigoSafe}', '${descricaoSafe.replace(/'/g, "\\'")}')" 
+                `<button type="button" data-action="copiar-habilidade" data-codigo="${codigoSafe}" data-descricao="${descricaoSafe}" 
                          class="btn-icon interactive-element" 
                          style="width: 2.5rem; height: 2.5rem; border-radius: var(--radius-lg); background-color: var(--color-slate-50); border: 1px solid var(--color-slate-200); color: var(--color-slate-500);" 
                          title="Copiar código e descrição da habilidade">
@@ -544,6 +609,10 @@ export const bimestralizacaoView = {
                 </div>
             `;
         }).join('');
+
+        fragment.appendChild(wrapper);
+        container.innerHTML = '';
+        container.appendChild(fragment);
     },
 
     limparFiltros() {

@@ -10,6 +10,19 @@ export const bnccView = {
     estaCarregandoBanco: false,
     _cleanupDelegators: [],
 
+    destroy() {
+        if (Array.isArray(this._cleanupDelegators)) {
+            this._cleanupDelegators.forEach(cleanup => {
+                if (typeof cleanup === 'function') cleanup();
+            });
+            this._cleanupDelegators = [];
+        }
+    },
+
+    onLeave() {
+        this.destroy();
+    },
+
     async render(container, preNivel = null, preSerie = null, callbackExterno = null) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
@@ -18,8 +31,7 @@ export const bnccView = {
         this.filtrosVisiveisMobile = false;
 
         // Limpa ouvintes anteriores
-        this._cleanupDelegators.forEach(cleanup => cleanup());
-        this._cleanupDelegators = [];
+        this.destroy();
 
         const html = `
             <div class="view-shell fade-in">

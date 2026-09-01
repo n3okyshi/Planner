@@ -1,8 +1,7 @@
 
 import { model } from './model.js';
-import { firebaseService } from './firebase-service.js';
 import { Toast } from './components/toast.js';
-import { escapeHTML, renderMath, renderKatex } from './utils.js';
+import { escapeHTML, renderMath } from './utils.js';
 import { uiController } from './controllers/uiController.js';
 import { authController } from './controllers/authController.js';
 import { turmaController } from './controllers/turmaController.js';
@@ -64,6 +63,19 @@ const controllerCore = {
     navigate: async function (viewName) {
         const routeName = router.resolve(viewName);
         const target = routeName;
+
+        // 1. Verificação de Route Guard (Fail-Fast)
+        const guardCheck = await router.canActivate(target);
+        if (!guardCheck.canActivate) {
+            if (guardCheck.message) {
+                Toast.show(guardCheck.message, 'warning');
+            }
+            if (guardCheck.redirect && guardCheck.redirect !== target) {
+                return this.navigate(guardCheck.redirect);
+            }
+            return;
+        }
+
         if (!this.views[target]) this.bindViews();
 
         // Hook de Ciclo de Vida: Invoca destroy() ou onLeave() na view anterior para limpeza de timers/listeners
@@ -109,7 +121,7 @@ const controllerCore = {
                 if (window.innerWidth < 768) {
                     const sidebar = document.getElementById('app-sidebar');
                     if (sidebar && sidebar.classList.contains('mobile-open')) {
-                        uiController.toggleSidebar();
+                        uiController.toggleSidebar(false);
                     }
                 }
             } catch (e) {
@@ -123,11 +135,14 @@ const controllerCore = {
                         <p style="color: #64748b; font-size: 0.875rem; margin-bottom: 1.25rem;">
                             Não foi possível carregar a tela selecionada. Seus dados continuam salvos e seguros.
                         </p>
-                        <button onclick="controller.navigate('dashboard')" class="btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; margin: 0 auto;">
+                        <button type="button" data-action="nav-dashboard" class="btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; margin: 0 auto;">
                             <i class="fas fa-arrow-left"></i> <span>Voltar ao Painel</span>
                         </button>
                     </div>
                 `;
+                EventDelegator.bind(container, {
+                    'nav-dashboard': () => this.navigate('dashboard')
+                }, 'click');
             }
         });
     },
@@ -250,7 +265,7 @@ const controllerCore = {
                 `<li class="dropdown-item" data-value="${window.escapeHTML(key)}">${window.escapeHTML(valor.label)}</li>`
             ).join('');
             const html = `
-    <div style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4);">
+    <div id="modal-dia-evento-wrap" style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4);">
         <h3 style="font-size: 1.125rem; font-weight: 700;">Evento em ${data}</h3>
         
         <div>
@@ -271,10 +286,19 @@ const controllerCore = {
             <input type="text" id="evt-desc" class="form-input" placeholder="Ex: Dia da Consciência Negra">
         </div>
         
-        <button onclick="controller.saveDayEvent('${data}')" class="btn-primary" style="justify-content: center; padding: 0.875rem; margin-top: var(--spacing-4);">Salvar Evento</button>
+        <button type="button" data-action="salvar-evento-dia" data-data="${data}" class="btn-primary" style="justify-content: center; padding: 0.875rem; margin-top: var(--spacing-4);">Salvar Evento</button>
     </div>
 `;
             this.openModal('Editar Calendário', html);
+            const wrap = document.getElementById('modal-dia-evento-wrap');
+            if (wrap) {
+                EventDelegator.bind(wrap, {
+                    'salvar-evento-dia': (e, target) => {
+                        const dt = target.getAttribute('data-data');
+                        if (dt) this.saveDayEvent(dt);
+                    }
+                }, 'click');
+            }
         }
     },
     saveDayEvent(data) {

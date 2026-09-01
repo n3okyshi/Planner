@@ -2,7 +2,8 @@ import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { turmasView } from '../views/turmas.js';
 import { Toast } from '../components/toast.js';
-import { firebaseService } from '../firebase-service.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
+
 export const turmaController = {
     wizard: {
         step: 1,
@@ -180,7 +181,7 @@ export const turmaController = {
 
         model.saveLocal();
         if (model.persist && window.firebaseService) {
-            model.persist(() => firebaseService.saveTurma(model.currentUser.uid, novaTurma));
+            model.persist(() => window.firebaseService.saveTurma(model.currentUser.uid, novaTurma));
         }
         Toast.show("Turma criada com sucesso!", "success");
         controller.closeModal();
@@ -188,7 +189,7 @@ export const turmaController = {
     },
     openAddAlunoLote(turmaId) {
         const html = `
-            <div style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4);">
+            <div id="modal-aluno-lote-wrap" style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4);">
                 <div class="alert alert--info">
                     <div>
                         <p style="font-weight: 700; margin-bottom: 0.25rem;"><i class="fas fa-magic"></i> Importação Flexível de Estudantes</p>
@@ -212,12 +213,22 @@ export const turmaController = {
                     </label>
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: var(--spacing-3); padding-top: var(--spacing-4); border-top: 1px solid var(--color-slate-100); margin-top: var(--spacing-2);">
-                    <button onclick="controller.closeModal()" class="btn-secondary">Cancelar</button>
-                    <button onclick="turmaController.saveAlunoLote('${turmaId}')" class="btn-primary">Importar Lista</button>
+                    <button type="button" data-action="fechar-modal" class="btn-secondary">Cancelar</button>
+                    <button type="button" data-action="salvar-aluno-lote" data-turma-id="${turmaId}" class="btn-primary">Importar Lista</button>
                 </div>
             </div>
         `;
         controller.openModal('Importar Estudantes em Lote', html);
+        const wrap = document.getElementById('modal-aluno-lote-wrap');
+        if (wrap) {
+            EventDelegator.bind(wrap, {
+                'fechar-modal': () => controller.closeModal(),
+                'salvar-aluno-lote': (e, target) => {
+                    const tId = target.getAttribute('data-turma-id');
+                    if (tId) this.saveAlunoLote(tId);
+                }
+            }, 'click');
+        }
     },
     saveAlunoLote(turmaId) {
         const texto = document.getElementById('al-lista')?.value || '';
@@ -275,8 +286,8 @@ export const turmaController = {
             model.persist(() => firebaseService.saveTurma(model.currentUser.uid, turma));
         }
         controller.closeModal();
-        if (window.turmasView) {
-            window.turmasView.renderDetalhesTurma('view-container', turmaId);
+        if (turmasView) {
+            turmasView.renderDetalhesTurma('view-container', turmaId);
         }
         Toast.show(`${alunosParsed.length} estudantes importados com sucesso!`, "success");
     },
@@ -333,13 +344,24 @@ export const turmaController = {
                 </div>
 
                 <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
-                    <button type="button" onclick="window.controller.closeModal()" class="btn-secondary">Cancelar</button>
-                    <button type="button" onclick="turmaController.confirmarReplicacaoAvaliacao('${turmaOrigemId}')" class="btn-primary">
+                    <button type="button" data-action="fechar-modal" class="btn-secondary">Cancelar</button>
+                    <button type="button" data-action="confirmar-replicar-av" data-origem="${turmaOrigemId}" class="btn-primary">
                         <i class="fas fa-check mr-1"></i> Replicar Avaliação
                     </button>
                 </div>
             </div>
         `);
+
+        const modalReplicarAvWrap = document.getElementById('modal-replicar-av-wrap');
+        if (modalReplicarAvWrap) {
+            EventDelegator.bind(modalReplicarAvWrap, {
+                'fechar-modal': () => window.controller.closeModal(),
+                'confirmar-replicar-av': (e, target) => {
+                    const orig = target.getAttribute('data-origem');
+                    if (orig) this.confirmarReplicacaoAvaliacao(orig);
+                }
+            }, 'click');
+        }
     },
     confirmarReplicacaoAvaliacao(turmaOrigemId) {
         const avaliacaoId = document.getElementById('select-av-origem')?.value;
@@ -393,9 +415,9 @@ export const turmaController = {
                             </span>
                             <div style="display: flex; align-items: center; gap: 0.5rem;">
                                 <span style="font-size: 0.6875rem; color: var(--color-slate-400); font-weight: 600;">
-                                    <i class="far fa-calendar-alt mr-1"></i> ${dataFmt}
+                                     <i class="far fa-calendar-alt mr-1"></i> ${dataFmt}
                                 </span>
-                                <button onclick="turmaController.removerOcorrenciaDossie('${turmaId}', '${alunoId}', '${oc.id}')" style="background: none; border: none; color: var(--color-slate-300); cursor: pointer; padding: 0;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='var(--color-slate-300)'" title="Remover Ocorrência">
+                                <button type="button" data-action="remover-ocorrencia" data-turma-id="${turmaId}" data-aluno-id="${alunoId}" data-id="${oc.id}" style="background: none; border: none; color: var(--color-slate-300); cursor: pointer; padding: 0;" title="Remover Ocorrência">
                                     <i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>
                                 </button>
                             </div>
@@ -413,7 +435,7 @@ export const turmaController = {
         `;
 
         window.controller.openModal(`Dossiê Comportamental - ${aluno.nome}`, `
-            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; max-width: 680px; max-height: 80vh; overflow-y: auto;" class="custom-scrollbar">
+            <div id="modal-dossie-wrap" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.5rem; max-width: 680px; max-height: 80vh; overflow-y: auto;" class="custom-scrollbar">
                 
                 <!-- HEADER DO ESTUDANTE -->
                 <div style="display: flex; justify-content: space-between; align-items: center; background: linear-gradient(135deg, #1e293b, #0f172a); color: white; padding: 1rem 1.25rem; border-radius: var(--radius-xl);">
@@ -422,7 +444,7 @@ export const turmaController = {
                         <h3 style="font-size: 1.25rem; font-weight: 800; color: white; margin: 0.125rem 0 0 0;">${window.escapeHTML(aluno.nome)}</h3>
                         <p style="font-size: 0.75rem; color: #cbd5e1; margin-top: 0.125rem;">${window.escapeHTML(turma.nome)} • Chamada Nº ${aluno.chamada || '1'}</p>
                     </div>
-                    <button onclick="turmaController.gerarRelatorioConselhoClasse('${turmaId}', '${alunoId}')" class="btn-secondary" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: white; font-size: 0.75rem; padding: 0.5rem 0.875rem; border-radius: var(--radius-lg);" title="Gerar Relatório para Conselho de Classe">
+                    <button type="button" data-action="gerar-relatorio-conselho" data-turma-id="${turmaId}" data-aluno-id="${alunoId}" class="btn-secondary" style="background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25); color: white; font-size: 0.75rem; padding: 0.5rem 0.875rem; border-radius: var(--radius-lg);" title="Gerar Relatório para Conselho de Classe">
                         <i class="fas fa-file-signature mr-1"></i> Relatório Conselho
                     </button>
                 </div>
@@ -462,7 +484,7 @@ export const turmaController = {
                     </div>
 
                     <div style="display: flex; justify-content: flex-end;">
-                        <button type="button" onclick="turmaController.salvarOcorrenciaDossie('${turmaId}', '${alunoId}')" class="btn-primary" style="padding: 0.5rem 1.25rem; font-size: 0.8125rem;">
+                        <button type="button" data-action="salvar-dossie" data-turma-id="${turmaId}" data-aluno-id="${alunoId}" class="btn-primary" style="padding: 0.5rem 1.25rem; font-size: 0.8125rem;">
                             <i class="fas fa-save mr-1"></i> Salvar no Dossiê
                         </button>
                     </div>
@@ -479,6 +501,28 @@ export const turmaController = {
                 </div>
             </div>
         `, 'lg');
+
+        const modalDossieWrap = document.getElementById('modal-dossie-wrap');
+        if (modalDossieWrap) {
+            EventDelegator.bind(modalDossieWrap, {
+                'gerar-relatorio-conselho': (e, target) => {
+                    const tId = target.getAttribute('data-turma-id');
+                    const aId = target.getAttribute('data-aluno-id');
+                    if (tId && aId) this.gerarRelatorioConselhoClasse(tId, aId);
+                },
+                'salvar-dossie': (e, target) => {
+                    const tId = target.getAttribute('data-turma-id');
+                    const aId = target.getAttribute('data-aluno-id');
+                    if (tId && aId) this.salvarOcorrenciaDossie(tId, aId);
+                },
+                'remover-ocorrencia': (e, target) => {
+                    const tId = target.getAttribute('data-turma-id');
+                    const aId = target.getAttribute('data-aluno-id');
+                    const ocId = target.getAttribute('data-id');
+                    if (tId && aId && ocId) this.removerOcorrenciaDossie(tId, aId, ocId);
+                }
+            }, 'click');
+        }
     },
     salvarOcorrenciaDossie(turmaId, alunoId) {
         const tipo = document.getElementById('dossie-tipo')?.value || 'outro';
@@ -543,7 +587,7 @@ export const turmaController = {
                 </style>
             </head>
             <body>
-                <button class="print-btn" onclick="window.print()">Imprimir Relatório</button>
+                <button type="button" class="print-btn" id="btn-imprimir-conselho">Imprimir Relatório</button>
                 <div class="header">
                     <div>
                         <h1>Dossiê Pedagógico & Conselho de Classe</h1>
@@ -569,6 +613,11 @@ export const turmaController = {
                         <p style="margin: 0; font-size: 0.875rem; color: #334155;">${window.escapeHTML(oc.descricao || '')}</p>
                     </div>
                 `).join('') : '<p>Nenhum apontamento comportamental registrado.</p>'}
+                <script>
+                    document.getElementById('btn-imprimir-conselho')?.addEventListener('click', function() {
+                        window.print();
+                    });
+                </script>
             </body>
             </html>
         `;
@@ -590,7 +639,7 @@ export const turmaController = {
 
         let headerHtml = `
             <div class="wizard-header">
-                <button type="button" onclick="turmaController.voltar()" class="btn-outline">
+                <button type="button" data-action="wizard-voltar" class="btn-outline">
                     <i class="fas fa-chevron-left"></i> ${step === 1 ? 'Cancelar' : 'Voltar'}
                 </button>
                 <div class="hidden md:flex items-center gap-2">
@@ -601,7 +650,7 @@ export const turmaController = {
         let bodyHtml = '';
         let footerHtml = `
             <div class="wizard-footer">
-                <button type="button" onclick="turmaController.avancar()" class="btn-primary" style="padding: 0.75rem 2rem;">
+                <button type="button" data-action="wizard-avancar" class="btn-primary" style="padding: 0.75rem 2rem;">
                     ${step === 4 ? 'Concluir e Salvar' : 'Continuar'} <i class="fas ${step === 4 ? 'fa-check' : 'fa-chevron-right'}"></i>
                 </button>
             </div>
@@ -616,6 +665,19 @@ export const turmaController = {
                 break;
         }
         container.innerHTML = headerHtml + `<div class="flex-1 animate-slide-in">` + bodyHtml + `</div>` + footerHtml;
+
+        EventDelegator.bind(container, {
+            'wizard-voltar': () => this.voltar(),
+            'wizard-avancar': () => this.avancar(),
+            'wizard-revisar': () => this.salvarEstadoPassoAtual(),
+            'wizard-remover-rascunho': (e, target) => {
+                const idx = parseInt(target.getAttribute('data-index'), 10);
+                if (!isNaN(idx)) this.removerAlunoRascunho(idx);
+            },
+            'wizard-voltar-texto': () => this.voltarParaTexto(),
+            'wizard-finalizar': () => this.finalizarWizard()
+        }, 'click');
+
         if (step === 4 && this.wizard.data.alunosRascunho.length > 0) {
             this.renderRevisaoAlunos();
         }
@@ -743,7 +805,7 @@ export const turmaController = {
                     <i class="far fa-clock" style="font-size: 2.25rem; color: var(--color-slate-300); margin-bottom: var(--spacing-4);"></i>
                     <h4 style="font-weight: 700; color: var(--color-slate-600); margin-bottom: var(--spacing-1);">Módulo unificado na Grade Horária</h4>
                     <p style="font-size: 0.875rem; color: var(--color-slate-500); margin-bottom: var(--spacing-6); max-width: 24rem; margin-left: auto; margin-right: auto;">Para evitar conflitos de horários entre turmas, toda a alocação de aulas agora é feita na aba central de <strong>Grade Horária</strong>.</p>
-                    <button type="button" onclick="turmaController.avancar()" class="btn-primary" style="margin: 0 auto;">
+                    <button type="button" data-action="wizard-avancar" class="btn-primary" style="margin: 0 auto;">
                         Pular esta etapa <i class="fas fa-arrow-right"></i>
                     </button>
                 </div>
@@ -765,7 +827,7 @@ export const turmaController = {
                     
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: var(--spacing-4); padding-top: var(--spacing-4); border-top: 1px solid var(--color-slate-100);">
                         <p style="font-size: 0.625rem; color: var(--color-slate-400); font-weight: 700; text-transform: uppercase;">Pode colar com número, "nº", travessão — a IA limpa.</p>
-                        <button onclick="turmaController.salvarEstadoPassoAtual()" class="btn-primary" style="background-color: #e0e7ff; color: #4338ca;">
+                        <button type="button" data-action="wizard-revisar" class="btn-primary" style="background-color: #e0e7ff; color: #4338ca;">
                             <i class="fas fa-magic"></i> Revisar Lista
                         </button>
                     </div>
@@ -791,7 +853,7 @@ export const turmaController = {
                     <span style="font-size: 0.625rem; font-weight: 900; color: var(--color-slate-300); width: 1rem; text-align: right;">${i + 1}</span>
                     <span style="font-size: 0.875rem; font-weight: 700; color: var(--color-slate-700); text-transform: uppercase;">${window.escapeHTML(nome)}</span>
                 </div>
-                <button onclick="turmaController.removerAlunoRascunho(${i})" class="btn-icon" style="color: #ef4444; background-color: #fef2f2;">
+                <button type="button" data-action="wizard-remover-rascunho" data-index="${i}" class="btn-icon" style="color: #ef4444; background-color: #fef2f2;">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
@@ -805,10 +867,10 @@ export const turmaController = {
                 ${itensHtml}
             </div>
             <div class="wizard-footer">
-                <button type="button" onclick="turmaController.voltarParaTexto()" class="btn-outline">
+                <button type="button" data-action="wizard-voltar-texto" class="btn-outline">
                     <i class="fas fa-arrow-left"></i> Voltar e colar de novo
                 </button>
-                <button type="button" onclick="turmaController.finalizarWizard()" class="btn-primary" style="padding: 0.75rem 2rem;">
+                <button type="button" data-action="wizard-finalizar" class="btn-primary" style="padding: 0.75rem 2rem;">
                     Criar turma com ${d.alunosRascunho.length} alunos
                 </button>
             </div>
@@ -836,7 +898,7 @@ export const turmaController = {
         const matricula = (aluno && aluno.matricula) ? aluno.matricula : '';
         const status = (aluno && aluno.status) ? aluno.status : 'cursando';
         const html = `
-            <div style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4);">
+            <div id="modal-novo-aluno-wrap" style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4);">
                 <div>
                     <label class="form-label">Nome do Estudante *</label>
                     <input type="text" id="al-nome" class="form-input" placeholder="Nome completo..." value="${window.escapeHTML(nome)}">
@@ -860,14 +922,25 @@ export const turmaController = {
                     </select>
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: var(--spacing-3); padding-top: var(--spacing-4);">
-                    <button onclick="controller.closeModal()" class="btn-secondary">Cancelar</button>
-                    <button onclick="controller.saveAluno('${turmaId}', ${isEdit ? `'${aluno.id}'` : 'null'})" class="btn-primary">
+                    <button type="button" data-action="fechar-modal" class="btn-secondary">Cancelar</button>
+                    <button type="button" data-action="salvar-aluno" data-turma-id="${turmaId}" data-aluno-id="${isEdit ? aluno.id : ''}" class="btn-primary">
                         ${isEdit ? 'Salvar Alterações' : 'Adicionar Estudante'}
                     </button>
                 </div>
             </div>
         `;
         controller.openModal(isEdit ? 'Editar Estudante' : 'Novo Estudante', html);
+        const modalAlunoWrap = document.getElementById('modal-novo-aluno-wrap');
+        if (modalAlunoWrap) {
+            EventDelegator.bind(modalAlunoWrap, {
+                'fechar-modal': () => controller.closeModal(),
+                'salvar-aluno': (e, target) => {
+                    const tId = target.getAttribute('data-turma-id');
+                    const aId = target.getAttribute('data-aluno-id');
+                    this.saveAluno(tId, aId || null);
+                }
+            }, 'click');
+        }
     },
     saveAluno(turmaId, alunoId = null) {
         const nome = document.getElementById('al-nome').value.trim();
@@ -876,7 +949,7 @@ export const turmaController = {
         const status = document.getElementById('al-status').value;
         if (!nome) return Toast.show("O nome do aluno é obrigatório.", "error");
         const turma = model.state.turmas.find(t => String(t.id) === String(turmaId));
-        if (alunoId && alunoId !== 'null') {
+        if (alunoId && alunoId !== 'null' && alunoId !== '') {
             const aluno = turma.alunos.find(a => String(a.id) === String(alunoId));
             if (aluno) {
                 aluno.nome = nome;
@@ -885,8 +958,8 @@ export const turmaController = {
                 aluno.status = status;
 
                 model.saveLocal();
-                if (model.persist && window.firebaseService) {
-                    model.persist(() => firebaseService.saveAluno(model.currentUser.uid, turmaId, aluno));
+                if (model.saveTurma) {
+                    model.saveTurma(turma);
                 }
                 Toast.show("Dados do estudante atualizados!", "success");
             }
@@ -904,87 +977,13 @@ export const turmaController = {
             turma.alunos.push(novoAluno);
             model.saveLocal();
 
-            if (model.persist && window.firebaseService) {
-                model.persist(() => firebaseService.saveAluno(model.currentUser.uid, turmaId, novoAluno));
+            if (model.saveTurma) {
+                model.saveTurma(turma);
             }
             Toast.show("Estudante adicionado!", "success");
         }
         controller.closeModal();
         controller.views['turmas'].renderDetalhesTurma('view-container', turmaId);
-    },
-    openAddAlunoLote(turmaId) {
-        const html = `
-            <div style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4);">
-                <div class="alert alert--info">
-                    <div>
-                        <p style="font-weight: 700; margin-bottom: 0.25rem;"><i class="fas fa-magic"></i> Importação Inteligente</p>
-                        <p>Cole a lista (um nome por linha). O sistema limpará marcações como "1." ou "01 -" e <strong>gerará automaticamente o Número da Chamada</strong>.</p>
-                    </div>
-                </div>
-                
-                <div>
-                    <label class="form-label">Lista de Estudantes</label>
-                    <textarea id="al-lista" rows="10" class="form-input" style="font-family: monospace; resize: vertical;" placeholder="João da Silva\nMaria Oliveira\nPedro Santos..."></textarea>
-                </div>
-                
-                <div style="display: flex; align-items: center; gap: var(--spacing-3); padding: var(--spacing-3); background-color: var(--color-slate-50); border-radius: var(--radius-xl); border: 1px solid var(--color-slate-100);">
-                    <input type="checkbox" id="al-alfabetica" checked style="width: 1.25rem; height: 1.25rem; cursor: pointer;">
-                    <label for="al-alfabetica" style="font-size: 0.875rem; font-weight: 700; color: var(--color-slate-600); cursor: pointer; user-select: none;">
-                        Ordenar em ordem alfabética antes de importar
-                    </label>
-                </div>
-                <div style="display: flex; justify-content: flex-end; gap: var(--spacing-3); padding-top: var(--spacing-4); border-top: 1px solid var(--color-slate-100); margin-top: var(--spacing-2);">
-                    <button onclick="controller.closeModal()" class="btn-secondary">Cancelar</button>
-                    <button onclick="controller.saveAlunoLote('${turmaId}')" class="btn-primary">Importar Lista</button>
-                </div>
-            </div>
-        `;
-        controller.openModal('Importar Estudantes em Lote', html);
-    },
-    saveAlunoLote(turmaId) {
-        const texto = document.getElementById('al-lista').value;
-        const inputOrdenar = document.getElementById('al-alfabetica');
-        const ordenar = inputOrdenar ? inputOrdenar.checked : false;
-
-        let nomes = texto.split('\n')
-            .map(n => n.trim())
-            .map(n => n.replace(/^(\d+[\.\-\)\]]\s*)/, ''))
-            .filter(n => n !== "");
-
-        if (nomes.length === 0) return Toast.show("A lista informada está vazia.", "warning");
-        if (ordenar) {
-            nomes.sort((a, b) => a.localeCompare(b));
-        }
-        const turma = model.state.turmas.find(t => String(t.id) === String(turmaId));
-        if (!turma) return;
-        let ultimoNumeroChamada = 0;
-        turma.alunos.forEach(a => {
-            const num = parseInt(a.chamada);
-            if (!isNaN(num) && num > ultimoNumeroChamada) {
-                ultimoNumeroChamada = num;
-            }
-        });
-        nomes.forEach((nome, index) => {
-            const numChamada = String(ultimoNumeroChamada + index + 1).padStart(2, '0');
-
-            const novoAluno = {
-                id: 'aluno_' + Date.now().toString(36) + '_' + index,
-                nome: nome,
-                chamada: numChamada,
-                matricula: '',
-                status: 'cursando',
-                notas: {},
-                frequencia: {}
-            };
-            turma.alunos.push(novoAluno);
-        });
-        model.saveLocal();
-        if (model.persist && window.firebaseService) {
-            model.persist(() => firebaseService.saveTurma(model.currentUser.uid, turma));
-        }
-        controller.closeModal();
-        controller.views['turmas'].renderDetalhesTurma('view-container', turmaId);
-        Toast.show(`${nomes.length} estudantes importados com sucesso!`, "success");
     },
     deleteAluno(turmaId, alunoId) {
         if (confirm("Deseja remover este estudante? As notas e frequência serão perdidas.")) {
@@ -1013,7 +1012,7 @@ export const turmaController = {
         const tipoConfig = model.state.userConfig.periodType || 'bimestre';
         const numPeriodos = tipoConfig === 'bimestre' ? 4 : tipoConfig === 'trimestre' ? 3 : 2;
         const html = `
-            <div style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4); animation: slideUp 0.3s ease forwards;">
+            <div id="modal-add-avaliacao-wrap" style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4); animation: slideUp 0.3s ease forwards;">
                 <div>
                     <label class="form-label">Nome da Avaliação</label>
                     <input type="text" id="av-nome" class="form-input" placeholder="Ex: Prova Mensal, Simulado...">
@@ -1040,12 +1039,22 @@ export const turmaController = {
                     </p>
                 </div>
                 <div style="display: flex; justify-content: flex-end; gap: var(--spacing-3); padding-top: var(--spacing-4);">
-                    <button onclick="controller.closeModal()" class="btn-secondary">Cancelar</button>
-                    <button onclick="controller.saveAvaliacao('${turmaId}')" class="btn-primary">Salvar Avaliação</button>
+                    <button type="button" data-action="fechar-modal" class="btn-secondary">Cancelar</button>
+                    <button type="button" data-action="salvar-avaliacao" data-turma-id="${turmaId}" class="btn-primary">Salvar Avaliação</button>
                 </div>
             </div>
         `;
         controller.openModal('Nova Avaliação', html);
+        const modalAvWrap = document.getElementById('modal-add-avaliacao-wrap');
+        if (modalAvWrap) {
+            EventDelegator.bind(modalAvWrap, {
+                'fechar-modal': () => controller.closeModal(),
+                'salvar-avaliacao': (e, target) => {
+                    const tId = target.getAttribute('data-turma-id');
+                    if (tId) this.saveAvaliacao(tId);
+                }
+            }, 'click');
+        }
     },
     saveAvaliacao(turmaId) {
         const nome = document.getElementById('av-nome').value;
@@ -1077,7 +1086,7 @@ export const turmaController = {
         const aluno = turma.alunos.find(a => a.id === alunoId);
         if (!aluno) return;
 
-        const avaliacoesFiltradas = (turma.avaliacoes || []).filter(av => Number(av.periodo || 1) === window.turmasView.periodoAtivo);
+        const avaliacoesFiltradas = (turma.avaliacoes || []).filter(av => Number(av.periodo || 1) === (turmasView?.periodoAtivo || 1));
         const somaPeriodo = avaliacoesFiltradas.reduce((acc, av) => acc + (Number(aluno.notas?.[av.id]) || 0), 0);
 
         const somaElement = document.getElementById(`soma-${alunoId}`);
@@ -1089,9 +1098,9 @@ export const turmaController = {
                 somaElement.classList.remove('bg-emerald-100', 'text-emerald-700', 'scale-110');
             }, 300);
         }
-        if (window.turmasView) {
-            const statsPeriodo = window.turmasView._calcularEstatisticas(turma, avaliacoesFiltradas);
-            const gradientPeriodo = window.turmasView._gerarGradientDonut(statsPeriodo);
+        if (turmasView) {
+            const statsPeriodo = turmasView._calcularEstatisticas(turma, avaliacoesFiltradas);
+            const gradientPeriodo = turmasView._gerarGradientDonut(statsPeriodo);
 
             const rosca = document.getElementById('grafico-rosca');
             const mediaTexto = document.getElementById('media-rosca');
@@ -1102,10 +1111,10 @@ export const turmaController = {
                 rosca.style.background = bg;
             }
             if (mediaTexto) mediaTexto.innerText = statsPeriodo.mediaGeral;
-            if (legenda) legenda.innerHTML = window.turmasView._renderLegenda(statsPeriodo);
+            if (legenda) legenda.innerHTML = turmasView._renderLegenda(statsPeriodo);
 
-            const statsGeral = window.turmasView._calcularEstatisticas(turma, turma.avaliacoes || []);
-            const gradientGeral = window.turmasView._gerarGradientDonut(statsGeral);
+            const statsGeral = turmasView._calcularEstatisticas(turma, turma.avaliacoes || []);
+            const gradientGeral = turmasView._gerarGradientDonut(statsGeral);
             const roscaGeral = document.getElementById('grafico-rosca-geral');
             const mediaTextoGeral = document.getElementById('media-rosca-geral');
             const legendaGeral = document.getElementById('legenda-rosca-geral');
@@ -1115,7 +1124,7 @@ export const turmaController = {
                 roscaGeral.style.background = bgGeral;
             }
             if (mediaTextoGeral) mediaTextoGeral.innerText = statsGeral.mediaGeral;
-            if (legendaGeral) legendaGeral.innerHTML = window.turmasView._renderLegenda(statsGeral);
+            if (legendaGeral) legendaGeral.innerHTML = turmasView._renderLegenda(statsGeral);
         }
     }
 };

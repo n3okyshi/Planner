@@ -14,7 +14,7 @@ export class ModalComponent {
      * @param {string|HTMLElement} options.content - Conteúdo HTML ou nó DOM do corpo
      * @param {string} [options.icon] - Ícone FontAwesome opcional no cabeçalho
      * @param {string} [options.maxWidth='600px'] - Largura máxima do modal (ex: '500px', '800px')
-     * @param {Array<Object>} [options.actions] - Botões de ação [{ label, class, onClick }]
+     * @param {Array<Object>} [options.actions] - Botões de ação [{ label, class, handler, onClick }]
      * @param {Function} [options.onClose] - Callback ao fechar
      */
     constructor(options = {}) {
@@ -122,11 +122,12 @@ export class ModalComponent {
 
         // Corpo
         const body = document.createElement('div');
+        body.className = 'modal-body custom-scrollbar';
         body.style.cssText = `
             padding: 1.5rem;
             overflow-y: auto;
             flex: 1;
-            font-size: 0.875rem;
+            font-size: 0.9375rem;
             color: var(--color-slate-700, #334155);
             line-height: 1.5;
         `;
@@ -172,8 +173,9 @@ export class ModalComponent {
                     cursor: pointer;
                 `;
                 handlersMap[actionKey] = (e) => {
-                    if (typeof action.onClick === 'function') {
-                        action.onClick(e, this);
+                    const fn = action.handler || action.onClick;
+                    if (typeof fn === 'function') {
+                        fn(e, this);
                     } else {
                         this.close();
                     }
@@ -189,11 +191,11 @@ export class ModalComponent {
         this._cleanupDelegators = EventDelegator.bind(backdrop, handlersMap, 'click');
         
         // Fechar ao clicar no backdrop
-        backdrop.onclick = (e) => {
+        backdrop.addEventListener('click', (e) => {
             if (e.target === backdrop) {
                 this.close();
             }
-        };
+        });
 
         this.element = backdrop;
         return backdrop;

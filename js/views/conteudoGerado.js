@@ -1,7 +1,7 @@
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
-import { renderKatex, formatarTextoComLatex, sanitizeComLatex, alternarModoEdicaoPreview } from '../utils.js';
+import { renderKatex } from '../utils.js';
 import { EventDelegator } from '../utils/eventDelegator.js';
 import { tableHelper } from '../utils/tableHelper.js';
 import { imageHelper } from '../utils/imageHelper.js';
@@ -11,6 +11,17 @@ export const conteudoGeradoView = {
     materialIdAtual: null,
     modoVisualizacao: 'professor', // 'professor' (com gabarito) ou 'aluno' (sem gabarito)
     _cleanupDelegators: null,
+
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+    },
+
+    onLeave() {
+        this.destroy();
+    },
 
     setMaterial(id) {
         this.materialIdAtual = id;
@@ -25,10 +36,7 @@ export const conteudoGeradoView = {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
 
-        if (typeof this._cleanupDelegators === 'function') {
-            this._cleanupDelegators();
-            this._cleanupDelegators = null;
-        }
+        this.destroy();
 
         if (!this.materialIdAtual && model.state.materiaisGerados && model.state.materiaisGerados.length > 0) {
             this.materialIdAtual = model.state.materiaisGerados[model.state.materiaisGerados.length - 1].id;
@@ -1125,7 +1133,7 @@ export const conteudoGeradoView = {
                     <label class="form-label" style="font-weight: 800; color: #334155; margin-bottom: 0.5rem;">1. Versão do Documento</label>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
                         <label id="lbl-tipo-aluno" class="card interactive-element" style="padding: 0.75rem; border: 2px solid #3b82f6; background-color: #eff6ff; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;">
-                            <input type="radio" name="print-tipo" value="aluno" checked onchange="conteudoGeradoView.atualizarSelecaoPrintTipo(this.value)">
+                            <input type="radio" name="print-tipo" value="aluno" checked data-action="mudar-print-tipo">
                             <div>
                                 <strong style="font-size: 0.875rem; color: #1d4ed8; display: block;"><i class="fas fa-user-graduate"></i> Versão Aluno</strong>
                                 <span style="font-size: 0.6875rem; color: #64748b;">Sem respostas/gabarito.</span>
@@ -1133,7 +1141,7 @@ export const conteudoGeradoView = {
                         </label>
 
                         <label id="lbl-tipo-professor" class="card interactive-element" style="padding: 0.75rem; border: 2px solid #e2e8f0; background-color: #ffffff; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;">
-                            <input type="radio" name="print-tipo" value="professor" onchange="conteudoGeradoView.atualizarSelecaoPrintTipo(this.value)">
+                            <input type="radio" name="print-tipo" value="professor" data-action="mudar-print-tipo">
                             <div>
                                 <strong style="font-size: 0.875rem; color: #15803d; display: block;"><i class="fas fa-chalkboard-teacher"></i> Guia Professor</strong>
                                 <span style="font-size: 0.6875rem; color: #64748b;">Com gabarito comentado.</span>
@@ -1141,7 +1149,7 @@ export const conteudoGeradoView = {
                         </label>
 
                         <label id="lbl-tipo-acessivel" class="card interactive-element" style="padding: 0.75rem; border: 2px solid #e2e8f0; background-color: #ffffff; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;">
-                            <input type="radio" name="print-tipo" value="acessivel" onchange="conteudoGeradoView.atualizarSelecaoPrintTipo(this.value)">
+                            <input type="radio" name="print-tipo" value="acessivel" data-action="mudar-print-tipo">
                             <div>
                                 <strong style="font-size: 0.875rem; color: #c2410c; display: block;"><i class="fas fa-universal-access"></i> Acessível (AEE)</strong>
                                 <span style="font-size: 0.6875rem; color: #64748b;">Alto contraste e fonte ampliada.</span>
@@ -1208,22 +1216,37 @@ export const conteudoGeradoView = {
 
                 <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-top: 0.25rem; flex-wrap: wrap;">
                     <div style="display: flex; gap: 0.5rem;">
-                                         <button type="button" onclick="conteudoGeradoView.exportarParaWord('docx')" class="btn-secondary interactive-element" style="display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; border-color: #2563eb; color: #1e40af; background-color: #eff6ff;" title="Baixar documento nativo do Word (.docx) com equações OMML">
+                        <button type="button" data-action="exportar-word-docx" class="btn-secondary interactive-element" style="display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; border-color: #2563eb; color: #1e40af; background-color: #eff6ff;" title="Baixar documento nativo do Word (.docx) com equações OMML">
                             <i class="fas fa-file-word text-blue-600"></i> Word (.docx)
                         </button>
-                        <button type="button" onclick="conteudoGeradoView.exportarParaWord('doc')" class="btn-secondary interactive-element" style="display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; border-color: #cbd5e1; color: #475569;" title="Baixar documento compatível do Word (.doc)">
+                        <button type="button" data-action="exportar-word-doc" class="btn-secondary interactive-element" style="display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; border-color: #cbd5e1; color: #475569;" title="Baixar documento compatível do Word (.doc)">
                             <i class="fas fa-file-word text-slate-500"></i> (.doc)
                         </button>
                     </div>
                     <div style="display: flex; gap: 0.75rem;">
-                        <button type="button" onclick="controller.closeModal()" class="btn-secondary">Cancelar</button>
-                        <button type="button" onclick="conteudoGeradoView.dispararImpressaoCustomizada()" class="btn-primary interactive-element" style="background-color: #4f46e5; padding: 0.6rem 1.5rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.5rem;">
+                        <button type="button" data-action="fechar-modal-impressao" class="btn-secondary">Cancelar</button>
+                        <button type="button" data-action="disparar-impressao-customizada" class="btn-primary interactive-element" style="background-color: #4f46e5; padding: 0.6rem 1.5rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.5rem;">
                             <i class="fas fa-print"></i> Abrir Impressão / PDF
                         </button>
                     </div>
                 </div>
             </div>`;
         controller.openModal('Impressão & Exportação em PDF', html);
+
+        const modal = document.getElementById('global-modal');
+        if (modal) {
+            EventDelegator.bind(modal, {
+                'exportar-word-docx': () => this.exportarParaWord('docx'),
+                'exportar-word-doc': () => this.exportarParaWord('doc'),
+                'fechar-modal-impressao': () => controller.closeModal(),
+                'disparar-impressao-customizada': () => this.dispararImpressaoCustomizada()
+            }, 'click');
+            EventDelegator.bind(modal, {
+                'mudar-print-tipo': (e, target) => {
+                    this.atualizarSelecaoPrintTipo(target.value);
+                }
+            }, 'change');
+        }
     },
 
     exportarParaWord(formato = 'docx') {
@@ -1320,10 +1343,10 @@ export const conteudoGeradoView = {
                         <p style="font-size: 0.75rem; color: #64748b; margin: 0;">Visualização em tempo real da diagramação antes de enviar para impressão/PDF.</p>
                     </div>
                     <div style="display: flex; gap: 0.5rem;">
-                        <button type="button" onclick="conteudoGeradoView.gerarDocumentoImpressao(conteudoGeradoView.tempPreviaConfig)" class="btn-primary interactive-element" style="background-color: #4f46e5; font-size: 0.8125rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1.25rem;">
+                        <button type="button" data-action="confirmar-impressao-previa" class="btn-primary interactive-element" style="background-color: #4f46e5; font-size: 0.8125rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1.25rem;">
                             <i class="fas fa-print"></i> Imprimir / Gerar PDF
                         </button>
-                        <button type="button" onclick="conteudoGeradoView.abrirOpcoesImpressao()" class="btn-secondary" style="font-size: 0.8125rem; font-weight: 700;">
+                        <button type="button" data-action="ajustar-opcoes-impressao" class="btn-secondary" style="font-size: 0.8125rem; font-weight: 700;">
                             <i class="fas fa-sliders-h"></i> Ajustar Opções
                         </button>
                     </div>
@@ -1339,6 +1362,14 @@ export const conteudoGeradoView = {
 
         this.tempPreviaConfig = config;
         controller.openModal('Prévia de Impressão', modalHtml);
+
+        const modal = document.getElementById('global-modal');
+        if (modal) {
+            EventDelegator.bind(modal, {
+                'confirmar-impressao-previa': () => this.gerarDocumentoImpressao(this.tempPreviaConfig),
+                'ajustar-opcoes-impressao': () => this.abrirOpcoesImpressao()
+            }, 'click');
+        }
 
         setTimeout(() => {
             const iframe = document.getElementById('iframe-previa-impressao');
@@ -1693,7 +1724,7 @@ export const conteudoGeradoView = {
             </head>
             <body>
                 ${forPrint ? `
-                    <button onclick="window.close()" class="btn-voltar">
+                    <button type="button" id="btn-voltar-janela-cg" class="btn-voltar">
                         <i class="fas fa-arrow-left"></i> Voltar para o App
                     </button>
                 ` : ''}
@@ -1707,6 +1738,7 @@ export const conteudoGeradoView = {
                 </div>
 
                 <script>
+                    document.getElementById('btn-voltar-janela-cg')?.addEventListener('click', () => window.close());
                     let impresso = false;
                     function iniciarImpressao() {
                         if (typeof renderMathInElement === 'function') {
@@ -1714,9 +1746,7 @@ export const conteudoGeradoView = {
                                 renderMathInElement(document.body, {
                                     delimiters: [
                                         { left: '\\\\[', right: '\\\\]', display: true },
-                                        { left: '\\\\(', right: '\\\\)', display: false },
-                                        { left: '$$', right: '$$', display: true },
-                                        { left: '$', right: '$', display: false }
+                                        { left: '\\\\(', right: '\\\\)', display: false }
                                     ],
                                     throwOnError: false
                                 });
@@ -1729,10 +1759,10 @@ export const conteudoGeradoView = {
                             }
                         ` : ''}
                     }
-                    if (document.readyState === 'complete') {
-                        iniciarImpressao();
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', iniciarImpressao);
                     } else {
-                        window.addEventListener('load', iniciarImpressao);
+                        iniciarImpressao();
                     }
                 <\/script>
             </body>
@@ -1804,22 +1834,22 @@ export const conteudoGeradoView = {
                     <span id="score-label-${c.id}" style="font-size: 0.8125rem; font-weight: 900; color: var(--color-primary); background: var(--color-primary-light); padding: 0.125rem 0.5rem; border-radius: var(--radius-sm);">0.0 / ${c.max.toFixed(1)}</span>
                 </div>
                 <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem;" class="rubrica-btn-grid" data-crit="${c.id}">
-                    <button type="button" onclick="conteudoGeradoView.selecionarNivelRubrica('${c.id}', 0.25 * ${c.max}, this)" 
+                    <button type="button" data-action="selecionar-nivel-rubrica" data-crit="${c.id}" data-valor="${(0.25 * c.max).toFixed(2)}"
                             class="rubrica-quadrante-btn" style="padding: 0.625rem; border: 1.5px solid #fee2e2; background: #fff5f5; border-radius: var(--radius-lg); font-size: 0.75rem; text-align: left; cursor: pointer; transition: all 0.2s;">
                         <strong style="color: #dc2626; display: block; font-size: 0.6875rem; text-transform: uppercase;">Insuficiente</strong>
                         <span style="color: var(--color-slate-600); line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-top: 0.25rem;">${window.escapeHTML(c.insuficiente)}</span>
                     </button>
-                    <button type="button" onclick="conteudoGeradoView.selecionarNivelRubrica('${c.id}', 0.5 * ${c.max}, this)" 
+                    <button type="button" data-action="selecionar-nivel-rubrica" data-crit="${c.id}" data-valor="${(0.5 * c.max).toFixed(2)}"
                             class="rubrica-quadrante-btn" style="padding: 0.625rem; border: 1.5px solid #fef3c7; background: #fffdf5; border-radius: var(--radius-lg); font-size: 0.75rem; text-align: left; cursor: pointer; transition: all 0.2s;">
                         <strong style="color: #d97706; display: block; font-size: 0.6875rem; text-transform: uppercase;">Regular</strong>
                         <span style="color: var(--color-slate-600); line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-top: 0.25rem;">${window.escapeHTML(c.regular)}</span>
                     </button>
-                    <button type="button" onclick="conteudoGeradoView.selecionarNivelRubrica('${c.id}', 0.75 * ${c.max}, this)" 
+                    <button type="button" data-action="selecionar-nivel-rubrica" data-crit="${c.id}" data-valor="${(0.75 * c.max).toFixed(2)}"
                             class="rubrica-quadrante-btn" style="padding: 0.625rem; border: 1.5px solid #dbeafe; background: #f8faff; border-radius: var(--radius-lg); font-size: 0.75rem; text-align: left; cursor: pointer; transition: all 0.2s;">
                         <strong style="color: #2563eb; display: block; font-size: 0.6875rem; text-transform: uppercase;">Bom</strong>
                         <span style="color: var(--color-slate-600); line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-top: 0.25rem;">${window.escapeHTML(c.bom)}</span>
                     </button>
-                    <button type="button" onclick="conteudoGeradoView.selecionarNivelRubrica('${c.id}', 1.0 * ${c.max}, this)" 
+                    <button type="button" data-action="selecionar-nivel-rubrica" data-crit="${c.id}" data-valor="${(1.0 * c.max).toFixed(2)}"
                             class="rubrica-quadrante-btn" style="padding: 0.625rem; border: 1.5px solid #d1fae5; background: #f4fdf8; border-radius: var(--radius-lg); font-size: 0.75rem; text-align: left; cursor: pointer; transition: all 0.2s;">
                         <strong style="color: #059669; display: block; font-size: 0.6875rem; text-transform: uppercase;">Excelente</strong>
                         <span style="color: var(--color-slate-600); line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; margin-top: 0.25rem;">${window.escapeHTML(c.excelente)}</span>
@@ -1869,6 +1899,19 @@ export const conteudoGeradoView = {
                 </div>
             </div>
         `, 'xl');
+
+        const modal = document.getElementById('global-modal');
+        if (modal) {
+            this._cleanupDelegators = EventDelegator.bind(modal, {
+                'fechar-modal': () => controller.closeModal(),
+                'copiar-rubrica': () => this.copiarResultadoRubrica(),
+                'selecionar-nivel-rubrica': (e, target) => {
+                    const critId = target.getAttribute('data-crit');
+                    const valor = parseFloat(target.getAttribute('data-valor')) || 0;
+                    this.selecionarNivelRubrica(critId, valor, target);
+                }
+            }, 'click');
+        }
     },
 
     selecionarNivelRubrica(critId, valor, btnElement) {
@@ -1888,9 +1931,8 @@ export const conteudoGeradoView = {
         btnElement.style.transform = 'scale(1.02)';
 
         const labelScore = document.getElementById(`score-label-${critId}`);
+        const maxVal = (this._rubricaCriterios || []).find(c => c.id === critId)?.max || 2.5;
         if (labelScore) {
-            const crit = (this._rubricaCriterios || []).find(c => c.id === critId);
-            const maxVal = crit ? crit.max.toFixed(1) : '2.5';
             labelScore.innerText = `${valor.toFixed(1)} / ${maxVal}`;
         }
 
@@ -1911,6 +1953,19 @@ export const conteudoGeradoView = {
         navigator.clipboard.writeText(relatorio).then(() => {
             Toast.show("Parecer da rubrica copiado para a área de transferência!", "success");
         });
+    },
+
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+        this._rubricaNotas = null;
+        this._rubricaCriterios = null;
+    },
+
+    onLeave() {
+        this.destroy();
     }
 };
 

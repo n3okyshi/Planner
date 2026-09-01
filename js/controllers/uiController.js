@@ -74,7 +74,7 @@ export const uiController = {
                 <p class="confirm-dialog__text">${mensagem}</p>
                 <div class="confirm-dialog__actions">
                     <button type="button" data-action="close-modal" class="btn-secondary">Cancelar</button>
-                    <button id="btn-confirm-action" class="btn-danger">Confirmar</button>
+                    <button type="button" id="btn-confirm-action" class="btn-danger">Confirmar</button>
                 </div>
             </div>
         `;
@@ -82,10 +82,10 @@ export const uiController = {
         setTimeout(() => {
             const btn = document.getElementById('btn-confirm-action');
             if (btn) {
-                btn.onclick = () => {
+                btn.addEventListener('click', () => {
                     callbackConfirmacao();
                     this.closeModal();
-                };
+                });
                 btn.focus();
             }
         }, 50);
@@ -112,8 +112,18 @@ export const uiController = {
             if (headerIcon) headerIcon.className = willOpen ? 'fas fa-chevron-left' : 'fas fa-bars';
         } else {
             if (backdrop) backdrop.classList.remove('active');
-            sidebar.classList.toggle('collapsed');
-            main.classList.toggle('expanded-content');
+            if (forceState !== null) {
+                if (forceState) {
+                    sidebar.classList.remove('collapsed');
+                    main.classList.remove('expanded-content');
+                } else {
+                    sidebar.classList.add('collapsed');
+                    main.classList.add('expanded-content');
+                }
+            } else {
+                sidebar.classList.toggle('collapsed');
+                main.classList.toggle('expanded-content');
+            }
             const isCollapsed = sidebar.classList.contains('collapsed');
             if (icon) icon.className = isCollapsed ? 'fas fa-bars' : 'fas fa-chevron-left';
             if (headerIcon) headerIcon.className = isCollapsed ? 'fas fa-bars' : 'fas fa-chevron-left';
@@ -357,7 +367,7 @@ export const uiController = {
                 exitBtn = document.createElement('button');
                 exitBtn.className = 'zen-exit-btn';
                 exitBtn.innerHTML = '<i class="fas fa-compress"></i> Sair do Modo Apresentação';
-                exitBtn.onclick = () => uiController.toggleZenMode();
+                exitBtn.addEventListener('click', () => uiController.toggleZenMode());
                 document.body.appendChild(exitBtn);
             }
             if (document.documentElement.requestFullscreen) {
@@ -449,7 +459,7 @@ export const uiController = {
                         <h2 style="font-size: 1.25rem; font-weight: 800; color: var(--color-primary); margin: 0;">Ficha Individual de Desempenho & Frequência</h2>
                         <p style="font-size: 0.8125rem; color: var(--text-muted); margin: 0.25rem 0 0 0;">Dossiê Pedagógico do Estudante — Ano Letivo 2026</p>
                     </div>
-                    <button onclick="window.print()" class="btn-primary btn-print-hide" style="padding: 0.5rem 1rem; font-size: 0.8125rem;">
+                    <button type="button" data-action="imprimir-ficha-dossie" class="btn-primary btn-print-hide" style="padding: 0.5rem 1rem; font-size: 0.8125rem;">
                         <i class="fas fa-print"></i> Imprimir Ficha
                     </button>
                 </div>
@@ -567,6 +577,13 @@ export const uiController = {
         `;
 
         this.openModal('Dossiê do Estudante', modalHtml, 'large');
+
+        const modalEl = document.getElementById('global-modal');
+        if (modalEl) {
+            EventDelegator.bind(modalEl, {
+                'imprimir-ficha-dossie': () => window.print()
+            }, 'click');
+        }
     },
 
     setupCustomDropdown(dropdownId, onChangeCallback) {

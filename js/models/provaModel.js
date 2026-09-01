@@ -2,9 +2,8 @@
 
 import { firebaseService } from '../firebase-service.js';
 import { dataProxy } from '../services/dataProxy.js';
-import { viewRegistry } from '../services/viewRegistry.js';
 import { Toast } from '../components/toast.js';
-import { normalizeText, generateUUID, generateId, secureShuffle } from '../utils.js';
+import { generateId, secureShuffle } from '../utils.js';
 export const provaMethods = {
     async carregarQuestoesSistema() {
         try {
@@ -95,6 +94,9 @@ export const provaMethods = {
             this.state.questoes.push(questaoSalvar);
         }
         this.saveLocal();
+        if (typeof this.emit === 'function') {
+            this.emit('questoes:changed', { acao: 'salvar', questaoId: questaoSalvar.id });
+        }
     },
     async deleteQuestao(id) {
         const questao = this.state.questoes.find(q => String(q.id) === String(id));
@@ -116,6 +118,9 @@ export const provaMethods = {
         if (this.state.questoes) {
             this.state.questoes = this.state.questoes.filter(q => String(q.id) !== String(id));
             this.saveLocal();
+            if (typeof this.emit === 'function') {
+                this.emit('questoes:changed', { acao: 'excluir', questaoId: id });
+            }
             console.log(`🗑️ Questão ${id} removida.`);
         }
     },
@@ -129,9 +134,8 @@ export const provaMethods = {
                 if (Toast) Toast.show("Essa questão já existe na comunidade.", "warning");
                 questao.compartilhada = true;
                 this.saveLocal();
-                const provasView = viewRegistry.provas || viewRegistry['provas'];
-                if (provasView && provasView.render) {
-                    provasView.render('view-container');
+                if (typeof this.emit === 'function') {
+                    this.emit('questoes:changed', { acao: 'compartilhar', questaoId });
                 }
                 return;
             }
@@ -158,9 +162,8 @@ export const provaMethods = {
             questao.compartilhada = true;
             this.saveLocal();
             if (Toast) Toast.show("Compartilhado com sucesso!", "success");
-            const provasView = viewRegistry.provas || viewRegistry['provas'];
-            if (provasView && provasView.render) {
-                provasView.render('view-container');
+            if (typeof this.emit === 'function') {
+                this.emit('questoes:changed', { acao: 'compartilhar', questaoId });
             }
         } catch (error) {
             console.error("❌ Erro ao compartilhar:", error);
@@ -175,10 +178,9 @@ export const provaMethods = {
             if (questao) {
                 delete questao.compartilhada;
                 this.saveLocal();
-            if (Toast) Toast.show("Retirada da comunidade.", "info");
-                const provasView = viewRegistry.provas || viewRegistry['provas'];
-                if (provasView && provasView.render) {
-                    provasView.render('view-container');
+                if (Toast) Toast.show("Retirada da comunidade.", "info");
+                if (typeof this.emit === 'function') {
+                    this.emit('questoes:changed', { acao: 'remover_comunidade', questaoId });
                 }
             }
         } catch (error) {

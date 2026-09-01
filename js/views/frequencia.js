@@ -1,7 +1,17 @@
+// js/views/frequencia.js
+/**
+ * ==========================================================================
+ * CONTROLE DE FREQUÊNCIA E DIÁRIO DE CLASSE (FREQUENCIA VIEW)
+ * Padrão: Vanilla MVC, ES Modules, Event Delegation (data-action), DocumentFragment.
+ * ==========================================================================
+ */
+
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
 import { uiController } from '../controllers/uiController.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
+import { attendanceCalculatorService } from '../services/attendanceCalculatorService.js';
 
 export const frequenciaView = {
     currentTurmaId: null,
@@ -10,10 +20,16 @@ export const frequenciaView = {
     alunoIndex: 0,
     startX: 0,
     alunosChamada: [],
+    _cleanupDelegators: null,
 
     render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
 
         const turmas = model.state.turmas || [];
         if (!this.currentTurmaId && turmas.length > 0) {
@@ -56,38 +72,38 @@ export const frequenciaView = {
                     </div>
 
                     <div style="display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap;">
-                        <button type="button" onclick="frequenciaView.abrirModalConteudoMinistrado()" 
+                        <button type="button" data-action="conteudo-ministrado" 
                                 class="btn-secondary" style="white-space: nowrap; flex-shrink: 0;"
                                 title="Registrar Conteúdo Lecionado e Habilidade BNCC da Aula">
                             <i class="fas fa-pen-nib" style="color: var(--color-primary);"></i> <span>Conteúdo Ministrado</span>
                         </button>
 
-                        <button type="button" onclick="frequenciaView.abrirModalImprimirChamada()" 
+                        <button type="button" data-action="imprimir-chamada-btn" 
                                 class="btn-secondary" style="white-space: nowrap; flex-shrink: 0;"
                                 title="Imprimir Folha de Chamada Mensal">
                             <i class="fas fa-print"></i> <span>Imprimir Chamada</span>
                         </button>
 
-                        <button type="button" onclick="frequenciaView.iniciarChamada()" 
+                        <button type="button" data-action="iniciar-chamada-btn" 
                                 class="btn-primary" style="background-color: #059669; border-color: #059669; white-space: nowrap; flex-shrink: 0;"
                                 title="Iniciar chamada rápida interativa">
                             <i class="fas fa-hand-pointer"></i> <span>Chamada Rápida (${diaSelecionadoStr})</span>
                         </button>
 
                         <div style="display: flex; align-items: center; background-color: var(--color-slate-50); border: 1px solid var(--color-slate-200); border-radius: var(--radius-xl); padding: 0.25rem; flex-shrink: 0;">
-                            <button type="button" onclick="frequenciaView.mudarMes(-1)" class="btn-icon" style="width: 2rem; height: 2rem;" title="Mês Anterior">
+                            <button type="button" data-action="mudar-mes-prev" class="btn-icon" style="width: 2rem; height: 2rem;" title="Mês Anterior">
                                 <i class="fas fa-chevron-left" style="font-size: 0.75rem;"></i>
                             </button>
                             <span style="width: 8.5rem; text-align: center; font-size: 0.875rem; font-weight: 800; color: var(--color-slate-700); text-transform: capitalize; user-select: none;">
                                 ${nomeMes} / ${ano}
                             </span>
-                            <button type="button" onclick="frequenciaView.mudarMes(1)" class="btn-icon" style="width: 2rem; height: 2rem;" title="Próximo Mês">
+                            <button type="button" data-action="mudar-mes-next" class="btn-icon" style="width: 2rem; height: 2rem;" title="Próximo Mês">
                                 <i class="fas fa-chevron-right" style="font-size: 0.75rem;"></i>
                             </button>
                         </div>
 
                         <div class="custom-dropdown" style="min-width: 200px; flex-shrink: 0;">
-                            <input type="hidden" id="freq-turma" onchange="frequenciaView.mudarTurma(this.value)" value="${this.currentTurmaId || ''}">
+                            <input type="hidden" id="freq-turma" data-action="mudar-turma-select" value="${this.currentTurmaId || ''}">
                             <button type="button" class="dropdown-button">
                                 <i class="fas fa-users" style="color: var(--color-slate-400); margin-right: var(--spacing-2);"></i>
                                 <span class="dropdown-label">${turmaSelecionada ? window.escapeHTML(turmaSelecionada.nome) : 'Nenhuma turma'}</span>
@@ -105,11 +121,11 @@ export const frequenciaView = {
                     </div>
                 </div>
 
-                <!-- ATTENDANCE TABLE CONTENT -->
+                <!-- MAIN TABLE VIEW / EMPTY STATE -->
                 ${turmaSelecionada ? this.renderTabela(turmaSelecionada, ano, mes, diasNoMes) : this.estadoVazio()}
             </div>
 
-            <!-- OVERLAY: CHAMADA RÁPIDA (fixed, fora do fluxo) -->
+            <!-- MODAL CHAMADA RÁPIDA SWIPE -->
             <div id="chamada-rapida-overlay"
                  style="display: none; position: fixed; inset: 0; z-index: 9999;
                         background-color: rgba(15, 23, 42, 0.95);
@@ -123,9 +139,8 @@ export const frequenciaView = {
                         <span style="font-size: 0.6875rem; font-weight: 900; text-transform: uppercase; letter-spacing: 0.15em; opacity: 0.6;">Chamada Rápida</span>
                         <div id="chamada-progresso" style="font-size: 0.75rem; color: rgba(255,255,255,0.5); margin-top: 0.125rem;"></div>
                     </div>
-                    <button type="button" onclick="frequenciaView.finalizarChamada()"
-                            style="width: 2.5rem; height: 2.5rem; border-radius: 50%; background-color: rgba(255,255,255,0.1); color: white; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: background-color 0.2s;"
-                            onmouseover="this.style.backgroundColor='rgba(255,255,255,0.2)'" onmouseout="this.style.backgroundColor='rgba(255,255,255,0.1)'">
+                    <button type="button" data-action="fechar-chamada-btn"
+                            style="width: 2.5rem; height: 2.5rem; border-radius: 50%; background-color: rgba(255,255,255,0.1); color: white; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: background-color 0.2s;">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -133,218 +148,225 @@ export const frequenciaView = {
                 <!-- Área do card dinâmico -->
                 <div id="chamada-card-container"
                      style="width: 100%; max-width: 420px; flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; position: relative; min-height: 0;">
-                    <!-- Card e botões injetados via JS -->
                 </div>
 
                 <!-- Botão finalizar -->
-                <button type="button" onclick="frequenciaView.finalizarChamada()"
+                <button type="button" data-action="fechar-chamada-btn"
                         style="margin-top: 1.5rem; color: rgba(255,255,255,0.4); font-size: 0.6875rem; font-weight: 800;
                                text-transform: uppercase; letter-spacing: 0.1em; padding: 0.625rem 1.5rem;
                                border: 1px solid rgba(255,255,255,0.15); border-radius: 999px;
-                               background: transparent; cursor: pointer; transition: all 0.2s;"
-                        onmouseover="this.style.color='rgba(255,255,255,0.8)'; this.style.borderColor='rgba(255,255,255,0.4)'; this.style.backgroundColor='rgba(255,255,255,0.08)';"
-                        onmouseout="this.style.color='rgba(255,255,255,0.4)'; this.style.borderColor='rgba(255,255,255,0.15)'; this.style.backgroundColor='transparent';">
+                               background: transparent; cursor: pointer; transition: all 0.2s;">
                     Finalizar Chamada
                 </button>
             </div>
         `;
 
         container.innerHTML = html;
+
+        const unbindClick = EventDelegator.bind(container, {
+            'conteudo-ministrado': () => this.abrirModalConteudoMinistrado(),
+            'imprimir-chamada-btn': () => this.abrirModalImprimirChamada(),
+            'iniciar-chamada-btn': () => this.iniciarChamada(),
+            'mudar-mes-prev': () => this.mudarMes(-1),
+            'mudar-mes-next': () => this.mudarMes(1),
+            'toggle-status-cell': (e, target) => {
+                const tId = target.getAttribute('data-turma');
+                const aId = target.getAttribute('data-aluno');
+                const dIso = target.getAttribute('data-iso');
+                if (tId && aId && dIso) this.toggleStatus(tId, aId, dIso, target);
+            },
+            'gerar-busca-ativa': (e, target) => {
+                const aId = target.getAttribute('data-aluno');
+                if (aId) this.gerarFichaBuscaAtiva(aId);
+            },
+            'fechar-chamada-btn': () => this.finalizarChamada(),
+            'registrar-swipe-falta': (e, target) => {
+                const aId = target.getAttribute('data-aluno');
+                if (aId) this.registrarFrequenciaSwipe(aId, 'F');
+            },
+            'registrar-swipe-presenca': (e, target) => {
+                const aId = target.getAttribute('data-aluno');
+                if (aId) this.registrarFrequenciaSwipe(aId, 'P');
+            },
+            'navigate-turmas': () => controller.navigate('turmas')
+        }, 'click');
+
+        const unbindChange = EventDelegator.bind(container, {
+            'mudar-turma-select': (e, target) => {
+                this.mudarTurma(target.value);
+            }
+        }, 'change');
+
+        const scrollFreq = container.querySelector('#scroll-frequencia');
+        const headerDiasEl = container.querySelector('#header-dias');
+        let handleScroll = null;
+        if (scrollFreq && headerDiasEl) {
+            handleScroll = () => {
+                headerDiasEl.scrollLeft = scrollFreq.scrollLeft;
+            };
+            scrollFreq.addEventListener('scroll', handleScroll, { passive: true });
+        }
+
+        this._cleanupDelegators = () => {
+            if (typeof unbindClick === 'function') unbindClick();
+            if (typeof unbindChange === 'function') unbindChange();
+            if (handleScroll && scrollFreq) {
+                scrollFreq.removeEventListener('scroll', handleScroll);
+            }
+        };
+
         uiController.initAllDropdowns(container);
-        this.iniciarRedimensionadorColuna(container);
-        this.autoScrollParaHoje(ano, mes);
+        this.initResizerColunaAluno();
+    },
+
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+    },
+
+    onLeave() {
+        this.destroy();
+    },
+
+    mudarTurma(turmaId) {
+        if (turmaId) {
+            this.currentTurmaId = turmaId;
+            this.render('view-container');
+        }
+    },
+
+    mudarMes(delta) {
+        this.currentDate.setMonth(this.currentDate.getMonth() + delta);
+        this.render('view-container');
     },
 
     obterLarguraColunaAluno() {
         try {
-            const saved = localStorage.getItem('frequencia_coluna_aluno_width');
-            if (saved && saved.trim() !== '') return saved;
-        } catch (e) { }
-        return window.innerWidth < 768 ? '135px' : '240px';
+            const saved = localStorage.getItem('planner_pro_col_aluno_width');
+            return saved ? `${saved}px` : '240px';
+        } catch {
+            return '240px';
+        }
     },
 
-    iniciarRedimensionadorColuna(container) {
-        const resizer = container.querySelector('#resizer-col-aluno') || document.getElementById('resizer-col-aluno');
-        const tabelaContainer = container.querySelector('#tabela-frequencia-container') || document.getElementById('tabela-frequencia-container');
-        if (!resizer || !tabelaContainer) return;
+    initResizerColunaAluno() {
+        const resizer = document.getElementById('resizer-col-aluno');
+        const container = document.getElementById('tabela-frequencia-container');
+        if (!resizer || !container) return;
 
-        let isResizing = false;
         let startX = 0;
-        let startWidth = 0;
+        let startWidth = 240;
 
-        const onStart = (clientX) => {
-            isResizing = true;
-            startX = clientX;
-            const currentWidth = parseFloat(getComputedStyle(tabelaContainer).getPropertyValue('--col-aluno-width')) || 
-                (window.innerWidth < 768 ? 135 : 240);
-            startWidth = currentWidth;
-            resizer.classList.add('resizing');
-            document.body.style.cursor = 'col-resize';
-            document.body.style.userSelect = 'none';
+        const onMouseMove = (e) => {
+            const newWidth = Math.max(140, Math.min(450, startWidth + (e.clientX - startX)));
+            container.style.setProperty('--col-aluno-width', `${newWidth}px`);
         };
 
-        const onMove = (clientX) => {
-            if (!isResizing) return;
-            const deltaX = clientX - startX;
-            const newWidth = Math.min(380, Math.max(90, startWidth + deltaX));
-            requestAnimationFrame(() => {
-                tabelaContainer.style.setProperty('--col-aluno-width', `${newWidth}px`);
-            });
-        };
-
-        const onEnd = () => {
-            if (!isResizing) return;
-            isResizing = false;
-            resizer.classList.remove('resizing');
+        const onMouseUp = () => {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
             document.body.style.cursor = '';
             document.body.style.userSelect = '';
-            const finalWidth = getComputedStyle(tabelaContainer).getPropertyValue('--col-aluno-width');
+            const finalWidth = parseInt(container.style.getPropertyValue('--col-aluno-width'), 10);
             if (finalWidth) {
                 try {
-                    localStorage.setItem('frequencia_coluna_aluno_width', finalWidth.trim());
-                } catch (e) { }
+                    localStorage.setItem('planner_pro_col_aluno_width', String(finalWidth));
+                } catch { /* ignore */ }
             }
         };
 
-        // Eventos de Mouse
         resizer.addEventListener('mousedown', (e) => {
             e.preventDefault();
-            e.stopPropagation();
-            onStart(e.clientX);
-        });
-
-        window.addEventListener('mousemove', (e) => {
-            if (isResizing) onMove(e.clientX);
-        });
-
-        window.addEventListener('mouseup', () => {
-            if (isResizing) onEnd();
-        });
-
-        // Eventos de Touch
-        resizer.addEventListener('touchstart', (e) => {
-            if (e.touches && e.touches.length > 0) {
-                onStart(e.touches[0].clientX);
-            }
-        }, { passive: true });
-
-        window.addEventListener('touchmove', (e) => {
-            if (isResizing && e.touches && e.touches.length > 0) {
-                onMove(e.touches[0].clientX);
-            }
-        }, { passive: true });
-
-        window.addEventListener('touchend', () => {
-            if (isResizing) onEnd();
-        });
-
-        window.addEventListener('touchcancel', () => {
-            if (isResizing) onEnd();
+            startX = e.clientX;
+            const currentStyle = container.style.getPropertyValue('--col-aluno-width') || '240px';
+            startWidth = parseInt(currentStyle, 10) || 240;
+            document.body.style.cursor = 'col-resize';
+            document.body.style.userSelect = 'none';
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
         });
     },
 
-    autoScrollParaHoje(ano, mes) {
-        setTimeout(() => {
-            const hoje = new Date();
-            const isMesAtual = hoje.getMonth() === mes && hoje.getFullYear() === ano;
-            if (!isMesAtual) return;
-            const elHoje = document.getElementById('dia-hoje');
-            const scrollContainer = document.getElementById('scroll-frequencia');
-            if (elHoje && scrollContainer) {
-                const scrollPos = elHoje.offsetLeft - (scrollContainer.clientWidth / 2) + (elHoje.clientWidth / 2);
-                scrollContainer.scrollTo({ left: scrollPos, behavior: 'smooth' });
-            }
-        }, 300);
-    },
-
-    mudarTurma(id) {
-        this.currentTurmaId = id;
-        this.render('view-container');
-    },
-
-    mudarMes(delta) {
-        const d = new Date(this.currentDate);
-        d.setMonth(d.getMonth() + delta);
-        this.currentDate = d;
-        this.render('view-container');
-    },
+    // =========================================================================
+    // CHAMADA RÁPIDA (SWIPE STYLE)
+    // =========================================================================
 
     iniciarChamada() {
-        const turmas = model.state.turmas || [];
-        const turma = turmas.find(t => String(t.id) === String(this.currentTurmaId));
+        const turma = model.state.turmas.find(t => String(t.id) === String(this.currentTurmaId));
         if (!turma || !turma.alunos || turma.alunos.length === 0) {
-            return Toast.show("Não há alunos para realizar a chamada.", "warning");
+            return Toast.show('Não há alunos nesta turma para realizar a chamada.', 'warning');
         }
-        this.alunosChamada = window.ordenarEstudantes 
-            ? window.ordenarEstudantes(turma.alunos.filter(a => a.status !== 'transferido'), 'chamada_asc')
-            : [...turma.alunos]
-                .filter(a => a.status !== 'transferido')
-                .sort((a, b) => (a.nome || '').localeCompare((b.nome || ''), 'pt-BR', { sensitivity: 'base' }));
-        if (this.alunosChamada.length === 0) {
-            return Toast.show("Não há alunos ativos para a chamada nesta turma.", "warning");
+
+        const alunosAtivos = turma.alunos.filter(a => a.status !== 'transferido');
+        if (alunosAtivos.length === 0) {
+            return Toast.show('Todos os estudantes desta turma estão marcados como transferidos.', 'warning');
         }
-        this.chamadaAtiva = true;
+
+        this.alunosChamada = window.ordenarEstudantes
+            ? window.ordenarEstudantes(alunosAtivos, 'chamada_asc')
+            : [...alunosAtivos].sort((a, b) => (a.nome || '').localeCompare((b.nome || ''), 'pt-BR', { sensitivity: 'base' }));
+
         this.alunoIndex = 0;
+        this.chamadaAtiva = true;
+
         const overlay = document.getElementById('chamada-rapida-overlay');
         if (overlay) {
-            overlay.classList.remove('hidden');
             overlay.style.display = 'flex';
+            overlay.style.backgroundColor = 'rgba(15, 23, 42, 0.95)';
         }
+
         this.renderProximoAluno();
     },
 
     renderProximoAluno() {
         const container = document.getElementById('chamada-card-container');
+        const progressoEl = document.getElementById('chamada-progresso');
         if (!container) return;
-        const aluno = this.alunosChamada[this.alunoIndex];
-        if (!aluno || this.alunoIndex >= this.alunosChamada.length) {
-            this.finalizarChamada();
+
+        if (this.alunoIndex >= this.alunosChamada.length) {
+            container.innerHTML = `
+                <div class="card animate-enter" style="padding: 2.5rem; text-align: center; background: white; border-radius: var(--radius-2xl); width: 100%; box-shadow: var(--shadow-2xl);">
+                    <div style="width: 4.5rem; height: 4.5rem; border-radius: 50%; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 1.25rem;">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <h3 style="font-size: 1.5rem; font-weight: 900; color: #1e293b; margin-bottom: 0.5rem;">Chamada Concluída!</h3>
+                    <p style="color: #64748b; font-size: 0.875rem; margin-bottom: 2rem;">Todos os estudantes tiveram suas presenças registradas com sucesso.</p>
+                    <button type="button" data-action="fechar-chamada-btn" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.875rem; font-weight: 800; font-size: 1rem; background: #059669; border-color: #059669;">
+                        Fechar Chamada
+                    </button>
+                </div>
+            `;
+            if (progressoEl) progressoEl.textContent = '100% Concluído';
             return;
         }
 
+        const aluno = this.alunosChamada[this.alunoIndex];
+        const pct = Math.round((this.alunoIndex / this.alunosChamada.length) * 100);
+        if (progressoEl) progressoEl.textContent = `${pct}% concluído (${this.alunoIndex + 1} de ${this.alunosChamada.length})`;
 
-        // Atualiza barra de progresso
-        const progressEl = document.getElementById('chamada-progresso');
-        if (progressEl) {
-            progressEl.textContent = `${this.alunoIndex + 1} de ${this.alunosChamada.length} alunos`;
-        }
-
-        const inicial = window.escapeHTML(aluno.nome).charAt(0).toUpperCase();
-        const numChamadaText = aluno.chamada ? `Chamada Nº ${aluno.chamada}` : '';
-
-        // Cores do avatar ciclando por índice
-        const avatarPalettes = [
+        const inicial = (aluno.nome || '?').charAt(0).toUpperCase();
+        const palettes = [
             { bg: '#e0e7ff', color: '#4338ca' },
-            { bg: '#d1fae5', color: '#065f46' },
-            { bg: '#fce7f3', color: '#9d174d' },
-            { bg: '#fef3c7', color: '#92400e' },
-            { bg: '#ede9fe', color: '#5b21b6' },
-            { bg: '#fee2e2', color: '#991b1b' },
+            { bg: '#dcfce7', color: '#15803d' },
+            { bg: '#fef3c7', color: '#b45309' },
+            { bg: '#fce7f3', color: '#be185d' },
+            { bg: '#e0f2fe', color: '#0369a1' },
+            { bg: '#f3e8ff', color: '#7e22ce' }
         ];
-        const palette = avatarPalettes[this.alunoIndex % avatarPalettes.length];
+        const palette = palettes[this.alunoIndex % palettes.length];
+        const numChamadaText = aluno.chamada ? `Nº ${aluno.chamada}` : '';
 
         container.innerHTML = `
             <div id="chamada-card"
-                 style="width: 100%; max-width: 360px; aspect-ratio: 3/4; max-height: 480px;
-                        background: linear-gradient(160deg, #ffffff 0%, #f8fafc 100%);
-                        border-radius: 2rem;
-                        box-shadow: 0 32px 64px -12px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.15);
-                        display: flex; flex-direction: column; align-items: center; justify-content: center;
-                        padding: 2rem 1.75rem 1.5rem;
-                        text-align: center; position: relative; overflow: hidden;
-                        user-select: none; cursor: grab; touch-action: none;
-                        transition: box-shadow 0.2s ease;">
-
-                <!-- Brilho decorativo no topo -->
-                <div style="position: absolute; top: 0; left: 0; right: 0; height: 6px;
-                            background: linear-gradient(90deg, ${palette.color}40, ${palette.color}, ${palette.color}40);
-                            border-radius: 2rem 2rem 0 0;"></div>
-
-                <!-- Conteúdo central (sem pointer-events para não interferir no drag) -->
-                <div style="flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; pointer-events: none; gap: 0.5rem;">
-
-                    <!-- Avatar com inicial -->
-                    <div style="width: 6rem; height: 6rem; border-radius: 50%;
+                 style="background: white; border-radius: var(--radius-2xl); padding: 2.25rem 1.75rem; width: 100%;
+                        display: flex; flex-direction: column; align-items: center; text-align: center;
+                        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5); cursor: grab; user-select: none;
+                        touch-action: none; position: relative; overflow: hidden; transition: transform 0.2s ease;">
+                
+                <div style="display: flex; flex-direction: column; align-items: center; gap: 0.75rem; width: 100%;">
+                    <div style="width: 5.5rem; height: 5.5rem; border-radius: 50%;
                                 background-color: ${palette.bg}; color: ${palette.color};
                                 display: flex; align-items: center; justify-content: center;
                                 font-size: 2.25rem; font-weight: 900;
@@ -354,13 +376,11 @@ export const frequenciaView = {
                         ${inicial}
                     </div>
 
-                    <!-- Contador -->
                     <p style="font-size: 0.625rem; font-weight: 900; color: #94a3b8;
                               text-transform: uppercase; letter-spacing: 0.15em;">
                         Aluno ${this.alunoIndex + 1} de ${this.alunosChamada.length}
                     </p>
 
-                    <!-- Nome do aluno -->
                     <h3 style="font-size: 1.375rem; font-weight: 900; color: #1e293b;
                                line-height: 1.2; max-width: 100%; word-break: break-word;">
                         ${window.escapeHTML(aluno.nome)}
@@ -375,7 +395,6 @@ export const frequenciaView = {
                     </span>` : ''}
                 </div>
 
-                <!-- Indicadores de swipe (canto inferior) -->
                 <div style="display: flex; gap: 0.75rem; width: 100%; margin-top: 1rem; pointer-events: none;">
                     <div style="flex: 1; border: 2px dashed #fca5a5; border-radius: 1rem; padding: 0.6rem 0.5rem;
                                 background-color: #fff5f5; display: flex; flex-direction: column;
@@ -394,22 +413,20 @@ export const frequenciaView = {
 
             <!-- Botões de ação manual -->
             <div style="display: flex; justify-content: center; gap: 2.5rem; margin-top: 2rem; width: 100%;">
-                <button onclick="frequenciaView.registrarFrequenciaSwipe('${aluno.id}', 'F')"
+                <button type="button" data-action="registrar-swipe-falta" data-aluno="${aluno.id}"
                         style="width: 5rem; height: 5rem; border-radius: 50%; background-color: #ef4444; color: white;
                                border: none; font-size: 1.625rem; display: flex; align-items: center; justify-content: center;
                                cursor: pointer; box-shadow: 0 12px 24px rgba(239,68,68,0.35);
                                transition: transform 0.15s ease, box-shadow 0.15s ease;"
-                        onmouseover="this.style.transform='scale(1.12)'; this.style.boxShadow='0 16px 32px rgba(239,68,68,0.45)';"
-                        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 12px 24px rgba(239,68,68,0.35)';">
+                        title="Registrar Falta">
                     <i class="fas fa-times"></i>
                 </button>
-                <button onclick="frequenciaView.registrarFrequenciaSwipe('${aluno.id}', 'P')"
+                <button type="button" data-action="registrar-swipe-presenca" data-aluno="${aluno.id}"
                         style="width: 5rem; height: 5rem; border-radius: 50%; background-color: #10b981; color: white;
                                border: none; font-size: 1.625rem; display: flex; align-items: center; justify-content: center;
                                cursor: pointer; box-shadow: 0 12px 24px rgba(16,185,129,0.35);
                                transition: transform 0.15s ease, box-shadow 0.15s ease;"
-                        onmouseover="this.style.transform='scale(1.12)'; this.style.boxShadow='0 16px 32px rgba(16,185,129,0.45)';"
-                        onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 12px 24px rgba(16,185,129,0.35)';">
+                        title="Registrar Presença">
                     <i class="fas fa-check"></i>
                 </button>
             </div>
@@ -450,42 +467,29 @@ export const frequenciaView = {
                 ? (e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientX : 0)
                 : e.clientX;
             const diffX = clientX - this.startX;
-            this.startX = 0;
 
-            if (diffX > 100) {
+            if (diffX > 90) {
                 this.registrarFrequenciaSwipe(alunoId, 'P');
-            } else if (diffX < -100) {
+            } else if (diffX < -90) {
                 this.registrarFrequenciaSwipe(alunoId, 'F');
             } else {
-                // Snap back
-                card.style.transition = 'all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-                card.style.transform = '';
-                overlay.style.backgroundColor = 'rgba(15, 23, 42, 0.95)';
+                card.style.transition = 'transform 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+                card.style.transform = 'none';
+                if (overlay) overlay.style.backgroundColor = 'rgba(15, 23, 42, 0.95)';
             }
+            this.startX = 0;
         };
 
-        // Touch
-        card.addEventListener('touchstart', handleStart, { passive: true });
-        card.addEventListener('touchmove', handleMove, { passive: true });
-        card.addEventListener('touchend', handleEnd);
-
-        // Mouse (attach move/up to window so drag works even outside card bounds)
         card.addEventListener('mousedown', handleStart);
-        const mouseMoveHandler = (e) => handleMove(e);
-        const mouseUpHandler = (e) => {
-            handleEnd(e);
-            window.removeEventListener('mousemove', mouseMoveHandler);
-            window.removeEventListener('mouseup', mouseUpHandler);
-        };
-        card.addEventListener('mousedown', () => {
-            window.addEventListener('mousemove', mouseMoveHandler);
-            window.addEventListener('mouseup', mouseUpHandler);
-        });
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', handleEnd);
+
+        card.addEventListener('touchstart', handleStart, { passive: true });
+        window.addEventListener('touchmove', handleMove, { passive: true });
+        window.addEventListener('touchend', handleEnd);
     },
 
     registrarFrequenciaSwipe(alunoId, status) {
-        const card = document.getElementById('chamada-card');
-        const overlay = document.getElementById('chamada-rapida-overlay');
         const ano = this.currentDate.getFullYear();
         const mesFmt = (this.currentDate.getMonth() + 1).toString().padStart(2, '0');
         const diaFmt = this.currentDate.getDate().toString().padStart(2, '0');
@@ -497,6 +501,8 @@ export const frequenciaView = {
             model.setFrequencia(this.currentTurmaId, alunoId, dataIso, status);
         }
 
+        const card = document.getElementById('chamada-card');
+        const overlay = document.getElementById('chamada-rapida-overlay');
         if (card) {
             const flyX = status === 'P' ? '120vw' : '-120vw';
             const flyRot = status === 'P' ? '45deg' : '-45deg';
@@ -565,7 +571,10 @@ export const frequenciaView = {
                 else if (isFimDeSemana) cellBg = 'background-color: rgba(248, 250, 252, 0.4);';
 
                 colunas += `
-                    <div onclick="frequenciaView.toggleStatus('${turma.id}', '${aluno.id}', '${dataIso}', this)"
+                    <div data-action="toggle-status-cell"
+                         data-turma="${turma.id}"
+                         data-aluno="${aluno.id}"
+                         data-iso="${dataIso}"
                          style="min-width: 40px; height: 3rem; border-right: 1px solid var(--color-slate-100); display: flex; align-items: center; justify-content: center; cursor: pointer; ${cellBg}"
                          title="${window.escapeHTML(aluno.nome)} - ${d}/${mes + 1}">
                          ${this.getIconeStatus(status)}
@@ -573,21 +582,16 @@ export const frequenciaView = {
                 `;
             }
 
-            // Cálculo de percentual de faltas para alerta legal LDB
-            const freqObj = aluno.frequencia || {};
-            let totalReg = 0;
-            let totalFaltas = 0;
-            Object.values(freqObj).forEach(val => {
-                if (val === 'P' || val === 'F' || val === 'J') totalReg++;
-                if (val === 'F') totalFaltas++;
-            });
-            const pctFaltas = totalReg > 0 ? Math.round((totalFaltas / totalReg) * 100) : 0;
+            // Cálculo puro de presença via attendanceCalculatorService
+            const totais = attendanceCalculatorService.calcularTotaisAluno(aluno.frequencia || {});
+            const totalReg = totais.totalRegistros;
+            const pctFaltas = totalReg > 0 ? Math.round((totais.faltas / totalReg) * 100) : 0;
 
             let badgeRisco = '';
             if (totalReg >= 5 && pctFaltas >= 25) {
                 alunosEmRiscoLDB++;
                 badgeRisco = `
-                    <button type="button" onclick="frequenciaView.gerarFichaBuscaAtiva('${aluno.id}')" 
+                    <button type="button" data-action="gerar-busca-ativa" data-aluno="${aluno.id}"
                             style="background-color: #fee2e2; color: #dc2626; border: 1px solid #fecaca; font-size: 0.625rem; font-weight: 900; padding: 0.15rem 0.375rem; border-radius: 0.375rem; margin-left: auto; display: inline-flex; align-items: center; gap: 0.25rem; flex-shrink: 0; cursor: pointer;" 
                             title="Clique para emitir Notificação do Conselho Tutelar (Busca Ativa)">
                         <i class="fas fa-file-export"></i> Busca Ativa (${pctFaltas}%)
@@ -656,7 +660,6 @@ export const frequenciaView = {
 
                 <!-- SCROLLABLE ROWS -->
                 <div id="scroll-frequencia" 
-                     onscroll="document.getElementById('header-dias').scrollLeft = this.scrollLeft"
                      class="custom-scrollbar"
                      style="overflow: auto; flex: 1; position: relative;">
                     <div style="min-width: fit-content;">
@@ -718,15 +721,15 @@ export const frequenciaView = {
 
     abrirModalImprimirChamada() {
         const html = `
-            <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+            <div id="modal-imprimir-chamada-wrap" style="display: flex; flex-direction: column; gap: 1.25rem;">
                 <p style="font-size: 0.9375rem; color: #475569; font-weight: 600;">Selecione o tipo de impressão da Folha de Chamada Mensal A4:</p>
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
-                    <div onclick="frequenciaView.gerarImpressaoMensal('branco')" class="card interactive-element" style="padding: 1.25rem; cursor: pointer; border: 2px solid var(--color-slate-200); text-align: center; background: #fff;">
+                    <div data-action="impressao-chamada-branco" class="card interactive-element" style="padding: 1.25rem; cursor: pointer; border: 2px solid var(--color-slate-200); text-align: center; background: #fff;">
                         <i class="fas fa-print" style="font-size: 2rem; color: #3b82f6; margin-bottom: 0.75rem;"></i>
                         <h4 style="font-size: 1rem; font-weight: 800; color: #1e293b; margin-bottom: 0.25rem;">Folha em Branco (Manual)</h4>
                         <p style="font-size: 0.8125rem; color: #64748b;">Para imprimir e realizar a chamada em sala com lápis/caneta.</p>
                     </div>
-                    <div onclick="frequenciaView.gerarImpressaoMensal('preenchido')" class="card interactive-element" style="padding: 1.25rem; cursor: pointer; border: 2px solid var(--color-slate-200); text-align: center; background: #fff;">
+                    <div data-action="impressao-chamada-preenchido" class="card interactive-element" style="padding: 1.25rem; cursor: pointer; border: 2px solid var(--color-slate-200); text-align: center; background: #fff;">
                         <i class="fas fa-file-invoice" style="font-size: 2rem; color: #059669; margin-bottom: 0.75rem;"></i>
                         <h4 style="font-size: 1rem; font-weight: 800; color: #1e293b; margin-bottom: 0.25rem;">Folha Preenchida (Sistema)</h4>
                         <p style="font-size: 0.8125rem; color: #64748b;">Imprime os registros de presença/falta já lançados neste mês.</p>
@@ -735,6 +738,14 @@ export const frequenciaView = {
             </div>
         `;
         controller.openModal('Imprimir Diário / Chamada Mensal', html, 'lg');
+
+        const modalWrap = document.getElementById('modal-imprimir-chamada-wrap');
+        if (modalWrap) {
+            EventDelegator.bind(modalWrap, {
+                'impressao-chamada-branco': () => this.gerarImpressaoMensal('branco'),
+                'impressao-chamada-preenchido': () => this.gerarImpressaoMensal('preenchido')
+            }, 'click');
+        }
     },
 
     gerarImpressaoMensal(modo) {
@@ -857,13 +868,11 @@ export const frequenciaView = {
         const anoLetivo = config.anoLetivo || new Date().getFullYear();
 
         const freqObj = aluno.frequencia || {};
-        let totalReg = 0, totalFaltas = 0, totalPresencas = 0, totalJustificadas = 0;
-        Object.values(freqObj).forEach(val => {
-            if (val === 'P' || val === 'F' || val === 'J') totalReg++;
-            if (val === 'P') totalPresencas++;
-            if (val === 'F') totalFaltas++;
-            if (val === 'J') totalJustificadas++;
-        });
+        const totais = attendanceCalculatorService.calcularTotaisAluno(freqObj);
+        const totalReg = totais.totalRegistros;
+        const totalFaltas = totais.faltas;
+        const totalPresencas = totais.presencas;
+        const totalJustificadas = totais.justificadas;
 
         const pctFaltas = totalReg > 0 ? Math.round((totalFaltas / totalReg) * 100) : 0;
         const pctFreq = totalReg > 0 ? Math.round(((totalReg - totalFaltas) / totalReg) * 100) : 100;
@@ -1000,7 +1009,7 @@ export const frequenciaView = {
                         <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); display: flex; align-items: center; gap: 0.5rem;">
                             <i class="fas fa-pen-nib" style="color: var(--color-primary);"></i> Registro de Conteúdo Ministrado
                         </h3>
-                        <button type="button" onclick="document.getElementById('modal-conteudo-aula').remove()" class="btn-icon" style="border: none; background: none; cursor: pointer; color: var(--color-slate-400);">
+                        <button type="button" data-action="fechar-modal-conteudo" class="btn-icon" style="border: none; background: none; cursor: pointer; color: var(--color-slate-400);">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -1009,7 +1018,7 @@ export const frequenciaView = {
                         Turma: <strong>${window.escapeHTML(turma.nome)}</strong>
                     </p>
 
-                    <form id="form-conteudo-aula" onsubmit="event.preventDefault(); frequenciaView.salvarConteudoMinistrado('${turma.id}');">
+                    <form id="form-conteudo-aula">
                         <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                                 <div>
@@ -1034,12 +1043,12 @@ export const frequenciaView = {
                         </div>
 
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <button type="button" onclick="frequenciaView.imprimirDiarioConteudoA4('${turma.id}')" class="btn-secondary" style="font-size: 0.75rem;">
+                            <button type="button" data-action="imprimir-diario-conteudo-btn" data-turma="${turma.id}" class="btn-secondary" style="font-size: 0.75rem;">
                                 <i class="fas fa-print"></i> Relatório A4 Diário
                             </button>
                             <div style="display: flex; gap: 0.75rem;">
-                                <button type="button" onclick="document.getElementById('modal-conteudo-aula').remove()" class="btn-secondary">Cancelar</button>
-                                <button type="submit" class="btn-primary">
+                                <button type="button" data-action="fechar-modal-conteudo" class="btn-secondary">Cancelar</button>
+                                <button type="button" data-action="salvar-conteudo-btn" data-turma="${turma.id}" class="btn-primary">
                                     <i class="fas fa-save"></i> Salvar Conteúdo
                                 </button>
                             </div>
@@ -1049,6 +1058,21 @@ export const frequenciaView = {
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        const modalEl = document.getElementById('modal-conteudo-aula');
+        if (modalEl) {
+            EventDelegator.bind(modalEl, {
+                'fechar-modal-conteudo': () => modalEl.remove(),
+                'salvar-conteudo-btn': (e, target) => {
+                    const tId = target.getAttribute('data-turma');
+                    if (tId) this.salvarConteudoMinistrado(tId);
+                },
+                'imprimir-diario-conteudo-btn': (e, target) => {
+                    const tId = target.getAttribute('data-turma');
+                    if (tId) this.imprimirDiarioConteudoA4(tId);
+                }
+            }, 'click');
+        }
     },
 
     salvarConteudoMinistrado(turmaId) {
@@ -1105,7 +1129,7 @@ export const frequenciaView = {
         const printWindow = window.open('', '_blank');
         if (!printWindow) return Toast.show("Permita pop-ups para visualizar a impressão.", "warning");
 
-        const linhasHtml = diario.map((d, i) => `
+        const linhasHtml = diario.map((d) => `
             <tr>
                 <td style="border: 1px solid #cbd5e1; padding: 6px; text-align: center;">${new Date(d.data + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
                 <td style="border: 1px solid #cbd5e1; padding: 6px; font-weight: 700;">${window.escapeHTML(d.conteudo)}</td>
@@ -1189,10 +1213,25 @@ export const frequenciaView = {
                 <p style="color: var(--color-slate-500, #64748b); font-size: 0.875rem; margin-bottom: 1.5rem; line-height: 1.5;">
                     Selecione uma turma no menu superior ou cadastre novas turmas para gerenciar a frequência e chamadas dos estudantes.
                 </p>
-                <button type="button" onclick="controller.navigate('turmas')" class="btn-primary interactive-element" style="padding: 0.625rem 1.5rem; font-weight: 700; background-color: #4f46e5; margin: 0 auto; display: inline-flex; align-items: center; gap: 0.5rem;">
+                <button type="button" data-action="navigate-turmas" class="btn-primary interactive-element" style="padding: 0.625rem 1.5rem; font-weight: 700; background-color: #4f46e5; margin: 0 auto; display: inline-flex; align-items: center; gap: 0.5rem;">
                     <i class="fas fa-chalkboard-teacher"></i> <span>Gerenciar Turmas</span>
                 </button>
             </div>
         `;
+    },
+
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+    },
+
+    onLeave() {
+        this.destroy();
     }
 };
+
+if (typeof window !== 'undefined') {
+    window.frequenciaView = frequenciaView;
+}

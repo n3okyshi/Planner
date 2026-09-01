@@ -1,7 +1,8 @@
-const CACHE_NAME = 'planner-pro-docente-v2.4';
+const CACHE_NAME = 'planner-pro-docente-v2.6';
 const ASSETS_TO_CACHE = [
     './',
     './index.html',
+    './aluno.html',
     './css/variables.css',
     './css/base.css',
     './css/layout.css',
@@ -23,8 +24,12 @@ const ASSETS_TO_CACHE = [
     './js/components/paginator.js',
     './js/components/filterBar.js',
     './js/components/card.js',
+    './js/components/editorToolbar.js',
     './js/utils/eventDelegator.js',
+    './js/utils/imageHelper.js',
+    './js/utils/tableHelper.js',
 
+    './js/models/apresentacaoModel.js',
     './js/models/planejamentoModel.js',
     './js/models/provaModel.js',
     './js/models/state.js',
@@ -33,14 +38,18 @@ const ASSETS_TO_CACHE = [
     './js/services/viewRegistry.js',
     './js/services/storageService.js',
     './js/services/syncService.js',
-    './js/services/turmaService.js',
-    './js/services/provaService.js',
-    './js/services/planejamentoService.js',
+    './js/services/dataProxy.js',
+    './js/services/attendanceCalculatorService.js',
+    './js/services/gradeCalculatorService.js',
+    './js/services/pptxParserService.js',
 
     './js/controllers/authController.js',
     './js/controllers/uiController.js',
     './js/controllers/turmaController.js',
     './js/controllers/planejamentoController.js',
+    './js/controllers/apresentacaoController.js',
+    './js/controllers/commandPaletteController.js',
+    './js/controllers/notificationController.js',
 
     './js/views/dashboard.js',
     './js/views/notasAnuais.js',
@@ -49,6 +58,7 @@ const ASSETS_TO_CACHE = [
     './js/views/biblioteca.js',
     './js/views/quizGestor.js',
     './js/views/quizPlayer.js',
+    './js/views/quizAluno.js',
     './js/views/conteudoGerado.js',
     './js/views/correcaoAutomatica.js',
     './js/views/simuladores.js',
@@ -67,14 +77,15 @@ const ASSETS_TO_CACHE = [
     './js/views/estatisticasProva.js',
     './js/views/frequencia.js',
     './js/views/settings.js',
+    './js/views/apresentacoes.js',
+    './js/views/apresentadorPlayer.js',
+    './js/views/coordenacao.js',
+    './js/views/pdi.js',
 
     'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
     'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css',
     'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js',
-    'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js',
-
-    './assets/data/manifest.json',
-    './assets/BimestralizacaoFormosa/bimestralizacao_formosa.json'
+    'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js'
 ];
 
 self.addEventListener('install', (event) => {

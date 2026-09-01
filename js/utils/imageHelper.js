@@ -14,6 +14,7 @@
 import { Toast } from '../components/toast.js';
 import { escapeHTML } from '../utils.js';
 import { ModalComponent } from '../components/modal.js';
+import { EventDelegator } from './eventDelegator.js';
 
 export const imageHelper = {
     _imagemAtiva: null,
@@ -27,6 +28,7 @@ export const imageHelper = {
     _startHeight: 0,
     _aspectRatio: 1,
     _handlePos: null,
+    _toolbarCleanup: null,
 
     /**
      * Inicializa os ouvintes de clique e seleção de imagem em um elemento contenteditable
@@ -58,20 +60,15 @@ export const imageHelper = {
             if (!this._imagemAtiva) return;
             if (e.target.closest('.planner-image-floating-toolbar') || 
                 e.target.closest('.planner-image-resize-handle') ||
-                e.target === this._imagemAtiva ||
                 e.target.closest('#modal-ajuste-imagem-planner')) {
                 return;
             }
             this.desmarcarImagem();
         });
 
-        // Reposiciona overlay se o editor sofrer scroll ou resize
-        editor.addEventListener('scroll', () => {
-            if (this._imagemAtiva) this.posicionarOverlay();
-        });
-        window.addEventListener('resize', () => {
-            if (this._imagemAtiva) this.posicionarOverlay();
-        });
+        // Atualiza posição do overlay caso o editor sofra scroll ou resize
+        window.addEventListener('scroll', () => this.posicionarOverlay(), { passive: true });
+        window.addEventListener('resize', () => this.posicionarOverlay(), { passive: true });
     },
 
     /**
@@ -89,7 +86,7 @@ export const imageHelper = {
         img.classList.add('planner-img-active-selected');
 
         // Cria o container do overlay se não existir
-        this._criarOverlay(editor);
+        this._criarElementosOverlay(editor);
         this.posicionarOverlay();
     },
 
@@ -100,6 +97,10 @@ export const imageHelper = {
         if (this._imagemAtiva) {
             this._imagemAtiva.classList.remove('planner-img-active-selected');
             this._imagemAtiva = null;
+        }
+        if (this._toolbarCleanup) {
+            this._toolbarCleanup();
+            this._toolbarCleanup = null;
         }
         if (this._overlayEl && this._overlayEl.parentNode) {
             this._overlayEl.parentNode.removeChild(this._overlayEl);
@@ -113,26 +114,38 @@ export const imageHelper = {
     },
 
     /**
-     * Cria os elementos DOM do overlay de redimensionamento e barra flutuante
+     * Cria os elementos DOM de overlay (alças nos 4 cantos e barra flutuante)
      */
-    _criarOverlay(editor) {
-        // Overlay com alças
+    _criarElementosOverlay(editor) {
+        if (this._overlayEl && this._toolbarEl) return;
+
+        // Overlay com 4 alças nos cantos
         this._overlayEl = document.createElement('div');
-        this._overlayEl.className = 'planner-image-overlay-box';
+        this._overlayEl.className = 'planner-image-resize-overlay';
         this._overlayEl.innerHTML = `
-            <div class="planner-image-resize-handle handle-nw" data-pos="nw"></div>
-            <div class="planner-image-resize-handle handle-ne" data-pos="ne"></div>
-            <div class="planner-image-resize-handle handle-sw" data-pos="sw"></div>
-            <div class="planner-image-resize-handle handle-se" data-pos="se"></div>
+            <div class="planner-image-resize-handle nw" data-handle="nw"></div>
+            <div class="planner-image-resize-handle ne" data-handle="ne"></div>
+            <div class="planner-image-resize-handle sw" data-handle="sw"></div>
+            <div class="planner-image-resize-handle se" data-handle="se"></div>
         `;
 
-        // Vincula eventos de mousedown nas alças
-        this._overlayEl.querySelectorAll('.planner-image-resize-handle').forEach(handle => {
+        // Listeners de drag para cada alça
+        const handles = this._overlayEl.querySelectorAll('.planner-image-resize-handle');
+        handles.forEach(handle => {
             handle.addEventListener('mousedown', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                this._iniciarArrasto(e, handle.getAttribute('data-pos'));
+                this._iniciarRedimensionamento(e, handle.dataset.handle);
             });
+
+            // Suporte a Touch em dispositivos móveis
+            handle.addEventListener('touchstart', (e) => {
+                if (e.touches.length === 1) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this._iniciarRedimensionamento(e.touches[0], handle.dataset.handle);
+                }
+            }, { passive: false });
         });
 
         // Barra de ferramentas flutuante
@@ -140,36 +153,49 @@ export const imageHelper = {
         this._toolbarEl.className = 'planner-image-floating-toolbar';
         this._toolbarEl.innerHTML = `
             <div class="planner-image-tool-group">
-                <button type="button" class="planner-image-tool-btn" title="25% de largura" onclick="imageHelper.aplicarTamanho(25)">25%</button>
-                <button type="button" class="planner-image-tool-btn" title="50% de largura" onclick="imageHelper.aplicarTamanho(50)">50%</button>
-                <button type="button" class="planner-image-tool-btn" title="75% de largura" onclick="imageHelper.aplicarTamanho(75)">75%</button>
-                <button type="button" class="planner-image-tool-btn" title="100% de largura (Total)" onclick="imageHelper.aplicarTamanho(100)">100%</button>
+                <button type="button" class="planner-image-tool-btn" title="25% de largura" data-action="img-tamanho" data-tamanho="25">25%</button>
+                <button type="button" class="planner-image-tool-btn" title="50% de largura" data-action="img-tamanho" data-tamanho="50">50%</button>
+                <button type="button" class="planner-image-tool-btn" title="75% de largura" data-action="img-tamanho" data-tamanho="75">75%</button>
+                <button type="button" class="planner-image-tool-btn" title="100% de largura (Total)" data-action="img-tamanho" data-tamanho="100">100%</button>
             </div>
             <div class="planner-image-tool-divider"></div>
             <div class="planner-image-tool-group">
-                <button type="button" class="planner-image-tool-btn" title="Alinhar à Esquerda" onclick="imageHelper.aplicarAlinhamento('esquerda')">
+                <button type="button" class="planner-image-tool-btn" title="Alinhar à Esquerda" data-action="img-alinhar" data-alinhamento="esquerda">
                     <i class="fas fa-align-left"></i>
                 </button>
-                <button type="button" class="planner-image-tool-btn" title="Centralizar" onclick="imageHelper.aplicarAlinhamento('centro')">
+                <button type="button" class="planner-image-tool-btn" title="Centralizar" data-action="img-alinhar" data-alinhamento="centro">
                     <i class="fas fa-align-center"></i>
                 </button>
-                <button type="button" class="planner-image-tool-btn" title="Alinhar à Direita" onclick="imageHelper.aplicarAlinhamento('direita')">
+                <button type="button" class="planner-image-tool-btn" title="Alinhar à Direita" data-action="img-alinhar" data-alinhamento="direita">
                     <i class="fas fa-align-right"></i>
                 </button>
-                <button type="button" class="planner-image-tool-btn" title="Flutuante com Texto ao Redor (Wrap)" onclick="imageHelper.aplicarAlinhamento('wrap-esquerda')">
+                <button type="button" class="planner-image-tool-btn" title="Flutuante com Texto ao Redor (Wrap)" data-action="img-alinhar" data-alinhamento="wrap-esquerda">
                     <i class="fas fa-indent"></i>
                 </button>
             </div>
             <div class="planner-image-tool-divider"></div>
             <div class="planner-image-tool-group">
-                <button type="button" class="planner-image-tool-btn" title="Configurações Personalizadas" onclick="imageHelper.abrirModalAjustePersonalizado()">
+                <button type="button" class="planner-image-tool-btn" title="Configurações Personalizadas" data-action="img-config">
                     <i class="fas fa-sliders-h"></i>
                 </button>
-                <button type="button" class="planner-image-tool-btn btn-delete" title="Excluir Imagem" onclick="imageHelper.excluirImagemAtiva()">
+                <button type="button" class="planner-image-tool-btn btn-delete" title="Excluir Imagem" data-action="img-excluir">
                     <i class="fas fa-trash-alt"></i>
                 </button>
             </div>
         `;
+
+        this._toolbarCleanup = EventDelegator.bind(this._toolbarEl, {
+            'img-tamanho': (e, target) => {
+                const tam = parseInt(target.getAttribute('data-tamanho'), 10);
+                if (!isNaN(tam)) this.aplicarTamanho(tam);
+            },
+            'img-alinhar': (e, target) => {
+                const align = target.getAttribute('data-alinhamento');
+                if (align) this.aplicarAlinhamento(align);
+            },
+            'img-config': () => this.abrirModalAjustePersonalizado(),
+            'img-excluir': () => this.excluirImagemAtiva()
+        }, 'click');
 
         document.body.appendChild(this._overlayEl);
         document.body.appendChild(this._toolbarEl);
@@ -410,20 +436,39 @@ export const imageHelper = {
                 </div>
 
                 <div style="display: flex; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem;">
-                    <button type="button" class="btn-secondary" onclick="ModalComponent.close('modal-ajuste-imagem-planner')">Cancelar</button>
-                    <button type="button" class="btn-primary" style="background-color: #4f46e5;" onclick="imageHelper.salvarAjustePersonalizado()">
+                    <button type="button" class="btn-secondary" data-action="cancelar-ajuste-img">Cancelar</button>
+                    <button type="button" class="btn-primary" style="background-color: #4f46e5;" data-action="salvar-ajuste-img">
                         <i class="fas fa-check"></i> Aplicar Ajustes
                     </button>
                 </div>
             </div>
         `;
 
-        ModalComponent.open({
+        const modalEl = ModalComponent.open({
             id: 'modal-ajuste-imagem-planner',
             title: 'Ajustar Imagem Pedagógica',
             content: modalHtml,
             size: 'sm'
         });
+
+        if (modalEl) {
+            EventDelegator.bind(modalEl, {
+                'cancelar-ajuste-img': () => ModalComponent.close('modal-ajuste-imagem-planner'),
+                'salvar-ajuste-img': () => this.salvarAjustePersonalizado()
+            }, 'click');
+
+            const sliderW = modalEl.querySelector('#modal-img-largura-slider');
+            const valW = modalEl.querySelector('#modal-img-largura-val');
+            if (sliderW && valW) {
+                sliderW.addEventListener('input', () => { valW.innerText = sliderW.value + '%'; });
+            }
+
+            const sliderR = modalEl.querySelector('#modal-img-radius-slider');
+            const valR = modalEl.querySelector('#modal-img-radius-val');
+            if (sliderR && valR) {
+                sliderR.addEventListener('input', () => { valR.innerText = sliderR.value + 'px'; });
+            }
+        }
     },
 
     salvarAjustePersonalizado() {

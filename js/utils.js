@@ -1,4 +1,6 @@
 
+export { EventDelegator } from './utils/eventDelegator.js';
+
 export function debounce(func, wait) {
     let timeout;
     return function (...args) {
@@ -976,15 +978,17 @@ export function alternarModoEdicaoPreview(textareaId, previewId, btnId) {
                 <span><i class="fas fa-eye"></i> Pré-visualização Matemática (KaTeX)</span>
                 <span style="font-size: 0.6875rem; text-transform: none; color: var(--color-slate-400); font-weight: 600;"><i class="fas fa-mouse-pointer"></i> Clique para voltar e editar</span>
             </div>
-            <div class="custom-scrollbar" style="min-height: ${Math.max(textarea.offsetHeight || 65, 65)}px; max-height: 380px; overflow-y: auto; padding: 0.75rem 1rem; background-color: var(--color-slate-50, #f8fafc); border: 2px dashed #a5b4fc; border-radius: var(--radius-xl, 12px); font-size: 0.9375rem; color: var(--color-slate-800, #1e293b); line-height: 1.6; cursor: pointer; transition: all 0.2s ease;"
-                 title="Clique para voltar a editar este texto"
-                 onmouseover="this.style.backgroundColor='#eff6ff'; this.style.borderColor='var(--color-primary, #4f46e5)';"
-                 onmouseout="this.style.backgroundColor='var(--color-slate-50, #f8fafc)'; this.style.borderColor='#a5b4fc';">
+            <div class="custom-scrollbar preview-katex-box" style="min-height: ${Math.max(textarea.offsetHeight || 65, 65)}px; max-height: 380px; overflow-y: auto; padding: 0.75rem 1rem; background-color: var(--color-slate-50, #f8fafc); border: 2px dashed #a5b4fc; border-radius: var(--radius-xl, 12px); font-size: 0.9375rem; color: var(--color-slate-800, #1e293b); line-height: 1.6; cursor: pointer; transition: all 0.2s ease;"
+                 title="Clique para voltar a editar este texto">
                 ${html}
             </div>
         `;
 
-        preview.onclick = () => alternarModoEdicaoPreview(textarea, preview, btn);
+        const clickHandler = () => {
+            preview.removeEventListener('click', clickHandler);
+            alternarModoEdicaoPreview(textarea, preview, btn);
+        };
+        preview.addEventListener('click', clickHandler, { once: true });
         textarea.style.display = 'none';
         preview.style.display = 'block';
 
@@ -1748,6 +1752,7 @@ if (typeof window !== 'undefined') {
     window.sanitizarNomeArquivo = sanitizarNomeArquivo;
     window.exportarMaterialWord = exportarMaterialWord;
     window.criarZipBinario = criarZipBinario;
+    window.EventDelegator = EventDelegator;
 }
 
 

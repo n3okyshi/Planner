@@ -4,11 +4,13 @@ import { Toast } from '../components/toast.js';
 import { aiService } from '../ai-service.js';
 import { renderKatex, formatarTextoComLatex, sanitizeComLatex, alternarModoEdicaoPreview, lerArquivoTexto, secureShuffle } from '../utils.js';
 import { uiController } from '../controllers/uiController.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 
 export const estudosVisuaisView = {
     abaAtiva: 'flashcards', // 'flashcards' | 'mindmaps'
     contextoDocumentoTemp: '',
     pastaAtualId: null,
+    _cleanupDelegators: null,
     
     // Estado Flashcards
     currentDeck: null,
@@ -46,6 +48,11 @@ export const estudosVisuaisView = {
         if (!container) container = this._getContainer();
         if (!container) return;
 
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+
         const isEmbedded = container.id === 'area-estudos-visuais-integ';
 
         const html = `
@@ -63,10 +70,10 @@ export const estudosVisuaisView = {
 
                     <!-- ABAS DE NAVEGAÇÃO -->
                     <div style="display: flex; background-color: var(--color-slate-100); padding: 0.25rem; border-radius: var(--radius-xl); gap: 0.25rem;">
-                        <button type="button" onclick="estudosVisuaisView.mudarAba('flashcards')" class="btn-secondary" style="padding: 0.5rem 1.25rem; font-size: 0.875rem; font-weight: 800; border-radius: var(--radius-lg); ${this.abaAtiva === 'flashcards' ? 'background-color: #ffffff; color: var(--color-primary); box-shadow: var(--shadow-sm);' : 'background: transparent; border: none; color: var(--color-slate-600);'}">
+                        <button type="button" data-action="mudar-aba" data-aba="flashcards" class="btn-secondary" style="padding: 0.5rem 1.25rem; font-size: 0.875rem; font-weight: 800; border-radius: var(--radius-lg); ${this.abaAtiva === 'flashcards' ? 'background-color: #ffffff; color: var(--color-primary); box-shadow: var(--shadow-sm);' : 'background: transparent; border: none; color: var(--color-slate-600);'}">
                             <i class="fas fa-layer-group"></i> <span>Flashcards</span>
                         </button>
-                        <button type="button" onclick="estudosVisuaisView.mudarAba('mindmaps')" class="btn-secondary" style="padding: 0.5rem 1.25rem; font-size: 0.875rem; font-weight: 800; border-radius: var(--radius-lg); ${this.abaAtiva === 'mindmaps' ? 'background-color: #ffffff; color: var(--color-primary); box-shadow: var(--shadow-sm);' : 'background: transparent; border: none; color: var(--color-slate-600);'}">
+                        <button type="button" data-action="mudar-aba" data-aba="mindmaps" class="btn-secondary" style="padding: 0.5rem 1.25rem; font-size: 0.875rem; font-weight: 800; border-radius: var(--radius-lg); ${this.abaAtiva === 'mindmaps' ? 'background-color: #ffffff; color: var(--color-primary); box-shadow: var(--shadow-sm);' : 'background: transparent; border: none; color: var(--color-slate-600);'}">
                             <i class="fas fa-project-diagram"></i> <span>Mapas Mentais</span>
                         </button>
                     </div>
@@ -78,10 +85,10 @@ export const estudosVisuaisView = {
                         <i class="fas fa-brain" style="color: #4f46e5;"></i> Estudo Visual:
                     </span>
                     <div style="display: flex; background-color: #e2e8f0; padding: 0.25rem; border-radius: 0.75rem; gap: 0.25rem;">
-                        <button type="button" onclick="estudosVisuaisView.mudarAba('flashcards')" class="interactive-element" style="padding: 0.4rem 1rem; font-size: 0.8125rem; font-weight: 800; border-radius: 0.5rem; ${this.abaAtiva === 'flashcards' ? 'background-color: #ffffff; color: #4f46e5; box-shadow: 0 1px 2px rgba(0,0,0,0.05);' : 'background: transparent; border: none; color: #64748b;'}">
+                        <button type="button" data-action="mudar-aba" data-aba="flashcards" class="interactive-element" style="padding: 0.4rem 1rem; font-size: 0.8125rem; font-weight: 800; border-radius: 0.5rem; ${this.abaAtiva === 'flashcards' ? 'background-color: #ffffff; color: #4f46e5; box-shadow: 0 1px 2px rgba(0,0,0,0.05);' : 'background: transparent; border: none; color: #64748b;'}">
                             <i class="fas fa-layer-group"></i> Flashcards
                         </button>
-                        <button type="button" onclick="estudosVisuaisView.mudarAba('mindmaps')" class="interactive-element" style="padding: 0.4rem 1rem; font-size: 0.8125rem; font-weight: 800; border-radius: 0.5rem; ${this.abaAtiva === 'mindmaps' ? 'background-color: #ffffff; color: #4f46e5; box-shadow: 0 1px 2px rgba(0,0,0,0.05);' : 'background: transparent; border: none; color: #64748b;'}">
+                        <button type="button" data-action="mudar-aba" data-aba="mindmaps" class="interactive-element" style="padding: 0.4rem 1rem; font-size: 0.8125rem; font-weight: 800; border-radius: 0.5rem; ${this.abaAtiva === 'mindmaps' ? 'background-color: #ffffff; color: #4f46e5; box-shadow: 0 1px 2px rgba(0,0,0,0.05);' : 'background: transparent; border: none; color: #64748b;'}">
                             <i class="fas fa-project-diagram"></i> Mapas Mentais
                         </button>
                     </div>
@@ -96,8 +103,20 @@ export const estudosVisuaisView = {
         `;
 
         container.innerHTML = html;
+        this._bindEventos(container);
         uiController.initAllDropdowns(container);
         renderKatex(container);
+    },
+
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+    },
+
+    onLeave() {
+        this.destroy();
     },
 
     mudarAba(aba) {
@@ -149,10 +168,10 @@ export const estudosVisuaisView = {
                         <p style="font-size: 0.8125rem; color: var(--color-slate-500);">${decks.length} baralho(s) nesta visualização</p>
                     </div>
                     <div style="display: flex; gap: var(--spacing-3);">
-                        <button type="button" onclick="estudosVisuaisView.abrirModalIAFlashcards()" class="btn-secondary" style="background-color: #f8fafc; border-color: #cbd5e1;">
+                        <button type="button" data-action="abrir-modal-ia-fc" class="btn-secondary" style="background-color: #f8fafc; border-color: #cbd5e1;">
                             <i class="fas fa-robot" style="color: var(--color-primary);"></i> <span>Gerar com IA / Arquivo</span>
                         </button>
-                        <button type="button" onclick="estudosVisuaisView.criarNovoDeck()" class="btn-primary">
+                        <button type="button" data-action="criar-novo-deck" class="btn-primary">
                             <i class="fas fa-plus"></i> <span>Novo Baralho</span>
                         </button>
                     </div>
@@ -174,10 +193,10 @@ export const estudosVisuaisView = {
                         </div>
 
                         <div style="display: flex; gap: 0.5rem;">
-                            <button type="button" onclick="estudosVisuaisView.desmarcarTodosBaralhos()" class="btn-secondary" style="padding: 0.5rem 0.875rem;">
+                            <button type="button" data-action="desmarcar-todos-baralhos" class="btn-secondary" style="padding: 0.5rem 0.875rem;">
                                 Limpar Seleção
                             </button>
-                            <button type="button" onclick="estudosVisuaisView.iniciarEstudoCombinado()" class="btn-primary" style="padding: 0.5rem 1.25rem; background-color: #4f46e5;" ${totalCartasSelecionadas === 0 ? 'disabled' : ''}>
+                            <button type="button" data-action="iniciar-estudo-combinado" class="btn-primary" style="padding: 0.5rem 1.25rem; background-color: #4f46e5;" ${totalCartasSelecionadas === 0 ? 'disabled' : ''}>
                                 <i class="fas fa-play"></i> <span>Estudar Selecionados</span>
                             </button>
                         </div>
@@ -201,19 +220,19 @@ export const estudosVisuaisView = {
                 <div>
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--spacing-2);">
                         <div style="display: flex; align-items: center; gap: 0.5rem;">
-                            <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="estudosVisuaisView.toggleSelecionarBaralho('${deck.id}', this.checked)" style="width: 1.125rem; height: 1.125rem; cursor: pointer; accent-color: var(--color-primary);" title="Selecionar para estudo combinado">
+                            <input type="checkbox" ${isSelected ? 'checked' : ''} data-action="toggle-selecionar-baralho" data-id="${deck.id}" style="width: 1.125rem; height: 1.125rem; cursor: pointer; accent-color: var(--color-primary);" title="Selecionar para estudo combinado">
                             <span class="badge" style="background-color: var(--color-primary-light); color: var(--color-primary); font-weight: 800; text-transform: uppercase;">
                                 ${window.escapeHTML(deck.disciplina || 'Geral')}
                             </span>
                         </div>
                         <div style="display: flex; gap: 0.25rem;">
-                            <button type="button" onclick="estudosVisuaisView.moverParaPastaModal('flashcards', '${deck.id}')" class="btn-icon" title="Mover para Pasta">
+                            <button type="button" data-action="mover-para-pasta" data-colecao="flashcards" data-id="${deck.id}" class="btn-icon" title="Mover para Pasta">
                                 <i class="fas fa-folder" style="font-size: 0.875rem; color: #f59e0b;"></i>
                             </button>
-                            <button type="button" onclick="estudosVisuaisView.editarDeck('${deck.id}')" class="btn-icon" title="Editar Cartas">
+                            <button type="button" data-action="editar-deck" data-id="${deck.id}" class="btn-icon" title="Editar Cartas">
                                 <i class="fas fa-pencil-alt" style="font-size: 0.875rem;"></i>
                             </button>
-                            <button type="button" onclick="estudosVisuaisView.excluirDeck('${deck.id}')" class="btn-icon" style="color: #ef4444;" title="Excluir Baralho">
+                            <button type="button" data-action="excluir-deck" data-id="${deck.id}" class="btn-icon" style="color: #ef4444;" title="Excluir Baralho">
                                 <i class="fas fa-trash-alt" style="font-size: 0.875rem;"></i>
                             </button>
                         </div>
@@ -228,7 +247,7 @@ export const estudosVisuaisView = {
                 </div>
 
                 <div style="display: flex; gap: 0.5rem;">
-                    <button type="button" onclick="estudosVisuaisView.iniciarEstudo('${deck.id}')" class="btn-primary" style="flex: 1; justify-content: center; padding: 0.625rem; background-color: #4f46e5;" ${totalCards === 0 ? 'disabled' : ''}>
+                    <button type="button" data-action="iniciar-estudo" data-id="${deck.id}" class="btn-primary" style="flex: 1; justify-content: center; padding: 0.625rem; background-color: #4f46e5;" ${totalCards === 0 ? 'disabled' : ''}>
                         <i class="fas fa-play"></i> <span>Estudar / Praticar</span>
                     </button>
                 </div>
@@ -287,10 +306,10 @@ export const estudosVisuaisView = {
                 <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); margin-bottom: 0.5rem;">Nenhum Baralho de Flashcards</h3>
                 <p style="color: var(--color-slate-500); font-size: 0.875rem; max-width: 440px; margin-bottom: 1.5rem;">Crie baralhos de repetição espaçada manualmente ou gere com IA a partir de arquivos e cadernos do NotebookLM.</p>
                 <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center;">
-                    <button type="button" onclick="estudosVisuaisView.abrirModalIAFlashcards()" class="btn-secondary">
+                    <button type="button" data-action="abrir-modal-ia-fc" class="btn-secondary">
                         <i class="fas fa-robot"></i> <span>Gerar com IA / Upload</span>
                     </button>
-                    <button type="button" onclick="estudosVisuaisView.criarNovoDeck()" class="btn-primary">
+                    <button type="button" data-action="criar-novo-deck" class="btn-primary">
                         <i class="fas fa-plus"></i> <span>Criar Manualmente</span>
                     </button>
                 </div>
@@ -301,11 +320,11 @@ export const estudosVisuaisView = {
     abrirModalIAFlashcards() {
         this.contextoDocumentoTemp = '';
         const html = `
-            <div style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4); max-height: 75vh; overflow-y: auto;" class="custom-scrollbar">
+            <div id="modal-ia-fc-root" style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4); max-height: 75vh; overflow-y: auto;" class="custom-scrollbar">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-4);">
                     <div>
                         <label class="form-label">Disciplina</label>
-                        <select id="fc-ai-disciplina" class="form-select" onchange="if(this.value==='__OUTRA__'){ document.getElementById('fc-disciplina-custom-wrap').style.display='block'; document.getElementById('fc-disciplina-custom').focus(); } else { document.getElementById('fc-disciplina-custom-wrap').style.display='none'; }">
+                        <select id="fc-ai-disciplina" class="form-select" data-action="disciplina-change">
                             <option value="Matemática">Matemática</option>
                             <option value="Língua Portuguesa">Língua Portuguesa</option>
                             <option value="Ciências" selected>Ciências</option>
@@ -333,7 +352,7 @@ export const estudosVisuaisView = {
                     </div>
                     <div>
                         <label class="form-label">Série / Segmento</label>
-                        <select id="fc-ai-serie" class="form-select" onchange="if(this.value==='__OUTRA__'){ document.getElementById('fc-serie-custom-wrap').style.display='block'; document.getElementById('fc-serie-custom').focus(); } else { document.getElementById('fc-serie-custom-wrap').style.display='none'; }">
+                        <select id="fc-ai-serie" class="form-select" data-action="serie-change">
                             <option value="Educação Infantil">Educação Infantil</option>
                             <option value="1º Ano — Fundamental I">1º Ano — Fundamental I</option>
                             <option value="2º Ano — Fundamental I">2º Ano — Fundamental I</option>
@@ -395,7 +414,7 @@ export const estudosVisuaisView = {
                     <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
                         <label class="btn-outline interactive-element" style="cursor: pointer; padding: 0.5rem 0.875rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.375rem; background-color: #fff;">
                             <i class="fas fa-paperclip"></i> <span>Anexar Arquivo (PDF / TXT / MD)</span>
-                            <input type="file" id="fc-file-input" accept=".txt,.md,.pdf,.csv,.json" style="display: none;" onchange="estudosVisuaisView.carregarArquivoFlashcards(this)">
+                            <input type="file" id="fc-file-input" accept=".txt,.md,.pdf,.csv,.json" style="display: none;" data-action="carregar-arquivo-fc">
                         </label>
                         <span id="fc-nome-arquivo" style="font-size: 0.75rem; color: var(--color-slate-500); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;"></span>
                     </div>
@@ -412,14 +431,45 @@ export const estudosVisuaisView = {
                 </div>
 
                 <div style="display: flex; gap: var(--spacing-3); margin-top: var(--spacing-2); padding-top: var(--spacing-4); border-top: 1px solid var(--color-slate-100);">
-                    <button type="button" onclick="controller.closeModal()" class="btn-secondary" style="flex: 1; justify-content: center; padding: 0.75rem;">Cancelar</button>
-                    <button type="button" onclick="estudosVisuaisView.gerarFlashcardsComIA()" class="btn-primary" style="flex: 1; justify-content: center; padding: 0.75rem;">
+                    <button type="button" data-action="fechar-modal" class="btn-secondary" style="flex: 1; justify-content: center; padding: 0.75rem;">Cancelar</button>
+                    <button type="button" data-action="gerar-flashcards-ia" class="btn-primary" style="flex: 1; justify-content: center; padding: 0.75rem;">
                         <i class="fas fa-magic"></i> <span>Gerar Flashcards</span>
                     </button>
                 </div>
             </div>
         `;
         controller.openModal('Gerar Baralho de Flashcards com IA', html, 'large');
+        
+        const modalEl = document.getElementById('modal-ia-fc-root');
+        if (modalEl) {
+            modalEl.querySelector('[data-action="disciplina-change"]')?.addEventListener('change', (e) => {
+                const wrap = document.getElementById('fc-disciplina-custom-wrap');
+                if (e.target.value === '__OUTRA__') {
+                    if (wrap) wrap.style.display = 'block';
+                    document.getElementById('fc-disciplina-custom')?.focus();
+                } else if (wrap) {
+                    wrap.style.display = 'none';
+                }
+            });
+            modalEl.querySelector('[data-action="serie-change"]')?.addEventListener('change', (e) => {
+                const wrap = document.getElementById('fc-serie-custom-wrap');
+                if (e.target.value === '__OUTRA__') {
+                    if (wrap) wrap.style.display = 'block';
+                    document.getElementById('fc-serie-custom')?.focus();
+                } else if (wrap) {
+                    wrap.style.display = 'none';
+                }
+            });
+            modalEl.querySelector('[data-action="carregar-arquivo-fc"]')?.addEventListener('change', (e) => {
+                this.carregarArquivoFlashcards(e.target);
+            });
+            modalEl.querySelector('[data-action="fechar-modal"]')?.addEventListener('click', () => {
+                controller.closeModal();
+            });
+            modalEl.querySelector('[data-action="gerar-flashcards-ia"]')?.addEventListener('click', () => {
+                this.gerarFlashcardsComIA();
+            });
+        }
     },
 
     async carregarArquivoFlashcards(input) {
@@ -544,19 +594,19 @@ export const estudosVisuaisView = {
                 <!-- HEADER DO EDITOR -->
                 <div class="card" style="padding: var(--spacing-4) var(--spacing-6); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-4);">
                     <div style="display: flex; align-items: center; gap: var(--spacing-4); flex: 1;">
-                        <button onclick="estudosVisuaisView.voltarParaGaleria('flashcards')" class="btn-secondary" style="padding: 0.5rem 0.875rem;">
+                        <button type="button" data-action="voltar-galeria" data-aba="flashcards" class="btn-secondary" style="padding: 0.5rem 0.875rem;">
                             <i class="fas fa-arrow-left"></i> <span>Voltar</span>
                         </button>
                         <input type="text" id="deck-titulo-edit" value="${window.escapeHTML(deck.titulo)}" 
                                class="form-input" style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); max-width: 480px;"
-                               onchange="estudosVisuaisView.salvarTituloDeck(this.value)">
+                               data-action="salvar-titulo-deck">
                     </div>
 
                     <div style="display: flex; gap: 0.5rem;">
-                        <button onclick="estudosVisuaisView.adicionarCartaVazia()" class="btn-secondary">
+                        <button type="button" data-action="adicionar-carta-vazia" class="btn-secondary">
                             <i class="fas fa-plus"></i> <span>Adicionar Carta</span>
                         </button>
-                        <button onclick="estudosVisuaisView.iniciarEstudo('${deck.id}')" class="btn-primary" style="background-color: #4f46e5;">
+                        <button type="button" data-action="iniciar-estudo" data-id="${deck.id}" class="btn-primary" style="background-color: #4f46e5;">
                             <i class="fas fa-play"></i> <span>Iniciar Estudo</span>
                         </button>
                     </div>
@@ -570,7 +620,7 @@ export const estudosVisuaisView = {
                                 <span style="font-size: 0.875rem; font-weight: 800; color: var(--color-slate-700);">
                                     Carta ${i + 1}
                                 </span>
-                                <button onclick="estudosVisuaisView.removerCarta(${i})" class="btn-icon" style="color: #ef4444;" title="Excluir carta">
+                                <button type="button" data-action="remover-carta" data-index="${i}" class="btn-icon" style="color: #ef4444;" title="Excluir carta">
                                     <i class="fas fa-trash-alt" style="font-size: 0.875rem;"></i>
                                 </button>
                             </div>
@@ -579,28 +629,28 @@ export const estudosVisuaisView = {
                                 <div>
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
                                         <label class="form-label" style="margin-bottom: 0;">Frente (Pergunta / Conceito)</label>
-                                        <button type="button" onclick="alternarModoEdicaoPreview('deck-frente-${i}', 'preview-deck-frente-${i}', 'btn-prev-frente-${i}')" id="btn-prev-frente-${i}" class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.6875rem;">
+                                        <button type="button" data-action="toggle-preview-tex" data-textarea="deck-frente-${i}" data-preview="preview-deck-frente-${i}" data-btn="btn-prev-frente-${i}" id="btn-prev-frente-${i}" class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.6875rem;">
                                             <i class="fas fa-eye"></i> Visualizar (TeX)
                                         </button>
                                     </div>
-                                    <textarea id="deck-frente-${i}" rows="3" class="form-input custom-scrollbar" style="resize: vertical;" onchange="estudosVisuaisView.salvarCarta(${i})">${window.escapeHTML(c.frente || '')}</textarea>
+                                    <textarea id="deck-frente-${i}" rows="3" class="form-input custom-scrollbar" style="resize: vertical;" data-action="salvar-carta" data-index="${i}">${window.escapeHTML(c.frente || '')}</textarea>
                                     <div id="preview-deck-frente-${i}" style="display: none;"></div>
                                 </div>
                                 <div>
                                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
                                         <label class="form-label" style="margin-bottom: 0;">Verso (Resposta / Definição)</label>
-                                        <button type="button" onclick="alternarModoEdicaoPreview('deck-verso-${i}', 'preview-deck-verso-${i}', 'btn-prev-verso-${i}')" id="btn-prev-verso-${i}" class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.6875rem;">
+                                        <button type="button" data-action="toggle-preview-tex" data-textarea="deck-verso-${i}" data-preview="preview-deck-verso-${i}" data-btn="btn-prev-verso-${i}" id="btn-prev-verso-${i}" class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.6875rem;">
                                             <i class="fas fa-eye"></i> Visualizar (TeX)
                                         </button>
                                     </div>
-                                    <textarea id="deck-verso-${i}" rows="3" class="form-input custom-scrollbar" style="resize: vertical;" onchange="estudosVisuaisView.salvarCarta(${i})">${window.escapeHTML(c.verso || '')}</textarea>
+                                    <textarea id="deck-verso-${i}" rows="3" class="form-input custom-scrollbar" style="resize: vertical;" data-action="salvar-carta" data-index="${i}">${window.escapeHTML(c.verso || '')}</textarea>
                                     <div id="preview-deck-verso-${i}" style="display: none;"></div>
                                 </div>
                             </div>
                             
                             <div style="margin-top: var(--spacing-3);">
                                 <label class="form-label" style="font-size: 0.75rem; color: var(--color-slate-400);">Dica / Pista Mnemônica (Opcional)</label>
-                                <input type="text" id="deck-dica-${i}" value="${window.escapeHTML(c.dica || '')}" class="form-input" placeholder="Ex: Lembrar do prefixo..." onchange="estudosVisuaisView.salvarCarta(${i})">
+                                <input type="text" id="deck-dica-${i}" value="${window.escapeHTML(c.dica || '')}" class="form-input" placeholder="Ex: Lembrar do prefixo..." data-action="salvar-carta" data-index="${i}">
                             </div>
                         </div>
                     `).join('')}
@@ -737,7 +787,7 @@ export const estudosVisuaisView = {
         const todosDecks = model.state.flashcards || [];
 
         const html = `
-            <div style="padding: var(--spacing-5); display: flex; flex-direction: column; gap: var(--spacing-4);">
+            <div id="modal-copiar-carta-root" style="padding: var(--spacing-5); display: flex; flex-direction: column; gap: var(--spacing-4);">
                 <div>
                     <h4 style="font-size: 0.9375rem; font-weight: 800; color: var(--color-slate-800); margin-bottom: 0.25rem;">Carta Selecionada:</h4>
                     <p style="font-size: 0.8125rem; color: var(--color-slate-600); background-color: var(--color-slate-50); padding: 0.75rem; border-radius: var(--radius-lg); border: 1px solid var(--color-slate-200);">
@@ -754,8 +804,8 @@ export const estudosVisuaisView = {
                 </div>
 
                 <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
-                    <button type="button" onclick="controller.closeModal()" class="btn-secondary">Cancelar</button>
-                    <button type="button" onclick="estudosVisuaisView.confirmarCopiaCarta()" class="btn-primary">
+                    <button type="button" data-action="fechar-modal" class="btn-secondary">Cancelar</button>
+                    <button type="button" data-action="confirmar-copia-carta" class="btn-primary">
                         <i class="fas fa-copy"></i> <span>Copiar Carta</span>
                     </button>
                 </div>
@@ -763,6 +813,15 @@ export const estudosVisuaisView = {
         `;
 
         controller.openModal('Copiar Carta para Outro Baralho', html);
+        const modalEl = document.getElementById('modal-copiar-carta-root');
+        if (modalEl) {
+            modalEl.querySelector('[data-action="fechar-modal"]')?.addEventListener('click', () => {
+                controller.closeModal();
+            });
+            modalEl.querySelector('[data-action="confirmar-copia-carta"]')?.addEventListener('click', () => {
+                this.confirmarCopiaCarta();
+            });
+        }
     },
 
     async confirmarCopiaCarta() {
@@ -796,7 +855,7 @@ export const estudosVisuaisView = {
             <div style="display: flex; flex-direction: column; gap: var(--spacing-6); max-width: 800px; margin: 0 auto;">
                 <!-- BARRA SUPERIOR DE ESTUDO -->
                 <div class="card" style="padding: var(--spacing-4) var(--spacing-6); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-3);">
-                    <button onclick="estudosVisuaisView.voltarParaGaleria('flashcards')" class="btn-secondary" style="padding: 0.5rem 0.875rem;">
+                    <button type="button" data-action="voltar-galeria" data-aba="flashcards" class="btn-secondary" style="padding: 0.5rem 0.875rem;">
                         <i class="fas fa-times"></i> <span>Encerrar Estudo</span>
                     </button>
 
@@ -806,13 +865,13 @@ export const estudosVisuaisView = {
                     </div>
 
                     <div style="display: flex; gap: 0.5rem;">
-                        <button onclick="estudosVisuaisView.salvarEmDificuldades()" class="btn-secondary" style="color: #b45309; border-color: #fde68a; background-color: #fffbeb;" title="Salvar rapidamente no baralho de dificuldades">
+                        <button type="button" data-action="salvar-dificuldades" class="btn-secondary" style="color: #b45309; border-color: #fde68a; background-color: #fffbeb;" title="Salvar rapidamente no baralho de dificuldades">
                             <i class="fas fa-star" style="color: #f59e0b;"></i> <span>Dificuldade</span>
                         </button>
-                        <button onclick="estudosVisuaisView.abrirModalCopiarCarta()" class="btn-secondary" title="Copiar carta para outro baralho">
+                        <button type="button" data-action="abrir-modal-copiar" class="btn-secondary" title="Copiar carta para outro baralho">
                             <i class="fas fa-copy"></i>
                         </button>
-                        <button onclick="estudosVisuaisView.embaralharCartas()" class="btn-secondary" title="Embaralhar cartas">
+                        <button type="button" data-action="embaralhar" class="btn-secondary" title="Embaralhar cartas">
                             <i class="fas fa-random"></i>
                         </button>
                     </div>
@@ -824,7 +883,7 @@ export const estudosVisuaisView = {
                 </div>
 
                 <!-- CENA FLASHCARD 3D -->
-                <div class="flashcard-scene" onclick="estudosVisuaisView.virarCarta()">
+                <div class="flashcard-scene" data-action="virar-carta" style="cursor: pointer;">
                     <div id="flashcard-card-element" class="flashcard-card ${this.isCardFlipped ? 'is-flipped' : ''}">
                         
                         <!-- FRENTE -->
@@ -870,25 +929,25 @@ export const estudosVisuaisView = {
                 <!-- CONTROLES E AUTOAVALIAÇÃO -->
                 <div style="display: flex; flex-direction: column; gap: var(--spacing-3); align-items: center;">
                     <div style="display: flex; gap: 1rem; width: 100%; max-width: 600px;">
-                        <button onclick="estudosVisuaisView.avaliarCarta('erro')" class="btn-secondary" style="flex: 1; padding: 0.875rem; justify-content: center; color: #dc2626; border-color: #fecaca; background-color: #fef2f2; font-weight: 800;">
+                        <button type="button" data-action="avaliar-carta" data-score="erro" class="btn-secondary" style="flex: 1; padding: 0.875rem; justify-content: center; color: #dc2626; border-color: #fecaca; background-color: #fef2f2; font-weight: 800;">
                             <i class="fas fa-times-circle"></i> <span>Errei / Difícil</span>
                         </button>
-                        <button onclick="estudosVisuaisView.avaliarCarta('medio')" class="btn-secondary" style="flex: 1; padding: 0.875rem; justify-content: center; color: #d97706; border-color: #fde68a; background-color: #fffbeb; font-weight: 800;">
+                        <button type="button" data-action="avaliar-carta" data-score="medio" class="btn-secondary" style="flex: 1; padding: 0.875rem; justify-content: center; color: #d97706; border-color: #fde68a; background-color: #fffbeb; font-weight: 800;">
                             <i class="fas fa-minus-circle"></i> <span>Médio</span>
                         </button>
-                        <button onclick="estudosVisuaisView.avaliarCarta('acerto')" class="btn-primary" style="flex: 1; padding: 0.875rem; justify-content: center; background-color: #059669; font-weight: 800;">
+                        <button type="button" data-action="avaliar-carta" data-score="acerto" class="btn-primary" style="flex: 1; padding: 0.875rem; justify-content: center; background-color: #059669; font-weight: 800;">
                             <i class="fas fa-check-circle"></i> <span>Acertei / Fácil</span>
                         </button>
                     </div>
 
                     <div style="display: flex; gap: 1rem;">
-                        <button onclick="estudosVisuaisView.cartaAnterior()" class="btn-secondary" style="padding: 0.5rem 1rem;" ${index === 0 ? 'disabled' : ''}>
+                        <button type="button" data-action="carta-anterior" class="btn-secondary" style="padding: 0.5rem 1rem;" ${index === 0 ? 'disabled' : ''}>
                             <i class="fas fa-chevron-left"></i> Anterior
                         </button>
-                        <button onclick="estudosVisuaisView.virarCarta()" class="btn-secondary" style="padding: 0.5rem 1.5rem; font-weight: 800;">
+                        <button type="button" data-action="virar-carta" class="btn-secondary" style="padding: 0.5rem 1.5rem; font-weight: 800;">
                             <i class="fas fa-redo-alt"></i> Virar Cartão
                         </button>
-                        <button onclick="estudosVisuaisView.proximaCarta()" class="btn-secondary" style="padding: 0.5rem 1rem;">
+                        <button type="button" data-action="proxima-carta" class="btn-secondary" style="padding: 0.5rem 1rem;">
                             Próximo <i class="fas fa-chevron-right"></i>
                         </button>
                     </div>
@@ -905,7 +964,7 @@ export const estudosVisuaisView = {
         const total = this.currentDeck.cards.length;
 
         const html = `
-            <div style="padding: var(--spacing-6); text-align: center; display: flex; flex-direction: column; gap: var(--spacing-4);">
+            <div id="modal-resumo-estudo-root" style="padding: var(--spacing-6); text-align: center; display: flex; flex-direction: column; gap: var(--spacing-4);">
                 <div style="width: 4.5rem; height: 4.5rem; border-radius: 50%; background-color: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto;">
                     <i class="fas fa-award"></i>
                 </div>
@@ -928,20 +987,33 @@ export const estudosVisuaisView = {
                 </div>
 
                 <div style="display: flex; gap: 0.75rem; justify-content: center; margin-top: 1rem;">
-                    <button onclick="controller.closeModal(); estudosVisuaisView.iniciarEstudo('${this.currentDeck.id}')" class="btn-secondary" style="padding: 0.75rem 1.5rem;">
+                    <button type="button" data-action="estudar-novamente" data-id="${this.currentDeck.id}" class="btn-secondary" style="padding: 0.75rem 1.5rem;">
                         <i class="fas fa-redo"></i> Estudar Novamente
                     </button>
-                    <button onclick="controller.closeModal(); estudosVisuaisView.voltarParaGaleria('flashcards')" class="btn-primary" style="padding: 0.75rem 1.5rem;">
+                    <button type="button" data-action="concluir-resumo" class="btn-primary" style="padding: 0.75rem 1.5rem;">
                         Concluir
                     </button>
                 </div>
             </div>
         `;
         controller.openModal('Desempenho da Sessão', html);
+
+        const modalEl = document.getElementById('modal-resumo-estudo-root');
+        if (modalEl) {
+            modalEl.querySelector('[data-action="estudar-novamente"]')?.addEventListener('click', (e) => {
+                const id = e.currentTarget.getAttribute('data-id');
+                controller.closeModal();
+                this.iniciarEstudo(id);
+            });
+            modalEl.querySelector('[data-action="concluir-resumo"]')?.addEventListener('click', () => {
+                controller.closeModal();
+                this.voltarParaGaleria('flashcards');
+            });
+        }
     },
 
     // =========================================================================
-    // SEÇÃO: MAPAS MENTAIS & CONCEITUAIS (MINDMAPS)
+    // SEÇÃO: MAPAS MENTAIS
     // =========================================================================
 
     renderMindmapsAba() {
@@ -961,10 +1033,10 @@ export const estudosVisuaisView = {
                         <p style="font-size: 0.8125rem; color: var(--color-slate-500);">${mindmaps.length} mapa(s) nesta visualização</p>
                     </div>
                     <div style="display: flex; gap: var(--spacing-3);">
-                        <button type="button" onclick="estudosVisuaisView.abrirModalIAMindmap()" class="btn-secondary" style="background-color: #f8fafc; border-color: #cbd5e1;">
+                        <button type="button" data-action="abrir-modal-ia-mm" class="btn-secondary" style="background-color: #f8fafc; border-color: #cbd5e1;">
                             <i class="fas fa-robot" style="color: var(--color-primary);"></i> <span>Gerar com IA / Arquivo</span>
                         </button>
-                        <button type="button" onclick="estudosVisuaisView.criarNovoMindmap()" class="btn-primary">
+                        <button type="button" data-action="criar-novo-mindmap" class="btn-primary">
                             <i class="fas fa-plus"></i> <span>Novo Mapa</span>
                         </button>
                     </div>
@@ -990,13 +1062,13 @@ export const estudosVisuaisView = {
                             ${window.escapeHTML(mapa.disciplina || 'Geral')}
                         </span>
                         <div style="display: flex; gap: 0.25rem;">
-                            <button type="button" onclick="estudosVisuaisView.moverParaPastaModal('mindmaps', '${mapa.id}')" class="btn-icon" title="Mover para Pasta">
+                            <button type="button" data-action="mover-para-pasta" data-colecao="mindmaps" data-id="${mapa.id}" class="btn-icon" title="Mover para Pasta">
                                 <i class="fas fa-folder" style="font-size: 0.875rem; color: #f59e0b;"></i>
                             </button>
-                            <button type="button" onclick="estudosVisuaisView.abrirMindmap('${mapa.id}')" class="btn-icon" title="Abrir Mapa">
+                            <button type="button" data-action="abrir-mindmap" data-id="${mapa.id}" class="btn-icon" title="Abrir Mapa">
                                 <i class="fas fa-external-link-alt" style="font-size: 0.875rem;"></i>
                             </button>
-                            <button type="button" onclick="estudosVisuaisView.excluirMindmap('${mapa.id}')" class="btn-icon" style="color: #ef4444;" title="Excluir Mapa">
+                            <button type="button" data-action="excluir-mindmap" data-id="${mapa.id}" class="btn-icon" style="color: #ef4444;" title="Excluir Mapa">
                                 <i class="fas fa-trash-alt" style="font-size: 0.875rem;"></i>
                             </button>
                         </div>
@@ -1010,7 +1082,7 @@ export const estudosVisuaisView = {
                     </p>
                 </div>
 
-                <button type="button" onclick="estudosVisuaisView.abrirMindmap('${mapa.id}')" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.625rem; background-color: var(--color-slate-800);">
+                <button type="button" data-action="abrir-mindmap" data-id="${mapa.id}" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.625rem; background-color: var(--color-slate-800);">
                     <i class="fas fa-project-diagram"></i> <span>Abrir Canvas Interativo</span>
                 </button>
             </div>
@@ -1036,11 +1108,11 @@ export const estudosVisuaisView = {
                 </div>
                 <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); margin-bottom: 0.5rem;">Nenhum Mapa Mental Criado</h3>
                 <p style="color: var(--color-slate-500); font-size: 0.875rem; max-width: 440px; margin-bottom: 1.5rem;">Estruture ideias e conceitos hierárquicos em um canvas interativo com suporte a IA e upload de arquivos.</p>
-                <div style="display: gap: 0.75rem; flex-wrap: wrap; justify-content: center;">
-                    <button type="button" onclick="estudosVisuaisView.abrirModalIAMindmap()" class="btn-secondary">
+                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center;">
+                    <button type="button" data-action="abrir-modal-ia-mm" class="btn-secondary">
                         <i class="fas fa-robot"></i> <span>Gerar com IA / Upload</span>
                     </button>
-                    <button type="button" onclick="estudosVisuaisView.criarNovoMindmap()" class="btn-primary">
+                    <button type="button" data-action="criar-novo-mindmap" class="btn-primary">
                         <i class="fas fa-plus"></i> <span>Criar Manualmente</span>
                     </button>
                 </div>
@@ -1051,11 +1123,11 @@ export const estudosVisuaisView = {
     abrirModalIAMindmap() {
         this.contextoDocumentoTemp = '';
         const html = `
-            <div style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4); max-height: 75vh; overflow-y: auto;" class="custom-scrollbar">
+            <div id="modal-ia-mm-root" style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4); max-height: 75vh; overflow-y: auto;" class="custom-scrollbar">
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-4);">
                     <div>
                         <label class="form-label">Disciplina</label>
-                        <select id="mm-ai-disciplina" class="form-select" onchange="if(this.value==='__OUTRA__'){ document.getElementById('mm-disciplina-custom-wrap').style.display='block'; document.getElementById('mm-disciplina-custom').focus(); } else { document.getElementById('mm-disciplina-custom-wrap').style.display='none'; }">
+                        <select id="mm-ai-disciplina" class="form-select" data-action="disciplina-change">
                             <option value="Matemática">Matemática</option>
                             <option value="Língua Portuguesa">Língua Portuguesa</option>
                             <option value="Ciências">Ciências</option>
@@ -1083,7 +1155,7 @@ export const estudosVisuaisView = {
                     </div>
                     <div>
                         <label class="form-label">Série / Segmento</label>
-                        <select id="mm-ai-serie" class="form-select" onchange="if(this.value==='__OUTRA__'){ document.getElementById('mm-serie-custom-wrap').style.display='block'; document.getElementById('mm-serie-custom').focus(); } else { document.getElementById('mm-serie-custom-wrap').style.display='none'; }">
+                        <select id="mm-ai-serie" class="form-select" data-action="serie-change">
                             <option value="Educação Infantil">Educação Infantil</option>
                             <option value="1º Ano — Fundamental I">1º Ano — Fundamental I</option>
                             <option value="2º Ano — Fundamental I">2º Ano — Fundamental I</option>
@@ -1134,7 +1206,7 @@ export const estudosVisuaisView = {
                     <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
                         <label class="btn-outline interactive-element" style="cursor: pointer; padding: 0.5rem 0.875rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.375rem; background-color: #fff;">
                             <i class="fas fa-paperclip"></i> <span>Anexar Arquivo (PDF / TXT / MD)</span>
-                            <input type="file" id="mm-file-input" accept=".txt,.md,.pdf,.csv,.json" style="display: none;" onchange="estudosVisuaisView.carregarArquivoMindmap(this)">
+                            <input type="file" id="mm-file-input" accept=".txt,.md,.pdf,.csv,.json" style="display: none;" data-action="carregar-arquivo-mm">
                         </label>
                         <span id="mm-nome-arquivo" style="font-size: 0.75rem; color: var(--color-slate-500); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px;"></span>
                     </div>
@@ -1151,14 +1223,45 @@ export const estudosVisuaisView = {
                 </div>
 
                 <div style="display: flex; gap: var(--spacing-3); margin-top: var(--spacing-2); padding-top: var(--spacing-4); border-top: 1px solid var(--color-slate-100);">
-                    <button type="button" onclick="controller.closeModal()" class="btn-secondary" style="flex: 1; justify-content: center; padding: 0.75rem;">Cancelar</button>
-                    <button type="button" onclick="estudosVisuaisView.gerarMindmapComIA()" class="btn-primary" style="flex: 1; justify-content: center; padding: 0.75rem;">
+                    <button type="button" data-action="fechar-modal" class="btn-secondary" style="flex: 1; justify-content: center; padding: 0.75rem;">Cancelar</button>
+                    <button type="button" data-action="gerar-mindmap-ia" class="btn-primary" style="flex: 1; justify-content: center; padding: 0.75rem;">
                         <i class="fas fa-magic"></i> <span>Gerar Mapa</span>
                     </button>
                 </div>
             </div>
         `;
         controller.openModal('Gerar Mapa Mental com IA', html, 'large');
+
+        const modalEl = document.getElementById('modal-ia-mm-root');
+        if (modalEl) {
+            modalEl.querySelector('[data-action="disciplina-change"]')?.addEventListener('change', (e) => {
+                const wrap = document.getElementById('mm-disciplina-custom-wrap');
+                if (e.target.value === '__OUTRA__') {
+                    if (wrap) wrap.style.display = 'block';
+                    document.getElementById('mm-disciplina-custom')?.focus();
+                } else if (wrap) {
+                    wrap.style.display = 'none';
+                }
+            });
+            modalEl.querySelector('[data-action="serie-change"]')?.addEventListener('change', (e) => {
+                const wrap = document.getElementById('mm-serie-custom-wrap');
+                if (e.target.value === '__OUTRA__') {
+                    if (wrap) wrap.style.display = 'block';
+                    document.getElementById('mm-serie-custom')?.focus();
+                } else if (wrap) {
+                    wrap.style.display = 'none';
+                }
+            });
+            modalEl.querySelector('[data-action="carregar-arquivo-mm"]')?.addEventListener('change', (e) => {
+                this.carregarArquivoMindmap(e.target);
+            });
+            modalEl.querySelector('[data-action="fechar-modal"]')?.addEventListener('click', () => {
+                controller.closeModal();
+            });
+            modalEl.querySelector('[data-action="gerar-mindmap-ia"]')?.addEventListener('click', () => {
+                this.gerarMindmapComIA();
+            });
+        }
     },
 
     async carregarArquivoMindmap(input) {
@@ -1294,22 +1397,22 @@ export const estudosVisuaisView = {
                 <!-- TOOLBAR DO MAPA MENTAL -->
                 <div class="card" style="padding: var(--spacing-3) var(--spacing-6); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: var(--spacing-3);">
                     <div style="display: flex; align-items: center; gap: var(--spacing-4); flex: 1;">
-                        <button onclick="estudosVisuaisView.voltarParaGaleria('mindmaps')" class="btn-secondary" style="padding: 0.5rem 0.875rem;">
+                        <button type="button" data-action="voltar-galeria" data-aba="mindmaps" class="btn-secondary" style="padding: 0.5rem 0.875rem;">
                             <i class="fas fa-arrow-left"></i> <span>Voltar</span>
                         </button>
                         <input type="text" id="mapa-titulo-edit" value="${window.escapeHTML(mapa.titulo)}" 
                                class="form-input" style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); max-width: 420px;"
-                               onchange="estudosVisuaisView.salvarTituloMindmap(this.value)">
+                               data-action="salvar-titulo-mindmap">
                     </div>
 
                     <div style="display: flex; gap: 0.5rem;">
-                        <button onclick="estudosVisuaisView.centralizarMindmap()" class="btn-secondary" title="Centralizar visão">
+                        <button type="button" data-action="centralizar-mindmap" class="btn-secondary" title="Centralizar visão">
                             <i class="fas fa-crosshairs"></i> <span>Centralizar</span>
                         </button>
-                        <button onclick="estudosVisuaisView.exportarSVG()" class="btn-secondary" title="Exportar como SVG Completo">
+                        <button type="button" data-action="exportar-svg" class="btn-secondary" title="Exportar como SVG Completo">
                             <i class="fas fa-download"></i> <span>Exportar SVG</span>
                         </button>
-                        <button onclick="window.print()" class="btn-primary" style="background-color: #4f46e5;" title="Imprimir / PDF">
+                        <button type="button" data-action="imprimir-mindmap" class="btn-primary" style="background-color: #4f46e5;" title="Imprimir / PDF">
                             <i class="fas fa-print"></i> <span>Imprimir</span>
                         </button>
                     </div>
@@ -1330,13 +1433,13 @@ export const estudosVisuaisView = {
 
                     <!-- CONTROLES FLUTUANTES DE ZOOM -->
                     <div class="mindmap-controls-panel">
-                        <button onclick="estudosVisuaisView.ajustarZoom(0.15)" class="btn-icon" title="Zoom In">
+                        <button type="button" data-action="zoom-in" class="btn-icon" title="Zoom In">
                             <i class="fas fa-plus"></i>
                         </button>
-                        <button onclick="estudosVisuaisView.ajustarZoom(-0.15)" class="btn-icon" title="Zoom Out">
+                        <button type="button" data-action="zoom-out" class="btn-icon" title="Zoom Out">
                             <i class="fas fa-minus"></i>
                         </button>
-                        <button onclick="estudosVisuaisView.resetarZoom()" class="btn-icon" title="Resetar Zoom (100%)">
+                        <button type="button" data-action="resetar-zoom" class="btn-icon" title="Resetar Zoom (100%)">
                             <i class="fas fa-compress-arrows-alt"></i>
                         </button>
                     </div>
@@ -1527,25 +1630,24 @@ export const estudosVisuaisView = {
 
             nodesHtml += `
                 <div id="mm-node-el-${id}" class="${cardClass}" style="left: ${x}px; top: ${y}px; ${borderStyle} cursor: grab;" 
-                     onmousedown="estudosVisuaisView.iniciarArrasteNo(event, '${id}')"
-                     onclick="estudosVisuaisView.selecionarNo('${id}')">
+                     data-action="arrastar-no" data-id="${id}">
                     <span style="font-weight: 800;">${formatarTextoComLatex(sanitizeComLatex(node.label))}</span>
 
                     ${hasChildren ? `
-                        <div class="mindmap-node-toggle" onclick="event.stopPropagation(); estudosVisuaisView.toggleRecolherNo('${id}')" title="${isCollapsed ? 'Expandir ramo' : 'Recolher ramo'}">
+                        <div class="mindmap-node-toggle" data-action="toggle-recolher-no" data-id="${id}" title="${isCollapsed ? 'Expandir ramo' : 'Recolher ramo'}">
                             <i class="fas ${isCollapsed ? 'fa-plus' : 'fa-minus'}"></i>
                         </div>
                     ` : ''}
 
                     <div style="display: inline-flex; gap: 0.25rem; margin-left: 0.375rem;">
-                        <button onclick="event.stopPropagation(); estudosVisuaisView.adicionarFilho('${id}')" class="btn-icon" style="padding: 0.2rem; font-size: 0.625rem; color: var(--color-slate-400);" title="Adicionar subconceito">
+                        <button type="button" data-action="adicionar-filho-no" data-id="${id}" class="btn-icon" style="padding: 0.2rem; font-size: 0.625rem; color: var(--color-slate-400);" title="Adicionar subconceito">
                             <i class="fas fa-plus"></i>
                         </button>
-                        <button onclick="event.stopPropagation(); estudosVisuaisView.editarNoModal('${id}')" class="btn-icon" style="padding: 0.2rem; font-size: 0.625rem; color: var(--color-slate-400);" title="Editar texto">
+                        <button type="button" data-action="editar-no-modal" data-id="${id}" class="btn-icon" style="padding: 0.2rem; font-size: 0.625rem; color: var(--color-slate-400);" title="Editar texto">
                             <i class="fas fa-pen"></i>
                         </button>
                         ${!isRoot ? `
-                            <button onclick="event.stopPropagation(); estudosVisuaisView.excluirNo('${id}')" class="btn-icon" style="padding: 0.2rem; font-size: 0.625rem; color: #ef4444;" title="Excluir nó">
+                            <button type="button" data-action="excluir-no" data-id="${id}" class="btn-icon" style="padding: 0.2rem; font-size: 0.625rem; color: #ef4444;" title="Excluir nó">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
                         ` : ''}
@@ -1555,6 +1657,15 @@ export const estudosVisuaisView = {
         });
 
         nodesLayer.innerHTML = nodesHtml;
+        
+        // Listener mousedown para drag dos nós
+        nodesLayer.querySelectorAll('[data-action="arrastar-no"]').forEach(el => {
+            el.addEventListener('mousedown', (e) => {
+                const id = el.getAttribute('data-id');
+                this.iniciarArrasteNo(e, id);
+            });
+        });
+
         this.redesenharLinhasSVG();
         renderKatex(nodesLayer);
     },
@@ -1678,7 +1789,7 @@ export const estudosVisuaisView = {
         if (!node) return;
 
         const html = `
-            <div style="padding: var(--spacing-5); display: flex; flex-direction: column; gap: var(--spacing-4);">
+            <div id="modal-editar-no-root" style="padding: var(--spacing-5); display: flex; flex-direction: column; gap: var(--spacing-4);">
                 <div>
                     <label class="form-label">Nome do Conceito / Texto do Nó</label>
                     <input type="text" id="edit-node-label" value="${window.escapeHTML(node.label)}" class="form-input" style="font-size: 1rem; font-weight: 700;">
@@ -1692,9 +1803,9 @@ export const estudosVisuaisView = {
                 ${node.id !== 'root' ? `
                     <div>
                         <label class="form-label">Cor do Ramo</label>
-                        <div style="display: flex; gap: 0.5rem;">
+                        <div id="edit-node-colors-container" style="display: flex; gap: 0.5rem;">
                             ${['#3b82f6', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6', '#06b6d4', '#475569'].map(c => `
-                                <div onclick="document.getElementById('edit-node-color').value='${c}'; this.style.transform='scale(1.2)';" 
+                                <div data-action="selecionar-cor-no" data-color="${c}" 
                                      style="width: 2rem; height: 2rem; border-radius: 50%; background-color: ${c}; cursor: pointer; transition: transform 0.2s;"></div>
                             `).join('')}
                         </div>
@@ -1703,13 +1814,33 @@ export const estudosVisuaisView = {
                 ` : ''}
 
                 <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem;">
-                    <button type="button" onclick="controller.closeModal()" class="btn-secondary">Cancelar</button>
-                    <button type="button" onclick="estudosVisuaisView.salvarEdicaoNo('${nodeId}')" class="btn-primary">Salvar Alterações</button>
+                    <button type="button" data-action="fechar-modal" class="btn-secondary">Cancelar</button>
+                    <button type="button" data-action="salvar-edicao-no" data-id="${nodeId}" class="btn-primary">Salvar Alterações</button>
                 </div>
             </div>
         `;
 
         controller.openModal('Editar Conceito do Mapa', html);
+
+        const modalEl = document.getElementById('modal-editar-no-root');
+        if (modalEl) {
+            modalEl.querySelectorAll('[data-action="selecionar-cor-no"]').forEach(div => {
+                div.addEventListener('click', (e) => {
+                    const color = e.currentTarget.getAttribute('data-color');
+                    const inputColor = document.getElementById('edit-node-color');
+                    if (inputColor) inputColor.value = color;
+                    modalEl.querySelectorAll('[data-action="selecionar-cor-no"]').forEach(d => d.style.transform = 'scale(1)');
+                    e.currentTarget.style.transform = 'scale(1.2)';
+                });
+            });
+            modalEl.querySelector('[data-action="fechar-modal"]')?.addEventListener('click', () => {
+                controller.closeModal();
+            });
+            modalEl.querySelector('[data-action="salvar-edicao-no"]')?.addEventListener('click', (e) => {
+                const id = e.currentTarget.getAttribute('data-id');
+                this.salvarEdicaoNo(id);
+            });
+        }
     },
 
     async salvarEdicaoNo(nodeId) {
@@ -1878,20 +2009,20 @@ export const estudosVisuaisView = {
             <div class="card" style="padding: 1rem 1.25rem; background: var(--color-slate-50); border: 1px solid var(--color-slate-200); border-radius: var(--radius-xl); margin-bottom: 0.5rem;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
                     <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                        <button type="button" onclick="estudosVisuaisView.setPastaAtual(null)" class="btn-secondary" style="padding: 0.4rem 0.75rem; font-size: 0.8125rem; font-weight: 700; ${!this.pastaAtualId ? 'background-color: var(--color-primary); color: #fff; border-color: var(--color-primary);' : ''}">
+                        <button type="button" data-action="pasta-raiz" class="btn-secondary" style="padding: 0.4rem 0.75rem; font-size: 0.8125rem; font-weight: 700; ${!this.pastaAtualId ? 'background-color: var(--color-primary); color: #fff; border-color: var(--color-primary);' : ''}">
                             <i class="fas fa-home"></i> Raiz (${totalItensGlobal})
                         </button>
                         ${pastaAtual ? `
                             <span style="color: var(--color-slate-400); font-weight: 800;">/</span>
                             <div style="display: flex; align-items: center; gap: 0.5rem; background: var(--color-white); padding: 0.35rem 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--color-slate-300); font-size: 0.8125rem; font-weight: 700; color: var(--color-slate-800);">
                                 <i class="fas fa-folder-open" style="color: #f59e0b;"></i> ${sanitizeComLatex(pastaAtual.nome)}
-                                <button type="button" onclick="estudosVisuaisView.excluirPasta('${pastaAtual.id}')" class="btn-icon" style="color: #ef4444; margin-left: 0.25rem;" title="Excluir Pasta">
+                                <button type="button" data-action="excluir-pasta" data-id="${pastaAtual.id}" class="btn-icon" style="color: #ef4444; margin-left: 0.25rem;" title="Excluir Pasta">
                                     <i class="fas fa-trash-alt" style="font-size: 0.75rem;"></i>
                                 </button>
                             </div>
                         ` : ''}
                     </div>
-                    <button type="button" onclick="estudosVisuaisView.criarPastaModal()" class="btn-secondary" style="padding: 0.4rem 0.75rem; font-size: 0.8125rem;">
+                    <button type="button" data-action="criar-pasta-modal" class="btn-secondary" style="padding: 0.4rem 0.75rem; font-size: 0.8125rem;">
                         <i class="fas fa-folder-plus" style="color: #f59e0b;"></i> <span>Nova Pasta</span>
                     </button>
                 </div>
@@ -1901,7 +2032,7 @@ export const estudosVisuaisView = {
                         ${pastasNoNivel.map(p => {
                             const qtd = (model.state[colecaoNome] || []).filter(i => String(i.pastaId) === String(p.id) && !i.naLixeira).length;
                             return `
-                                <div onclick="estudosVisuaisView.setPastaAtual('${p.id}')" class="interactive-element" style="padding: 0.75rem; background: var(--color-white); border: 1px solid var(--color-slate-200); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.2s;">
+                                <div data-action="selecionar-pasta" data-id="${p.id}" class="interactive-element" style="padding: 0.75rem; background: var(--color-white); border: 1px solid var(--color-slate-200); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: all 0.2s;">
                                     <div style="display: flex; align-items: center; gap: 0.625rem; overflow: hidden;">
                                         <i class="fas fa-folder" style="font-size: 1.25rem; color: #f59e0b; flex-shrink: 0;"></i>
                                         <span style="font-size: 0.8125rem; font-weight: 700; color: var(--color-slate-700); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${sanitizeComLatex(p.nome)}</span>
@@ -1992,20 +2123,32 @@ export const estudosVisuaisView = {
         });
 
         const modalHtml = `
-            <div style="display: flex; flex-direction: column; gap: 1rem;">
+            <div id="modal-mover-pasta-root" style="display: flex; flex-direction: column; gap: 1rem;">
                 <p style="font-size: 0.9375rem; color: #475569; font-weight: 600;">Selecione a pasta de destino para organizar este item:</p>
                 <select id="select-dest-pasta-estudo" class="form-select" style="font-size: 0.9375rem; padding: 0.6rem;">
                     ${optionsHtml}
                 </select>
                 <div style="display: flex; justify-content: flex-end; gap: var(--spacing-3); margin-top: var(--spacing-6); padding-top: var(--spacing-4); border-top: 1px solid var(--color-slate-200);">
-                    <button type="button" onclick="controller.closeModal()" class="btn-secondary">Cancelar</button>
-                    <button type="button" onclick="estudosVisuaisView.confirmarMoverParaPasta('${colecao}', '${itemId}')" class="btn-primary" style="background-color: #4f46e5;">
+                    <button type="button" data-action="fechar-modal" class="btn-secondary">Cancelar</button>
+                    <button type="button" data-action="confirmar-mover-pasta" data-colecao="${colecao}" data-id="${itemId}" class="btn-primary" style="background-color: #4f46e5;">
                         Mover Item
                     </button>
                 </div>
             </div>
         `;
         controller.openModal('Organizar em Pasta de Estudos', modalHtml, 'md');
+
+        const modalEl = document.getElementById('modal-mover-pasta-root');
+        if (modalEl) {
+            modalEl.querySelector('[data-action="fechar-modal"]')?.addEventListener('click', () => {
+                controller.closeModal();
+            });
+            modalEl.querySelector('[data-action="confirmar-mover-pasta"]')?.addEventListener('click', (e) => {
+                const col = e.currentTarget.getAttribute('data-colecao');
+                const id = e.currentTarget.getAttribute('data-id');
+                this.confirmarMoverParaPasta(col, id);
+            });
+        }
     },
 
     confirmarMoverParaPasta(colecao, itemId) {
@@ -2013,6 +2156,131 @@ export const estudosVisuaisView = {
         model.moverEstudoParaPasta(colecao, itemId, pId);
         controller.closeModal();
         this.render(this._getContainer());
+    },
+
+    _bindEventos(container) {
+        if (!container) return;
+
+        const unbindClick = EventDelegator.bind(container, {
+            'mudar-aba': (e, target) => {
+                const aba = target.getAttribute('data-aba');
+                this.mudarAba(aba);
+            },
+            'voltar-galeria': (e, target) => {
+                const aba = target.getAttribute('data-aba');
+                this.voltarParaGaleria(aba);
+            },
+            'abrir-modal-ia-fc': () => this.abrirModalIAFlashcards(),
+            'criar-novo-deck': () => this.criarNovoDeck(),
+            'desmarcar-todos-baralhos': () => this.desmarcarTodosBaralhos(),
+            'iniciar-estudo-combinado': () => this.iniciarEstudoCombinado(),
+            'mover-para-pasta': (e, target) => {
+                const colecao = target.getAttribute('data-colecao');
+                const id = target.getAttribute('data-id');
+                this.moverParaPastaModal(colecao, id);
+            },
+            'editar-deck': (e, target) => {
+                const id = target.getAttribute('data-id');
+                this.editarDeck(id);
+            },
+            'excluir-deck': (e, target) => {
+                const id = target.getAttribute('data-id');
+                this.excluirDeck(id);
+            },
+            'iniciar-estudo': (e, target) => {
+                const id = target.getAttribute('data-id');
+                this.iniciarEstudo(id);
+            },
+            'adicionar-carta-vazia': () => this.adicionarCartaVazia(),
+            'remover-carta': (e, target) => {
+                const index = parseInt(target.getAttribute('data-index'), 10);
+                this.removerCarta(index);
+            },
+            'toggle-preview-tex': (e, target) => {
+                const textareaId = target.getAttribute('data-textarea');
+                const previewId = target.getAttribute('data-preview');
+                const btnId = target.getAttribute('data-btn');
+                alternarModoEdicaoPreview(textareaId, previewId, btnId);
+            },
+            'salvar-dificuldades': () => this.salvarEmDificuldades(),
+            'abrir-modal-copiar': () => this.abrirModalCopiarCarta(),
+            'embaralhar': () => this.embaralharCartas(),
+            'virar-carta': () => this.virarCarta(),
+            'avaliar-carta': (e, target) => {
+                const score = target.getAttribute('data-score');
+                this.avaliarCarta(score);
+            },
+            'carta-anterior': () => this.cartaAnterior(),
+            'proxima-carta': () => this.proximaCarta(),
+            'abrir-modal-ia-mm': () => this.abrirModalIAMindmap(),
+            'criar-novo-mindmap': () => this.criarNovoMindmap(),
+            'abrir-mindmap': (e, target) => {
+                const id = target.getAttribute('data-id');
+                this.abrirMindmap(id);
+            },
+            'excluir-mindmap': (e, target) => {
+                const id = target.getAttribute('data-id');
+                this.excluirMindmap(id);
+            },
+            'centralizar-mindmap': () => this.centralizarMindmap(),
+            'exportar-svg': () => this.exportarSVG(),
+            'imprimir-mindmap': () => window.print(),
+            'zoom-in': () => this.ajustarZoom(0.15),
+            'zoom-out': () => this.ajustarZoom(-0.15),
+            'resetar-zoom': () => this.resetarZoom(),
+            'pasta-raiz': () => this.setPastaAtual(null),
+            'excluir-pasta': (e, target) => {
+                const id = target.getAttribute('data-id');
+                this.excluirPasta(id);
+            },
+            'criar-pasta-modal': () => this.criarPastaModal(),
+            'selecionar-pasta': (e, target) => {
+                const id = target.getAttribute('data-id');
+                this.setPastaAtual(id);
+            },
+            'toggle-recolher-no': (e, target) => {
+                e.stopPropagation();
+                const id = target.getAttribute('data-id');
+                this.toggleRecolherNo(id);
+            },
+            'adicionar-filho-no': (e, target) => {
+                e.stopPropagation();
+                const id = target.getAttribute('data-id');
+                this.adicionarFilho(id);
+            },
+            'editar-no-modal': (e, target) => {
+                e.stopPropagation();
+                const id = target.getAttribute('data-id');
+                this.editarNoModal(id);
+            },
+            'excluir-no': (e, target) => {
+                e.stopPropagation();
+                const id = target.getAttribute('data-id');
+                this.excluirNo(id);
+            }
+        }, 'click');
+
+        const unbindChange = EventDelegator.bind(container, {
+            'toggle-selecionar-baralho': (e, target) => {
+                const id = target.getAttribute('data-id');
+                this.toggleSelecionarBaralho(id, target.checked);
+            },
+            'salvar-titulo-deck': (e, target) => {
+                this.salvarTituloDeck(target.value);
+            },
+            'salvar-carta': (e, target) => {
+                const index = parseInt(target.getAttribute('data-index'), 10);
+                this.salvarCarta(index);
+            },
+            'salvar-titulo-mindmap': (e, target) => {
+                this.salvarTituloMindmap(target.value);
+            }
+        }, 'change');
+
+        this._cleanupDelegators = () => {
+            if (typeof unbindClick === 'function') unbindClick();
+            if (typeof unbindChange === 'function') unbindChange();
+        };
     }
 };
 

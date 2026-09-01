@@ -1,10 +1,8 @@
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
-import { ModalComponent } from '../components/modal.js';
-import { PaginatorComponent } from '../components/paginator.js';
 import { aiService } from '../ai-service.js';
-import { renderKatex, formatarTextoComLatex, sanitizeComLatex, alternarModoEdicaoPreview, lerArquivoTexto } from '../utils.js';
+import { renderKatex, sanitizeComLatex, alternarModoEdicaoPreview, lerArquivoTexto } from '../utils.js';
 import { EventDelegator } from '../utils/eventDelegator.js';
 import { tableHelper } from '../utils/tableHelper.js';
 
@@ -139,42 +137,42 @@ export const provasView = {
                 <div class="provas-filters-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1rem;">
                     <div>
                         <label class="form-label">Disciplina</label>
-                        <select onchange="provasView.atualizarFiltro('materia', this.value)" class="form-select">
+                        <select data-action="alterar-filtro" data-campo="materia" class="form-select">
                             <option value="">Todas as Matérias</option>
                             ${this.disciplinas.map(d => `<option value="${d}" ${this.filtros.materia === d ? 'selected' : ''}>${d}</option>`).join('')}
                         </select>
                     </div>
                     <div>
                         <label class="form-label">${this.abaAtiva === 'enem' ? 'Edição ENEM' : 'Série/Ano'}</label>
-                        <select onchange="provasView.atualizarFiltro('ano', this.value)" class="form-select">
+                        <select data-action="alterar-filtro" data-campo="ano" class="form-select">
                             <option value="">${this.abaAtiva === 'enem' ? 'Todas as Edições' : 'Todos os Anos'}</option>
                             ${listaAnos.map(s => `<option value="${s}" ${this.filtros.ano === s ? 'selected' : ''}>${s}</option>`).join('')}
                         </select>
                     </div>
                     <div>
                         <label class="form-label">Bimestre</label>
-                        <select onchange="provasView.atualizarFiltro('bimestre', this.value)" class="form-select">
+                        <select data-action="alterar-filtro" data-campo="bimestre" class="form-select">
                             <option value="">Todos os Bimestres</option>
                             ${this.bimestresDisponiveis.map(b => `<option value="${b}" ${this.filtros.bimestre === b ? 'selected' : ''}>${b}</option>`).join('')}
                         </select>
                     </div>
                     <div>
                         <label class="form-label">Descritor SAEB</label>
-                        <select onchange="provasView.atualizarFiltro('saeb', this.value)" class="form-select">
+                        <select data-action="alterar-filtro" data-campo="saeb" class="form-select">
                             <option value="">Todos os Descritores</option>
                             ${descritores.map(d => `<option value="${d.codigo}" ${this.filtros.saeb === d.codigo ? 'selected' : ''}>${d.codigo} - ${window.escapeHTML(d.disciplina)}</option>`).join('')}
                         </select>
                     </div>
                     <div>
                         <label class="form-label">Escola</label>
-                        <select onchange="provasView.atualizarFiltro('escola', this.value)" class="form-select">
+                        <select data-action="alterar-filtro" data-campo="escola" class="form-select">
                             <option value="">Todas as Escolas</option>
                             ${this.obterListaEscolas().map(esc => `<option value="${window.escapeHTML(esc)}" ${this.filtros.escola === esc ? 'selected' : ''}>${window.escapeHTML(esc)}</option>`).join('')}
                         </select>
                     </div>
                     <div>
                         <label class="form-label">Tipo</label>
-                        <select onchange="provasView.atualizarFiltro('tipo', this.value)" class="form-select">
+                        <select data-action="alterar-filtro" data-campo="tipo" class="form-select">
                             <option value="">Todos os Tipos</option>
                             <option value="multipla" ${this.filtros.tipo === 'multipla' ? 'selected' : ''}>Múltipla Escolha</option>
                             <option value="aberta" ${this.filtros.tipo === 'aberta' ? 'selected' : ''}>Dissertativa</option>
@@ -186,7 +184,7 @@ export const provasView = {
                     <i class="fas fa-search" style="position: absolute; left: 1rem; top: 50%; transform: translateY(-50%); color: var(--color-slate-400);"></i>
                     <input type="text" id="input-busca-provas" placeholder="Pesquisar por enunciado, código BNCC, Descritor SAEB ou escola..." 
                         class="form-input" style="padding-left: 2.75rem; width: 100%;"
-                        oninput="provasView.atualizarBusca(this.value)" value="${this.termoBusca}">
+                        data-action="buscar-provas" value="${this.termoBusca}">
                 </div>
             </div>`;
     },
@@ -275,7 +273,7 @@ export const provasView = {
                         <div style="display: flex; align-items: center; background-color: #ffffff; border-radius: 0.75rem; border: 1px solid #e2e8f0; padding: 0.25rem 0.75rem; box-shadow: var(--shadow-sm);">
                             <label class="form-label" style="margin-bottom: 0; margin-right: 0.5rem;">Itens p/ pág:</label>
                             <div class="custom-dropdown relative" style="width: 6rem;">
-                                <input type="hidden" onchange="provasView.mudarQtdPagina(this.value)" value="${this.itensPorPagina}">
+                                <input type="hidden" data-action="mudar-qtd-pagina" value="${this.itensPorPagina}">
                                 <button type="button" class="dropdown-button w-full flex items-center justify-between bg-transparent border-none text-sm font-bold text-slate-700">
                                     <span class="dropdown-label truncate">${this.itensPorPagina === 'all' ? 'Todas' : this.itensPorPagina}</span>
                                     <i class="fas fa-chevron-down text-slate-400 text-xs-micro ml-1"></i>
@@ -351,7 +349,7 @@ export const provasView = {
         `;
         container.innerHTML = html;
 
-        this._cleanupDelegators = EventDelegator.bind(container, {
+        const cleanClick = EventDelegator.bind(container, {
             'nav-stats-provas': () => controller.navigate('stats-provas'),
             'nav-comunidade': () => controller.navigate('comunidade'),
             'open-add-questao': () => this.openAddQuestao(),
@@ -400,6 +398,36 @@ export const provasView = {
                 if (id) this.toggleSelecao(id);
             }
         }, 'click');
+
+        const cleanChange = EventDelegator.bind(container, {
+            'alterar-filtro': (e, target) => {
+                const campo = target.getAttribute('data-campo');
+                if (campo) this.atualizarFiltro(campo, target.value);
+            },
+            'mudar-qtd-pagina': (e, target) => {
+                this.mudarQtdPagina(target.value);
+            }
+        }, 'change');
+
+        const cleanInput = EventDelegator.bind(container, {
+            'buscar-provas': (e, target) => {
+                this.atualizarBusca(target.value);
+            }
+        }, 'input');
+
+        const unbindModel = model.on('questoes:changed', () => {
+            const c = document.getElementById('view-container');
+            if (c && window.controller?.currentView === 'provas') {
+                this.render(c);
+            }
+        });
+
+        this._cleanupDelegators = () => {
+            if (typeof cleanClick === 'function') cleanClick();
+            if (typeof cleanChange === 'function') cleanChange();
+            if (typeof cleanInput === 'function') cleanInput();
+            if (typeof unbindModel === 'function') unbindModel();
+        };
 
         this.renderizarLatex(container);
         questoesPaginadas.forEach(async (q) => {
@@ -662,11 +690,11 @@ export const provasView = {
         const habilidadeHtml = dados.bncc
             ? `<div style="background-color: #fefce8; border: 1px solid #fef08a; padding: 0.75rem; border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: space-between;">
                  <div><span style="font-weight: 700; color: #a16207; font-size: 0.75rem;">${dados.bncc.codigo}</span><p style="font-size: 0.75rem; color: #ca8a04; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;">${dados.bncc.descricao}</p></div>
-                 <button onclick="document.getElementById('q-bncc-cod').value=''; provasView.openAddQuestao({...provasView.getDataModal(), bncc: null})" style="color: #ca8a04; background: none; border: none; cursor: pointer;" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#ca8a04'"><i class="fas fa-times"></i></button>
+                 <button type="button" data-action="limpar-bncc-modal" style="color: #ca8a04; background: none; border: none; cursor: pointer;"><i class="fas fa-times"></i></button>
                </div>`
-            : `<button onclick="provasView.preservarEstadoEBuscarBNCC()" style="width: 100%; padding: 0.75rem; border: 2px dashed var(--color-slate-200); border-radius: var(--radius-xl); color: var(--color-slate-400); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: none; cursor: pointer; transition: all var(--transition-fast);" onmouseover="this.style.borderColor='var(--color-primary)'; this.style.color='var(--color-primary)'; this.style.backgroundColor='#eff6ff';" onmouseout="this.style.borderColor='var(--color-slate-200)'; this.style.color='var(--color-slate-400)'; this.style.backgroundColor='transparent';"><i class="fas fa-search"></i> Selecionar Habilidade BNCC</button>`;
+            : `<button type="button" data-action="buscar-bncc-modal" style="width: 100%; padding: 0.75rem; border: 2px dashed var(--color-slate-200); border-radius: var(--radius-xl); color: var(--color-slate-400); font-size: 0.75rem; font-weight: 700; text-transform: uppercase; display: flex; align-items: center; justify-content: center; gap: 0.5rem; background: none; cursor: pointer; transition: all var(--transition-fast);"><i class="fas fa-search"></i> Selecionar Habilidade BNCC</button>`;
         const html = `
-            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
+            <div id="modal-add-questao-wrap" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem;">
                 <input type="hidden" id="q-id" value="${dados.id || ''}">
                 <input type="hidden" id="q-created-at" value="${dados.createdAt || ''}">
                 <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem;" class="grid-md-2">
@@ -706,7 +734,7 @@ export const provasView = {
                 <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem;" class="grid-md-2">
                     <div>
                         <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--color-slate-400); text-transform: uppercase; margin-bottom: 0.25rem;">Tipo</label>
-                        <select id="q-tipo" onchange="provasView.mudarTipoQuestao()" class="input-default" style="width: 100%; border: 1px solid var(--color-slate-200); padding: 0.5rem; border-radius: var(--radius-lg); outline: none; background-color: var(--color-white); font-size: 0.875rem; font-weight: 500;">
+                        <select id="q-tipo" class="input-default" style="width: 100%; border: 1px solid var(--color-slate-200); padding: 0.5rem; border-radius: var(--radius-lg); outline: none; background-color: var(--color-white); font-size: 0.875rem; font-weight: 500;">
                             <option value="aberta" ${dados.tipo === 'aberta' ? 'selected' : ''}>Dissertativa</option>
                             <option value="multipla" ${dados.tipo === 'multipla' ? 'selected' : ''}>Múltipla Escolha</option>
                         </select>
@@ -723,7 +751,7 @@ export const provasView = {
                 </div>
                 <div id="container-qtd-alt" class="${dados.tipo === 'multipla' ? '' : 'hidden'}">
                     <label style="display: block; font-size: 0.75rem; font-weight: 700; color: var(--color-slate-400); text-transform: uppercase; margin-bottom: 0.25rem;">Quantidade de Alternativas</label>
-                    <select id="q-qtd-alt" onchange="provasView.gerarInputsAlternativas()" class="input-default" style="width: 100%; border: 1px solid var(--color-slate-200); padding: 0.5rem; border-radius: var(--radius-lg); outline: none; background-color: var(--color-white); font-size: 0.875rem; font-weight: 500;">
+                    <select id="q-qtd-alt" class="input-default" style="width: 100%; border: 1px solid var(--color-slate-200); padding: 0.5rem; border-radius: var(--radius-lg); outline: none; background-color: var(--color-white); font-size: 0.875rem; font-weight: 500;">
                         <option value="3" ${dados.alternativas?.length === 3 ? 'selected' : ''}>3</option>
                         <option value="4" ${dados.alternativas?.length === 4 || !dados.id ? 'selected' : ''}>4</option>
                         <option value="5" ${dados.alternativas?.length === 5 ? 'selected' : ''}>5</option>
@@ -739,10 +767,10 @@ export const provasView = {
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; flex-wrap: wrap; gap: 0.5rem;">
                         <label style="font-size: 0.75rem; font-weight: 700; color: var(--color-slate-400); text-transform: uppercase;">Enunciado (Suporta TeX/LaTeX & Tabelas)</label>
                         <div style="display: flex; gap: 0.35rem;">
-                            <button type="button" onclick="tableHelper.abrirModalInserirTabela('q-enunciado')" class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.6875rem; font-weight: 700; color: #4f46e5; border-color: #c7d2fe; background: #eff6ff;" title="Inserir Tabela Estruturada">
+                            <button type="button" data-action="inserir-tabela-enunciado" class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.6875rem; font-weight: 700; color: #4f46e5; border-color: #c7d2fe; background: #eff6ff;" title="Inserir Tabela Estruturada">
                                 <i class="fas fa-table"></i> + Tabela
                             </button>
-                            <button type="button" onclick="alternarModoEdicaoPreview('q-enunciado', 'preview-q-enunciado', 'btn-prev-q-enunciado')" id="btn-prev-q-enunciado" class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.6875rem;">
+                            <button type="button" data-action="preview-tex-enunciado" id="btn-prev-q-enunciado" class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.6875rem;">
                                 <i class="fas fa-eye"></i> Visualizar (TeX)
                             </button>
                         </div>
@@ -756,7 +784,7 @@ export const provasView = {
                 <div id="area-gabarito" class="${dados.tipo === 'multipla' ? 'hidden' : ''}" style="margin-top: 0.5rem; border-top: 1px solid var(--color-slate-100); padding-top: 0.75rem;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
                         <label style="font-size: 0.75rem; font-weight: 700; color: var(--color-slate-400); text-transform: uppercase;">Resposta / Gabarito Sugerido</label>
-                        <button type="button" onclick="alternarModoEdicaoPreview('q-gabarito', 'preview-q-gabarito', 'btn-prev-q-gabarito')" id="btn-prev-q-gabarito" class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.6875rem;">
+                        <button type="button" data-action="preview-tex-gabarito" id="btn-prev-q-gabarito" class="btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.6875rem;">
                             <i class="fas fa-eye"></i> Visualizar (TeX)
                         </button>
                     </div>
@@ -776,7 +804,7 @@ export const provasView = {
                             <div style="display: flex; gap: 0.375rem; align-items: center;">
                                 <label class="btn-outline" style="cursor: pointer; padding: 0.375rem 0.625rem; font-size: 0.6875rem; display: flex; align-items: center; gap: 0.25rem; background-color: #fff;">
                                     <i class="fas fa-paperclip"></i> <span>Anexar Arquivo</span>
-                                    <input type="file" id="q-file-input" accept=".txt,.md,.pdf,.csv,.json" style="display: none;" onchange="provasView.carregarArquivoQuestao(this)">
+                                    <input type="file" id="q-file-input" accept=".txt,.md,.pdf,.csv,.json" style="display: none;">
                                 </label>
                                 <span id="q-nome-arquivo" style="font-size: 0.6875rem; color: var(--color-slate-500); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 220px;"></span>
                             </div>
@@ -787,8 +815,8 @@ export const provasView = {
                             <i class="fas fa-robot" style="color: #4f46e5; margin-right: 0.5rem;"></i> 
                             <span style="font-size: 0.75rem; font-weight: 700; color: #4f46e5; text-transform: uppercase;">A IA está elaborando a questão...</span>
                         </div>
-                        <button onclick="provasView.gerarComIA()" 
-                            style="width: 100%; background: linear-gradient(to right, #4f46e5, #9333ea); color: var(--color-white); padding: 0.75rem; border-radius: var(--radius-xl); font-weight: 700; box-shadow: var(--shadow-lg); transition: all var(--transition-fast); display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; border: none; cursor: pointer;" onmouseover="this.style.filter='brightness(1.1)'" onmouseout="this.style.filter='none'">
+                        <button type="button" data-action="gerar-questao-ia-btn" 
+                            style="width: 100%; background: linear-gradient(to right, #4f46e5, #9333ea); color: var(--color-white); padding: 0.75rem; border-radius: var(--radius-xl); font-weight: 700; box-shadow: var(--shadow-lg); transition: all var(--transition-fast); display: flex; align-items: center; justify-content: center; gap: 0.5rem; margin-bottom: 1rem; border: none; cursor: pointer;">
                             <i class="fas fa-robot"></i> Gerar Questão com IA
                         </button>
                         
@@ -799,20 +827,52 @@ export const provasView = {
                         </div>
                     </div>
                     <div style="display: flex; justify-content: flex-end; gap: 0.75rem; padding-top: 1rem;">
-                        <button onclick="controller.closeModal()" style="padding: 0.625rem 1.25rem; color: var(--color-slate-500); font-weight: 700; border-radius: var(--radius-xl); background: none; border: none; cursor: pointer; transition: background-color var(--transition-fast);" onmouseover="this.style.backgroundColor='var(--color-slate-50)'" onmouseout="this.style.backgroundColor='transparent'">Cancelar</button>
-                        <button onclick="provasView.salvarQuestao()" class="btn-primary" style="padding: 0.625rem 2rem; border-radius: var(--radius-xl); font-weight: 700; box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2);">
+                        <button type="button" data-action="fechar-modal-questao" style="padding: 0.625rem 1.25rem; color: var(--color-slate-500); font-weight: 700; border-radius: var(--radius-xl); background: none; border: none; cursor: pointer; transition: background-color var(--transition-fast);">Cancelar</button>
+                        <button type="button" data-action="salvar-questao-btn" class="btn-primary" style="padding: 0.625rem 2rem; border-radius: var(--radius-xl); font-weight: 700; box-shadow: 0 10px 15px -3px rgba(59, 130, 246, 0.2);">
                             ${dados.id ? 'Salvar Alterações' : 'Salvar Questão'}
                         </button>
                     </div>
                 </div>
             </div>`;
         controller.openModal(dados.id ? 'Editar Questão' : 'Nova Questão', html);
+
+        const modalWrap = document.getElementById('modal-add-questao-wrap');
+        if (modalWrap) {
+            EventDelegator.bind(modalWrap, {
+                'limpar-bncc-modal': () => {
+                    const el = document.getElementById('q-bncc-cod');
+                    if (el) el.value = '';
+                    this.openAddQuestao({ ...this.getDataModal(), bncc: null });
+                },
+                'buscar-bncc-modal': () => this.preservarEstadoEBuscarBNCC(),
+                'inserir-tabela-enunciado': () => tableHelper.abrirModalInserirTabela('q-enunciado'),
+                'preview-tex-enunciado': () => alternarModoEdicaoPreview('q-enunciado', 'preview-q-enunciado', 'btn-prev-q-enunciado'),
+                'preview-tex-gabarito': () => alternarModoEdicaoPreview('q-gabarito', 'preview-q-gabarito', 'btn-prev-q-gabarito'),
+                'gerar-questao-ia-btn': () => this.gerarComIA(),
+                'fechar-modal-questao': () => controller.closeModal(),
+                'salvar-questao-btn': () => this.salvarQuestao()
+            }, 'click');
+
+            const selectTipo = document.getElementById('q-tipo');
+            if (selectTipo) {
+                selectTipo.addEventListener('change', () => this.mudarTipoQuestao());
+            }
+            const selectQtdAlt = document.getElementById('q-qtd-alt');
+            if (selectQtdAlt) {
+                selectQtdAlt.addEventListener('change', () => this.gerarInputsAlternativas());
+            }
+            const fileInput = document.getElementById('q-file-input');
+            if (fileInput) {
+                fileInput.addEventListener('change', (e) => this.carregarArquivoQuestao(e.target));
+            }
+        }
+
         setTimeout(() => {
             if (window.anexarPreviewLatex) {
                 window.anexarPreviewLatex('q-enunciado', 'preview-q-enunciado');
             }
-            if (dados.tipo === 'multipla') provasView.gerarInputsAlternativas(dados.alternativas, dados.correta);
-            else provasView.mudarTipoQuestao();
+            if (dados.tipo === 'multipla') this.gerarInputsAlternativas(dados.alternativas, dados.correta);
+            else this.mudarTipoQuestao();
         }, 50);
     },
     async carregarArquivoQuestao(input) {
@@ -1040,7 +1100,7 @@ export const provasView = {
                     <label class="form-label" style="font-weight: 800; color: #334155; margin-bottom: 0.5rem;">1. Versão do Documento</label>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 0.75rem;">
                         <label id="lbl-prova-aluno" class="card interactive-element" style="padding: 0.75rem; border: 2px solid #3b82f6; background-color: #eff6ff; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;">
-                            <input type="radio" name="prova-print-tipo" value="aluno" checked onchange="provasView.atualizarSelecaoPrintTipo(this.value)">
+                            <input type="radio" name="prova-print-tipo" value="aluno" checked data-action="mudar-print-tipo">
                             <div>
                                 <strong style="font-size: 0.875rem; color: #1d4ed8; display: block;"><i class="fas fa-user-graduate"></i> Padrão Aluno</strong>
                                 <span style="font-size: 0.6875rem; color: #64748b;">Sem gabarito.</span>
@@ -1048,7 +1108,7 @@ export const provasView = {
                         </label>
 
                         <label id="lbl-prova-professor" class="card interactive-element" style="padding: 0.75rem; border: 2px solid #e2e8f0; background-color: #ffffff; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;">
-                            <input type="radio" name="prova-print-tipo" value="professor" onchange="provasView.atualizarSelecaoPrintTipo(this.value)">
+                            <input type="radio" name="prova-print-tipo" value="professor" data-action="mudar-print-tipo">
                             <div>
                                 <strong style="font-size: 0.875rem; color: #15803d; display: block;"><i class="fas fa-chalkboard-teacher"></i> Guia Professor</strong>
                                 <span style="font-size: 0.6875rem; color: #64748b;">Gabarito comentado.</span>
@@ -1056,7 +1116,7 @@ export const provasView = {
                         </label>
 
                         <label id="lbl-prova-acessivel" class="card interactive-element" style="padding: 0.75rem; border: 2px solid #e2e8f0; background-color: #ffffff; cursor: pointer; display: flex; align-items: center; gap: 0.75rem;">
-                            <input type="radio" name="prova-print-tipo" value="acessivel" onchange="provasView.atualizarSelecaoPrintTipo(this.value)">
+                            <input type="radio" name="prova-print-tipo" value="acessivel" data-action="mudar-print-tipo">
                             <div>
                                 <strong style="font-size: 0.875rem; color: #c2410c; display: block;"><i class="fas fa-universal-access"></i> Acessível (AEE)</strong>
                                 <span style="font-size: 0.6875rem; color: #64748b;">Fonte ampliada e alto contraste.</span>
@@ -1107,19 +1167,37 @@ export const provasView = {
                     </div>
                 </div>
 
-                <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-top: 0.25rem;">
-                    <button type="button" onclick="provasView.abrirPreviaImpressao()" class="btn-secondary interactive-element" style="display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; border-color: #cbd5e1; color: #334155;">
+                <div id="modal-impressao-botoes-wrap" style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-top: 0.25rem;">
+                    <button type="button" data-action="ver-previa-a4-btn" class="btn-secondary interactive-element" style="display: inline-flex; align-items: center; gap: 0.5rem; font-weight: 700; border-color: #cbd5e1; color: #334155;">
                         <i class="fas fa-eye"></i> Ver Prévia A4
                     </button>
                     <div style="display: flex; gap: 0.75rem;">
-                        <button type="button" onclick="controller.closeModal()" class="btn-secondary">Cancelar</button>
-                        <button type="button" onclick="provasView.dispararImpressaoCustomizada()" class="btn-primary interactive-element" style="background-color: #4f46e5; padding: 0.6rem 1.5rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.5rem;">
+                        <button type="button" data-action="cancelar-impressao-btn" class="btn-secondary">Cancelar</button>
+                        <button type="button" data-action="disparar-impressao-btn" class="btn-primary interactive-element" style="background-color: #4f46e5; padding: 0.6rem 1.5rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.5rem;">
                             <i class="fas fa-print"></i> Abrir Impressão / PDF
                         </button>
                     </div>
                 </div>
             </div>`;
         controller.openModal('Impressão da Prova', html);
+
+        const wrap = document.getElementById('modal-impressao-botoes-wrap');
+        if (wrap) {
+            EventDelegator.bind(wrap, {
+                'ver-previa-a4-btn': () => this.abrirPreviaImpressao(),
+                'cancelar-impressao-btn': () => controller.closeModal(),
+                'disparar-impressao-btn': () => this.dispararImpressaoCustomizada()
+            }, 'click');
+        }
+
+        const modalContainer = document.getElementById('global-modal');
+        if (modalContainer) {
+            EventDelegator.bind(modalContainer, {
+                'mudar-print-tipo': (e, target) => {
+                    this.atualizarSelecaoPrintTipo(target.value);
+                }
+            }, 'change');
+        }
     },
 
     atualizarSelecaoPrintTipo(tipo) {
@@ -1168,17 +1246,17 @@ export const provasView = {
         if (!htmlDoc) return;
 
         const modalHtml = `
-            <div style="display: flex; flex-direction: column; gap: 1rem; height: 82vh;">
+            <div id="modal-previa-prova-wrap" style="display: flex; flex-direction: column; gap: 1rem; height: 82vh;">
                 <div style="display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.75rem;">
                     <div>
                         <h3 style="font-size: 1.125rem; font-weight: 800; color: #1e293b; margin: 0;">Prévia da Avaliação (A4)</h3>
                         <p style="font-size: 0.75rem; color: #64748b; margin: 0;">Visualização em tempo real das questões e diagramação.</p>
                     </div>
                     <div style="display: flex; gap: 0.5rem;">
-                        <button type="button" onclick="provasView.imprimirProva(provasView.tempPreviaConfig)" class="btn-primary interactive-element" style="background-color: #4f46e5; font-size: 0.8125rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1.25rem;">
+                        <button type="button" data-action="imprimir-previa-btn" class="btn-primary interactive-element" style="background-color: #4f46e5; font-size: 0.8125rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.5rem 1.25rem;">
                             <i class="fas fa-print"></i> Imprimir / Gerar PDF
                         </button>
-                        <button type="button" onclick="provasView.abrirOpcoesImpressao()" class="btn-secondary" style="font-size: 0.8125rem; font-weight: 700;">
+                        <button type="button" data-action="ajustar-opcoes-btn" class="btn-secondary" style="font-size: 0.8125rem; font-weight: 700;">
                             <i class="fas fa-sliders-h"></i> Ajustar Opções
                         </button>
                     </div>
@@ -1194,6 +1272,14 @@ export const provasView = {
 
         this.tempPreviaConfig = config;
         controller.openModal('Prévia da Prova', modalHtml);
+
+        const previaWrap = document.getElementById('modal-previa-prova-wrap');
+        if (previaWrap) {
+            EventDelegator.bind(previaWrap, {
+                'imprimir-previa-btn': () => this.imprimirProva(this.tempPreviaConfig),
+                'ajustar-opcoes-btn': () => this.abrirOpcoesImpressao()
+            }, 'click');
+        }
 
         setTimeout(() => {
             const iframe = document.getElementById('iframe-previa-prova');
@@ -1479,7 +1565,7 @@ export const provasView = {
             </head>
             <body>
                 ${forPrint ? `
-                    <button onclick="window.close()" class="btn-voltar">
+                    <button type="button" id="btn-voltar-janela" class="btn-voltar">
                         <i class="fas fa-arrow-left"></i> Voltar para o App
                     </button>
                 ` : ''}
@@ -1503,16 +1589,15 @@ export const provasView = {
                 <div class="titulo-prova">${tituloDoc}</div>
                 <div id="conteudo-prova" class="container-questoes-prova">${questoesHtml}</div>
                 <script>
+                    document.getElementById('btn-voltar-janela')?.addEventListener('click', () => window.close());
                     let impresso = false;
                     function iniciarImpressao() {
                         if (typeof renderMathInElement === 'function') {
                             try {
                                 renderMathInElement(document.body, {
                                     delimiters: [
-                                        { left: '$$', right: '$$', display: true },
                                         { left: '\\\\[', right: '\\\\]', display: true },
-                                        { left: '\\\\(', right: '\\\\)', display: false },
-                                        { left: '$', right: '$', display: false }
+                                        { left: '\\\\(', right: '\\\\)', display: false }
                                     ],
                                     throwOnError: false
                                 });
@@ -1525,10 +1610,10 @@ export const provasView = {
                             }
                         ` : ''}
                     }
-                    if (document.readyState === 'complete') {
-                        iniciarImpressao();
+                    if (document.readyState === 'loading') {
+                        document.addEventListener('DOMContentLoaded', iniciarImpressao);
                     } else {
-                        window.addEventListener('load', iniciarImpressao);
+                        iniciarImpressao();
                     }
                 <\/script>
             </body>
@@ -1548,6 +1633,17 @@ export const provasView = {
             win.document.write(safeHtml);
             win.document.close();
         }
+    },
+
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+    },
+
+    onLeave() {
+        this.destroy();
     }
 };
 

@@ -10,8 +10,6 @@ import { dataProxy } from '../services/dataProxy.js';
 import { uiController } from '../controllers/uiController.js';
 import { Toast } from '../components/toast.js';
 import { ModalComponent } from '../components/modal.js';
-import { PaginatorComponent } from '../components/paginator.js';
-import { FilterBarComponent } from '../components/filterBar.js';
 import { EventDelegator } from '../utils/eventDelegator.js';
 import { renderKatex, formatarTextoComLatex, sanitizeComLatex } from '../utils.js';
 
@@ -779,7 +777,7 @@ export const comunidadeView = {
                     label: 'Importar para Minha Biblioteca',
                     icon: 'fa-download',
                     class: 'btn-primary',
-                    onClick: () => {
+                    handler: () => {
                         this.importarMaterialComunidade(mat.id);
                         modal.close();
                     }

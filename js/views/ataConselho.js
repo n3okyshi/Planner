@@ -12,14 +12,29 @@ import { uiController } from '../controllers/uiController.js';
 import { storageService } from '../services/storageService.js';
 import { Toast } from '../components/toast.js';
 import { renderKatex } from '../utils.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 
 export const ataConselhoView = {
     turmaIdSelecionada: null,
     filtroRisco: 'todos', // 'todos' | 'critico' | 'rendimento' | 'frequencia' | 'aprovado'
+    _cleanupDelegators: null,
+
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+    },
+
+    onLeave() {
+        this.destroy();
+    },
 
     async render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+
+        this.destroy();
 
         const turmas = model.state.turmas || [];
         const config = model.state.userConfig || {};
@@ -65,7 +80,7 @@ export const ataConselhoView = {
                     <div style="display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap;">
                         <!-- Seletor de Turma -->
                         <div class="custom-dropdown" style="min-width: 220px;">
-                            <input type="hidden" id="select-turma-conselho" onchange="ataConselhoView.selecionarTurma(this.value)" value="${this.turmaIdSelecionada || ''}">
+                            <input type="hidden" id="select-turma-conselho" data-action="selecionar-turma" value="${this.turmaIdSelecionada || ''}">
                             <button type="button" class="dropdown-button">
                                 <i class="fas fa-users" style="color: var(--color-slate-400); margin-right: var(--spacing-2);"></i>
                                 <span class="dropdown-label">${turmaAtual ? window.escapeHTML(turmaAtual.nome) : 'Selecionar Turma...'}</span>
@@ -80,27 +95,27 @@ export const ataConselhoView = {
                         </div>
 
                         <!-- Botão Imprimir / Gerar PDF Nativo -->
-                        <button type="button" onclick="ataConselhoView.imprimir()" class="btn-primary" title="Imprimir Ata Oficial ou Salvar como PDF">
+                        <button type="button" data-action="imprimir-ata" class="btn-primary" title="Imprimir Ata Oficial ou Salvar como PDF">
                             <i class="fas fa-print"></i> <span>Imprimir Ata Oficial</span>
                         </button>
 
                         <!-- Botão Exportar CSV (SED/SIGE) -->
-                        <button type="button" onclick="ataConselhoView.exportarCSV()" class="btn-secondary" title="Exportar CSV compatível com Excel e SED/SIGE">
+                        <button type="button" data-action="exportar-csv" class="btn-secondary" title="Exportar CSV compatível com Excel e SED/SIGE">
                             <i class="fas fa-file-csv text-emerald-600"></i> <span>Exportar CSV (SED)</span>
                         </button>
 
                         <!-- Botão Ata de Reunião de Pais -->
-                        <button type="button" onclick="ataConselhoView.abrirModalAtaReuniaoPais()" class="btn-secondary" title="Gerar Ata de Reunião de Pais com Lista de Presença para Assinatura (A4)">
+                        <button type="button" data-action="abrir-modal-ata-pais" class="btn-secondary" title="Gerar Ata de Reunião de Pais com Lista de Presença para Assinatura (A4)">
                             <i class="fas fa-users" style="color: var(--color-primary);"></i> <span>Ata Reunião de Pais</span>
                         </button>
 
                         <!-- Botão Gerador de Pareceres Descritivos -->
-                        <button type="button" onclick="ataConselhoView.abrirGeradorParecerModal()" class="btn-secondary" title="Gerar e copiar pareceres descritivos para boletins e atas">
+                        <button type="button" data-action="abrir-gerador-pareceres" class="btn-secondary" title="Gerar e copiar pareceres descritivos para boletins e atas">
                             <i class="fas fa-comment-medical text-purple-600"></i> <span>Gerar Pareceres</span>
                         </button>
 
                         <!-- Botão Exportar JSON -->
-                        <button type="button" onclick="ataConselhoView.exportarJSON()" class="btn-secondary" title="Exportar JSON para o Censo Escolar">
+                        <button type="button" data-action="exportar-json" class="btn-secondary" title="Exportar JSON para o Censo Escolar">
                             <i class="fas fa-file-code text-indigo-600"></i> <span>JSON</span>
                         </button>
                     </div>
@@ -237,14 +252,16 @@ export const ataConselhoView = {
                                                        style="padding: 0.35rem 0.5rem; font-size: 0.8125rem;" 
                                                        value="${window.escapeHTML(aluno.deliberacao || '')}" 
                                                        placeholder="Observações do Conselho..."
-                                                       onchange="ataConselhoView.salvarDeliberacao('${turmaAtual.id}', '${aluno.id}', this.value)">
+                                                       data-action="salvar-deliberacao"
+                                                       data-turma="${turmaAtual.id}"
+                                                       data-aluno="${aluno.id}">
                                             </td>
                                         </tr>
                                     `;
                                 }).join('') : `
                                     <tr>
                                         <td colspan="10" style="padding: 3rem; text-align: center; color: var(--color-slate-400);">
-                                            Nenhum estudante matriculado nesta turma.
+                                             Nenhum estudante matriculado nesta turma.
                                         </td>
                                     </tr>
                                 `}
@@ -278,8 +295,35 @@ export const ataConselhoView = {
         `;
 
         container.innerHTML = html;
+        this._bindEventos(container);
         uiController.initAllDropdowns(container);
         renderKatex(container);
+    },
+
+    _bindEventos(container) {
+        if (!container) return;
+
+        const unbindClick = EventDelegator.bind(container, {
+            'imprimir-ata': () => this.imprimir(),
+            'exportar-csv': () => this.exportarCSV(),
+            'abrir-modal-ata-pais': () => this.abrirModalAtaReuniaoPais(),
+            'abrir-gerador-pareceres': () => this.abrirGeradorParecerModal(),
+            'exportar-json': () => this.exportarJSON()
+        }, 'click');
+
+        const unbindChange = EventDelegator.bind(container, {
+            'selecionar-turma': (e, target) => this.selecionarTurma(target.value),
+            'salvar-deliberacao': (e, target) => {
+                const turmaId = target.getAttribute('data-turma');
+                const alunoId = target.getAttribute('data-aluno');
+                this.salvarDeliberacao(turmaId, alunoId, target.value);
+            }
+        }, 'change');
+
+        this._cleanupDelegators = () => {
+            if (typeof unbindClick === 'function') unbindClick();
+            if (typeof unbindChange === 'function') unbindChange();
+        };
     },
 
     _calcularDadosConselho(turma) {
@@ -505,7 +549,7 @@ export const ataConselhoView = {
                         <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); display: flex; align-items: center; gap: 0.5rem;">
                             <i class="fas fa-users" style="color: var(--color-primary);"></i> Ata de Reunião de Pais & Mestres
                         </h3>
-                        <button type="button" onclick="document.getElementById('modal-ata-pais').remove()" class="btn-icon" style="border: none; background: none; cursor: pointer; color: var(--color-slate-400);">
+                        <button type="button" data-action="fechar-modal-ata-pais" class="btn-icon" style="border: none; background: none; cursor: pointer; color: var(--color-slate-400);">
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
@@ -514,7 +558,7 @@ export const ataConselhoView = {
                         Turma: <strong>${window.escapeHTML(turma.nome)}</strong>
                     </p>
 
-                    <form id="form-ata-pais" onsubmit="event.preventDefault(); ataConselhoView.gerarAtaPaisA4('${turma.id}');">
+                    <form id="form-ata-pais">
                         <div style="display: flex; flex-direction: column; gap: 1rem; margin-bottom: 1.5rem;">
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
                                 <div>
@@ -539,7 +583,7 @@ export const ataConselhoView = {
                         </div>
 
                         <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
-                            <button type="button" onclick="document.getElementById('modal-ata-pais').remove()" class="btn-secondary">Cancelar</button>
+                            <button type="button" data-action="fechar-modal-ata-pais" class="btn-secondary">Cancelar</button>
                             <button type="submit" class="btn-primary">
                                 <i class="fas fa-print"></i> Imprimir Ata A4 (com Lista)
                             </button>
@@ -549,6 +593,21 @@ export const ataConselhoView = {
             </div>
         `;
         document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+        const modalEl = document.getElementById('modal-ata-pais');
+        if (modalEl) {
+            modalEl.querySelectorAll('[data-action="fechar-modal-ata-pais"]').forEach(btn => {
+                btn.addEventListener('click', () => modalEl.remove());
+            });
+
+            const form = modalEl.querySelector('#form-ata-pais');
+            if (form) {
+                form.addEventListener('submit', (e) => {
+                    e.preventDefault();
+                    this.gerarAtaPaisA4(turma.id);
+                });
+            }
+        }
     },
 
     gerarAtaPaisA4(turmaId) {
@@ -692,7 +751,7 @@ export const ataConselhoView = {
         ];
 
         const modalHtml = `
-            <div style="display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0;">
+            <div id="modal-gerador-parecer-root" style="display: flex; flex-direction: column; gap: 1rem; padding: 0.5rem 0;">
                 <p style="font-size: 0.875rem; color: #475569; margin: 0;">
                     Selecione um parecer descritivo para copiar para a área de transferência e utilizar nos boletins ou observações do conselho:
                 </p>
@@ -701,7 +760,7 @@ export const ataConselhoView = {
                         <div style="background: ${p.cor}; border: 1px solid ${p.borda}; padding: 1rem; border-radius: var(--radius-lg); display: flex; flex-direction: column; gap: 0.5rem;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <strong style="font-size: 0.875rem; color: #1e293b;">${window.escapeHTML(p.categoria)}</strong>
-                                <button type="button" onclick="navigator.clipboard.writeText('${p.texto.replace(/'/g, "\\'")}'); Toast.show('Parecer copiado para a área de transferência!', 'success');" class="btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; font-weight: 700; background: #ffffff;">
+                                <button type="button" data-action="copiar-parecer" data-texto="${window.escapeHTML(p.texto)}" class="btn-secondary" style="padding: 0.25rem 0.6rem; font-size: 0.75rem; font-weight: 700; background: #ffffff;">
                                     <i class="fas fa-copy"></i> Copiar
                                 </button>
                             </div>
@@ -713,6 +772,20 @@ export const ataConselhoView = {
         `;
 
         controller.openModal('Gerador de Pareceres Descritivos (Boletim)', modalHtml, 'medium');
+
+        const modalEl = document.getElementById('modal-gerador-parecer-root');
+        if (modalEl) {
+            modalEl.querySelectorAll('[data-action="copiar-parecer"]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const texto = e.currentTarget.getAttribute('data-texto');
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(texto)
+                            .then(() => Toast.show('Parecer copiado para a área de transferência!', 'success'))
+                            .catch(() => Toast.show('Falha ao copiar parecer.', 'error'));
+                    }
+                });
+            });
+        }
     }
 };
 

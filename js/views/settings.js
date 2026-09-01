@@ -2,6 +2,7 @@ import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { Toast } from '../components/toast.js';
 import { EventDelegator } from '../utils/eventDelegator.js';
+import { firebaseService } from '../firebase-service.js';
 
 export const settingsView = {
     _cleanupDelegators: null,
@@ -16,7 +17,7 @@ export const settingsView = {
         }
 
         const config = userConfig || (model.state && model.state.userConfig) || {};
-        const user = model.currentUser || (typeof firebase !== 'undefined' && firebase.auth && firebase.auth().currentUser);
+        const user = model.currentUser || firebaseService.getCurrentUser();
 
         let lastSyncText = "Agora mesmo";
         if (model.state.lastUpdate) {
@@ -70,7 +71,7 @@ export const settingsView = {
                                         ${logoUrl ? `<img src="${logoUrl}" style="width: 100%; height: 100%; object-fit: contain; padding: 2px;">` : `<i class="fas fa-building" style="font-size: 1.5rem;"></i>`}
                                     </div>
                                     <div style="display: flex; flex-direction: column; gap: 0.375rem;">
-                                        <input type="file" id="upload-logo-input" style="display: none;" accept="image/png, image/jpeg, image/jpg" onchange="settingsView.processarUploadLogo(event)">
+                                        <input type="file" id="upload-logo-input" data-action="upload-logo-file" style="display: none;" accept="image/png, image/jpeg, image/jpg">
                                         <button type="button" data-action="upload-logo" class="btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;">
                                             <i class="fas fa-upload"></i> <span>Enviar Logo</span>
                                         </button>
@@ -84,17 +85,17 @@ export const settingsView = {
 
                             <div>
                                 <label class="form-label">Nome da Escola / Instituição</label>
-                                <input type="text" id="config-escola" value="${nomeEscolaSafe}" oninput="settingsView.atualizarPreview()" class="form-input" placeholder="Ex: E.E. Professor João Silva">
+                                <input type="text" id="config-escola" value="${nomeEscolaSafe}" data-action="preview-input" class="form-input" placeholder="Ex: E.E. Professor João Silva">
                             </div>
 
                             <div>
                                 <label class="form-label">Cidade / Estado</label>
-                                <input type="text" id="config-cidade" value="${cidadeSafe}" oninput="settingsView.atualizarPreview()" class="form-input" placeholder="Ex: São Paulo - SP">
+                                <input type="text" id="config-cidade" value="${cidadeSafe}" data-action="preview-input" class="form-input" placeholder="Ex: São Paulo - SP">
                             </div>
 
                             <div>
                                 <label class="form-label">Nome do Professor(a)</label>
-                                <input type="text" id="config-prof" value="${nomeProfSafe}" oninput="settingsView.atualizarPreview()" class="form-input" placeholder="Ex: Prof. Dr. Carlos Souza">
+                                <input type="text" id="config-prof" value="${nomeProfSafe}" data-action="preview-input" class="form-input" placeholder="Ex: Prof. Dr. Carlos Souza">
                             </div>
 
                             <div style="display: flex; flex-direction: column; gap: var(--spacing-2); padding-top: var(--spacing-3); border-top: 1px solid var(--color-slate-100);">
@@ -154,66 +155,54 @@ export const settingsView = {
                     </div>
                 </div>
 
-                <!-- MÓDULO 2: CONTA E SINCRONIZAÇÃO EM NUVEM -->
+                <!-- MÓDULO 2: CONTA DOCENTE & SINCRONIZAÇÃO EM NUVEM -->
                 <div class="card" style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4);">
                     <div style="border-bottom: 1px solid var(--color-slate-100); padding-bottom: var(--spacing-3);">
                         <h3 style="font-size: 1.125rem; font-weight: 800; color: var(--color-slate-800); display: flex; align-items: center; gap: var(--spacing-2);">
-                            <i class="fas fa-cloud" style="color: var(--color-primary);"></i> Conta e Sincronização em Nuvem (Firebase)
+                            <i class="fas fa-cloud" style="color: var(--color-primary);"></i> Conta Docente & Armazenamento em Nuvem
                         </h3>
-                        <p style="font-size: 0.8125rem; color: var(--color-slate-500);">Mantenha seus dados seguros e sincronizados entre múltiplos dispositivos.</p>
+                        <p style="font-size: 0.8125rem; color: var(--color-slate-500);">Sincronize seus dados em tempo real com o banco de dados seguro do Firestore.</p>
                     </div>
 
-                    <div>
-                        ${user ? this.renderLogado(user, lastSyncText) : this.renderDeslogado()}
-                    </div>
+                    ${user ? this.renderLogado(user, lastSyncText) : this.renderDeslogado()}
                 </div>
 
-                <!-- MÓDULO 3: ANO LETIVO E DATAS (SIDE-BY-SIDE) -->
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: var(--spacing-6); align-items: start;">
-                    
-                    <!-- ESTRUTURA LETIVA -->
-                    <div class="card" style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4);">
-                        <div style="border-bottom: 1px solid var(--color-slate-100); padding-bottom: var(--spacing-3);">
-                            <h3 style="font-size: 1rem; font-weight: 800; color: var(--color-slate-800); display: flex; align-items: center; gap: var(--spacing-2);">
-                                <i class="fas fa-calendar-alt" style="color: var(--color-primary);"></i> Estrutura do Ano Letivo
-                            </h3>
-                            <p style="font-size: 0.75rem; color: var(--color-slate-500);">Como sua instituição divide o calendário escolar?</p>
-                        </div>
-
-                        <div style="display: flex; flex-direction: column; gap: var(--spacing-2);">
-                            ${this.renderOptionPeriodo('bimestre', 'Bimestral (4 Períodos / Bimestres)', config.periodType)}
-                            ${this.renderOptionPeriodo('trimestre', 'Trimestral (3 Períodos / Trimestres)', config.periodType)}
-                            ${this.renderOptionPeriodo('semestre', 'Semestral (2 Períodos / Semestres)', config.periodType)}
-                        </div>
+                <!-- MÓDULO 3: ESTRUTURA DO ANO LETIVO & CALENDÁRIO -->
+                <div class="card" style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-6);">
+                    <div style="border-bottom: 1px solid var(--color-slate-100); padding-bottom: var(--spacing-3);">
+                        <h3 style="font-size: 1.125rem; font-weight: 800; color: var(--color-slate-800); display: flex; align-items: center; gap: var(--spacing-2);">
+                            <i class="far fa-calendar-alt" style="color: var(--color-primary);"></i> Estrutura do Calendário Escolar
+                        </h3>
+                        <p style="font-size: 0.8125rem; color: var(--color-slate-500);">Defina se sua instituição adota regime Bimestral, Trimestral ou Semestral e ajuste as datas de corte.</p>
                     </div>
 
-                    <!-- DATAS DOS PERÍODOS -->
-                    <div class="card" style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4);">
-                        <div style="border-bottom: 1px solid var(--color-slate-100); padding-bottom: var(--spacing-3);">
-                            <h3 style="font-size: 1rem; font-weight: 800; color: var(--color-slate-800); display: flex; align-items: center; gap: var(--spacing-2);">
-                                <i class="fas fa-calendar-day" style="color: var(--color-primary);"></i> Limites de Datas por Período
-                            </h3>
-                            <p style="font-size: 0.75rem; color: var(--color-slate-500);">Defina início e fim de cada período para o cálculo de presenças.</p>
+                    <div class="layout-2col-responsive--equal">
+                        <!-- TIPO DE DIVISÃO -->
+                        <div style="display: flex; flex-direction: column; gap: var(--spacing-3);">
+                            <label class="form-label">Regime Letivo</label>
+                            ${this.renderOptionPeriodo('bimestre', 'Bimestral (4 Períodos)', tipoAtual)}
+                            ${this.renderOptionPeriodo('trimestre', 'Trimestral (3 Períodos)', tipoAtual)}
+                            ${this.renderOptionPeriodo('semestre', 'Semestral (2 Períodos)', tipoAtual)}
                         </div>
 
+                        <!-- DATAS DOS PERÍODOS -->
                         <div style="display: flex; flex-direction: column; gap: var(--spacing-3);">
                             ${listaPeriodos.map((p, idx) => `
                                 <div style="padding: var(--spacing-3); background-color: var(--color-slate-50); border: 1px solid var(--color-slate-200); border-radius: var(--radius-xl); display: flex; flex-direction: column; gap: 0.375rem;">
                                     <span style="font-size: 0.75rem; font-weight: 800; color: var(--color-slate-700); text-transform: uppercase;">${window.escapeHTML ? window.escapeHTML(p.nome) : p.nome}</span>
                                     <div style="display: flex; align-items: center; gap: 0.5rem;">
                                         <input type="date" value="${window.escapeHTML ? window.escapeHTML(p.inicio) : p.inicio}"
-                                               onchange="controller.updatePeriodDate(${idx}, 'inicio', this.value)"
+                                               data-action="alterar-periodo-data" data-idx="${idx}" data-campo="inicio"
                                                class="form-input" style="padding: 0.375rem 0.5rem; font-size: 0.8125rem;">
                                         <span style="font-size: 0.6875rem; font-weight: 800; color: var(--color-slate-400);">ATÉ</span>
                                         <input type="date" value="${window.escapeHTML ? window.escapeHTML(p.fim) : p.fim}"
-                                               onchange="controller.updatePeriodDate(${idx}, 'fim', this.value)"
+                                               data-action="alterar-periodo-data" data-idx="${idx}" data-campo="fim"
                                                class="form-input" style="padding: 0.375rem 0.5rem; font-size: 0.8125rem;">
                                     </div>
                                 </div>
                             `).join('')}
                         </div>
                     </div>
-
                 </div>
 
                 <!-- MÓDULO 4: BACKUP LOCAL E APARÊNCIA (SIDE-BY-SIDE) -->
@@ -239,7 +228,7 @@ export const settingsView = {
                                 <!-- SWATCH + INPUT COLOR -->
                                 <div style="position: relative; width: 3.25rem; height: 3.25rem; border-radius: var(--radius-xl); overflow: hidden; border: 2px solid var(--color-slate-300); box-shadow: var(--shadow-sm); flex-shrink: 0; cursor: pointer;" title="Clique e arraste para escolher a cor">
                                     <input type="color" id="input-color-picker" value="${config.themeColor || '#3b82f6'}" 
-                                           oninput="settingsView.onColorPickerInput(this.value)" 
+                                           data-action="color-picker-input" 
                                            style="position: absolute; top: -10px; left: -10px; width: 80px; height: 80px; border: none; cursor: pointer;">
                                 </div>
 
@@ -250,8 +239,7 @@ export const settingsView = {
                                         <input type="text" id="input-hex-color" value="${config.themeColor || '#3b82f6'}" maxlength="7"
                                                placeholder="#3b82f6" 
                                                class="form-input" style="font-family: monospace; font-weight: 800; text-transform: uppercase; padding: 0.375rem 0.75rem; width: 115px;"
-                                               oninput="settingsView.onHexInput(this.value)"
-                                               onchange="settingsView.onHexInput(this.value)">
+                                               data-action="hex-color-input">
                                         <span style="font-size: 0.75rem; color: var(--color-slate-400);">Arraste ou digite</span>
                                     </div>
                                 </div>
@@ -298,7 +286,7 @@ export const settingsView = {
             </div>
         `;
 
-        this._cleanupDelegators = EventDelegator.bind(container, {
+        const cleanClick = EventDelegator.bind(container, {
             'upload-logo': () => document.getElementById('upload-logo-input')?.click(),
             'remover-logo': () => this.removerLogo(),
             'salvar-cabecalho': () => this.salvarCabecalho(),
@@ -310,6 +298,29 @@ export const settingsView = {
             'update-periodo': (e, target) => controller.updatePeriodType(target.dataset.valor),
             'update-theme': (e, target) => controller.updateTheme(target.dataset.hex)
         }, 'click');
+
+        const cleanChange = EventDelegator.bind(container, {
+            'upload-logo-file': (e) => this.processarUploadLogo(e),
+            'toggle-preview': () => this.atualizarPreview(),
+            'alterar-periodo-data': (e, target) => {
+                const idx = Number(target.getAttribute('data-idx'));
+                const campo = target.getAttribute('data-campo');
+                if (!isNaN(idx) && campo) controller.updatePeriodDate(idx, campo, target.value);
+            },
+            'hex-color-input': (e, target) => this.onHexInput(target.value)
+        }, 'change');
+
+        const cleanInput = EventDelegator.bind(container, {
+            'preview-input': () => this.atualizarPreview(),
+            'color-picker-input': (e, target) => this.onColorPickerInput(target.value),
+            'hex-color-input': (e, target) => this.onHexInput(target.value)
+        }, 'input');
+
+        this._cleanupDelegators = () => {
+            if (typeof cleanClick === 'function') cleanClick();
+            if (typeof cleanChange === 'function') cleanChange();
+            if (typeof cleanInput === 'function') cleanInput();
+        };
 
         setTimeout(() => this.atualizarPreview(), 100);
     },
@@ -352,26 +363,30 @@ export const settingsView = {
         model.state.userConfig.showSerie = document.getElementById('config-show-serie')?.checked;
 
         model.saveLocal();
-        Toast.show("Cabeçalho atualizado com sucesso!", "success");
+        if (window.Toast) {
+            window.Toast.show("Cabeçalho de materiais salvo com sucesso!", "success");
+        }
     },
 
-    processarUploadLogo(event) {
-        const file = event.target.files[0];
+    processarUploadLogo(e) {
+        const file = e.target.files && e.target.files[0];
         if (!file) return;
+
         if (file.size > 5 * 1024 * 1024) {
-            if (window.Toast) window.Toast.show("A imagem deve ter no máximo 5MB.", "warning");
+            if (window.Toast) window.Toast.show("A imagem deve ter no máximo 5MB.", "error");
             return;
         }
+
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = (event) => {
             const img = new Image();
             img.onload = () => {
                 const canvas = document.createElement('canvas');
                 const ctx = canvas.getContext('2d');
-
+                const maxSize = 250;
                 let width = img.width;
                 let height = img.height;
-                const maxSize = 250;
+
                 if (width > height) {
                     if (width > maxSize) {
                         height *= maxSize / width;
@@ -393,9 +408,10 @@ export const settingsView = {
                 model.saveLocal();
                 if (window.Toast) window.Toast.show("Logo da instituição atualizado!", "success");
 
-                settingsView.render('view-container');
+                const c = document.getElementById('view-container');
+                if (c) this.render(c);
             };
-            img.src = e.target.result;
+            img.src = event.target.result;
         };
         reader.readAsDataURL(file);
     },
@@ -405,7 +421,8 @@ export const settingsView = {
             model.state.userConfig.logo = null;
             model.saveLocal();
             if (window.Toast) window.Toast.show("Logo removido.", "info");
-            settingsView.render('view-container');
+            const c = document.getElementById('view-container');
+            if (c) this.render(c);
         }
     },
 
@@ -413,7 +430,7 @@ export const settingsView = {
         return `
             <label style="display: flex; align-items: center; justify-content: space-between; padding: var(--spacing-3); background-color: var(--color-white); border: 1px solid var(--color-slate-200); border-radius: var(--radius-xl); cursor: pointer;">
                 <span style="font-size: 0.8125rem; font-weight: 700; color: var(--color-slate-700); user-select: none;">${label}</span>
-                <input type="checkbox" id="${id}" ${isChecked ? 'checked' : ''} onchange="settingsView.atualizarPreview()" style="width: 1.25rem; height: 1.25rem; accent-color: var(--color-primary); cursor: pointer;">
+                <input type="checkbox" id="${id}" ${isChecked ? 'checked' : ''} data-action="toggle-preview" style="width: 1.25rem; height: 1.25rem; accent-color: var(--color-primary); cursor: pointer;">
             </label>
         `;
     },
@@ -541,6 +558,17 @@ export const settingsView = {
             ];
             container.innerHTML = cores.map(c => this.renderColorOption(c.hex, c.nome, corAtiva)).join('');
         }
+    },
+
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+    },
+
+    onLeave() {
+        this.destroy();
     }
 };
 

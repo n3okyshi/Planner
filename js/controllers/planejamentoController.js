@@ -1,11 +1,14 @@
 
 import { model } from '../model.js';
+import { controller } from '../controller.js';
 import { diarioView } from '../views/diario.js';
 import { bnccView } from '../views/bncc.js';
 import { mensalView } from '../views/mensal.js';
 import { planejamentoView } from '../views/planejamento.js';
 import { Toast } from '../components/toast.js';
 import { debounce } from '../utils.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
+
 export const planejamentoController = {
     initDiarioAutosave() {
         const inputs = document.querySelectorAll('.autosave-input');
@@ -22,12 +25,12 @@ export const planejamentoController = {
         });
     },
     mudarTurmaDiario(novoId) {
-        if (window.diarioView) {
-            if (window.diarioView.selecionarTurma) {
-                window.diarioView.selecionarTurma(novoId);
+        if (diarioView) {
+            if (diarioView.selecionarTurma) {
+                diarioView.selecionarTurma(novoId);
             } else {
-                window.diarioView.currentTurmaId = novoId;
-                window.diarioView.render('view-container');
+                diarioView.currentTurmaId = novoId;
+                diarioView.render('view-container');
             }
         }
     },
@@ -45,8 +48,8 @@ export const planejamentoController = {
             const nomeEsc = window.escapeHTML ? window.escapeHTML(t.nome) : t.nome;
             return `<li class="dropdown-item ${destaque}" data-value="${window.escapeHTML(t.id)}">${nomeEsc} ${isMesmaSerie ? '(Mesma Série)' : ''}</li>`;
         }).join('');
-        window.controller.openModal('Replicar Planejamento', `
-    <div style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4);">
+        controller.openModal('Replicar Planejamento', `
+    <div id="modal-copiar-plan-wrap" style="padding: var(--spacing-6); display: flex; flex-direction: column; gap: var(--spacing-4);">
         <div class="alert alert--info">
             <p><i class="fas fa-info-circle"></i> Copiando de <strong>${window.escapeHTML ? window.escapeHTML(turmaAtual.nome) : turmaAtual.nome}</strong>.</p>
         </div>
@@ -66,17 +69,26 @@ export const planejamentoController = {
         <div class="alert alert--danger mt-2">
             <i class="fas fa-exclamation-triangle"></i> Substituirá todo o planejamento da turma destino.
         </div>
-        <button onclick="planejamentoController.confirmarCopiaPlanejamento('${window.escapeHTML(turmaIdAtual)}')" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.875rem; margin-top: var(--spacing-2);">Confirmar Cópia</button>
+        <button type="button" data-action="confirmar-copia-planejamento" data-id="${window.escapeHTML(turmaIdAtual)}" class="btn-primary" style="width: 100%; justify-content: center; padding: 0.875rem; margin-top: var(--spacing-2);">Confirmar Cópia</button>
     </div>
 `);
+        const modalWrap = document.getElementById('modal-copiar-plan-wrap');
+        if (modalWrap) {
+            EventDelegator.bind(modalWrap, {
+                'confirmar-copia-planejamento': (e, target) => {
+                    const idOrigem = target.getAttribute('data-id');
+                    if (idOrigem) this.confirmarCopiaPlanejamento(idOrigem);
+                }
+            }, 'click');
+        }
     },
     confirmarCopiaPlanejamento(idOrigem) {
         const idDestino = document.getElementById('select-turma-destino')?.value;
         if (idOrigem && idDestino) {
-            window.controller.confirmarAcao("Tem certeza?", "O planejamento da turma de destino será substituído.", () => {
+            controller.confirmarAcao("Tem certeza?", "O planejamento da turma de destino será substituído.", () => {
                 const sucesso = model.copiarPlanejamentoEntreTurmas(idOrigem, idDestino);
                 if (sucesso) {
-                    window.controller.closeModal();
+                    controller.closeModal();
                     Toast.show("Planejamento copiado!", "success");
                 } else {
                     Toast.show("Erro ao copiar.", "error");
@@ -89,14 +101,14 @@ export const planejamentoController = {
         if (!turma) return;
         const callback = (habilidade) => {
             model.addHabilidadePlanejamento(turmaId, String(periodoIdx), habilidade);
-            if (window.planejamentoView) window.planejamentoView.render('view-container');
+            if (planejamentoView) planejamentoView.render('view-container');
         };
-        window.controller.openModal(`BNCC - ${periodoIdx}º Período (${turma.nome})`,
+        controller.openModal(`BNCC - ${periodoIdx}º Período (${turma.nome})`,
             `<div id="modal-bncc-planejamento" style="width: 100%; max-height: 80vh; overflow-y: auto; padding: var(--spacing-4);"><div class="spinner-container"><i class="fas fa-spinner spinner-icon"></i></div></div>`,
             'xl'
         );
         setTimeout(() => {
-            if (window.bnccView) window.bnccView.render('modal-bncc-planejamento', turma.nivel || nivelHtml, turma.serie || serieHtml, callback);
+            if (bnccView) bnccView.render('modal-bncc-planejamento', turma.nivel || nivelHtml, turma.serie || serieHtml, callback);
         }, 100);
     },
     removeHabilidade(turmaId, periodoIdx, codigoHabilidade) {
@@ -104,13 +116,13 @@ export const planejamentoController = {
         if (!turma || !turma.planejamento || !turma.planejamento[periodoIdx]) return;
         const habilidadeRemovida = turma.planejamento[periodoIdx].find(h => h.codigo === codigoHabilidade);
         model.removeHabilidadePlanejamento(turmaId, periodoIdx, codigoHabilidade);
-        if (window.planejamentoView) window.planejamentoView.render('view-container');
+        if (planejamentoView) planejamentoView.render('view-container');
         if (habilidadeRemovida) {
             Toast.show(`Habilidade removida.`, 'info', 4000, {
                 label: 'DESFAZER',
                 callback: () => {
                     model.addHabilidadePlanejamento(turmaId, periodoIdx, habilidadeRemovida);
-                    if (window.planejamentoView) window.planejamentoView.render('view-container');
+                    if (planejamentoView) planejamentoView.render('view-container');
                 }
             });
         }
@@ -120,11 +132,11 @@ export const planejamentoController = {
         if (!turma) return;
         const callback = (habilidade) => {
             model.addHabilidadeMensal(turmaId, mes, habilidade);
-            if (window.mensalView) window.mensalView.render();
+            if (mensalView) mensalView.render();
         };
-        window.controller.openModal(`BNCC - ${mes} (${turma.nome})`, '<div id="modal-bncc-container" style="width: 100%; max-height: 80vh; overflow-y: auto; padding: var(--spacing-4);"></div>', 'xl');
+        controller.openModal(`BNCC - ${mes} (${turma.nome})`, '<div id="modal-bncc-container" style="width: 100%; max-height: 80vh; overflow-y: auto; padding: var(--spacing-4);"></div>', 'xl');
         setTimeout(() => {
-            if (window.bnccView) window.bnccView.render('modal-bncc-container', turma.nivel || nivelHtml, turma.serie || serieHtml, callback);
+            if (bnccView) bnccView.render('modal-bncc-container', turma.nivel || nivelHtml, turma.serie || serieHtml, callback);
         }, 50);
     },
     openSeletorBnccDiario(turmaId) {
@@ -144,24 +156,24 @@ export const planejamentoController = {
                 campoBncc.dispatchEvent(new Event('change', { bubbles: true }));
                 Toast.show(`Habilidade ${habilidade.codigo} anexada ao diário!`, 'success');
             }
-            if (window.controller && window.controller.closeModal) {
-                window.controller.closeModal();
+            if (controller && controller.closeModal) {
+                controller.closeModal();
             }
         };
         const nomeTurma = turma ? turma.nome : 'Geral';
         const nivel = turma ? turma.nivel : null;
         const serie = turma ? turma.serie : null;
 
-        window.controller.openModal(`Consultar BNCC - ${nomeTurma}`, '<div id="modal-bncc-diario" style="width: 100%; max-height: 80vh; overflow-y: auto; padding: var(--spacing-4);"></div>', 'xl');
+        controller.openModal(`Consultar BNCC - ${nomeTurma}`, '<div id="modal-bncc-diario" style="width: 100%; max-height: 80vh; overflow-y: auto; padding: var(--spacing-4);"></div>', 'xl');
         setTimeout(() => {
-            if (window.bnccView) window.bnccView.render('modal-bncc-diario', nivel, serie, callback);
+            if (bnccView) bnccView.render('modal-bncc-diario', nivel, serie, callback);
         }, 50);
     },
     removeHabilidadeMensal(turmaId, mes, codigo) {
-        window.controller.confirmarAcao("Remover?", "Deseja remover esta habilidade do mês?", () => {
+        controller.confirmarAcao("Remover?", "Deseja remover esta habilidade do mês?", () => {
             model.removeHabilidadeMensal(turmaId, mes, codigo);
-            if (window.mensalView) {
-                window.mensalView.render();
+            if (mensalView) {
+                mensalView.render();
             }
             if (window.Toast) window.Toast.show("Habilidade removida do planejamento mensal.", "info");
         });
@@ -189,13 +201,13 @@ export const planejamentoController = {
             <option value="${d}" ${d.toLowerCase() === discVal.toLowerCase() ? 'selected' : ''}>${d}</option>
         `).join('');
 
-        window.controller.openModal(`${isEdit ? 'Editar Habilidade Personalizada' : 'Nova Habilidade Personalizada'} - ${periodoIdx}º Período`, `
-            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; max-width: 560px;">
+        controller.openModal(`${isEdit ? 'Editar Habilidade Personalizada' : 'Nova Habilidade Personalizada'} - ${periodoIdx}º Período`, `
+            <div id="modal-hab-custom-wrap" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; max-width: 560px;">
                 <div class="alert alert--info" style="font-size: 0.8125rem;">
                     <i class="fas fa-info-circle mr-1"></i> Cadastre ou edite objetivos curriculares municipais, institucionais ou tópicos próprios fora da base BNCC.
                 </div>
 
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                <div style="grid-template-columns: 1fr 1fr; gap: 0.75rem; display: grid;">
                     <div>
                         <label class="form-label" style="font-size: 0.75rem; font-weight: 800; text-transform: uppercase;">Código / Identificador</label>
                         <input type="text" id="hab-custom-codigo" class="form-input" value="${window.escapeHTML(codVal)}" placeholder="Ex: HAB-MAT-01 ou CURR-04" style="width: 100%; text-transform: uppercase; font-weight: 800;">
@@ -219,61 +231,74 @@ export const planejamentoController = {
                 </div>
 
                 <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 0.5rem;">
-                    <button type="button" onclick="window.controller.closeModal()" class="btn-secondary">Cancelar</button>
-                    <button type="button" onclick="planejamentoController.salvarHabilidadePersonalizada('${turmaId}', ${periodoIdx}, '${codOriginal}')" class="btn-primary" style="background-color: #7c3aed;">
+                    <button type="button" data-action="fechar-modal" class="btn-secondary">Cancelar</button>
+                    <button type="button" data-action="salvar-habilidade-custom" data-turma-id="${turmaId}" data-periodo="${periodoIdx}" data-cod="${codOriginal}" class="btn-primary" style="background-color: #7c3aed;">
                         <i class="fas fa-check mr-1"></i> ${isEdit ? 'Salvar Alterações' : 'Adicionar ao Planejamento'}
                     </button>
                 </div>
             </div>
         `);
+
+        const modalHabWrap = document.getElementById('modal-hab-custom-wrap');
+        if (modalHabWrap) {
+            EventDelegator.bind(modalHabWrap, {
+                'fechar-modal': () => controller.closeModal(),
+                'salvar-habilidade-custom': (e, target) => {
+                    const tId = target.getAttribute('data-turma-id');
+                    const pIdx = parseInt(target.getAttribute('data-periodo'), 10);
+                    const cOrig = target.getAttribute('data-cod') || '';
+                    this.salvarHabilidadePersonalizada(tId, pIdx, cOrig);
+                }
+            }, 'click');
+        }
     },
 
     openModalEditarHabilidadePersonalizada(turmaId, periodoIdx, codigoHabilidade) {
         const turma = model.state.turmas.find(t => String(t.id) === String(turmaId));
         if (!turma || !turma.planejamento) return;
 
-        const chavePeriodo = String(periodoIdx);
-        const listaHabs = turma.planejamento[chavePeriodo] || [];
-        const habilidade = listaHabs.find(h => h.codigo === codigoHabilidade);
-        if (!habilidade) return;
+        const habsPeriodo = turma.planejamento[periodoIdx] || [];
+        const habExistente = habsPeriodo.find(h => (h.codigo || '').toUpperCase() === (codigoHabilidade || '').toUpperCase());
 
-        this.openModalCriarHabilidadePersonalizada(turmaId, periodoIdx, habilidade);
+        if (!habExistente) {
+            Toast.show("Habilidade não encontrada para edição.", "error");
+            return;
+        }
+
+        this.openModalCriarHabilidadePersonalizada(turmaId, periodoIdx, habExistente);
     },
 
     salvarHabilidadePersonalizada(turmaId, periodoIdx, codigoOriginal = '') {
-        const cod = document.getElementById('hab-custom-codigo')?.value.trim();
-        const disc = document.getElementById('hab-custom-disciplina')?.value.trim() || 'Geral';
-        const eixo = document.getElementById('hab-custom-eixo')?.value.trim() || 'Habilidade Própria';
+        const cod = document.getElementById('hab-custom-codigo')?.value.trim().toUpperCase();
+        const disc = document.getElementById('hab-custom-disciplina')?.value;
+        const eixo = document.getElementById('hab-custom-eixo')?.value.trim();
         const desc = document.getElementById('hab-custom-desc')?.value.trim();
 
-        if (!cod || !desc) {
-            return Toast.show("Por favor, preencha o código e a descrição da habilidade.", "warning");
+        if (!cod) {
+            return Toast.show("Por favor, informe um código ou identificador para a habilidade.", "warning");
+        }
+        if (!desc) {
+            return Toast.show("Por favor, informe a descrição detalhada do objetivo de aprendizagem.", "warning");
         }
 
-        const novaHabilidade = {
-            codigo: cod.toUpperCase(),
+        const habObj = {
+            codigo: cod,
             descricao: desc,
             disciplina: disc,
             componente: disc,
-            unidadeTematica: eixo,
-            objeto: eixo,
-            eixo: eixo,
-            tipo: 'personalizada',
-            cor: '#7c3aed'
+            unidadeTematica: eixo || 'Conteúdo Institucional / Específico',
+            objeto: eixo || 'Conteúdo Institucional / Específico',
+            eixo: eixo || 'Conteúdo Institucional / Específico',
+            personalizada: true,
+            criadaEm: new Date().toISOString()
         };
 
-        if (codigoOriginal && codigoOriginal !== '') {
-            model.editarHabilidadePlanejamento(turmaId, String(periodoIdx), codigoOriginal, novaHabilidade);
-            Toast.show(`Habilidade ${cod} atualizada com sucesso!`, "success");
-        } else {
-            model.addHabilidadePlanejamento(turmaId, String(periodoIdx), novaHabilidade);
-            Toast.show(`Habilidade ${cod} adicionada ao ${periodoIdx}º período!`, "success");
-        }
-
-        window.controller.closeModal();
-
-        if (window.planejamentoView) {
-            window.planejamentoView.render('view-container');
+        const sucesso = model.adicionarHabilidadePersonalizada(turmaId, periodoIdx, habObj, codigoOriginal);
+        if (sucesso) {
+            controller.closeModal();
+            if (planejamentoView && typeof planejamentoView.render === 'function') {
+                planejamentoView.render('view-container');
+            }
         }
     },
 
@@ -290,8 +315,8 @@ export const planejamentoController = {
         const turma = model.state.turmas.find(t => String(t.id) === String(turmaId));
         if (!turma) return;
 
-        window.controller.openModal(`Importar Bimestralização (JSON)`, `
-            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; max-width: 520px;">
+        controller.openModal(`Importar Bimestralização (JSON)`, `
+            <div id="modal-importar-bimest-wrap" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; max-width: 520px;">
                 <div class="alert alert--info" style="font-size: 0.8125rem;">
                     <i class="fas fa-file-import mr-1"></i> Selecione um arquivo <strong>.json</strong> de bimestralização exportado anteriormente do Planner Pro.
                 </div>
@@ -307,13 +332,24 @@ export const planejamentoController = {
                 </div>
 
                 <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
-                    <button type="button" onclick="window.controller.closeModal()" class="btn-secondary">Cancelar</button>
-                    <button type="button" onclick="planejamentoController.processarImportacaoBimestralizacao('${turmaId}')" class="btn-primary">
+                    <button type="button" data-action="fechar-modal" class="btn-secondary">Cancelar</button>
+                    <button type="button" data-action="processar-importacao-bimest" data-turma-id="${turmaId}" class="btn-primary">
                         <i class="fas fa-check mr-1"></i> Importar e Aplicar
                     </button>
                 </div>
             </div>
         `);
+
+        const modalBimestWrap = document.getElementById('modal-importar-bimest-wrap');
+        if (modalBimestWrap) {
+            EventDelegator.bind(modalBimestWrap, {
+                'fechar-modal': () => controller.closeModal(),
+                'processar-importacao-bimest': (e, target) => {
+                    const tId = target.getAttribute('data-turma-id');
+                    if (tId) this.processarImportacaoBimestralizacao(tId);
+                }
+            }, 'click');
+        }
     },
 
     processarImportacaoBimestralizacao(turmaId) {
@@ -330,10 +366,10 @@ export const planejamentoController = {
                 const dados = JSON.parse(e.target.result);
                 const sucesso = model.importarPlanejamentoTurma(turmaId, dados);
                 if (sucesso) {
-                    window.controller.closeModal();
+                    controller.closeModal();
                     Toast.show("Bimestralização importada com sucesso!", "success");
-                    if (window.planejamentoView) {
-                        window.planejamentoView.render('view-container');
+                    if (planejamentoView) {
+                        planejamentoView.render('view-container');
                     }
                 } else {
                     Toast.show("Formato de arquivo inválido para bimestralização.", "error");
@@ -349,8 +385,8 @@ export const planejamentoController = {
     salvarDiario(silent = false) {
         const dataEl = document.getElementById('diario-data');
         const turmaEl = document.getElementById('select-turma-global') || document.getElementById('diario-turma');
-        const turmaId = turmaEl?.value || window.diarioView?.currentTurmaId;
-        const data = dataEl?.value || window.diarioView?.currentDate || new Date().toISOString().split('T')[0];
+        const turmaId = turmaEl?.value || diarioView?.currentTurmaId;
+        const data = dataEl?.value || diarioView?.currentDate || new Date().toISOString().split('T')[0];
 
         if (!data || !turmaId) {
             if (!silent && typeof Toast !== 'undefined') Toast.show("Selecione uma data e uma turma!", "warning");
@@ -376,34 +412,34 @@ export const planejamentoController = {
         return true;
     },
     mudarDataDiario(novaData) {
-        if (window.diarioView) {
-            if (window.controller?.currentView === 'dia' && window.diarioView.selecionarData) {
-                window.diarioView.selecionarData(novaData);
+        if (diarioView) {
+            if (controller?.currentView === 'dia' && diarioView.selecionarData) {
+                diarioView.selecionarData(novaData);
             } else {
-                window.diarioView.currentDate = novaData;
+                diarioView.currentDate = novaData;
                 const [ano, mes] = novaData.split('-');
-                window.diarioView.viewDate = new Date(parseInt(ano), parseInt(mes) - 1, 1);
-                window.controller.navigate('dia');
+                diarioView.viewDate = new Date(parseInt(ano), parseInt(mes) - 1, 1);
+                controller.navigate('dia');
             }
         }
     },
     mudarMesDiario(delta) {
-        if (window.diarioView) {
-            if (window.controller?.currentView === 'dia' && window.diarioView.mudarMes) {
-                window.diarioView.mudarMes(delta);
+        if (diarioView) {
+            if (controller?.currentView === 'dia' && diarioView.mudarMes) {
+                diarioView.mudarMes(delta);
             } else {
-                const novaData = new Date(window.diarioView.viewDate);
+                const novaData = new Date(diarioView.viewDate);
                 novaData.setMonth(novaData.getMonth() + delta);
-                window.diarioView.viewDate = novaData;
-                window.controller.navigate('dia');
+                diarioView.viewDate = novaData;
+                controller.navigate('dia');
             }
         }
     },
     abrirModalReplicarPlanoDiario(dataAtual, turmaOrigemId) {
         this.salvarDiario(true);
 
-        dataAtual = dataAtual || (window.diarioView && (window.diarioView.currentDate || window.diarioView.currentData)) || new Date().toISOString().split('T')[0];
-        turmaOrigemId = turmaOrigemId || (window.diarioView && window.diarioView.currentTurmaId) || (model.state.turmas?.[0]?.id);
+        dataAtual = dataAtual || (diarioView && (diarioView.currentDate || diarioView.currentData)) || new Date().toISOString().split('T')[0];
+        turmaOrigemId = turmaOrigemId || (diarioView && diarioView.currentTurmaId) || (model.state.turmas?.[0]?.id);
 
         const turmas = model.state.turmas || [];
         const turmaOrigem = turmas.find(t => String(t.id) === String(turmaOrigemId));
@@ -441,7 +477,7 @@ export const planejamentoController = {
         const temaSafe = window.escapeHTML(planoOrigem.tema || 'Plano de Aula');
 
         window.controller.openModal(`Replicar Plano de Aula Diário`, `
-            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; max-width: 680px;">
+            <div id="modal-replicar-plano-wrap" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; max-width: 680px;">
                 <div class="card" style="padding: 1rem 1.25rem; background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); border: 1px solid #dbeafe; border-radius: var(--radius-xl);">
                     <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; flex-wrap: wrap;">
                         <div>
@@ -460,13 +496,13 @@ export const planejamentoController = {
                         Destinos de Replicação (Turmas e Datas)
                     </label>
                     <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                        <button type="button" onclick="planejamentoController.adicionarTodasDaSerieReplicacao('${turmaOrigemId}', '${dataAtual}')" class="btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;" title="Adicionar todas as turmas compatíveis da mesma série">
+                        <button type="button" data-action="adicionar-todas-serie" data-origem="${turmaOrigemId}" data-data="${dataAtual}" class="btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;" title="Adicionar todas as turmas compatíveis da mesma série">
                             <i class="fas fa-layer-group mr-1"></i> Todas da Série
                         </button>
-                        <button type="button" onclick="planejamentoController.adicionarProximaSemanaReplicacao()" class="btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;" title="Duplicar destinos para a próxima semana (+7 dias)">
+                        <button type="button" data-action="adicionar-proxima-semana" class="btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;" title="Duplicar destinos para a próxima semana (+7 dias)">
                             <i class="fas fa-calendar-plus mr-1"></i> +7 Dias
                         </button>
-                        <button type="button" onclick="planejamentoController.adicionarLinhaDestinoReplicacao('', '${dataAtual}', '${turmaOrigemId}')" class="btn-primary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem; background: #4f46e5;">
+                        <button type="button" data-action="adicionar-linha-destino" data-origem="${turmaOrigemId}" data-data="${dataAtual}" class="btn-primary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem; background: #4f46e5;">
                             <i class="fas fa-plus mr-1"></i> + Mais Data/Turma
                         </button>
                     </div>
@@ -477,15 +513,41 @@ export const planejamentoController = {
                 </div>
 
                 <div style="display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--color-slate-100); padding-top: 1rem; margin-top: 0.5rem;">
-                    <button type="button" onclick="window.controller.closeModal()" class="btn-secondary">
+                    <button type="button" data-action="fechar-modal" class="btn-secondary">
                         Cancelar
                     </button>
-                    <button type="button" onclick="planejamentoController.confirmarReplicacaoPlanoDiario('${dataAtual}', '${turmaOrigemId}')" class="btn-primary" style="padding: 0.625rem 1.5rem; font-weight: 800;">
+                    <button type="button" data-action="confirmar-replicacao-plano" data-origem="${turmaOrigemId}" data-data="${dataAtual}" class="btn-primary" style="padding: 0.625rem 1.5rem; font-weight: 800;">
                         <i class="fas fa-check mr-1"></i> Confirmar Replicação
                     </button>
                 </div>
             </div>
         `, 'medium');
+
+        const modalReplicarWrap = document.getElementById('modal-replicar-plano-wrap');
+        if (modalReplicarWrap) {
+            EventDelegator.bind(modalReplicarWrap, {
+                'fechar-modal': () => window.controller.closeModal(),
+                'adicionar-todas-serie': (e, target) => {
+                    const tOrigem = target.getAttribute('data-origem');
+                    const dt = target.getAttribute('data-data');
+                    this.adicionarTodasDaSerieReplicacao(tOrigem, dt);
+                },
+                'adicionar-proxima-semana': () => this.adicionarProximaSemanaReplicacao(),
+                'adicionar-linha-destino': (e, target) => {
+                    const tOrigem = target.getAttribute('data-origem');
+                    const dt = target.getAttribute('data-data');
+                    this.adicionarLinhaDestinoReplicacao('', dt, tOrigem);
+                },
+                'remover-linha-destino': (e, target) => {
+                    this.removerLinhaDestinoReplicacao(target);
+                },
+                'confirmar-replicacao-plano': (e, target) => {
+                    const tOrigem = target.getAttribute('data-origem');
+                    const dt = target.getAttribute('data-data');
+                    this.confirmarReplicacaoPlanoDiario(dt, tOrigem);
+                }
+            }, 'click');
+        }
     },
 
     gerarHtmlLinhaDestino(turmaSelecionadaId, data, turmaOrigemId) {
@@ -509,7 +571,7 @@ export const planejamentoController = {
                     <input type="date" class="form-input input-destino-data" value="${data}" style="padding: 0.375rem 0.5rem; font-size: 0.8125rem; font-weight: 600; width: 100%;">
                 </div>
                 <div style="display: flex; align-items: flex-end; padding-top: 1.125rem;">
-                    <button type="button" onclick="planejamentoController.removerLinhaDestinoReplicacao(this)" class="btn-icon" style="width: 2rem; height: 2rem; color: #ef4444; border-radius: var(--radius-md);" title="Remover este destino">
+                    <button type="button" data-action="remover-linha-destino" class="btn-icon" style="width: 2rem; height: 2rem; color: #ef4444; border-radius: var(--radius-md);" title="Remover este destino">
                         <i class="fas fa-trash-alt" style="font-size: 0.875rem;"></i>
                     </button>
                 </div>
@@ -627,11 +689,11 @@ export const planejamentoController = {
 
         const total = model.replicarPlanoDiario(turmaOrigemId, dataOrigem, destinos);
         if (total > 0) {
-            window.controller.closeModal();
+            controller.closeModal();
             Toast.show(`Plano diário replicado para ${total} destino${total > 1 ? 's' : ''} com sucesso!`, "success");
             
-            if (window.controller && window.controller.currentView === 'dia' && window.diarioView) {
-                window.diarioView.render('view-container');
+            if (controller && controller.currentView === 'dia' && diarioView) {
+                diarioView.render('view-container');
             }
         } else {
             Toast.show("Não foi possível replicar o plano.", "error");

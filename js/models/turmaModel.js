@@ -1,5 +1,6 @@
 import { firebaseService } from '../firebase-service.js';
 import { dataProxy } from '../services/dataProxy.js';
+import { syncService } from '../services/syncService.js';
 import { generateId } from '../utils.js';
 
 export const turmaMethods = {
@@ -134,15 +135,28 @@ export const turmaMethods = {
         } else {
             delete aluno.frequencia[dataIso];
         }
+        const agora = new Date().toISOString();
+        aluno.updatedAt = agora;
+        turma.updatedAt = agora;
         this.saveLocal();
-        if (this.currentUser && firebaseService?.saveFrequenciaAluno) {
+        const uid = this.currentUser ? this.currentUser.uid : null;
+        if (uid) {
             try {
-                await dataProxy.saveFrequenciaAluno(
-                    this.currentUser.uid,
-                    turmaId,
-                    alunoId,
-                    aluno.frequencia
-                );
+                if (syncService && typeof syncService.persistFrequenciaAluno === 'function') {
+                    await syncService.persistFrequenciaAluno(
+                        uid,
+                        turmaId,
+                        alunoId,
+                        aluno.frequencia
+                    );
+                } else if (dataProxy?.saveFrequenciaAluno) {
+                    await dataProxy.saveFrequenciaAluno(
+                        uid,
+                        turmaId,
+                        alunoId,
+                        aluno.frequencia
+                    );
+                }
             } catch (error) {
                 console.error("Erro na sincronização de frequência:", error);
             }

@@ -1,13 +1,25 @@
+// js/views/notasAnuais.js
+/**
+ * ==========================================================================
+ * CONSOLIDADO ANUAL DE NOTAS, PARECERES E METAS IDEB (NOTAS ANUAIS VIEW)
+ * Padrão: Vanilla MVC, ES Modules, Event Delegation (data-action), LaTeX Estrito.
+ * ==========================================================================
+ */
+
 import { model } from '../model.js';
 import { controller } from '../controller.js';
 import { uiController } from '../controllers/uiController.js';
 import { aiService } from '../ai-service.js';
 import { Toast } from '../components/toast.js';
-import { renderKatex, formatarTextoComLatex } from '../utils.js';
+import { renderKatex } from '../utils.js';
+import { gradeCalculatorService } from '../services/gradeCalculatorService.js';
+import { attendanceCalculatorService } from '../services/attendanceCalculatorService.js';
+import { EventDelegator } from '../utils/eventDelegator.js';
 
 export const notasAnuaisView = {
     turmaIdSelecionada: null,
     criterioOrdenacao: 'nome_asc',
+    _cleanupDelegators: null,
 
     mudarOrdenacao(criterio) {
         this.criterioOrdenacao = criterio;
@@ -17,6 +29,11 @@ export const notasAnuaisView = {
     async render(container) {
         if (typeof container === 'string') container = document.getElementById(container);
         if (!container) return;
+
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
 
         const turmas = model.state.turmas || [];
         if (this.turmaIdSelecionada && !turmas.find(t => String(t.id) === String(this.turmaIdSelecionada))) {
@@ -43,7 +60,7 @@ export const notasAnuaisView = {
                     </div>
 
                     <div style="display: flex; align-items: center; gap: var(--spacing-3); flex-wrap: wrap;">
-                        <button type="button" onclick="notasAnuaisView.imprimir()" class="btn-secondary" style="padding: 0.4rem 0.875rem; font-size: 0.8125rem;" title="Imprimir Consolidado Anual de Notas em A4">
+                        <button type="button" data-action="imprimir-a4-btn" class="btn-secondary" style="padding: 0.4rem 0.875rem; font-size: 0.8125rem;" title="Imprimir Consolidado Anual de Notas em A4">
                             <i class="fas fa-print"></i> <span>Imprimir A4</span>
                         </button>
 
@@ -52,7 +69,7 @@ export const notasAnuaisView = {
                             <label style="font-size: 0.75rem; font-weight: 700; color: var(--text-muted);">
                                 <i class="fas fa-sort-amount-down"></i> Ordenar:
                             </label>
-                            <select onchange="notasAnuaisView.mudarOrdenacao(this.value)" class="form-input" style="padding: 0.35rem 0.625rem; font-size: 0.75rem; width: auto; border-radius: var(--radius-lg); background: var(--bg-surface); font-weight: 600;">
+                            <select data-action="mudar-ordenacao-select" class="form-input" style="padding: 0.35rem 0.625rem; font-size: 0.75rem; width: auto; border-radius: var(--radius-lg); background: var(--bg-surface); font-weight: 600;">
                                 <option value="nome_asc" ${this.criterioOrdenacao === 'nome_asc' ? 'selected' : ''}>Nome (A - Z)</option>
                                 <option value="nome_desc" ${this.criterioOrdenacao === 'nome_desc' ? 'selected' : ''}>Nome (Z - A)</option>
                                 <option value="chamada_asc" ${this.criterioOrdenacao === 'chamada_asc' ? 'selected' : ''}>Nº Chamada (1, 2, 3...)</option>
@@ -62,7 +79,7 @@ export const notasAnuaisView = {
                         </div>
 
                         <div class="custom-dropdown" style="min-width: 200px;">
-                            <input type="hidden" id="select-turma-notas" onchange="notasAnuaisView.selecionarTurma(this.value)" value="${this.turmaIdSelecionada || ''}">
+                            <input type="hidden" id="select-turma-notas" data-action="mudar-turma-notas" value="${this.turmaIdSelecionada || ''}">
                             <button type="button" class="dropdown-button">
                                 <i class="fas fa-users" style="color: var(--color-slate-400); margin-right: var(--spacing-2);"></i>
                                 <span class="dropdown-label">${turmaAtual ? window.escapeHTML(turmaAtual.nome) : 'Selecionar Turma...'}</span>
@@ -83,7 +100,54 @@ export const notasAnuaisView = {
         `;
 
         container.innerHTML = html;
+
+        const unbindClick = EventDelegator.bind(container, {
+            'imprimir-a4-btn': () => this.imprimir(),
+            'imprimir-relatorio-ideb': () => this.imprimirRelatorioIDEB(),
+            'gerar-dossie-aluno': (e, target) => {
+                const tId = target.getAttribute('data-turma');
+                const aId = target.getAttribute('data-aluno');
+                if (tId && aId) uiController.gerarDossieAluno(tId, aId);
+            },
+            'gerar-parecer-ia-btn': (e, target) => {
+                const tId = target.getAttribute('data-turma');
+                const aId = target.getAttribute('data-aluno');
+                if (tId && aId) this.gerarParecerIA(tId, aId);
+            },
+            'gerar-recuperacao-ia-btn': (e, target) => {
+                const tId = target.getAttribute('data-turma');
+                const aId = target.getAttribute('data-aluno');
+                if (tId && aId) this.gerarRecuperacaoIA(tId, aId);
+            },
+            'navigate-turmas': () => controller.navigate('turmas')
+        }, 'click');
+
+        const unbindChange = EventDelegator.bind(container, {
+            'mudar-ordenacao-select': (e, target) => {
+                this.mudarOrdenacao(target.value);
+            },
+            'mudar-turma-notas': (e, target) => {
+                this.selecionarTurma(target.value);
+            }
+        }, 'change');
+
+        this._cleanupDelegators = () => {
+            if (typeof unbindClick === 'function') unbindClick();
+            if (typeof unbindChange === 'function') unbindChange();
+        };
+
         uiController.initAllDropdowns(container);
+    },
+
+    destroy() {
+        if (typeof this._cleanupDelegators === 'function') {
+            this._cleanupDelegators();
+            this._cleanupDelegators = null;
+        }
+    },
+
+    onLeave() {
+        this.destroy();
     },
 
     selecionarTurma(turmaId) {
@@ -96,20 +160,10 @@ export const notasAnuaisView = {
         const tipo = config.tipoPeriodo || 'bimestre';
         const numPeriodos = tipo === 'bimestre' ? 4 : tipo === 'trimestre' ? 3 : 2;
 
-        const alunos = turma.alunos || [];
-        let somaMedias = 0;
-        let aprovados = 0;
-        alunos.forEach(a => {
-            const resumo = model.getResumoAcademico ? model.getResumoAcademico(turma.id, a.id, turma, a) : null;
-            const m = resumo?.mediaAnual || 0;
-            somaMedias += m;
-            if (m >= 6.0) aprovados++;
-        });
-
-        const totalAlunos = alunos.length || 1;
-        const mediaGeral = somaMedias / totalAlunos;
-        const taxaAprovacao = aprovados / totalAlunos;
-        const idebEstimado = mediaGeral * taxaAprovacao;
+        const stats = gradeCalculatorService.calcularEstatisticasTurma(turma);
+        const mediaGeral = stats.mediaGeral;
+        const taxaAprovacao = stats.taxaAprovacao;
+        const idebEstimado = stats.idebEstimado;
 
         const idebBannerHtml = `
             <div class="card p-4" style="margin-bottom: var(--spacing-4); background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%); border: 1px solid #c7d2fe; border-radius: var(--radius-xl);">
@@ -130,12 +184,16 @@ export const notasAnuaisView = {
                             </p>
                         </div>
                     </div>
-                    <button type="button" onclick="notasAnuaisView.imprimirRelatorioIDEB()" class="btn-secondary" style="background: white; border: 1px solid #c7d2fe; color: #4338ca; font-weight: 800; font-size: 0.75rem;">
+                    <button type="button" data-action="imprimir-relatorio-ideb" class="btn-secondary" style="background: white; border: 1px solid #c7d2fe; color: #4338ca; font-weight: 800; font-size: 0.75rem;">
                         <i class="fas fa-chart-line"></i> <span>Relatório A4 Metas IDEB</span>
                     </button>
                 </div>
             </div>
         `;
+
+        const alunosOrdenados = window.ordenarEstudantes
+            ? window.ordenarEstudantes(turma.alunos || [], this.criterioOrdenacao)
+            : (turma.alunos || []);
 
         return `
             ${idebBannerHtml}
@@ -155,21 +213,20 @@ export const notasAnuaisView = {
                             </tr>
                         </thead>
                         <tbody>
-                            ${turma.alunos.length > 0 ? (window.ordenarEstudantes ? window.ordenarEstudantes(turma.alunos, this.criterioOrdenacao) : turma.alunos).map(aluno => {
+                            ${alunosOrdenados.length > 0 ? alunosOrdenados.map(aluno => {
                                 const resumo = model.getResumoAcademico ? model.getResumoAcademico(turma.id, aluno.id, turma, aluno) : null;
                                 const mediaAnual = resumo?.mediaAnual || 0;
-                                const isAprovado = mediaAnual >= 6;
+                                const statusInfo = gradeCalculatorService.obterStatusAprovacao(mediaAnual);
+                                const isAprovado = statusInfo.status === 'aprovado';
                                 const temParecerSalvo = !!aluno.parecerDescritivo;
                                 const temPlanoSalvo = !!aluno.planoRecuperacao;
 
                                 return `
-                                    <tr style="border-bottom: 1px solid var(--color-slate-100); transition: background-color var(--transition-fast);"
-                                        onmouseover="this.style.backgroundColor='var(--color-slate-50)'"
-                                        onmouseout="this.style.backgroundColor='transparent'">
+                                    <tr style="border-bottom: 1px solid var(--color-slate-100); transition: background-color var(--transition-fast);">
                                         <td style="padding: var(--spacing-4) var(--spacing-6);">
                                             <div style="display: flex; align-items: center; gap: 0.375rem;">
                                                 <div style="font-weight: 700; color: var(--color-slate-800); font-size: 0.875rem;">${window.escapeHTML(aluno.nome)}</div>
-                                                <button type="button" onclick="uiController.gerarDossieAluno('${turma.id}', '${aluno.id}')" style="background: none; border: none; cursor: pointer; color: var(--color-slate-400); padding: 0.1rem 0.25rem; border-radius: 0.25rem; transition: all 120ms ease;" onmouseover="this.style.color='#10b981'; this.style.backgroundColor='#ecfdf5';" onmouseout="this.style.color='var(--color-slate-400)'; this.style.backgroundColor='transparent';" title="Gerar Ficha Individual / Dossiê (PDF)">
+                                                <button type="button" data-action="gerar-dossie-aluno" data-turma="${turma.id}" data-aluno="${aluno.id}" style="background: none; border: none; cursor: pointer; color: var(--color-slate-400); padding: 0.1rem 0.25rem; border-radius: 0.25rem; transition: all 120ms ease;" title="Gerar Ficha Individual / Dossiê (PDF)">
                                                     <i class="fas fa-file-invoice" style="font-size: 0.8125rem;"></i>
                                                 </button>
                                             </div>
@@ -193,11 +250,11 @@ export const notasAnuaisView = {
                                         </td>
                                         <td style="padding: var(--spacing-4) var(--spacing-6); text-align: center;">
                                             <span class="badge" style="background-color: ${isAprovado ? '#d1fae5' : '#fee2e2'}; color: ${isAprovado ? '#059669' : '#dc2626'}; font-weight: 800;">
-                                                ${isAprovado ? 'Aprovado' : 'Recuperação'}
+                                                ${statusInfo.rotulo}
                                             </span>
                                         </td>
                                         <td style="padding: var(--spacing-4); text-align: center;">
-                                            <button type="button" onclick="notasAnuaisView.gerarParecerIA('${turma.id}', '${aluno.id}')" 
+                                            <button type="button" data-action="gerar-parecer-ia-btn" data-turma="${turma.id}" data-aluno="${aluno.id}"
                                                     class="btn-secondary" 
                                                     style="padding: 0.35rem 0.75rem; font-size: 0.75rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.35rem; color: #4338ca; background-color: #e0e7ff; border: 1px solid #c7d2fe; border-radius: 0.5rem; cursor: pointer;" 
                                                     title="${temParecerSalvo ? 'Ver ou Reavaliar Parecer Descritivo com IA' : 'Gerar Parecer Descritivo com IA'}">
@@ -207,7 +264,7 @@ export const notasAnuaisView = {
                                         </td>
                                         <td style="padding: var(--spacing-4); text-align: center;">
                                             ${!isAprovado || temPlanoSalvo ? `
-                                                <button type="button" onclick="notasAnuaisView.gerarRecuperacaoIA('${turma.id}', '${aluno.id}')" 
+                                                <button type="button" data-action="gerar-recuperacao-ia-btn" data-turma="${turma.id}" data-aluno="${aluno.id}"
                                                         class="btn-primary" 
                                                         style="padding: 0.35rem 0.75rem; font-size: 0.75rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.35rem; background: linear-gradient(135deg, #d97706, #b45309); border: none; border-radius: 0.5rem; color: #fff; cursor: pointer; box-shadow: 0 2px 6px rgba(217, 119, 6, 0.25);" 
                                                         title="Gerar Plano Individualizado de Recuperação Paralela com IA">
@@ -244,21 +301,16 @@ export const notasAnuaisView = {
         const mediaAnual = resumo?.mediaAnual || 0;
         const notasPeriodos = resumo?.periodos ? Object.entries(resumo.periodos).map(([p, n]) => `${p}º Período: ${Number(n).toFixed(1)}`).join(', ') : 'Sem notas detalhadas';
 
-        const freqObj = aluno.frequencia || {};
-        let totalReg = 0, totalFaltas = 0;
-        Object.values(freqObj).forEach(v => {
-            if (v === 'P' || v === 'F' || v === 'J') totalReg++;
-            if (v === 'F') totalFaltas++;
-        });
+        const totaisPresenca = attendanceCalculatorService.calcularTotaisAluno(aluno.frequencia || {});
+        const totalReg = totaisPresenca.totalRegistros;
+        const totalFaltas = totaisPresenca.faltas;
         const freqPct = totalReg > 0 ? Math.round(((totalReg - totalFaltas) / totalReg) * 100) : 100;
 
-        // Se já existe parecer salvo, exibe diretamente com opção de regenerar
         if (aluno.parecerDescritivo) {
             this.exibirModalParecerPronto(turma, aluno, aluno.parecerDescritivo);
             return;
         }
 
-        // Modal de Carregamento
         const loadingHtml = `
             <div style="padding: 2.5rem 1.5rem; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 1rem;">
                 <div style="width: 4rem; height: 4rem; border-radius: 1.25rem; background: linear-gradient(135deg, #4f46e5, #7c3aed); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 1.75rem; box-shadow: 0 10px 25px rgba(79,70,229,0.3); animation: pulse 2s infinite;">
@@ -307,7 +359,7 @@ Escreva em texto corrido e formal, pronto para inserção no diário oficial ou 
 
     exibirModalParecerPronto(turma, aluno, textoParecer) {
         const modalProntoHtml = `
-            <div style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; max-width: 650px;">
+            <div id="modal-parecer-wrap" style="padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; max-width: 650px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem;">
                     <div>
                         <h3 style="font-size: 1.25rem; font-weight: 800; color: #0f172a; display: flex; align-items: center; gap: 0.5rem; margin: 0;">
@@ -329,15 +381,15 @@ Escreva em texto corrido e formal, pronto para inserção no diário oficial ou 
                 </div>
 
                 <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.5rem;">
-                    <button type="button" onclick="notasAnuaisView.copiarParecer()" class="btn-secondary" style="font-size: 0.875rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.5rem;">
+                    <button type="button" data-action="copiar-parecer-btn" class="btn-secondary" style="font-size: 0.875rem; font-weight: 700; display: inline-flex; align-items: center; gap: 0.5rem;">
                         <i class="fas fa-copy"></i> Copiar Texto
                     </button>
 
                     <div style="display: flex; gap: 0.75rem;">
-                        <button type="button" onclick="controller.closeModal()" class="btn-secondary" style="font-size: 0.875rem;">
+                        <button type="button" data-action="fechar-modal-btn" class="btn-secondary" style="font-size: 0.875rem;">
                             Fechar
                         </button>
-                        <button type="button" onclick="notasAnuaisView.salvarParecerAluno('${turma.id}', '${aluno.id}')" class="btn-primary" style="font-size: 0.875rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.5rem; background: #059669; border-color: #059669;">
+                        <button type="button" data-action="salvar-parecer-btn" data-turma="${turma.id}" data-aluno="${aluno.id}" class="btn-primary" style="font-size: 0.875rem; font-weight: 800; display: inline-flex; align-items: center; gap: 0.5rem; background: #059669; border-color: #059669;">
                             <i class="fas fa-save"></i> Salvar na Ficha do Aluno
                         </button>
                     </div>
@@ -345,6 +397,19 @@ Escreva em texto corrido e formal, pronto para inserção no diário oficial ou 
             </div>
         `;
         controller.openModal('Parecer Descritivo', modalProntoHtml);
+
+        const modalWrap = document.getElementById('modal-parecer-wrap');
+        if (modalWrap) {
+            EventDelegator.bind(modalWrap, {
+                'copiar-parecer-btn': () => this.copiarParecer(),
+                'fechar-modal-btn': () => controller.closeModal(),
+                'salvar-parecer-btn': (e, target) => {
+                    const tId = target.getAttribute('data-turma');
+                    const aId = target.getAttribute('data-aluno');
+                    if (tId && aId) this.salvarParecerAluno(tId, aId);
+                }
+            }, 'click');
+        }
     },
 
     copiarParecer() {
@@ -378,9 +443,10 @@ Escreva em texto corrido e formal, pronto para inserção no diário oficial ou 
         aluno.parecerDescritivo = texto;
         aluno.parecerAtualizadoEm = new Date().toISOString();
 
-        model.saveLocal();
-        if (model.currentUser && window.turmaService) {
-            window.turmaService.saveTurma(model.currentUser.uid, turma);
+        if (model.saveTurma) {
+            model.saveTurma(turma);
+        } else {
+            model.saveLocal();
         }
 
         controller.closeModal();
@@ -394,7 +460,6 @@ Escreva em texto corrido e formal, pronto para inserção no diário oficial ou 
         const aluno = (turma.alunos || []).find(a => String(a.id) === String(alunoId));
         if (!aluno) return;
 
-        // Se já tiver plano salvo, exibe diretamente com opção de reavaliar
         if (aluno.planoRecuperacao && typeof aluno.planoRecuperacao === 'object') {
             this.exibirModalPlanoRecuperacao(turma, aluno, aluno.planoRecuperacao);
             return;
@@ -403,7 +468,6 @@ Escreva em texto corrido e formal, pronto para inserção no diário oficial ou 
         const resumo = model.getResumoAcademico ? model.getResumoAcademico(turma.id, aluno.id, turma, aluno) : null;
         const mediaAtual = resumo?.mediaAnual || 0;
 
-        // Loading modal
         controller.openModal(`
             <div style="padding: 2.5rem; text-align: center; max-width: 500px; margin: 0 auto;">
                 <div style="font-size: 3rem; color: #d97706; margin-bottom: 1rem;" class="animate-bounce">
@@ -503,7 +567,7 @@ Escreva em texto corrido e formal, pronto para inserção no diário oficial ou 
                             <i class="fas fa-book-reader" style="color: #d97706;"></i> Plano de Recuperação: ${window.escapeHTML(aluno.nome)}
                         </h3>
                     </div>
-                    <button type="button" onclick="controller.closeModal()" style="border: none; background: transparent; font-size: 1.25rem; color: var(--color-slate-400); cursor: pointer;">
+                    <button type="button" data-action="fechar-plano-btn" style="border: none; background: transparent; font-size: 1.25rem; color: var(--color-slate-400); cursor: pointer;">
                         <i class="fas fa-times"></i>
                     </button>
                 </div>
@@ -540,15 +604,15 @@ Escreva em texto corrido e formal, pronto para inserção no diário oficial ou 
 
                 <!-- FOOTER COM AÇÕES -->
                 <div style="padding: 1rem 1.5rem; border-top: 1px solid var(--color-slate-200); background: var(--color-slate-50); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;">
-                    <button type="button" onclick="notasAnuaisView.gerarRecuperacaoIA('${turma.id}', '${aluno.id}')" class="btn-secondary" style="font-size: 0.8125rem;">
+                    <button type="button" data-action="regenerar-recuperacao-ia" data-turma="${turma.id}" data-aluno="${aluno.id}" class="btn-secondary" style="font-size: 0.8125rem;">
                         <i class="fas fa-sync-alt"></i> <span>Regenerar com IA</span>
                     </button>
 
                     <div style="display: flex; gap: 0.5rem;">
-                        <button type="button" onclick="window.print()" class="btn-secondary" style="font-size: 0.8125rem;">
+                        <button type="button" data-action="imprimir-plano-btn" class="btn-secondary" style="font-size: 0.8125rem;">
                             <i class="fas fa-print"></i> <span>Imprimir Plano</span>
                         </button>
-                        <button type="button" onclick="notasAnuaisView.salvarPlanoRecuperacao('${turma.id}', '${aluno.id}', ${JSON.stringify(plano).replace(/"/g, '&quot;')})" class="btn-primary" style="font-size: 0.8125rem; background: #059669;">
+                        <button type="button" data-action="salvar-plano-btn" data-turma="${turma.id}" data-aluno="${aluno.id}" class="btn-primary" style="font-size: 0.8125rem; background: #059669;">
                             <i class="fas fa-save"></i> <span>Salvar na Ficha do Aluno</span>
                         </button>
                     </div>
@@ -560,6 +624,21 @@ Escreva em texto corrido e formal, pronto para inserção no diário oficial ou 
         const modalContainer = document.getElementById('modal-plano-recuperacao');
         if (modalContainer) {
             renderKatex(modalContainer);
+
+            EventDelegator.bind(modalContainer, {
+                'fechar-plano-btn': () => controller.closeModal(),
+                'regenerar-recuperacao-ia': (e, target) => {
+                    const tId = target.getAttribute('data-turma');
+                    const aId = target.getAttribute('data-aluno');
+                    if (tId && aId) this.gerarRecuperacaoIA(tId, aId);
+                },
+                'imprimir-plano-btn': () => window.print(),
+                'salvar-plano-btn': (e, target) => {
+                    const tId = target.getAttribute('data-turma');
+                    const aId = target.getAttribute('data-aluno');
+                    if (tId && aId) this.salvarPlanoRecuperacao(tId, aId, plano);
+                }
+            }, 'click');
         }
     },
 
@@ -572,9 +651,10 @@ Escreva em texto corrido e formal, pronto para inserção no diário oficial ou 
         aluno.planoRecuperacao = plano;
         aluno.planoRecuperacaoAtualizadoEm = new Date().toISOString();
 
-        model.saveLocal();
-        if (model.currentUser && window.turmaService) {
-            window.turmaService.saveTurma(model.currentUser.uid, turma);
+        if (model.saveTurma) {
+            model.saveTurma(turma);
+        } else {
+            model.saveLocal();
         }
 
         controller.closeModal();
@@ -590,7 +670,7 @@ Escreva em texto corrido e formal, pronto para inserção no diário oficial ou 
                 </div>
                 <h3 style="font-size: 1.25rem; font-weight: 800; color: var(--color-slate-800); margin-bottom: 0.5rem;">Nenhuma turma selecionada</h3>
                 <p style="color: var(--color-slate-500); font-size: 0.875rem; margin-bottom: 1.5rem;">Cadastre ou selecione uma turma para ver o consolidado anual de notas.</p>
-                <button onclick="controller.navigate('turmas')" class="btn-primary">
+                <button type="button" data-action="navigate-turmas" class="btn-primary">
                     <i class="fas fa-plus"></i> <span>Cadastrar Turmas</span>
                 </button>
             </div>
@@ -620,9 +700,8 @@ Escreva em texto corrido e formal, pronto para inserção no diário oficial ou 
             const n4 = resumo?.periodos?.[4] || 0;
             const mediaVal = resumo?.mediaAnual || 0;
             const media = Number(mediaVal).toFixed(1);
-            const isAprovado = Number(mediaVal) >= 6.0;
-            const status = isAprovado ? 'Aprovado' : 'Em Risco / Conselho';
-            const corStatus = isAprovado ? '#15803d' : '#dc2626';
+            const statusInfo = gradeCalculatorService.obterStatusAprovacao(mediaVal);
+            const corStatus = statusInfo.status === 'aprovado' ? '#15803d' : '#dc2626';
 
             linhasHtml += `
                 <tr>
@@ -633,7 +712,7 @@ Escreva em texto corrido e formal, pronto para inserção no diário oficial ou 
                     <td style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; font-size: 0.75rem;">${n3 > 0 ? Number(n3).toFixed(1) : '-'}</td>
                     <td style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; font-size: 0.75rem;">${n4 > 0 ? Number(n4).toFixed(1) : '-'}</td>
                     <td style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; font-weight: 800; font-size: 0.8rem; background: #f8fafc;">${media}</td>
-                    <td style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; font-weight: 700; font-size: 0.75rem; color: ${corStatus};">${status}</td>
+                    <td style="border: 1px solid #cbd5e1; padding: 4px; text-align: center; font-weight: 700; font-size: 0.75rem; color: ${corStatus};">${statusInfo.rotulo}</td>
                 </tr>
             `;
         });
@@ -711,21 +790,13 @@ Escreva em texto corrido e formal, pronto para inserção no diário oficial ou 
         const config = model.state.userConfig || {};
         const escola = config.school || config.escola || 'Unidade Escolar';
         const anoLetivo = config.anoLetivo || new Date().getFullYear();
-        const alunos = turma.alunos || [];
+        const stats = gradeCalculatorService.calcularEstatisticasTurma(turma);
 
-        let somaMedias = 0;
-        let aprovados = 0;
-        alunos.forEach(a => {
-            const resumo = model.getResumoAcademico ? model.getResumoAcademico(turma.id, a.id, turma, a) : null;
-            const m = resumo?.mediaAnual || 0;
-            somaMedias += m;
-            if (m >= 6.0) aprovados++;
-        });
-
-        const total = alunos.length || 1;
-        const proficiencia = (somaMedias / total);
-        const taxaAprovacao = (aprovados / total);
-        const idebEstimado = (proficiencia * taxaAprovacao);
+        const total = stats.totalAlunos;
+        const aprovados = stats.aprovados;
+        const proficiencia = stats.mediaGeral;
+        const taxaAprovacao = stats.taxaAprovacao;
+        const idebEstimado = stats.idebEstimado;
 
         const printWindow = window.open('', '_blank');
         if (!printWindow) return Toast.show("Permita pop-ups para visualizar o relatório.", "warning");
@@ -779,7 +850,7 @@ Escreva em texto corrido e formal, pronto para inserção no diário oficial ou 
 
                 <div class="section-title">Diagnóstico Estratégico & Plano de Ação Pedagógica</div>
                 <div style="border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; font-size: 0.8rem; color: #334155; line-height: 1.5; margin-bottom: 20px;">
-                    <p style="margin: 0 0 8px 0;"><strong>Análise da Turma:</strong> A turma possui <strong>${aprovados} de ${total} estudantes</strong> com média dentro da meta estipulada ($\ge 6.0$). O indicador IDEB é diretamente influenciado pela retenção de alunos e lacunas nos descritores avaliados.</p>
+                    <p style="margin: 0 0 8px 0;"><strong>Análise da Turma:</strong> A turma possui <strong>${aprovados} de ${total} estudantes</strong> com média dentro da meta estipulada (\\(\\ge 6.0\\)). O indicador IDEB é diretamente influenciado pela retenção de alunos e lacunas nos descritores avaliados.</p>
                     <p style="margin: 0 0 8px 0;"><strong>Recomendações da Equipe Pedagógica:</strong></p>
                     <ul style="margin: 0; padding-left: 20px;">
                         <li>Intensificar oficinas de reforço paralelo com os ${total - aprovados} estudantes em risco.</li>
@@ -802,3 +873,7 @@ Escreva em texto corrido e formal, pronto para inserção no diário oficial ou 
         printWindow.document.close();
     }
 };
+
+if (typeof window !== 'undefined') {
+    window.notasAnuaisView = notasAnuaisView;
+}
