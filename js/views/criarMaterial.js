@@ -1310,12 +1310,41 @@ export const criarMaterialView = {
             this.ferramentaAtiva = 'avaliacao';
         }
 
+        const configAtiva = this.formConfig[this.ferramentaAtiva] || { titulo: 'Ferramenta Pedagógica' };
+        let iconeAtivo = 'fas fa-magic';
+        let corAtiva = 'text-indigo-500';
+        for (const cat of this.categoriasMenu) {
+            const item = cat.itens.find(i => i.id === this.ferramentaAtiva);
+            if (item) {
+                iconeAtivo = item.icone;
+                corAtiva = item.cor;
+                break;
+            }
+        }
+
         return `
-            <div class="animate-enter" style="display: flex; flex-direction: row; gap: 1.5rem; align-items: flex-start; position: relative; min-height: 550px;">
-                <aside class="tool-sidebar custom-scrollbar" style="width: 280px; flex-shrink: 0;">
+            <div class="animate-enter tool-creation-layout">
+                <!-- Seletor Rápido Compacto para Mobile -->
+                <div class="tool-sidebar-mobile-bar hide-desktop">
+                    <div style="display: flex; align-items: center; gap: 0.75rem; flex: 1; min-width: 0;">
+                        <div class="tool-nav-btn__icon ${corAtiva}" style="width: 2.25rem; height: 2.25rem; border-radius: 0.625rem; background: #f1f5f9; display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-size: 1rem;">
+                            <i class="${iconeAtivo}"></i>
+                        </div>
+                        <div style="overflow: hidden; flex: 1; min-width: 0;">
+                            <span style="font-size: 0.6875rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; display: block; line-height: 1;">Tipo de Material</span>
+                            <h4 style="font-size: 0.9375rem; font-weight: 800; color: #1e293b; margin: 0.25rem 0 0 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${configAtiva.titulo}</h4>
+                        </div>
+                    </div>
+                    <button type="button" data-action="toggle-mobile-tool-sidebar" class="btn-secondary interactive-element" style="padding: 0.45rem 0.875rem; font-size: 0.8125rem; font-weight: 800; background: #ffffff; border-color: #cbd5e1; white-space: nowrap; display: flex; align-items: center; gap: 0.4rem; box-shadow: var(--shadow-sm);">
+                        <i class="fas fa-list-ul"></i> <span>Mudar Tipo</span>
+                    </button>
+                </div>
+
+                <aside id="tool-sidebar-aside" class="tool-sidebar custom-scrollbar ${this._mobileSidebarAberta ? 'tool-sidebar--mobile-open' : ''}">
                     ${this.gerarMenuLateral()}
                 </aside>
-                <main id="form-area" class="tool-main-panel animate-enter" style="flex: 1;">
+
+                <main id="form-area" class="tool-main-panel animate-enter">
                     ${this.renderizarFormularioDaFerramenta()}
                 </main>
             </div>
@@ -2562,6 +2591,16 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
                 const aba = target.getAttribute('data-aba');
                 if (aba) this.mudarAba(aba);
             },
+            'toggle-mobile-tool-sidebar': () => {
+                this._mobileSidebarAberta = !this._mobileSidebarAberta;
+                const asideEl = document.getElementById('tool-sidebar-aside');
+                if (asideEl) {
+                    asideEl.classList.toggle('tool-sidebar--mobile-open', this._mobileSidebarAberta);
+                    if (this._mobileSidebarAberta) {
+                        asideEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    }
+                }
+            },
             'abrir-modal-criar-material': () => this.abrirModalCriarMaterial(),
             'set-pasta-raiz': () => this.setPastaAtual(null),
             'voltar-pasta-anterior': () => {
@@ -2791,6 +2830,11 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
     },
     selecionarFerramenta(idFerramenta, btnElement) {
         this.ferramentaAtiva = idFerramenta;
+        this._mobileSidebarAberta = false;
+
+        const asideEl = document.getElementById('tool-sidebar-aside');
+        if (asideEl) asideEl.classList.remove('tool-sidebar--mobile-open');
+
         document.querySelectorAll('.tool-nav-btn').forEach(b => {
             b.classList.remove('tool-nav-btn--active');
         });
@@ -2818,6 +2862,28 @@ Desenvolva seu texto, explicações, fórmulas TeX ou atividades aqui...`
             setTimeout(() => {
                 anexarPreviewLatex('manual-conteudo-html', 'manual-preview-live');
             }, 50);
+        }
+
+        // Atualizar cabeçalho mobile caso visível
+        const mobileTitle = document.querySelector('.tool-sidebar-mobile-bar h4');
+        const mobileIcon = document.querySelector('.tool-sidebar-mobile-bar .tool-nav-btn__icon i');
+        const mobileIconWrap = document.querySelector('.tool-sidebar-mobile-bar .tool-nav-btn__icon');
+        const configAtiva = this.formConfig[idFerramenta];
+        if (mobileTitle && configAtiva) {
+            mobileTitle.textContent = configAtiva.titulo;
+        }
+        for (const cat of this.categoriasMenu) {
+            const item = cat.itens.find(i => i.id === idFerramenta);
+            if (item) {
+                if (mobileIcon) mobileIcon.className = item.icone;
+                if (mobileIconWrap) mobileIconWrap.className = `tool-nav-btn__icon ${item.cor}`;
+                break;
+            }
+        }
+
+        // Em dispositivos móveis, rolar suavemente para o início do formulário
+        if (window.innerWidth < 1024) {
+            formArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
         }
     },
 
